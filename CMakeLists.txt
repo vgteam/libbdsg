@@ -8,6 +8,11 @@ set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -g")
 # Add external projects
 include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 
+# Define lib and include directories to install the external projects into
+set(DEP_PREFIX ${CMAKE_CURRENT_BINARY_DIR})
+set(DEP_LIB ${DEP_PREFIX}/lib)
+set(DEP_INCLUDE ${DEP_PREFIX}/include)
+
 # TODO: We're using INSTALL_DIR very wrong. We *should* be actually installing
 # the external projects into their prefixes and working with the installed
 # files. Instead we're building but not installing them and trying to work with
@@ -20,38 +25,29 @@ include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 
 # sdsl-lite (full build using its cmake config)
 ExternalProject_Add(sdsl-lite
-  GIT_REPOSITORY "https://github.com/simongog/sdsl-lite.git"
-  GIT_TAG "ddb0fbbc33bb183baa616f17eb48e261ac2a3672"
-  CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_DIR} # TODO ADD static build flag
-  INSTALL_COMMAND "")
-ExternalProject_Get_property(sdsl-lite INSTALL_DIR)
-set(sdsl-lite_INCLUDE "${INSTALL_DIR}/src/sdsl-lite-build/include")
-set(sdsl-lite-divsufsort_INCLUDE "${INSTALL_DIR}/src/sdsl-lite-build/external/libdivsufsort/include")
-set(sdsl-lite_LIB "${INSTALL_DIR}/src/sdsl-lite-build/lib")
-set(sdsl-lite-divsufsort_LIB "${INSTALL_DIR}/src/sdsl-lite-build/external/libdivsufsort/lib")
+    GIT_REPOSITORY "https://github.com/simongog/sdsl-lite.git"
+    GIT_TAG "ddb0fbbc33bb183baa616f17eb48e261ac2a3672"
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${DEP_PREFIX}
+    )
 
 # libhandlegraph (full build using its cmake config)
 ExternalProject_Add(handlegraph
-  GIT_REPOSITORY "https://github.com/vgteam/libhandlegraph.git"
-  GIT_TAG "9a640570ca803ea0db7835616fe2e137aad57de3"
-  CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_DIR}
-  INSTALL_COMMAND "")
-ExternalProject_Get_property(handlegraph INSTALL_DIR)
-set(handlegraph_INCLUDE "${INSTALL_DIR}/src/handlegraph/src/include")
-set(handlegraph_LIB "${INSTALL_DIR}/src/handlegraph-build")
+    GIT_REPOSITORY "https://github.com/vgteam/libhandlegraph.git"
+    GIT_TAG "9a640570ca803ea0db7835616fe2e137aad57de3"
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${DEP_PREFIX}
+    )
+message("Install handlegraph to ${DEP_PREFIX}")
 
 # sparsepp
 ExternalProject_Add(sparsepp
-  GIT_REPOSITORY "https://github.com/edawson/sparsepp.git"
-  GIT_TAG "f9ad6d7f4246a78c7b5631e400f6936514cfceb3"
-  BUILD_IN_SOURCE TRUE
-  CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_DIR} # TODO ADD static build flag
-  INSTALL_COMMAND ""
-  BUILD_COMMAND ""
-  CONFIGURE_COMMAND "")
-ExternalProject_Get_property(sparsepp INSTALL_DIR)
-set(sparsepp_INCLUDE "${INSTALL_DIR}/src/sparsepp/sparsepp/")
-set(sparsepp_LIB "${INSTALL_DIR}/src/sparsepp/sparsepp/")
+    GIT_REPOSITORY "https://github.com/greg7mdp/sparsepp.git"
+    GIT_TAG "f9ad6d7f4246a78c7b5631e400f6936514cfceb3"
+    BUILD_IN_SOURCE TRUE
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND cp -R sparsepp/ ${DEP_INCLUDE}
+    )
+
 
 # Set where the LC_ID_DYLIB install name for Mac dylib files ought to point.
 # It ought to point to where the dylibs will actually be installed
@@ -75,22 +71,30 @@ add_dependencies(sglib sparsepp)
 add_dependencies(sglib_static handlegraph)
 add_dependencies(sglib_static sdsl-lite)
 add_dependencies(sglib_static sparsepp)
-
-# Set target properties
 target_include_directories(sglib
     PUBLIC
         $<INSTALL_INTERFACE:include>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
-    PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/src
-)
+        ${DEP_INCLUDE}
+    )
+target_link_libraries(sglib
+    "-lsdsl-lite"
+    "-lhandlegraph"
+    "-lsparsepp"
+    )
+    
 target_include_directories(sglib_static
     PUBLIC
         $<INSTALL_INTERFACE:include>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
-    PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/src
-)
+        ${DEP_INCLUDE}
+    )
+target_link_libraries(sglib_static
+    "-lsdsl-lite"
+    "-lhandlegraph"
+    "-lsparsepp"
+    )
+    
 
 target_compile_features(sglib PUBLIC cxx_std_14)
 target_compile_features(sglib_static PUBLIC cxx_std_14)
@@ -98,13 +102,10 @@ target_compile_features(sglib_static PUBLIC cxx_std_14)
 # Installation instructions
 
 include(GNUInstallDirs)
-set(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/SGlib)
 
 install(TARGETS sglib sglib_static
     EXPORT sglib-targets
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-)
+    )
 
-# TODO: magic cmake find-able sglib like vgio has
-# TODO: Auto-generate a pkg-config file so non-cmake code can depend on us
