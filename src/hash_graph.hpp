@@ -44,13 +44,13 @@ public:
     ////////////////////////////////////////////////////////////////////////////
     
     /// Method to check if a node exists by ID
-    bool has_node(id_t node_id) const;
+    bool has_node(nid_t node_id) const;
     
     /// Look up the handle for the node with the given ID in the given orientation
-    handle_t get_handle(const id_t& node_id, bool is_reverse = false) const;
+    handle_t get_handle(const nid_t& node_id, bool is_reverse = false) const;
     
     /// Get the ID from a handle
-    id_t get_id(const handle_t& handle) const;
+    nid_t get_id(const handle_t& handle) const;
     
     /// Get the orientation of a handle
     bool get_is_reverse(const handle_t& handle) const;
@@ -82,11 +82,11 @@ public:
     
     /// Return the smallest ID in the graph, or some smaller number if the
     /// smallest ID is unavailable. Return value is unspecified if the graph is empty.
-    id_t min_node_id(void) const;
+    nid_t min_node_id(void) const;
     
     /// Return the largest ID in the graph, or some larger number if the
     /// largest ID is unavailable. Return value is unspecified if the graph is empty.
-    id_t max_node_id(void) const;
+    nid_t max_node_id(void) const;
     
     /// Efficiently get the number of edges attached to one side of a handle.
     size_t get_degree(const handle_t& handle, bool go_left) const;
@@ -104,7 +104,7 @@ public:
     handle_t create_handle(const std::string& sequence);
 
     /// Create a new node with the given id and sequence, then return the handle.
-    handle_t create_handle(const std::string& sequence, const id_t& id);
+    handle_t create_handle(const std::string& sequence, const nid_t& id);
     
     /// Remove the node belonging to the given handle and all of its edges.
     /// Does not update any stored paths.
@@ -351,12 +351,12 @@ private:
     };
     
     /// The maximum ID in the graph
-    id_t max_id = 0;
+    nid_t max_id = 0;
     /// The minimum ID in the graph
-    id_t min_id = numeric_limits<id_t>::max();
+    nid_t min_id = numeric_limits<nid_t>::max();
     
     /// Encodes the graph topology
-    hash_map<id_t, node_t> graph;
+    hash_map<nid_t, node_t> graph;
     
     /// Maps path names to path IDs
     string_hash_map<string, int64_t> path_id;

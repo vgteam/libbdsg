@@ -12,7 +12,6 @@
 
 #include <handlegraph/mutable_path_deletable_handle_graph.hpp>
 
-#include "handle.hpp"
 #include "packed_structs.hpp"
 #include "split_strand_graph.hpp"
 #include "hash_map.hpp"
@@ -51,13 +50,13 @@ public:
     ////////////////////////////////////////////////////////////////////////////
     
     /// Method to check if a node exists by ID
-    bool has_node(id_t node_id) const;
+    bool has_node(nid_t node_id) const;
     
     /// Look up the handle for the node with the given ID in the given orientation
-    handle_t get_handle(const id_t& node_id, bool is_reverse = false) const;
+    handle_t get_handle(const nid_t& node_id, bool is_reverse = false) const;
     
     /// Get the ID from a handle
-    id_t get_id(const handle_t& handle) const;
+    nid_t get_id(const handle_t& handle) const;
     
     /// Get the orientation of a handle
     bool get_is_reverse(const handle_t& handle) const;
@@ -97,17 +96,17 @@ public:
     
     /// Return the smallest ID in the graph, or some smaller number if the
     /// smallest ID is unavailable. Return value is unspecified if the graph is empty.
-    id_t min_node_id(void) const;
+    nid_t min_node_id(void) const;
     
     /// Return the largest ID in the graph, or some larger number if the
     /// largest ID is unavailable. Return value is unspecified if the graph is empty.
-    id_t max_node_id(void) const;
+    nid_t max_node_id(void) const;
 
     /// Create a new node with the given sequence and return the handle.
     handle_t create_handle(const std::string& sequence);
 
     /// Create a new node with the given id and sequence, then return the handle.
-    handle_t create_handle(const std::string& sequence, const id_t& id);
+    handle_t create_handle(const std::string& sequence, const nid_t& id);
     
     /// Remove the node belonging to the given handle and all of its edges.
     /// Does not update any stored paths.
@@ -282,7 +281,7 @@ private:
     
     /// Initialize all of the data corresponding with a new node and return
     /// it's 1-based offset
-    size_t new_node_record(id_t node_id);
+    size_t new_node_record(nid_t node_id);
     
     /// Find and edge on given handle, to a given handle, and remove it from the edge list
     void remove_edge_reference(const handle_t& on, const handle_t& to);
@@ -308,9 +307,9 @@ private:
     const static size_t PAGE_WIDTH;
     
     /// The maximum ID in the graph
-    id_t max_id = 0;
+    nid_t max_id = 0;
     /// The minimum ID in the graph
-    id_t min_id = std::numeric_limits<id_t>::max();
+    nid_t min_id = std::numeric_limits<nid_t>::max();
     
     // TODO: some of these offsets are a little silly and only are around as legacy.
     // They could be removed once the factoring stabilizes, but optimization will also
@@ -341,14 +340,14 @@ private:
     const static size_t EDGE_TRAV_OFFSET;
     const static size_t EDGE_NEXT_OFFSET;
     
-    // TODO: template out the deque and back id_to_graph_iv with a paged vector? might
+    // TODO: template out the deque and back nid_to_graph_iv with a paged vector? might
     // provide better compression now that it can handle 0's gracefully. unsure how the
     // wrapping around would act with pages though...
     
     /// Encodes the 1-based offset of an ID in graph_iv in units of GRAPH_RECORD_SIZE.
     /// If no node with that ID exists, contains a 0. The index of a given ID is
     /// computed by (ID - min ID).
-    PackedDeque id_to_graph_iv;
+    PackedDeque nid_to_graph_iv;
 
     /// Encodes all of the sequences of all nodes in the graph.
     PackedVector seq_iv;
@@ -502,7 +501,7 @@ inline char PackedGraph::decode_nucleotide(const uint64_t& val) const {
 }
     
 inline size_t PackedGraph::graph_iv_index(const handle_t& handle) const {
-    return (id_to_graph_iv.get(get_id(handle) - min_id) - 1) * GRAPH_RECORD_SIZE;
+    return (nid_to_graph_iv.get(get_id(handle) - min_id) - 1) * GRAPH_RECORD_SIZE;
 }
 
 inline uint64_t PackedGraph::graph_index_to_seq_len_index(const size_t& graph_index) const {

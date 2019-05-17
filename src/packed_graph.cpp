@@ -76,7 +76,7 @@ namespace vg {
         seq_start_iv.serialize(out);
         seq_length_iv.serialize(out);
         edge_lists_iv.serialize(out);
-        id_to_graph_iv.serialize(out);
+        nid_to_graph_iv.serialize(out);
         seq_iv.serialize(out);
         
         path_membership_node_iv.serialize(out);
@@ -109,7 +109,7 @@ namespace vg {
         seq_start_iv.deserialize(in);
         seq_length_iv.deserialize(in);
         edge_lists_iv.deserialize(in);
-        id_to_graph_iv.deserialize(in);
+        nid_to_graph_iv.deserialize(in);
         seq_iv.deserialize(in);
         
         path_membership_node_iv.deserialize(in);
@@ -146,7 +146,7 @@ namespace vg {
     }
     
     
-    size_t PackedGraph::new_node_record(id_t node_id) {
+    size_t PackedGraph::new_node_record(nid_t node_id) {
         
         size_t next_g_iv_idx = graph_iv.size();
         
@@ -162,15 +162,15 @@ namespace vg {
         path_membership_node_iv.append(0);
         
         // expand the ID vector's dimensions so it can handle the full ID interval
-        if (id_to_graph_iv.empty()) {
-            id_to_graph_iv.append_back(0);
+        if (nid_to_graph_iv.empty()) {
+            nid_to_graph_iv.append_back(0);
         }
         else {
             for (int64_t i = node_id; i < min_id; i++) {
-                id_to_graph_iv.append_front(0);
+                nid_to_graph_iv.append_front(0);
             }
-            for (int64_t i = id_to_graph_iv.size(); i <= node_id - min_id; i++) {
-                id_to_graph_iv.append_back(0);
+            for (int64_t i = nid_to_graph_iv.size(); i <= node_id - min_id; i++) {
+                nid_to_graph_iv.append_back(0);
             }
         }
         
@@ -179,7 +179,7 @@ namespace vg {
         min_id = std::min(node_id, min_id);
         
         // record the mapping of the ID to the graph record
-        id_to_graph_iv.set(node_id - min_id, graph_iv.size() / GRAPH_RECORD_SIZE);
+        nid_to_graph_iv.set(node_id - min_id, graph_iv.size() / GRAPH_RECORD_SIZE);
         
         return next_g_iv_idx;
     }
@@ -188,10 +188,10 @@ namespace vg {
         return create_handle(sequence, max_id + 1);
     }
     
-    handle_t PackedGraph::create_handle(const string& sequence, const id_t& id) {
+    handle_t PackedGraph::create_handle(const string& sequence, const nid_t& id) {
         
-        if (id >= min_id && id < min_id + id_to_graph_iv.size()) {
-            if (id_to_graph_iv.get(id - min_id) != 0) {
+        if (id >= min_id && id < min_id + nid_to_graph_iv.size()) {
+            if (nid_to_graph_iv.get(id - min_id) != 0) {
                 cerr << "error:[PackedGraph] tried to create a node with ID " << id << ", but this ID already belongs to a different node" << endl;
                 exit(1);
             }
@@ -247,20 +247,20 @@ namespace vg {
         graph_iv.set(g_iv_right, edge_lists_iv.size() / EDGE_RECORD_SIZE);
     }
     
-    bool PackedGraph::has_node(id_t node_id) const {
-        if (node_id < min_id || node_id - min_id >= id_to_graph_iv.size()) {
+    bool PackedGraph::has_node(nid_t node_id) const {
+        if (node_id < min_id || node_id - min_id >= nid_to_graph_iv.size()) {
             return false;
         }
         else {
-            return id_to_graph_iv.get(node_id - min_id) != 0;
+            return nid_to_graph_iv.get(node_id - min_id) != 0;
         }
     }
     
-    handle_t PackedGraph::get_handle(const id_t& node_id, bool is_reverse) const {
+    handle_t PackedGraph::get_handle(const nid_t& node_id, bool is_reverse) const {
         return handlegraph::number_bool_packing::pack(node_id, is_reverse);
     }
     
-    id_t PackedGraph::get_id(const handle_t& handle) const {
+    nid_t PackedGraph::get_id(const handle_t& handle) const {
         return handlegraph::number_bool_packing::unpack_number(handle);
     }
     
@@ -325,8 +325,8 @@ namespace vg {
         }
         
         // swap the pointers from the ID vector
-        id_to_graph_iv.set(id_a - min_id, g_iv_index_b / GRAPH_RECORD_SIZE + 1);
-        id_to_graph_iv.set(id_b - min_id, g_iv_index_a / GRAPH_RECORD_SIZE + 1);
+        nid_to_graph_iv.set(id_a - min_id, g_iv_index_b / GRAPH_RECORD_SIZE + 1);
+        nid_to_graph_iv.set(id_b - min_id, g_iv_index_a / GRAPH_RECORD_SIZE + 1);
     }
     */
     
@@ -358,11 +358,11 @@ namespace vg {
         return graph_iv.size() / GRAPH_RECORD_SIZE - deleted_node_records;
     }
     
-    id_t PackedGraph::min_node_id(void) const {
+    nid_t PackedGraph::min_node_id(void) const {
         return min_id;
     }
     
-    id_t PackedGraph::max_node_id(void) const {
+    nid_t PackedGraph::max_node_id(void) const {
         return max_id;
     }
     
@@ -373,8 +373,8 @@ namespace vg {
             // TODO: would task based parallelism be better?
             atomic<bool> keep_going(true);
 #pragma omp parallel for
-            for (size_t i = 0; i < id_to_graph_iv.size(); i++) {
-                if (keep_going && id_to_graph_iv.get(i)) {
+            for (size_t i = 0; i < nid_to_graph_iv.size(); i++) {
+                if (keep_going && nid_to_graph_iv.get(i)) {
                     if (!iteratee(get_handle(i + min_id))) {
                         keep_going = false;
                     }
@@ -383,8 +383,8 @@ namespace vg {
             return keep_going;
         }
         else {
-            for (size_t i = 0; i < id_to_graph_iv.size(); i++) {
-                if (id_to_graph_iv.get(i)) {
+            for (size_t i = 0; i < nid_to_graph_iv.size(); i++) {
+                if (nid_to_graph_iv.get(i)) {
                     if (!iteratee(get_handle(i + min_id))) {
                         return false;
                     }
@@ -525,10 +525,10 @@ namespace vg {
         
         // init trackers for the previous iteration
         size_t last_offset = 0;
-        id_t prev_id = get_id(forward_handle);
+        nid_t prev_id = get_id(forward_handle);
         for (const size_t& off : forward_offsets) {
             
-            id_t next_id = max_id + 1;
+            nid_t next_id = max_id + 1;
             size_t new_g_iv_idx = new_node_record(next_id);
             // seq start
             seq_start_iv.set(graph_index_to_seq_start_index(new_g_iv_idx), first_start + off);
@@ -686,7 +686,7 @@ namespace vg {
         // is undefined behavior, so we don't *need* to...
         
         // remove the reference to the node
-        id_to_graph_iv.set(get_id(handle) - min_id, 0);
+        nid_to_graph_iv.set(get_id(handle) - min_id, 0);
         
         ++deleted_node_records;
         
@@ -796,33 +796,33 @@ namespace vg {
                 // now we need to iterate over each node on the path exactly one time to update its membership
                 // records (even if the node occurs multiple times on this path), so we will use a bit deque
                 // indexed by node_id - min_id to flag nodes as either translated or untranslated
-                PackedDeque id_translated;
-                id_translated.append_back(0);
-                id_t min_translated_id = get_id(decode_traversal(get_step_trav(path, path.head)));
+                PackedDeque nid_translated;
+                nid_translated.append_back(0);
+                nid_t min_translated_id = get_id(decode_traversal(get_step_trav(path, path.head)));
                 
                 first_iter = true;
                 for (size_t here = path.head; here != 0 && (here != path.head || first_iter); here = get_step_next(path, here)) {
                     
                     handle_t handle = decode_traversal(get_step_trav(path, here));
-                    id_t step_node_id = get_id(handle);
+                    nid_t step_node_id = get_id(handle);
                     
                     // expand the bounds of the deque as necessary to be able to index by ID
                     if (step_node_id < min_translated_id) {
-                        for (id_t i = step_node_id; i < min_translated_id; ++i) {
-                            id_translated.append_front(0);
+                        for (nid_t i = step_node_id; i < min_translated_id; ++i) {
+                            nid_translated.append_front(0);
                         }
                         min_translated_id = step_node_id;
                     }
-                    else if (step_node_id >= min_translated_id + id_translated.size()) {
-                        for (id_t i = min_translated_id + id_translated.size(); i <= step_node_id; ++i) {
-                            id_translated.append_back(0);
+                    else if (step_node_id >= min_translated_id + nid_translated.size()) {
+                        for (nid_t i = min_translated_id + nid_translated.size(); i <= step_node_id; ++i) {
+                            nid_translated.append_back(0);
                         }
                     }
                     
                     // have we already translated the membership records for the path on this node?
                     // (we need to check this to avoid falsely translating pointers that we have actually
                     // already translated)
-                    if (id_translated.get(step_node_id - min_translated_id) != 1) {
+                    if (nid_translated.get(step_node_id - min_translated_id) != 1) {
                         
                         size_t member_idx = path_membership_node_iv.get(graph_index_to_node_member_index(graph_iv_index(handle)));
                         while (member_idx) {
@@ -837,7 +837,7 @@ namespace vg {
                         }
                         
                         // mark this node as updated so we don't re-update the offsets
-                        id_translated.set(step_node_id - min_translated_id, 1);
+                        nid_translated.set(step_node_id - min_translated_id, 1);
                     }
                     
                     first_iter = false;
@@ -921,10 +921,10 @@ namespace vg {
         assert(layout.size() == node_size());
         
         // use the layout to make a translator between current IDs and the IDs we will reassign
-        PagedVector id_trans(PAGE_WIDTH);
-        id_trans.resize(max_id - min_id + 1);
+        PagedVector nid_trans(PAGE_WIDTH);
+        nid_trans.resize(max_id - min_id + 1);
         for (size_t i = 0; i < layout.size(); ++i) {
-            id_trans.set(get_id(layout[i]) - min_id, i + 1);
+            nid_trans.set(get_id(layout[i]) - min_id, i + 1);
         }
         
         // we don't need the layout anymore, so release the memory
@@ -934,8 +934,8 @@ namespace vg {
         for (size_t i = EDGE_TRAV_OFFSET; i < edge_lists_iv.size(); i += EDGE_RECORD_SIZE) {
             handle_t trav = decode_traversal(edge_lists_iv.get(i));
             // only translate edges to nodes that have not been deleted
-            if (id_to_graph_iv.get(get_id(trav) - min_id)) {
-                trav = get_handle(id_trans.get(get_id(trav) - min_id), get_is_reverse(trav));
+            if (nid_to_graph_iv.get(get_id(trav) - min_id)) {
+                trav = get_handle(nid_trans.get(get_id(trav) - min_id), get_is_reverse(trav));
                 edge_lists_iv.set(i, encode_traversal(trav));
             }
         }
@@ -950,31 +950,31 @@ namespace vg {
             for (size_t i = 0; i < packed_path.steps_iv.size(); i += STEP_RECORD_SIZE) {
                 handle_t trav = decode_traversal(packed_path.steps_iv.get(i));
                 // only translate step records of nodes that have not been deleted
-                if (id_to_graph_iv.get(get_id(trav) - min_id)) {
-                    trav = get_handle(id_trans.get(get_id(trav) - min_id), get_is_reverse(trav));
+                if (nid_to_graph_iv.get(get_id(trav) - min_id)) {
+                    trav = get_handle(nid_trans.get(get_id(trav) - min_id), get_is_reverse(trav));
                     packed_path.steps_iv.set(i, encode_traversal(trav));
                 }
             }
         }
         
         // make a vector to translate the new IDs to the offset of the node
-        PackedDeque new_id_to_graph_iv;
-        new_id_to_graph_iv.reserve(node_size());
-        for (id_t node_id = min_id; node_id <= max_id; ++node_id) {
-            size_t offset = id_to_graph_iv.get(node_id - min_id);
+        PackedDeque new_nid_to_graph_iv;
+        new_nid_to_graph_iv.reserve(node_size());
+        for (nid_t node_id = min_id; node_id <= max_id; ++node_id) {
+            size_t offset = nid_to_graph_iv.get(node_id - min_id);
             if (offset) {
-                new_id_to_graph_iv.append_back(offset);
+                new_nid_to_graph_iv.append_back(offset);
             }
         }
         
-        id_to_graph_iv = move(new_id_to_graph_iv);
+        nid_to_graph_iv = move(new_nid_to_graph_iv);
         
-        if (new_id_to_graph_iv.size() > 0) {
+        if (new_nid_to_graph_iv.size() > 0) {
             min_id = 1;
-            max_id = id_to_graph_iv.size();
+            max_id = nid_to_graph_iv.size();
         }
         else {
-            min_id = numeric_limits<id_t>::max();
+            min_id = numeric_limits<nid_t>::max();
             max_id = 0;
         }
     }
@@ -993,15 +993,15 @@ namespace vg {
         // force the graph structures to reallocate in ID order and eject deleted material
         defragment(true);
         
-        // make a new id_to_graph_iv of exactly the right size
-        PackedDeque new_id_to_graph_iv;
-        new_id_to_graph_iv.reserve(id_to_graph_iv.size());
+        // make a new nid_to_graph_iv of exactly the right size
+        PackedDeque new_nid_to_graph_iv;
+        new_nid_to_graph_iv.reserve(nid_to_graph_iv.size());
         // transfer of the data
-        for (size_t i = 0; i < id_to_graph_iv.size(); i++) {
-            new_id_to_graph_iv.append_back(id_to_graph_iv.get(i));
+        for (size_t i = 0; i < nid_to_graph_iv.size(); i++) {
+            new_nid_to_graph_iv.append_back(nid_to_graph_iv.get(i));
         }
         // replace the old one
-        id_to_graph_iv = std::move(new_id_to_graph_iv);
+        nid_to_graph_iv = std::move(new_nid_to_graph_iv);
         
         // count up the total length of all non-deleted sequence (a little costly but we're
         // not tracking deleted sequence anywhere)
@@ -1039,15 +1039,15 @@ namespace vg {
             uint64_t num_nodes = graph_iv.size() / GRAPH_RECORD_SIZE - deleted_node_records;
             
             // adjust the start
-            while (id_to_graph_iv.empty() ? false : id_to_graph_iv.get(0) == 0) {
-                id_to_graph_iv.pop_front();
+            while (nid_to_graph_iv.empty() ? false : nid_to_graph_iv.get(0) == 0) {
+                nid_to_graph_iv.pop_front();
                 min_id++;
             }
             // adjust the end
-            while (id_to_graph_iv.empty() ? false : id_to_graph_iv.get(id_to_graph_iv.size() - 1) == 0) {
-                id_to_graph_iv.pop_back();
+            while (nid_to_graph_iv.empty() ? false : nid_to_graph_iv.get(nid_to_graph_iv.size() - 1) == 0) {
+                nid_to_graph_iv.pop_back();
             }
-            max_id = min_id + id_to_graph_iv.size() - 1;
+            max_id = min_id + nid_to_graph_iv.size() - 1;
             
             // initialize new vectors to construct defragged copies in
             PagedVector new_graph_iv(PAGE_WIDTH);
@@ -1061,8 +1061,8 @@ namespace vg {
             new_seq_start_iv.reserve(num_nodes * SEQ_START_RECORD_SIZE);
             new_path_membership_node_iv.reserve(num_nodes * NODE_MEMBER_RECORD_SIZE);
             
-            for (size_t i = 0; i < id_to_graph_iv.size(); i++) {
-                size_t raw_g_iv_idx = id_to_graph_iv.get(i);
+            for (size_t i = 0; i < nid_to_graph_iv.size(); i++) {
+                size_t raw_g_iv_idx = nid_to_graph_iv.get(i);
                 if (raw_g_iv_idx) {
                     size_t g_iv_idx = (raw_g_iv_idx - 1) * GRAPH_RECORD_SIZE;
                     // this node still exists, create a new copy
@@ -1072,7 +1072,7 @@ namespace vg {
                     new_seq_start_iv.append(seq_start_iv.get(graph_index_to_seq_start_index(g_iv_idx)));
                     new_path_membership_node_iv.append(path_membership_node_iv.get(graph_index_to_node_member_index(g_iv_idx)));
                     // update the pointer into graph_iv
-                    id_to_graph_iv.set(i, new_graph_iv.size() / GRAPH_RECORD_SIZE);
+                    nid_to_graph_iv.set(i, new_graph_iv.size() / GRAPH_RECORD_SIZE);
                 }
             }
             
@@ -1095,8 +1095,8 @@ namespace vg {
             PagedVector new_edge_lists_iv(PAGE_WIDTH);
             new_edge_lists_iv.reserve(num_edge_records * EDGE_RECORD_SIZE);
             
-            for (size_t i = 0; i < id_to_graph_iv.size(); i++) {
-                size_t raw_g_iv_idx = id_to_graph_iv.get(i);
+            for (size_t i = 0; i < nid_to_graph_iv.size(); i++) {
+                size_t raw_g_iv_idx = nid_to_graph_iv.get(i);
                 if (raw_g_iv_idx) {
                     // this node still exists
                     size_t g_iv_idx = (raw_g_iv_idx - 1) * GRAPH_RECORD_SIZE;
@@ -1142,8 +1142,8 @@ namespace vg {
             new_path_membership_offset_iv.reserve(num_membership_records * MEMBERSHIP_OFFSET_RECORD_SIZE);
             new_path_membership_next_iv.reserve(num_membership_records * MEMBERSHIP_NEXT_RECORD_SIZE);
             
-            for (size_t i = 0; i < id_to_graph_iv.size(); i++) {
-                size_t raw_g_iv_idx = id_to_graph_iv.get(i);
+            for (size_t i = 0; i < nid_to_graph_iv.size(); i++) {
+                size_t raw_g_iv_idx = nid_to_graph_iv.get(i);
                 if (raw_g_iv_idx) {
                     // this node still exists
                     size_t g_iv_idx = (raw_g_iv_idx - 1) * GRAPH_RECORD_SIZE;
@@ -1199,7 +1199,7 @@ namespace vg {
         seq_start_iv.clear();
         seq_length_iv.clear();
         edge_lists_iv.clear();
-        id_to_graph_iv.clear();
+        nid_to_graph_iv.clear();
         seq_iv.clear();
         path_membership_node_iv.clear();
         path_membership_id_iv.clear();
@@ -1207,7 +1207,7 @@ namespace vg {
         path_membership_next_iv.clear();
         paths.clear();
         path_id.clear();
-        min_id = std::numeric_limits<id_t>::max();
+        min_id = std::numeric_limits<nid_t>::max();
         max_id = 0;
         deleted_edge_records = 0;
         deleted_node_records = 0;

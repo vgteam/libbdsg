@@ -36,7 +36,7 @@ using namespace handlegraph;
         orientation.reserve(graph->get_node_count());
         
         // keep track of which nodes have already been oriented and which orientation
-        unordered_map<id_t, bool> recorded_orientation;
+        unordered_map<nid_t, bool> recorded_orientation;
         
         // keep track of whether we've encountered a node in two orientations
         bool failed = false;

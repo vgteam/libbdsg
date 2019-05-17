@@ -27,7 +27,7 @@ namespace vg {
         return create_handle(sequence, max_id + 1);
     }
     
-    handle_t HashGraph::create_handle(const string& sequence, const id_t& id) {
+    handle_t HashGraph::create_handle(const string& sequence, const nid_t& id) {
         graph[id] = node_t(sequence);
         max_id = max(max_id, id);
         min_id = min(min_id, id);
@@ -55,15 +55,15 @@ namespace vg {
         }
     }
     
-    bool HashGraph::has_node(id_t node_id) const {
+    bool HashGraph::has_node(nid_t node_id) const {
         return graph.count(node_id);
     }
     
-    handle_t HashGraph::get_handle(const id_t& node_id, bool is_reverse) const {
+    handle_t HashGraph::get_handle(const nid_t& node_id, bool is_reverse) const {
         return handlegraph::number_bool_packing::pack(node_id, is_reverse);
     }
     
-    id_t HashGraph::get_id(const handle_t& handle) const {
+    nid_t HashGraph::get_id(const handle_t& handle) const {
         return handlegraph::number_bool_packing::unpack_number(handle);
     }
     
@@ -101,11 +101,11 @@ namespace vg {
         return graph.size();
     }
     
-    id_t HashGraph::min_node_id(void) const {
+    nid_t HashGraph::min_node_id(void) const {
         return min_id;
     }
     
-    id_t HashGraph::max_node_id(void) const {
+    nid_t HashGraph::max_node_id(void) const {
         return max_id;
     }
     
@@ -277,7 +277,7 @@ namespace vg {
     
     void HashGraph::optimize(bool allow_id_reassignment) {
         /// tighten up the memory allocated to the vectors in the data structure
-        for (pair<const id_t, node_t>& node_record : graph) {
+        for (pair<const nid_t, node_t>& node_record : graph) {
             node_record.second.sequence.shrink_to_fit();
             node_record.second.left_edges.shrink_to_fit();
             node_record.second.right_edges.shrink_to_fit();
@@ -340,7 +340,7 @@ namespace vg {
     
     void HashGraph::clear(void) {
         max_id = 0;
-        min_id = numeric_limits<id_t>::max();
+        min_id = numeric_limits<nid_t>::max();
         next_path_id = 1;
         graph.clear();
         path_id.clear();
@@ -864,10 +864,10 @@ namespace vg {
     }
     
     void HashGraph::serialize(ostream& out) const {
-        id_t max_id_out = endianness<id_t>::to_big_endian(max_id);
+        nid_t max_id_out = endianness<nid_t>::to_big_endian(max_id);
         out.write((const char*) &max_id_out, sizeof(max_id_out) / sizeof(char));
         
-        id_t min_id_out = endianness<id_t>::to_big_endian(min_id);
+        nid_t min_id_out = endianness<nid_t>::to_big_endian(min_id);
         out.write((const char*) &min_id_out, sizeof(min_id_out) / sizeof(char));
         
         int64_t next_path_id_out = endianness<int64_t>::to_big_endian(next_path_id);
@@ -876,8 +876,8 @@ namespace vg {
         uint64_t graph_size_out = endianness<uint64_t>::to_big_endian(graph.size());
         out.write((const char*) &graph_size_out, sizeof(graph_size_out) / sizeof(char));
         
-        for (const pair<id_t, node_t>& node_record : graph) {
-            id_t node_id_out = endianness<id_t>::to_big_endian(node_record.first);
+        for (const pair<nid_t, node_t>& node_record : graph) {
+            nid_t node_id_out = endianness<nid_t>::to_big_endian(node_record.first);
             out.write((const char*) &node_id_out, sizeof(node_id_out) / sizeof(char));
             node_record.second.serialize(out);
         }
@@ -892,13 +892,13 @@ namespace vg {
     void HashGraph::deserialize(istream& in) {
         clear();
         
-        id_t max_id_in;
+        nid_t max_id_in;
         in.read((char*) &max_id_in, sizeof(max_id_in) / sizeof(char));
-        max_id = endianness<id_t>::from_big_endian(max_id_in);
+        max_id = endianness<nid_t>::from_big_endian(max_id_in);
         
-        id_t min_id_in;
+        nid_t min_id_in;
         in.read((char*) &min_id_in, sizeof(min_id_in) / sizeof(char));
-        min_id = endianness<id_t>::from_big_endian(min_id_in);
+        min_id = endianness<nid_t>::from_big_endian(min_id_in);
         
         int64_t next_path_id_in;
         in.read((char*) &next_path_id_in, sizeof(next_path_id_in) / sizeof(char));
@@ -910,9 +910,9 @@ namespace vg {
         
         graph.reserve(num_nodes);
         for (size_t i = 0; i < num_nodes; i++) {
-            id_t node_id_in;
+            nid_t node_id_in;
             in.read((char*) &node_id_in, sizeof(node_id_in) / sizeof(char));
-            id_t node_id = endianness<id_t>::from_big_endian(node_id_in);
+            nid_t node_id = endianness<nid_t>::from_big_endian(node_id_in);
             graph[node_id].deserialize(in);
         }
         

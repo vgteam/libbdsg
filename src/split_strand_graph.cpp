@@ -15,15 +15,15 @@ using namespace handlegraph;
         // nothing to do
     }
     
-    bool StrandSplitGraph::has_node(id_t node_id) const {
+    bool StrandSplitGraph::has_node(nid_t node_id) const {
         return graph->has_node(node_id >> 1);
     }
     
-    handle_t StrandSplitGraph::get_handle(const id_t& node_id, bool is_reverse) const {
+    handle_t StrandSplitGraph::get_handle(const nid_t& node_id, bool is_reverse) const {
         return handlegraph::number_bool_packing::pack(node_id, is_reverse);
     }
     
-    id_t StrandSplitGraph::get_id(const handle_t& handle) const {
+    nid_t StrandSplitGraph::get_id(const handle_t& handle) const {
         return handlegraph::number_bool_packing::unpack_number(handle);
     }
     
@@ -56,7 +56,7 @@ using namespace handlegraph;
     bool StrandSplitGraph::for_each_handle_impl(const function<bool(const handle_t&)>& iteratee,
                                                 bool parallel) const {
         return graph->for_each_handle([&](const handle_t& underlying_handle) {
-            id_t node_id = graph->get_id(underlying_handle);
+            nid_t node_id = graph->get_id(underlying_handle);
             // forward version of the node
             bool keep_going = iteratee(get_handle(node_id << 1));
             // reverse version of the node
@@ -71,11 +71,11 @@ using namespace handlegraph;
         return graph->node_size() << 1;
     }
     
-    id_t StrandSplitGraph::min_node_id() const {
+    nid_t StrandSplitGraph::min_node_id() const {
         return graph->min_node_id() << 1;
     }
     
-    id_t StrandSplitGraph::max_node_id() const {
+    nid_t StrandSplitGraph::max_node_id() const {
         return (graph->max_node_id() << 1) | 1;
     }
 
