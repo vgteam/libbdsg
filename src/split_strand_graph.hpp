@@ -7,7 +7,7 @@
  * are now on the forward strand
  */
 
-#include "handle.hpp"
+#include <handlegraph/expanding_overlay_graph.hpp>
 #include "utility.hpp"
 
 namespace vg {

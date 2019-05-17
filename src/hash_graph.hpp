@@ -8,7 +8,8 @@
 #ifndef VG_HASH_GRAPH_HPP_INCLUDED
 #define VG_HASH_GRAPH_HPP_INCLUDED
 
-#include "handle.hpp"
+#include <handlegraph/mutable_path_deletable_handle_graph.hpp>
+
 #include "hash_map.hpp"
 #include "utility.hpp"
 #include "endianness.hpp"

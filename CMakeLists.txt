@@ -33,10 +33,9 @@ ExternalProject_Add(sdsl-lite
 # libhandlegraph (full build using its cmake config)
 ExternalProject_Add(handlegraph
     GIT_REPOSITORY "https://github.com/vgteam/libhandlegraph.git"
-    GIT_TAG "9a640570ca803ea0db7835616fe2e137aad57de3"
+    GIT_TAG "b3b39eb936f8100c1ada83889eaf4b2873052eeb"
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${DEP_PREFIX}
     )
-message("Install handlegraph to ${DEP_PREFIX}")
 
 # sparsepp
 ExternalProject_Add(sparsepp
@@ -94,6 +93,7 @@ target_link_libraries(sglib_static
     "-lhandlegraph"
     "-lsparsepp"
     )
+message("Need to include ${DEP_INCLUDE}")
     
 
 target_compile_features(sglib PUBLIC cxx_std_14)

@@ -8,7 +8,7 @@
  * solution to the minimum feedback arc set.
  */
 
-#include "../handle.hpp"
+#include <handlegraph/handle_graph.hpp>
 #include "is_single_stranded.hpp"
 
 #include <vector>

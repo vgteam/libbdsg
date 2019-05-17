@@ -10,6 +10,8 @@
 
 #include <utility>
 
+#include <handlegraph/mutable_path_deletable_handle_graph.hpp>
+
 #include "handle.hpp"
 #include "packed_structs.hpp"
 #include "split_strand_graph.hpp"
