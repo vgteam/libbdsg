@@ -24,6 +24,7 @@
 namespace vg {
 
 using namespace std;
+using namespace handlegraph;
 
 char reverse_complement(const char& c);
 string reverse_complement(const string& seq);

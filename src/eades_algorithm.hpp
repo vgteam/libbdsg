@@ -22,11 +22,11 @@ namespace algorithms {
 using namespace std;
 using namespace handlegraph;
 
-    /// Returns a layout of handles that has a small number of edges that point backward
-    /// along the layout (i.e. feedback arcs). Only valid for graphs that have a single
-    /// stranded orientation. Consider checking this property with
-    /// algorithms::single_stranded_orientation.
-    vector<handle_t> eades_algorithm(const HandleGraph* graph);
+/// Returns a layout of handles that has a small number of edges that point backward
+/// along the layout (i.e. feedback arcs). Only valid for graphs that have a single
+/// stranded orientation. Consider checking this property with
+/// algorithms::single_stranded_orientation.
+vector<handle_t> eades_algorithm(const HandleGraph* graph);
 
 }
 }

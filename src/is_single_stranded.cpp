@@ -4,6 +4,7 @@ namespace vg {
 namespace algorithms {
 
 using namespace std;
+using namespace handlegraph;
 
     bool is_single_stranded(const HandleGraph* graph) {
         

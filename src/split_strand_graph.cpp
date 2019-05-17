@@ -9,6 +9,7 @@
 namespace vg {
 
 using namespace std;
+using namespace handlegraph;
 
     StrandSplitGraph::StrandSplitGraph(const HandleGraph* graph) : graph(graph){
         // nothing to do

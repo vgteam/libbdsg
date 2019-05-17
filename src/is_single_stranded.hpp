@@ -17,6 +17,7 @@ namespace vg {
 namespace algorithms {
 
 using namespace std;
+using namespace handlegraph;
 
     /// Returns true if the graph contains no reversing edges (i.e. edges that connected
     /// the locally forward orientation of a node to the locally reverse orientation of

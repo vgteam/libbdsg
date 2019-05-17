@@ -17,6 +17,7 @@
 namespace vg {
     
 using namespace std;
+using namespace handlegraph;
 
 class HashGraph : public MutablePathDeletableHandleGraph {
         

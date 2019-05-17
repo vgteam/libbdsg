@@ -13,6 +13,7 @@
 namespace vg {
 
 using namespace std;
+using namespace handlegraph;
 
     /**
      * A HandleGraph implementation that overlays some other handle graph and splits

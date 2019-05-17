@@ -18,6 +18,7 @@
 namespace vg {
     
 using namespace std;
+using namespace handlegraph;
     
 /*
  * A dynamic integer vector that maintains integers in bit-compressed form.
