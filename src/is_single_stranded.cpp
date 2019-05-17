@@ -93,19 +93,5 @@ using namespace std;
         
         return orientation;
     }
-
-    
-    unordered_set<id_t> make_single_stranded(MutableHandleGraph* graph) {
-        
-        auto orientations = single_stranded_orientation(graph);
-        
-        if (orientations.size() != graph->get_node_count()) {
-            // we got the sentinel for an un-single-strandable graph
-            cerr << "error:[algorithms] attempted to apply single-stranded orientation to non-single stranded graph" << endl;
-            exit(1);
-        }
-        
-        return apply_orientations(graph, orientations);
-    }
 }
 }

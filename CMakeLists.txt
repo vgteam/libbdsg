@@ -93,8 +93,6 @@ target_link_libraries(sglib_static
     "-lhandlegraph"
     "-lsparsepp"
     )
-message("Need to include ${DEP_INCLUDE}")
-    
 
 target_compile_features(sglib PUBLIC cxx_std_14)
 target_compile_features(sglib_static PUBLIC cxx_std_14)

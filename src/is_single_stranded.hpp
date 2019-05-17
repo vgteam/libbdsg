@@ -7,8 +7,7 @@
  * Defines algorithms for deciding if a graph contains reversing edges.
  */
 
-#include "../handle.hpp"
-#include "apply_bulk_modifications.hpp"
+#include <handlegraph/handle_graph.hpp>
 
 #include <unordered_set>
 #include <unordered_map>
@@ -30,13 +29,6 @@ using namespace std;
     /// in orientation, the graph would contain no reversing edges. Returns an empty vector
     /// if there is no such combination of node orientations (also if graph has no nodes).
     vector<handle_t> single_stranded_orientation(const HandleGraph* graph);
-        
-    /// Finds a set of node orientations that can be applied so that there are no
-    /// reversing edges (i.e. every edge connects a locally forward node traversal
-    /// to another locally forward orientation). If no such combination of orientations
-    /// exists, produces an error and exits. Returns a set of the node IDs for nodes that
-    /// were swapped in orientation. Potentially invalidates any existing handles.
-    unordered_set<id_t> make_single_stranded(MutableHandleGraph* graph);
 
 }
 }
