@@ -24,10 +24,11 @@ set(DEP_INCLUDE ${DEP_PREFIX}/include)
 # The cost of this is that we have to re-configure on every build if we do update.
 
 # sdsl-lite (full build using its cmake config)
+# Make sure to make it -fPIC so we can have a libsglib.so
 ExternalProject_Add(sdsl-lite
     GIT_REPOSITORY "https://github.com/simongog/sdsl-lite.git"
     GIT_TAG "ddb0fbbc33bb183baa616f17eb48e261ac2a3672"
-    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${DEP_PREFIX}
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${DEP_PREFIX} -DCMAKE_CXX_FLAGS=-fPIC
     )
 
 # libhandlegraph (full build using its cmake config)
@@ -46,6 +47,10 @@ ExternalProject_Add(sparsepp
     BUILD_COMMAND ""
     INSTALL_COMMAND cp -R sparsepp/ ${DEP_INCLUDE}
     )
+    
+# Always include and link against the deps
+include_directories(${DEP_INCLUDE})
+link_directories(${DEP_LIB})
 
 
 # Set where the LC_ID_DYLIB install name for Mac dylib files ought to point.
@@ -77,9 +82,8 @@ target_include_directories(sglib
         ${DEP_INCLUDE}
     )
 target_link_libraries(sglib
-    "-lsdsl-lite"
+    "-lsdsl"
     "-lhandlegraph"
-    "-lsparsepp"
     )
     
 target_include_directories(sglib_static

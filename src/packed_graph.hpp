@@ -17,7 +17,7 @@
 #include "hash_map.hpp"
 #include "utility.hpp"
 
-#include "algorithms/eades_algorithm.hpp"
+#include "eades_algorithm.hpp"
 
 
 namespace vg {
@@ -92,7 +92,7 @@ public:
     virtual std::string get_subsequence(const handle_t& handle, size_t index, size_t size) const;
     
     /// Return the number of nodes in the graph
-    size_t node_size(void) const;
+    size_t get_node_count(void) const;
     
     /// Return the smallest ID in the graph, or some smaller number if the
     /// smallest ID is unavailable. Return value is unspecified if the graph is empty.

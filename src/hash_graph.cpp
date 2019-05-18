@@ -97,7 +97,7 @@ namespace vg {
         return keep_going;
     }
     
-    size_t HashGraph::node_size(void) const {
+    size_t HashGraph::get_node_count(void) const {
         return graph.size();
     }
     

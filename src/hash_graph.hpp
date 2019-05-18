@@ -78,7 +78,7 @@ public:
     
     /// Return the number of nodes in the graph
     /// TODO: can't be node_count because XG has a field named node_count.
-    size_t node_size(void) const;
+    size_t get_node_count(void) const;
     
     /// Return the smallest ID in the graph, or some smaller number if the
     /// smallest ID is unavailable. Return value is unspecified if the graph is empty.

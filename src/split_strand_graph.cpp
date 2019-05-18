@@ -5,6 +5,8 @@
 
 #include "split_strand_graph.hpp"
 
+#include <handlegraph/util.hpp>
+
 
 namespace vg {
 
@@ -67,8 +69,8 @@ using namespace handlegraph;
         }, parallel);
     }
     
-    size_t StrandSplitGraph::node_size() const {
-        return graph->node_size() << 1;
+    size_t StrandSplitGraph::get_node_count() const {
+        return graph->get_node_count() << 1;
     }
     
     nid_t StrandSplitGraph::min_node_id() const {

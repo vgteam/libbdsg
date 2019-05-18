@@ -21,5 +21,6 @@ string nonATGCNtoN(const string& s);
 // Convert ASCII-encoded DNA to upper case
 string toUppercase(const string& s);
 
+}
 
 #endif

@@ -354,7 +354,7 @@ namespace vg {
         return keep_going;
     }
     
-    size_t PackedGraph::node_size(void) const {
+    size_t PackedGraph::get_node_count(void) const {
         return graph_iv.size() / GRAPH_RECORD_SIZE - deleted_node_records;
     }
     
@@ -918,7 +918,7 @@ namespace vg {
         // remove everything we skipped
         layout.resize(layout.size() - skipped);
         
-        assert(layout.size() == node_size());
+        assert(layout.size() == get_node_count());
         
         // use the layout to make a translator between current IDs and the IDs we will reassign
         PagedVector nid_trans(PAGE_WIDTH);
@@ -959,7 +959,7 @@ namespace vg {
         
         // make a vector to translate the new IDs to the offset of the node
         PackedDeque new_nid_to_graph_iv;
-        new_nid_to_graph_iv.reserve(node_size());
+        new_nid_to_graph_iv.reserve(get_node_count());
         for (nid_t node_id = min_id; node_id <= max_id; ++node_id) {
             size_t offset = nid_to_graph_iv.get(node_id - min_id);
             if (offset) {
