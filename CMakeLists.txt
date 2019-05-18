@@ -8,6 +8,8 @@ set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -g")
 # Add external projects
 include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 
+include(GNUInstallDirs)
+
 # Define lib and include directories to install the external projects into
 set(DEP_PREFIX ${CMAKE_CURRENT_BINARY_DIR})
 set(DEP_LIB ${DEP_PREFIX}/lib)
@@ -45,7 +47,7 @@ ExternalProject_Add(sparsepp
     BUILD_IN_SOURCE TRUE
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
-    INSTALL_COMMAND cp -R sparsepp/ ${DEP_INCLUDE}
+    INSTALL_COMMAND mkdir -p ${DEP_INCLUDE} && cp -R sparsepp/ ${DEP_INCLUDE}
     )
     
 # Always include and link against the deps
@@ -95,7 +97,6 @@ target_include_directories(sglib_static
 target_link_libraries(sglib_static
     "-lsdsl-lite"
     "-lhandlegraph"
-    "-lsparsepp"
     )
 
 target_compile_features(sglib PUBLIC cxx_std_14)
@@ -103,11 +104,29 @@ target_compile_features(sglib_static PUBLIC cxx_std_14)
 
 # Installation instructions
 
-include(GNUInstallDirs)
-
 install(TARGETS sglib sglib_static
     EXPORT sglib-targets
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+    )
+install(DIRECTORY src
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/include/sglib
+    FILES_MATCHING PATTERN "*.hpp"
+    )
+# Drop include and lib(64) straight into the install prefix
+install(DIRECTORY ${DEP_INCLUDE}
+    DESTINATION ${CMAKE_INSTALL_PREFIX}
+    )
+install(DIRECTORY ${DEP_LIB}
+    DESTINATION ${CMAKE_INSTALL_PREFIX}
+    FILES_MATCHING PATTERN "*.a"
+    )
+install(DIRECTORY ${DEP_LIB}
+    DESTINATION ${CMAKE_INSTALL_PREFIX}
+    FILES_MATCHING PATTERN "*.so"
+    )
+install(DIRECTORY ${DEP_LIB}
+    DESTINATION ${CMAKE_INSTALL_PREFIX}
+    FILES_MATCHING PATTERN "*.dylib"
     )
 
