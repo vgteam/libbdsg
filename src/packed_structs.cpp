@@ -2,7 +2,7 @@
 //  packed_structs.hpp
 //
 
-#include "packed_structs.hpp"
+#include "sglib/packed_structs.hpp"
 
 
 namespace vg {

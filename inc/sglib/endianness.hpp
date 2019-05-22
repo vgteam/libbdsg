@@ -1,5 +1,5 @@
-#ifndef VG_ENDIANNESS_HPP_INCLUDED
-#define VG_ENDIANNESS_HPP_INCLUDED
+#ifndef SGLIB_ENDIANNESS_HPP_INCLUDED
+#define SGLIB_ENDIANNESS_HPP_INCLUDED
 
 /** \file endianness.hpp
  *  Methods for converting endianness in integers

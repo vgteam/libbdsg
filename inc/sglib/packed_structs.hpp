@@ -5,15 +5,15 @@
 // bit-packed integer vectors
 //
 
-#ifndef VG_PACKED_STRUCTS_HPP_INCLUDED
-#define VG_PACKED_STRUCTS_HPP_INCLUDED
+#ifndef SGLIB_PACKED_STRUCTS_HPP_INCLUDED
+#define SGLIB_PACKED_STRUCTS_HPP_INCLUDED
 
 #include <cstdio>
 #include <cstdint>
 #include <algorithm>
 #include <iostream>
 #include <vector>
-#include "sdsl/int_vector.hpp"
+#include <sdsl/int_vector.hpp>
 
 namespace vg {
     

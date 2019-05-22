@@ -1,5 +1,5 @@
-#ifndef VG_ALGORITHMS_EADES_ALGORITHM_HPP_INCLUDED
-#define VG_ALGORITHMS_EADES_ALGORITHM_HPP_INCLUDED
+#ifndef SGLIB_ALGORITHMS_EADES_ALGORITHM_HPP_INCLUDED
+#define SGLIB_ALGORITHMS_EADES_ALGORITHM_HPP_INCLUDED
 
 /**
  * \file eades_algorithm.hpp
@@ -9,7 +9,7 @@
  */
 
 #include <handlegraph/handle_graph.hpp>
-#include "is_single_stranded.hpp"
+#include "sglib/is_single_stranded.hpp"
 
 #include <vector>
 #include <list>

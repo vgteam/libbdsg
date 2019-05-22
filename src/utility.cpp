@@ -1,4 +1,4 @@
-#include "utility.hpp"
+#include "sglib/utility.hpp"
 
 namespace vg {
 
@@ -6,7 +6,7 @@ static const char complement[256] = {'N', 'N', 'N', 'N', 'N', 'N', 'N', 'N', // 
                                      'N', 'N', 'N', 'N', 'N', 'N', 'N', 'N', // 16
                                      'N', 'N', 'N', 'N', 'N', 'N', 'N', 'N', // 24
                                      'N', 'N', 'N', 'N', 'N', 'N', 'N', 'N', // 32
-                                     'N', 'N', 'N', '$', '#', 'N', 'N', 'N', // 40 GCSA stop/start characters
+                                     'N', 'N', 'N', '$', '#', 'N', 'N', 'N', // 40
                                      'N', 'N', 'N', 'N', 'N', '-', 'N', 'N', // 48
                                      'N', 'N', 'N', 'N', 'N', 'N', 'N', 'N', // 56
                                      'N', 'N', 'N', 'N', 'N', 'N', 'N', 'N', // 64

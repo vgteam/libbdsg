@@ -5,19 +5,19 @@
 //  vectors.
 //
 
-#ifndef VG_PACKED_GRAPH_HPP_INCLUDED
-#define VG_PACKED_GRAPH_HPP_INCLUDED
+#ifndef SGLIB_PACKED_GRAPH_HPP_INCLUDED
+#define SGLIB_PACKED_GRAPH_HPP_INCLUDED
 
 #include <utility>
 
 #include <handlegraph/mutable_path_deletable_handle_graph.hpp>
 
-#include "packed_structs.hpp"
-#include "split_strand_graph.hpp"
-#include "hash_map.hpp"
-#include "utility.hpp"
+#include "sglib/packed_structs.hpp"
+#include "sglib/split_strand_graph.hpp"
+#include "sglib/hash_map.hpp"
+#include "sglib/utility.hpp"
 
-#include "eades_algorithm.hpp"
+#include "sglib/eades_algorithm.hpp"
 
 
 namespace vg {

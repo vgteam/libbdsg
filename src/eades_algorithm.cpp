@@ -6,7 +6,7 @@
 
 //#define debug_eades
 
-#include "eades_algorithm.hpp"
+#include "sglib/eades_algorithm.hpp"
 
 namespace vg {
 namespace algorithms {
