@@ -26,7 +26,7 @@ The easiest way to build `sglib` is to use the [easy install repository](), whic
 - [`sdsl`](https://github.com/simongog/sdsl-lite)
 - [`sparsepp`](https://github.com/greg7mdp/sparsepp)
 
-The build process assumes that these libraries and their headers have been installed in a place on the system where the compiler can find them (e.g. in `CPLUS_INCLUDE_PATH` and `LD_LIBRARY_PATH`).
+The build process assumes that these libraries and their headers have been installed in a place on the system where the compiler can find them (e.g. in `CPLUS_INCLUDE_PATH`).
 
 ### Building
 
@@ -38,13 +38,15 @@ cd sglib
 make -j8
 ```
 
-To install system-wide:
+To install system-wide (in `/usr/local/`):
 
 ```
-sudo make install
+make install
 ```
 
-## TODO List:
+Or to install in an alternate location:
 
-- [ ] easy install repository
+```
+INSTALL_PREFIX=/other/path/ make install
+```
 
