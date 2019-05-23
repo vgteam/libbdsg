@@ -16,7 +16,7 @@ All of these graph objects implement a common interface, so they can be used int
 
 ### Easy install
 
-The easiest way to build `sglib` is to use the [easy install repository](), which coordinates `sglib` and its dependencies using Git submodules.
+The easiest way to build `sglib` is to use the [easy install repository](https://github.com/vgteam/sglib-easy), which coordinates `sglib` and its dependencies using Git submodules.
 
 ### Dependencies
 
