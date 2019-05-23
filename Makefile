@@ -1,16 +1,15 @@
 SRC_DIR:=src
 OBJ_DIR:=obj
-INC_DIR:=inc
+INC_DIR:=include
 LIB_DIR:=lib
 
-INSTALL_LIB_DIR=/usr/local/lib/
-INSTALL_INC_DIR=/usr/local/include/
+INSTALL_PREFIX?=/usr/local
+INSTALL_LIB_DIR=$(INSTALL_PREFIX)/lib
+INSTALL_INC_DIR=$(INSTALL_PREFIX)/include
 
 OBJS:=$(OBJ_DIR)/eades_algorithm.o $(OBJ_DIR)/hash_graph.o $(OBJ_DIR)/is_single_stranded.o $(OBJ_DIR)/packed_graph.o $(OBJ_DIR)/packed_structs.o $(OBJ_DIR)/split_strand_graph.o $(OBJ_DIR)/utility.o
 
 CXXFLAGS :=-O3 -Werror=return-type -std=c++14 -ggdb -g -msse4.2 -I$(INC_DIR) $(CXXFLAGS)
-
-LD_LIB_FLAGS:=-lsdsl -lsparsepp -lhandlegraph
 
 .PHONY: .pre-build all clean install
 
@@ -50,9 +49,11 @@ $(LIB_DIR)/libsglib.a: $(OBJS)
 	ar rs $@ $(OBJ_DIR)/*.o
 
 install: $(LIB_DIR)/libsglib.a
-	cp $(LIB_DIR)/libsglib.a $(INSTALL_LIB_DIR)
-	cp $(INC_DIR)/* $(INSTALL_INC_DIR)
+	mkdir -p $(INSTALL_LIB_DIR)
+	mkdir -p $(INSTALL_INC_DIR)
+	cp $(LIB_DIR)/libsglib.a $(INSTALL_LIB_DIR)/
+	cp -r $(INC_DIR)/sglib $(INSTALL_INC_DIR)/
 
 clean:
-	rm $(OBJ_DIR)/*.o
-	rm $(LIB_DIR)/*.a
+	rm -r $(OBJ_DIR)
+	rm -r $(LIB_DIR)
