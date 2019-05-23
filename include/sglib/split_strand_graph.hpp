@@ -1,5 +1,5 @@
-#ifndef VG_SPLIT_STRAND_GRAPH_HPP_INCLUDED
-#define VG_SPLIT_STRAND_GRAPH_HPP_INCLUDED
+#ifndef SGLIB_SPLIT_STRAND_GRAPH_HPP_INCLUDED
+#define SGLIB_SPLIT_STRAND_GRAPH_HPP_INCLUDED
 
 /** \file
  * split_strand_graph.hpp: defines a handle graph overlay that duplicates nodes
@@ -8,7 +8,7 @@
  */
 
 #include <handlegraph/expanding_overlay_graph.hpp>
-#include "utility.hpp"
+#include "sglib/utility.hpp"
 
 namespace vg {
 

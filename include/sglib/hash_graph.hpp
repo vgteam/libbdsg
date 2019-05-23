@@ -5,14 +5,14 @@
 //  hash tables
 //
 
-#ifndef VG_HASH_GRAPH_HPP_INCLUDED
-#define VG_HASH_GRAPH_HPP_INCLUDED
+#ifndef SGLIB_HASH_GRAPH_HPP_INCLUDED
+#define SGLIB_HASH_GRAPH_HPP_INCLUDED
 
 #include <handlegraph/mutable_path_deletable_handle_graph.hpp>
 
-#include "hash_map.hpp"
-#include "utility.hpp"
-#include "endianness.hpp"
+#include "sglib/hash_map.hpp"
+#include "sglib/utility.hpp"
+#include "sglib/endianness.hpp"
 
 namespace vg {
     

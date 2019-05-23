@@ -3,7 +3,7 @@
  */
 
 
-#include "split_strand_graph.hpp"
+#include "sglib/split_strand_graph.hpp"
 
 #include <handlegraph/util.hpp>
 

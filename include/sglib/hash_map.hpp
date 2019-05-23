@@ -1,11 +1,11 @@
-#ifndef VG_HASH_MAP_HPP_INCLUDED
-#define VG_HASH_MAP_HPP_INCLUDED
+#ifndef SGLIB_HASH_MAP_HPP_INCLUDED
+#define SGLIB_HASH_MAP_HPP_INCLUDED
 
 #include <cstdint>
 #include <tuple>
 #include <type_traits>
 
-#include "wang_hash.hpp"
+#include "sglib/wang_hash.hpp"
 
 // Comment out to use sparse_hash_map and sparse_hash_set instead of
 // dense_hash_map and dense_hash_set.

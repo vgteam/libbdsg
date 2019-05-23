@@ -2,7 +2,7 @@
 //  hash_graph.cpp
 //
 
-#include "hash_graph.hpp"
+#include "sglib/hash_graph.hpp"
 
 #include <handlegraph/util.hpp>
 

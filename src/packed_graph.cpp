@@ -2,7 +2,7 @@
 //  packed_graph.cpp
 //
 
-#include "packed_graph.hpp"
+#include "sglib/packed_graph.hpp"
 
 #include <handlegraph/util.hpp>
 #include <atomic>

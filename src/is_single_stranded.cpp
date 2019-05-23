@@ -1,4 +1,4 @@
-#include "is_single_stranded.hpp"
+#include "sglib/is_single_stranded.hpp"
 
 namespace vg {
 namespace algorithms {
