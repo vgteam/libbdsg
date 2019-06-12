@@ -4,7 +4,7 @@
 #include <string>
 
 
-namespace vg {
+namespace sglib {
 
 using namespace std;
 

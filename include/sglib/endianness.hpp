@@ -8,7 +8,7 @@
 #include <cstdlib>
 #include <type_traits>
 
-namespace vg {
+namespace sglib {
 
     /**
      * A struct namespace for methods to handle endianness in integer values.

@@ -13,7 +13,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace vg {
+namespace sglib {
 namespace algorithms {
 
 using namespace std;

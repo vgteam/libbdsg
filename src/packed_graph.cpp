@@ -7,7 +7,7 @@
 #include <handlegraph/util.hpp>
 #include <atomic>
 
-namespace vg {
+namespace sglib {
 
     using namespace handlegraph;
     

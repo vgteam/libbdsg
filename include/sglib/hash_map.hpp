@@ -87,7 +87,7 @@ struct hash<std::tuple<TT...>>
 #endif  // OVERLOAD_PAIR_HASH
 
 
-namespace vg {
+namespace sglib {
 
 // We need this second type for enable_if-based specialization
 template<typename T, typename ImplementationMatched = void>

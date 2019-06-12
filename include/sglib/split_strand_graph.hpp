@@ -10,7 +10,7 @@
 #include <handlegraph/expanding_overlay_graph.hpp>
 #include "sglib/utility.hpp"
 
-namespace vg {
+namespace sglib {
 
 using namespace std;
 using namespace handlegraph;

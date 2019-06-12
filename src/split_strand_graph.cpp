@@ -8,7 +8,7 @@
 #include <handlegraph/util.hpp>
 
 
-namespace vg {
+namespace sglib {
 
 using namespace std;
 using namespace handlegraph;
@@ -50,7 +50,7 @@ using namespace handlegraph;
         
         return graph->follow_edges(get_underlying_handle(handle), go_left,
                                    [&] (const handle_t& next) {
-            return iteratee(get_handle((graph->get_id(next) << 1) + graph->get_is_reverse(next),
+            return iteratee(get_handle((graph->get_id(next) << 1) + (graph->get_is_reverse(next) != get_is_reverse(handle)),
                                        get_is_reverse(handle)));
         });
     }

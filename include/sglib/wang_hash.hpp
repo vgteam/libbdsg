@@ -3,7 +3,7 @@
 
 #include <cstddef>
 
-namespace vg {
+namespace sglib {
 
 /// Thomas Wang's integer hash function. In many implementations, std::hash
 /// is identity function for integers, which leads to performance issues.

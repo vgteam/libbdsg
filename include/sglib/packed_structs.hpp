@@ -15,7 +15,7 @@
 #include <vector>
 #include <sdsl/int_vector.hpp>
 
-namespace vg {
+namespace sglib {
     
 using namespace std;
     
