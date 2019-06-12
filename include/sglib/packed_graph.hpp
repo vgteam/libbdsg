@@ -20,7 +20,7 @@
 #include "sglib/eades_algorithm.hpp"
 
 
-namespace vg {
+namespace sglib {
     
 using namespace std;
 using namespace handlegraph;

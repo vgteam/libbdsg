@@ -16,7 +16,7 @@
 #include <unordered_map>
 #include <deque>
 
-namespace vg {
+namespace sglib {
 namespace algorithms {
 
 using namespace std;

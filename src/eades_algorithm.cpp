@@ -8,7 +8,7 @@
 
 #include "sglib/eades_algorithm.hpp"
 
-namespace vg {
+namespace sglib {
 namespace algorithms {
 
 using namespace std;

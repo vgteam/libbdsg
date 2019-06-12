@@ -6,7 +6,7 @@
 
 #include <handlegraph/util.hpp>
 
-namespace vg {
+namespace sglib {
     
     using namespace handlegraph;
     

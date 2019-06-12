@@ -14,7 +14,7 @@
 #include "sglib/utility.hpp"
 #include "sglib/endianness.hpp"
 
-namespace vg {
+namespace sglib {
     
 using namespace std;
 using namespace handlegraph;

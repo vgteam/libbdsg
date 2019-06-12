@@ -1,6 +1,6 @@
 #include "sglib/is_single_stranded.hpp"
 
-namespace vg {
+namespace sglib {
 namespace algorithms {
 
 using namespace std;

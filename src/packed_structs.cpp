@@ -5,7 +5,7 @@
 #include "sglib/packed_structs.hpp"
 
 
-namespace vg {
+namespace sglib {
     
 const double PackedVector::factor = 1.25;
 const double PackedDeque::factor = 1.25;
