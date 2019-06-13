@@ -110,5 +110,4 @@ string toUppercase(const string& s) {
     }
     return n;
 }
-
 }

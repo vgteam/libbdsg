@@ -42,7 +42,7 @@ using namespace handlegraph;
     }
     
     string StrandSplitGraph::get_sequence(const handle_t& handle) const {
-        return  graph->get_sequence(get_underlying_handle(handle));
+        return graph->get_sequence(get_underlying_handle(handle));
     }
     
     bool StrandSplitGraph::follow_edges_impl(const handle_t& handle, bool go_left,
