@@ -897,18 +897,18 @@ namespace sglib {
         assert(order.size() == get_node_count());
         
         // use the layout to make a translator between current IDs and the IDs we will reassign
-        PagedVector id_trans(PAGE_WIDTH);
-        id_trans.resize(max_id - min_id + 1);
+        PagedVector nid_trans(PAGE_WIDTH);
+        nid_trans.resize(max_id - min_id + 1);
         for (size_t i = 0; i < order.size(); ++i) {
-            id_trans.set(get_id(order[i]) - min_id, i + 1);
+            nid_trans.set(get_id(order[i]) - min_id, i + 1);
         }
         
         // update the node IDs of edges
         for (size_t i = EDGE_TRAV_OFFSET; i < edge_lists_iv.size(); i += EDGE_RECORD_SIZE) {
             handle_t trav = decode_traversal(edge_lists_iv.get(i));
             // only translate edges to nodes that have not been deleted
-            if (id_to_graph_iv.get(get_id(trav) - min_id)) {
-                trav = get_handle(id_trans.get(get_id(trav) - min_id), get_is_reverse(trav));
+            if (nid_to_graph_iv.get(get_id(trav) - min_id)) {
+                trav = get_handle(nid_trans.get(get_id(trav) - min_id), get_is_reverse(trav));
                 edge_lists_iv.set(i, encode_traversal(trav));
             }
         }
