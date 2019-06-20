@@ -110,4 +110,28 @@ string toUppercase(const string& s) {
     }
     return n;
 }
+
+string format_memory(size_t s) {
+    auto round_to_sig_figs = [](double s, int figs) {
+        stringstream strm;
+        strm << std::setprecision(figs) << s;
+        return string(strm.str());
+    };
+    
+    if (s >= (1ull << 40)) {
+        return round_to_sig_figs(double(s) / (1ull << 40), 3) + string(" TB");
+    }
+    else if (s >= (1ull << 30)) {
+        return round_to_sig_figs(double(s) / (1ull << 30), 3) + string(" GB");
+    }
+    else if (s >= (1ull << 20)) {
+        return round_to_sig_figs(double(s) / (1ull << 20), 3) + string(" MB");
+    }
+    else if (s >= (1ull << 10)) {
+        return round_to_sig_figs(double(s) / (1ull << 10), 3) + string(" kB");
+    }
+    else {
+        return to_string(s) + string(" B");
+    }
+}
 }

@@ -2,7 +2,7 @@
 #define SGLIB_UTILITY_HPP_INCLUDED
 
 #include <string>
-
+#include <iomanip>
 
 namespace sglib {
 
@@ -20,6 +20,8 @@ bool allATGCN(const string& s);
 string nonATGCNtoN(const string& s);
 // Convert ASCII-encoded DNA to upper case
 string toUppercase(const string& s);
+// Convert a quantity in bytes to a human-friendly string
+string format_memory(size_t s);
 
 }
 
