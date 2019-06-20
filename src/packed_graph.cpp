@@ -859,6 +859,7 @@ namespace sglib {
     void PackedGraph::eject_deleted_paths() {
         
         uint64_t num_paths_deleted = 0;
+        uint64_t path_name_length_deleted = 0;
         vector<uint64_t> paths_deleted_before(paths.size(), 0);
         for (size_t i = 0; i < paths.size(); i++) {
             
@@ -866,6 +867,7 @@ namespace sglib {
             
             if (paths[i].is_deleted) {
                 num_paths_deleted++;
+                path_name_length_deleted += paths[i].path_name_length;
                 continue;
             }
             
@@ -893,6 +895,27 @@ namespace sglib {
                 uint64_t current_path = path_membership_id_iv.get(i);
                 path_membership_id_iv.set(i, current_path - paths_deleted_before[current_path]);
             }
+            
+            // make a new path name vector that we can fill with the remaining path names
+            PackedVector new_path_names_iv;
+            new_path_names_iv.resize(path_names_iv.size() - path_name_length_deleted);
+            
+            // transfer over path names and update pointers on paths into the vector
+            size_t name_filled_so_far = 0;
+            for (size_t i = 0; i < paths.size(); ++i) {
+                PackedPath& packed_path = paths[i];
+                for (size_t j = 0; j < packed_path.path_name_length; ++j) {
+                    new_path_names_iv.set(name_filled_so_far + j,
+                                          path_names_iv.get(packed_path.path_name_start + j));
+                }
+                packed_path.path_name_start = name_filled_so_far;
+                name_filled_so_far += packed_path.path_name_length;
+            }
+            
+            // replace the old path names vector
+            path_names_iv = move(new_path_names_iv);
+            
+            // TODO: should I reassign the char to int mapping in case entire chars where ejected?
         }
     }
     
