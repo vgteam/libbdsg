@@ -15,7 +15,8 @@ namespace sglib {
     
     const double PackedGraph::defrag_factor = .2;
     
-    const size_t PackedGraph::PAGE_WIDTH = 128;
+    const size_t PackedGraph::NARROW_PAGE_WIDTH = 256;
+    const size_t PackedGraph::WIDE_PAGE_WIDTH = 1024;
     
     const size_t PackedGraph::GRAPH_RECORD_SIZE = 2;
     const size_t PackedGraph::GRAPH_START_EDGES_OFFSET = 0;
@@ -42,24 +43,24 @@ namespace sglib {
     const size_t PackedGraph::PATH_NEXT_OFFSET = 1;
     
     PackedGraph::PackedGraph() :
-        graph_iv(PAGE_WIDTH),
-        seq_start_iv(PAGE_WIDTH),
-        edge_lists_iv(PAGE_WIDTH),
-        path_membership_node_iv(PAGE_WIDTH),
-        path_membership_next_iv(PAGE_WIDTH),
-        path_membership_offset_iv(PAGE_WIDTH),
-        path_membership_id_iv(PAGE_WIDTH) {
+        graph_iv(NARROW_PAGE_WIDTH),
+        seq_start_iv(NARROW_PAGE_WIDTH),
+        edge_lists_iv(WIDE_PAGE_WIDTH),
+        path_membership_node_iv(NARROW_PAGE_WIDTH),
+        path_membership_next_iv(NARROW_PAGE_WIDTH),
+        path_membership_offset_iv(NARROW_PAGE_WIDTH),
+        path_membership_id_iv(WIDE_PAGE_WIDTH) {
         
     }
     
     PackedGraph::PackedGraph(istream& in) :
-        graph_iv(PAGE_WIDTH),
-        seq_start_iv(PAGE_WIDTH),
-        edge_lists_iv(PAGE_WIDTH),
-        path_membership_node_iv(PAGE_WIDTH),
-        path_membership_next_iv(PAGE_WIDTH),
-        path_membership_offset_iv(PAGE_WIDTH),
-        path_membership_id_iv(PAGE_WIDTH) {
+        graph_iv(NARROW_PAGE_WIDTH),
+        seq_start_iv(NARROW_PAGE_WIDTH),
+        edge_lists_iv(WIDE_PAGE_WIDTH),
+        path_membership_node_iv(NARROW_PAGE_WIDTH),
+        path_membership_next_iv(NARROW_PAGE_WIDTH),
+        path_membership_offset_iv(NARROW_PAGE_WIDTH),
+        path_membership_id_iv(WIDE_PAGE_WIDTH) {
         
         deserialize(in);
     }
@@ -742,11 +743,11 @@ namespace sglib {
             if (path.head != 0) {
                 
                 // the path is non-empty, so we need to straighten it out and reallocate it
-                PagedVector new_steps_iv(PAGE_WIDTH);
-                PagedVector new_links_iv(PAGE_WIDTH);
+                PagedVector new_steps_iv(path.steps_iv.page_width());
+                PagedVector new_links_iv(path.links_iv.page_width());
                 
                 // we will need to record the translation between path steps so we can update memberships later
-                PagedVector offset_translator(PAGE_WIDTH);
+                PagedVector offset_translator(NARROW_PAGE_WIDTH);
                 offset_translator.resize(path.steps_iv.size() / STEP_RECORD_SIZE + 1);
                 
                 new_links_iv.reserve(path.links_iv.size() - path.deleted_step_records * PATH_RECORD_SIZE);
@@ -844,8 +845,8 @@ namespace sglib {
             }
             else {
                 // the path is empty, so let's make sure it's not holding onto any capacity it doesn't need
-                path.links_iv = PagedVector(PAGE_WIDTH);
-                path.steps_iv = PagedVector(PAGE_WIDTH);
+                path.links_iv = PagedVector(path.links_iv.page_width());
+                path.steps_iv = PagedVector(path.steps_iv.page_width());
             }
             
             path.deleted_step_records = 0;
@@ -897,7 +898,7 @@ namespace sglib {
         assert(order.size() == get_node_count());
         
         // use the layout to make a translator between current IDs and the IDs we will reassign
-        PagedVector nid_trans(PAGE_WIDTH);
+        PagedVector nid_trans(NARROW_PAGE_WIDTH);
         nid_trans.resize(max_id - min_id + 1);
         for (size_t i = 0; i < order.size(); ++i) {
             nid_trans.set(get_id(order[i]) - min_id, i + 1);
@@ -1023,10 +1024,10 @@ namespace sglib {
             max_id = min_id + nid_to_graph_iv.size() - 1;
             
             // initialize new vectors to construct defragged copies in
-            PagedVector new_graph_iv(PAGE_WIDTH);
+            PagedVector new_graph_iv(graph_iv.page_width());
             PackedVector new_seq_length_iv;
-            PagedVector new_seq_start_iv(PAGE_WIDTH);
-            PagedVector new_path_membership_node_iv(PAGE_WIDTH);
+            PagedVector new_seq_start_iv(seq_start_iv.page_width());
+            PagedVector new_path_membership_node_iv(path_membership_node_iv.page_width());
             
             // expand them to the size we need to avoid reallocation and get optimal compression
             new_graph_iv.reserve(num_nodes * GRAPH_RECORD_SIZE);
@@ -1065,7 +1066,7 @@ namespace sglib {
             
             uint64_t num_edge_records = edge_lists_iv.size() / EDGE_RECORD_SIZE - deleted_edge_records;
             
-            PagedVector new_edge_lists_iv(PAGE_WIDTH);
+            PagedVector new_edge_lists_iv(edge_lists_iv.page_width());
             new_edge_lists_iv.reserve(num_edge_records * EDGE_RECORD_SIZE);
             
             for (size_t i = 0; i < nid_to_graph_iv.size(); i++) {
@@ -1107,9 +1108,9 @@ namespace sglib {
             
             uint64_t num_membership_records = path_membership_next_iv.size() / MEMBERSHIP_NEXT_RECORD_SIZE - deleted_membership_records;
             
-            PagedVector new_path_membership_id_iv(PAGE_WIDTH);
-            PagedVector new_path_membership_offset_iv(PAGE_WIDTH);
-            PagedVector new_path_membership_next_iv(PAGE_WIDTH);
+            PagedVector new_path_membership_id_iv(path_membership_id_iv.page_width());
+            PagedVector new_path_membership_offset_iv(path_membership_offset_iv.page_width());
+            PagedVector new_path_membership_next_iv(path_membership_next_iv.page_width());
             
             new_path_membership_id_iv.reserve(num_membership_records * MEMBERSHIP_ID_RECORD_SIZE);
             new_path_membership_offset_iv.reserve(num_membership_records * MEMBERSHIP_OFFSET_RECORD_SIZE);

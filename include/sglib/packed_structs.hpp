@@ -145,7 +145,10 @@ public:
     /// Clears the backing vector
     inline void clear();
     
-    /// Reports the amount of memory consumed by this object in bytes.
+    /// Returns the page width of the vector
+    inline size_t page_width() const;
+    
+    /// Reports the amount of memory consumed by this object in bytes
     size_t memory_usage() const;
     
 private:
@@ -534,6 +537,9 @@ inline void PagedVector::clear() {
     pages.clear();
     anchors.clear();
     filled = 0;
+}
+inline size_t PagedVector::page_width() const {
+    return page_size;
 }
     
 inline uint64_t PagedVector::to_diff(const uint64_t& value, const uint64_t& anchor) const {

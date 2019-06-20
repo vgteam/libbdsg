@@ -324,8 +324,9 @@ private:
     /// Defragment data structures when the orphaned records are this fraction of the whole.
     const static double defrag_factor;
     
-    /// We use a standard page width for all page-compressed vectors
-    const static size_t PAGE_WIDTH;
+    /// We use standard page widths for page-compressed vectors
+    const static size_t NARROW_PAGE_WIDTH;
+    const static size_t WIDE_PAGE_WIDTH;
     
     /// The maximum ID in the graph
     nid_t max_id = 0;
