@@ -73,6 +73,9 @@ public:
 
     /// Clears the backing vector
     inline void clear();
+    
+    /// Reports the amount of memory consumed by this object in bytes.
+    size_t memory_usage() const;
         
 private:
         
@@ -141,6 +144,9 @@ public:
     
     /// Clears the backing vector
     inline void clear();
+    
+    /// Reports the amount of memory consumed by this object in bytes.
+    size_t memory_usage() const;
     
 private:
     
@@ -216,6 +222,9 @@ public:
     
     /// Empty the contents
     inline void clear();
+    
+    /// Reports the amount of memory consumed by this object in bytes.
+    size_t memory_usage() const;
     
 private:
     
