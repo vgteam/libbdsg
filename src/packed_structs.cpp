@@ -32,6 +32,11 @@ void PackedVector::serialize(ostream& out) const {
     vec.serialize(out);
 }
     
+size_t PackedVector::memory_usage() const {
+    // sdsl vectors return the number of bits, but we want bytes
+    return sizeof(filled) + sizeof(vec) + vec.capacity() / 8;
+}
+    
 PagedVector::PagedVector(size_t page_size) : page_size(page_size) {
     
 }
@@ -62,6 +67,18 @@ void PagedVector::serialize(ostream& out) const  {
     }
 }
 
+size_t PagedVector::memory_usage() const {
+    size_t total = sizeof(page_size) + sizeof(filled) + sizeof(pages);
+    total += anchors.memory_usage();
+    // add the memory of pages that are filled in the vector
+    for (const auto& page : pages) {
+        total += page.memory_usage();
+    }
+    // add the memory of excess capacity
+    total += (pages.capacity() - pages.size()) * sizeof(pages::value_type);
+    return total;
+}
+
 PackedDeque::PackedDeque() {
     
 }
@@ -84,6 +101,10 @@ void PackedDeque::serialize(ostream& out) const  {
     sdsl::write_member(begin_idx, out);
     sdsl::write_member(filled, out);
     vec.serialize(out);
+}
+
+size_t PackedDeque::memory_usage() const {
+    return sizeof(begin_idx) + sizeof(filled) + vec.memory_usage();
 }
 
 }

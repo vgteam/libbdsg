@@ -1648,4 +1648,105 @@ namespace sglib {
         // set the annotation
         packed_path.is_circular = circular;
     }
+    
+    void PackedGraph::report_memory(ostream& out, bool individual_paths) const {
+        out << "min/max_id: " << sizeof(max_id) + sizeof(min_id) << endl;
+        out << "graph_iv: " << graph_iv.memory_usage() << endl;
+        out << "seq_start_iv: " << seq_start_iv.memory_usage() << endl;
+        out << "seq_length_iv: " << seq_length_iv.memory_usage() << endl;
+        out << "edge_lists_iv: " << edge_lists_iv.memory_usage() << endl;
+        out << "nid_to_graph_iv: " << nid_to_graph_iv.memory_usage() << endl;
+        out << "seq_iv: " << seq_iv.memory_usage() << endl;
+        out << "path_membership_node_iv: " << path_membership_node_iv.memory_usage() << endl;
+        out << "path_membership_id_iv: " << path_membership_id_iv.memory_usage() << endl;
+        out << "path_membership_offset_iv: " << path_membership_offset_iv.memory_usage() << endl;
+        out << "path_membership_next_iv: " << path_membership_next_iv.memory_usage() << endl;
+        
+        unordered_set<int64_t> unused_path_ids;
+        for (int64_t i = 0; i < paths.size(); i++) {
+            unused_path_ids.insert(i);
+        }
+        
+        vector<string> names;
+        names.reserve(path_id.size());
+        for (const auto& path_id_record : path_id) {
+            names.push_back(path_id_record.first);
+            unused_path_ids.erase(path_id_record.second);
+        }
+        
+        sort(names.begin(), names.end());
+        
+        if (individual_paths) {
+            out << "individual paths:" << endl;
+        }
+        
+        size_t name_total = 0, id_total = 0, links_total = 0, steps_total = 0, other_total = 0;
+        for (const auto& path_name : names) {
+            auto it = path_id.find(path_name);
+            size_t path_name_mem = sizeof(it->first) + it->first.capacity() * sizeof(char);
+            size_t path_id_mem = sizeof(it->second);
+            const auto& packed_path = paths.at(it->second);
+            path_name_mem += sizeof(packed_path.name) + packed_path.name.capacity() * sizeof(char);
+            size_t other_mem = (sizeof(packed_path.is_deleted) + sizeof(packed_path.is_circular)
+                                + sizeof(packed_path.head) + sizeof(packed_path.tail)
+                                + sizeof(packed_path.deleted_step_records));
+            size_t links_mem = packed_path.links_iv.memory_usage();
+            size_t steps_mem = packed_path.steps_iv.memory_usage();
+            if (individual_paths) {
+                out << "\t" << path_name << ":" << endl;
+                out << "\t\tname: " << path_name_mem << endl;
+                out << "\t\tid: " << path_id_mem << endl;
+                out << "\t\tlinks: " << links_mem << endl;
+                out << "\t\tsteps: " << steps_mem << endl;
+                out << "\t\tother: " << other_mem << endl;
+            }
+            name_total += path_name_mem;
+            id_total += path_id_mem;
+            links_total += links_mem;
+            steps_total += steps_mem;
+            other_total += other_mem;
+        }
+        // we may have missed deleted paths
+        if (!unused_path_ids.empty()) {
+            size_t dead_name_total = 0, dead_links_total = 0, dead_steps_total = 0, dead_other_total = 0
+            for (int64_t path_id : unused_path_ids) {
+                const auto& packed_path = paths.at(it->second);
+                dead_name_total += sizeof(packed_path.name) + packed_path.name.capacity() * sizeof(char);
+                dead_other_total += (sizeof(packed_path.is_deleted) + sizeof(packed_path.is_circular)
+                                     + sizeof(packed_path.head) + sizeof(packed_path.tail)
+                                     + sizeof(packed_path.deleted_step_records));
+                dead_links_total += packed_path.links_iv.memory_usage();
+                dead_steps_total += packed_path.steps_iv.memory_usage();
+            }
+            if (individual_paths) {
+                out << "\tdeleted paths (" << unused_path_ids.size() << ")" << endl;
+                out << "\t\tname: " << dead_name_total << endl;
+                out << "\t\tid: " << 0 << endl;
+                out << "\t\tlinks: " << dead_links_total << endl;
+                out << "\t\tsteps: " << dead_steps_total << endl;
+                out << "\t\tother: " << dead_other_total << endl;
+            }
+            name_total += dead_name_total;
+            links_total += dead_links_total;
+            steps_total += dead_steps_total;
+            other_total += dead_other_total;
+        }
+        
+        
+        size_t path_total = name_total + id_total + links_total + steps_total + other_total;
+        // add the local size and extra capacity in the path id hash table
+        path_total += (path_id.bucket_count() - path_id.size()) * sizeof(string);
+        path_total += (path_id.bucket_count() - path_id.size()) * sizeof(int64_t);
+        path_total += sizeof(path_id);
+        // add the local size and extra capacity in the path vector
+        path_total += (paths.capacity() - paths.size()) * sizeof(PackedPath);
+        path_total += sizeof(paths);
+        
+        out << "paths (" << path_id.size() << ") total: " << path_total << endl;
+        out << "\tname: " << name_total << endl;
+        out << "\tid: " << id_total << endl;
+        out << "\tlinks: " << links_total << endl;
+        out << "\tsteps: " << steps_total << endl;
+        out << "\tother: " << other_total << endl;
+    }
 }

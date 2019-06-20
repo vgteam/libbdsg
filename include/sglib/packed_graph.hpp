@@ -475,6 +475,12 @@ private:
     uint64_t deleted_node_records = 0;
     uint64_t deleted_edge_records = 0;
     uint64_t deleted_membership_records = 0;
+    
+public:
+    
+    /// Debugging function, measures memory and prints a report to an ostream.
+    /// Optionally reports memory usage for every path individually.
+    void report_memory(ostream& out, bool individual_paths = false) const;
 };
     
     
