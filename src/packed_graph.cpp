@@ -1708,9 +1708,9 @@ namespace sglib {
         }
         // we may have missed deleted paths
         if (!unused_path_ids.empty()) {
-            size_t dead_name_total = 0, dead_links_total = 0, dead_steps_total = 0, dead_other_total = 0
+            size_t dead_name_total = 0, dead_links_total = 0, dead_steps_total = 0, dead_other_total = 0;
             for (int64_t path_id : unused_path_ids) {
-                const auto& packed_path = paths.at(it->second);
+                const auto& packed_path = paths.at(path_id);
                 dead_name_total += sizeof(packed_path.name) + packed_path.name.capacity() * sizeof(char);
                 dead_other_total += (sizeof(packed_path.is_deleted) + sizeof(packed_path.is_circular)
                                      + sizeof(packed_path.head) + sizeof(packed_path.tail)

@@ -75,7 +75,7 @@ size_t PagedVector::memory_usage() const {
         total += page.memory_usage();
     }
     // add the memory of excess capacity
-    total += (pages.capacity() - pages.size()) * sizeof(pages::value_type);
+    total += (pages.capacity() - pages.size()) * sizeof(decltype(pages)::value_type);
     return total;
 }
 
