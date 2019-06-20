@@ -120,17 +120,17 @@ string format_memory(size_t s) {
         return round(s * factor) / factor;
     };
     
-    if (s >= (1 << 40)) {
-        return to_string(round_to_sig_figs(s / (1 << 40), 3)) + " TB";
+    if (s >= (1ull << 40)) {
+        return to_string(round_to_sig_figs(s / (1ull << 40), 3)) + " TB";
     }
-    else if (s >= (1 << 30)) {
-        return to_string(round_to_sig_figs(s / (1 << 30), 3)) + " GB";
+    else if (s >= (1ull << 30)) {
+        return to_string(round_to_sig_figs(s / (1ull << 30), 3)) + " GB";
     }
-    else if (s >= (1 << 20)) {
-        return to_string(round_to_sig_figs(s / (1 << 20), 3)) + " MB";
+    else if (s >= (1ull << 20)) {
+        return to_string(round_to_sig_figs(s / (1ull << 20), 3)) + " MB";
     }
-    else if (s >= (1 << 10)) {
-        return to_string(round_to_sig_figs(s / (1 << 10), 3)) + " kB";
+    else if (s >= (1ull << 10)) {
+        return to_string(round_to_sig_figs(s / (1ull << 10), 3)) + " kB";
     }
     else {
         return to_string(s) + " B";
