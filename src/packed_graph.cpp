@@ -1650,17 +1650,50 @@ namespace sglib {
     }
     
     void PackedGraph::report_memory(ostream& out, bool individual_paths) const {
-        out << "min/max_id: " << sizeof(max_id) + sizeof(min_id) << endl;
-        out << "graph_iv: " << graph_iv.memory_usage() << endl;
-        out << "seq_start_iv: " << seq_start_iv.memory_usage() << endl;
-        out << "seq_length_iv: " << seq_length_iv.memory_usage() << endl;
-        out << "edge_lists_iv: " << edge_lists_iv.memory_usage() << endl;
-        out << "nid_to_graph_iv: " << nid_to_graph_iv.memory_usage() << endl;
-        out << "seq_iv: " << seq_iv.memory_usage() << endl;
-        out << "path_membership_node_iv: " << path_membership_node_iv.memory_usage() << endl;
-        out << "path_membership_id_iv: " << path_membership_id_iv.memory_usage() << endl;
-        out << "path_membership_offset_iv: " << path_membership_offset_iv.memory_usage() << endl;
-        out << "path_membership_next_iv: " << path_membership_next_iv.memory_usage() << endl;
+        size_t grand_total = 0;
+        size_t item_mem = sizeof(max_id) + sizeof(min_id);
+        out << "min/max_id: " << format_memory(item_mem) << endl;
+        grand_total += item_mem;
+        
+        item_mem = graph_iv.memory_usage();
+        out << "graph_iv: " << format_memory(item_mem) << endl;
+        grand_total += item_mem;
+        
+        item_mem = seq_start_iv.memory_usage();
+        out << "seq_start_iv: " << format_memory(item_mem) << endl;
+        grand_total += item_mem;
+        
+        item_mem = seq_length_iv.memory_usage();
+        out << "seq_length_iv: " << format_memory(item_mem) << endl;
+        grand_total += item_mem;
+        
+        item_mem = edge_lists_iv.memory_usage();
+        out << "edge_lists_iv: " << format_memory(item_mem) << endl;
+        grand_total += item_mem;
+        
+        item_mem = nid_to_graph_iv.memory_usage();
+        out << "nid_to_graph_iv: " << format_memory(item_mem) << endl;
+        grand_total += item_mem;
+        
+        item_mem = seq_iv.memory_usage();
+        out << "seq_iv: " << format_memory(item_mem) << endl;
+        grand_total += item_mem;
+        
+        item_mem = path_membership_node_iv.memory_usage();
+        out << "path_membership_node_iv: " << format_memory(item_mem) << endl;
+        grand_total += item_mem;
+        
+        item_mem = path_membership_id_iv.memory_usage();
+        out << "path_membership_id_iv: " << format_memory(item_mem) << endl;
+        grand_total += item_mem;
+        
+        item_mem = path_membership_offset_iv.memory_usage();
+        out << "path_membership_offset_iv: " << format_memory(item_mem) << endl;
+        grand_total += item_mem;
+        
+        item_mem = path_membership_next_iv.memory_usage();
+        out << "path_membership_next_iv: " << format_memory(item_mem) << endl;
+        grand_total += item_mem;
         
         unordered_set<int64_t> unused_path_ids;
         for (int64_t i = 0; i < paths.size(); i++) {
@@ -1694,11 +1727,11 @@ namespace sglib {
             size_t steps_mem = packed_path.steps_iv.memory_usage();
             if (individual_paths) {
                 out << "\t" << path_name << ":" << endl;
-                out << "\t\tname: " << path_name_mem << endl;
-                out << "\t\tid: " << path_id_mem << endl;
-                out << "\t\tlinks: " << links_mem << endl;
-                out << "\t\tsteps: " << steps_mem << endl;
-                out << "\t\tother: " << other_mem << endl;
+                out << "\t\tname: " << format_memory(path_name_mem) << endl;
+                out << "\t\tid: " << format_memory(path_id_mem) << endl;
+                out << "\t\tlinks: " << format_memory(links_mem) << endl;
+                out << "\t\tsteps: " << format_memory(steps_mem) << endl;
+                out << "\t\tother: " << format_memory(other_mem) << endl;
             }
             name_total += path_name_mem;
             id_total += path_id_mem;
@@ -1720,11 +1753,11 @@ namespace sglib {
             }
             if (individual_paths) {
                 out << "\tdeleted paths (" << unused_path_ids.size() << ")" << endl;
-                out << "\t\tname: " << dead_name_total << endl;
-                out << "\t\tid: " << 0 << endl;
-                out << "\t\tlinks: " << dead_links_total << endl;
-                out << "\t\tsteps: " << dead_steps_total << endl;
-                out << "\t\tother: " << dead_other_total << endl;
+                out << "\t\tname: " << format_memory(dead_name_total) << endl;
+                out << "\t\tid: " << format_memory(0) << endl;
+                out << "\t\tlinks: " << format_memory(dead_links_total) << endl;
+                out << "\t\tsteps: " << format_memory(dead_steps_total) << endl;
+                out << "\t\tother: " << format_memory(dead_other_total) << endl;
             }
             name_total += dead_name_total;
             links_total += dead_links_total;
@@ -1742,11 +1775,15 @@ namespace sglib {
         path_total += (paths.capacity() - paths.size()) * sizeof(PackedPath);
         path_total += sizeof(paths);
         
-        out << "paths (" << path_id.size() << ") total: " << path_total << endl;
-        out << "\tname: " << name_total << endl;
-        out << "\tid: " << id_total << endl;
-        out << "\tlinks: " << links_total << endl;
-        out << "\tsteps: " << steps_total << endl;
-        out << "\tother: " << other_total << endl;
+        out << "paths (" << path_id.size() << ") total: " << format_memory(path_total) << endl;
+        out << "\tname: " << format_memory(name_total) << endl;
+        out << "\tid: " << format_memory(id_total) << endl;
+        out << "\tlinks: " << format_memory(links_total) << endl;
+        out << "\tsteps: " << format_memory(steps_total) << endl;
+        out << "\tother: " << format_memory(other_total) << endl;
+        
+        grand_total += path_total;
+        
+        out << "GRAND TOTAL: " << format_memory(grand_total) << endl;
     }
 }

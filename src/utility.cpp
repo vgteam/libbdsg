@@ -110,4 +110,30 @@ string toUppercase(const string& s) {
     }
     return n;
 }
+
+string format_memory(size_t s) {
+    auto round_to_sig_figs = [](size_t s, int figs) {
+        if (value == 0.0) // otherwise it will return 'nan' due to the log10() of zero
+            return 0.0;
+        
+        double factor = pow(10.0, figs - ceil(log10(fabs(value))));
+        return round(s * factor) / factor;
+    };
+    
+    if (s >= (1 << 12)) {
+        return to_string(round_to_sig_figs(s / (1 << 12)), 3) + " TB";
+    }
+    else if (s >= (1 << 9)) {
+        return to_string(round_to_sig_figs(s / (1 << 9)), 3) + " GB";
+    }
+    else if (s >= (1 << 6)) {
+        return to_string(round_to_sig_figs(s / (1 << 6)), 3) + " MB";
+    }
+    else if (s >= (1 << 3)) {
+        return to_string(round_to_sig_figs(s / (1 << 3)), 3) + " kB";
+    }
+    else {
+        return to_string(s) + " B";
+    }
+}
 }
