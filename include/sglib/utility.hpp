@@ -2,7 +2,7 @@
 #define SGLIB_UTILITY_HPP_INCLUDED
 
 #include <string>
-#include <cmath>
+#include <iomanip>
 
 namespace sglib {
 
