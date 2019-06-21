@@ -466,7 +466,6 @@ private:
     
     /// Vector of the embedded paths in the graph
     vector<PackedPath> paths;
-    const static double PATH_RESIZE_FACTOR;
     
     ///////////////////////////////////////////////////////////////////////
     /// Convenience functions to translate between encodings in the vectors
