@@ -95,9 +95,9 @@ namespace sglib {
         path_is_circular_iv.serialize(out);
         path_head_iv.serialize(out);
         path_tail_iv.serialize(out);
+        path_deleted_steps_iv.serialize(out);
         
         for (const PackedPath& path : paths) {
-            sdsl::write_member(path.deleted_step_records, out);
             path.links_iv.serialize(out);
             path.steps_iv.serialize(out);
         }
@@ -136,18 +136,18 @@ namespace sglib {
         path_is_circular_iv.deserialize(in);
         path_head_iv.deserialize(in);
         path_tail_iv.deserialize(in);
+        path_deleted_steps_iv.deserialize(in);
         
         for (size_t i = 0; i < path_name_start_iv.size(); i++) {
             paths.emplace_back();
             PackedPath& path = paths.back();
-            sdsl::read_member(path.deleted_step_records, in);
             path.links_iv.deserialize(in);
             path.steps_iv.deserialize(in);
         }
         
         // reconstruct the path_id mapping
         for (int64_t i = 0; i < paths.size(); i++) {
-            if (path_is_deleted_iv.get(i)) {
+            if (!path_is_deleted_iv.get(i)) {
                 path_id[extract_encoded_path_name(i)] = i;
             }
         }
@@ -751,7 +751,7 @@ namespace sglib {
         PackedPath& path = paths[path_idx];
         
         // have we either deleted a lot of steps or forced a defrag?
-        if (path.deleted_step_records > defrag_factor * (path.steps_iv.size() / PATH_RECORD_SIZE) || force) {
+        if (path_deleted_steps_iv.get(path_idx) > defrag_factor * (path.steps_iv.size() / PATH_RECORD_SIZE) || force) {
             
             if (path_head_iv.get(path_idx) != 0) {
                 
@@ -763,8 +763,8 @@ namespace sglib {
                 PagedVector offset_translator(NARROW_PAGE_WIDTH);
                 offset_translator.resize(path.steps_iv.size() / STEP_RECORD_SIZE + 1);
                 
-                new_links_iv.reserve(path.links_iv.size() - path.deleted_step_records * PATH_RECORD_SIZE);
-                new_steps_iv.reserve(path.steps_iv.size() - path.deleted_step_records * STEP_RECORD_SIZE);
+                new_links_iv.reserve(path.links_iv.size() - path_deleted_steps_iv.get(path_idx) * PATH_RECORD_SIZE);
+                new_steps_iv.reserve(path.steps_iv.size() - path_deleted_steps_iv.get(path_idx) * STEP_RECORD_SIZE);
                 
                 bool first_iter = true;
                 size_t copying_from = path_head_iv.get(path_idx);
@@ -864,7 +864,7 @@ namespace sglib {
                 path.steps_iv = RobustPagedVector(path.steps_iv.page_width());
             }
             
-            path.deleted_step_records = 0;
+            path_deleted_steps_iv.set(path_idx,  0);
         }
     }
     
@@ -892,6 +892,7 @@ namespace sglib {
                 path_is_circular_iv.set(i - num_paths_deleted, path_is_circular_iv.get(i));
                 path_head_iv.set(i - num_paths_deleted, path_head_iv.get(i));
                 path_tail_iv.set(i - num_paths_deleted, path_tail_iv.get(i));
+                path_deleted_steps_iv.set(i - num_paths_deleted, path_deleted_steps_iv.get(i));
             }
         }
         
@@ -979,6 +980,13 @@ namespace sglib {
             new_path_tail_iv.append(path_tail_iv.get(i));
         }
         path_tail_iv = move(new_path_tail_iv);
+        
+        PackedVector new_path_deleted_steps_iv;
+        new_path_deleted_steps_iv.reserve(paths.size());
+        for (size_t i = 0; i < paths.size(); ++i) {
+            new_path_deleted_steps_iv.append(path_deleted_steps_iv.get(i));
+        }
+        path_deleted_steps_iv = move(new_path_deleted_steps_iv);
         
         // TODO: unless paths have been deleted, path_names_iv doesn't get a tight allocation...
     }
@@ -1336,7 +1344,7 @@ namespace sglib {
     
     size_t PackedGraph::get_step_count(const path_handle_t& path_handle) const {
         const PackedPath& path = paths.at(as_integer(path_handle));
-        return path.steps_iv.size() / STEP_RECORD_SIZE - path.deleted_step_records;
+        return path.steps_iv.size() / STEP_RECORD_SIZE - path_deleted_steps_iv.get(as_integer(path_handle));
     }
     
     size_t PackedGraph::get_path_count() const {
@@ -1538,6 +1546,7 @@ namespace sglib {
         packed_path.links_iv.clear();
         path_head_iv.set(as_integer(path), 0);
         path_tail_iv.set(as_integer(path), 0);
+        path_deleted_steps_iv.set(as_integer(path), 0);
         
         defragment();
     }
@@ -1573,6 +1582,7 @@ namespace sglib {
         path_is_deleted_iv.append(false);
         path_head_iv.append(0);
         path_tail_iv.append(0);
+        path_deleted_steps_iv.append(0);
         
         append_path_name(name);
         
@@ -1735,7 +1745,7 @@ namespace sglib {
                 path_tail_iv.set(path_idx, prev_offset);
             }
             
-            packed_path.deleted_step_records++;
+            path_deleted_steps_iv.set(path_idx, path_deleted_steps_iv.get(path_idx) + 1);
             
             // TODO: reallocating paths invalidates pointers, so we can't really do it here because
             // we need to return the range. might also be confusing to users
@@ -1909,6 +1919,10 @@ namespace sglib {
         out << "path_tail_iv: " << format_memory(item_mem) << endl;
         grand_total += item_mem;
         
+        item_mem = path_deleted_steps_iv.memory_usage();
+        out << "path_deleted_steps_iv: " << format_memory(item_mem) << endl;
+        grand_total += item_mem;
+        
         unordered_set<int64_t> unused_path_ids;
         for (int64_t i = 0; i < paths.size(); i++) {
             unused_path_ids.insert(i);
@@ -1927,13 +1941,12 @@ namespace sglib {
             out << "individual paths:" << endl;
         }
         
-        size_t name_total = 0, id_total = 0, links_total = 0, steps_total = 0, other_total = 0;
+        size_t name_total = 0, id_total = 0, links_total = 0, steps_total = 0;
         for (const auto& path_name : names) {
             auto it = path_id.find(encode_path_name(path_name));
             size_t path_name_mem = it->first.memory_usage();
             size_t path_id_mem = sizeof(it->second);
             const auto& packed_path = paths.at(it->second);
-            size_t other_mem = sizeof(packed_path.deleted_step_records);
             size_t links_mem = packed_path.links_iv.memory_usage();
             size_t steps_mem = packed_path.steps_iv.memory_usage();
             if (individual_paths) {
@@ -1942,23 +1955,20 @@ namespace sglib {
                 out << "\t\tid: " << format_memory(path_id_mem) << endl;
                 out << "\t\tlinks: " << format_memory(links_mem) << endl;
                 out << "\t\tsteps: " << format_memory(steps_mem) << endl;
-                out << "\t\tother: " << format_memory(other_mem) << endl;
             }
             name_total += path_name_mem;
             id_total += path_id_mem;
             links_total += links_mem;
             steps_total += steps_mem;
-            other_total += other_mem;
         }
         
-        size_t path_object_total = name_total + id_total + links_total + steps_total + other_total;
+        size_t path_object_total = name_total + id_total + links_total + steps_total;
         
         // we may have missed deleted paths
-        size_t dead_links_total = 0, dead_steps_total = 0, dead_other_total = 0;
+        size_t dead_links_total = 0, dead_steps_total = 0;
         if (!unused_path_ids.empty()) {
             for (int64_t unused_path_id : unused_path_ids) {
                 const auto& packed_path = paths.at(unused_path_id);
-                dead_other_total += sizeof(packed_path.deleted_step_records);
                 dead_links_total += packed_path.links_iv.memory_usage();
                 dead_steps_total += packed_path.steps_iv.memory_usage();
             }
@@ -1967,11 +1977,10 @@ namespace sglib {
                 out << "\t\tid: " << format_memory(0) << endl;
                 out << "\t\tlinks: " << format_memory(dead_links_total) << endl;
                 out << "\t\tsteps: " << format_memory(dead_steps_total) << endl;
-                out << "\t\tother: " << format_memory(dead_other_total) << endl;
             }
         }
         
-        size_t dead_object_total = dead_links_total + dead_steps_total + dead_other_total;
+        size_t dead_object_total = dead_links_total + dead_steps_total;
         
         size_t path_excess_cap = 0;
         // add the local size and extra capacity in the path id hash table

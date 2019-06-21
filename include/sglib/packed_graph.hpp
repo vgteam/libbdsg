@@ -441,6 +441,9 @@ private:
     /// with the same index in paths
     PackedVector path_tail_iv;
     
+    /// The number of steps that have have deleted from the path at the same index
+    PackedVector path_deleted_steps_iv;
+    
     /*
      * A struct to package the data associated with a path through the graph.
      */
