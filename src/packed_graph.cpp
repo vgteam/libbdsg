@@ -1982,14 +1982,14 @@ namespace sglib {
         
         size_t dead_object_total = dead_links_total + dead_steps_total;
         
-        size_t path_excess_cap = 0;
-        // add the local size and extra capacity in the path id hash table
-        path_excess_cap += (path_id.bucket_count() - path_id.size()) * sizeof(decltype(path_id)::key_type);
-        path_excess_cap += (path_id.bucket_count() - path_id.size()) * sizeof(decltype(path_id)::value_type);
-        path_excess_cap += sizeof(path_id);
-        // add the local size and extra capacity in the path vector
-        path_excess_cap += (paths.capacity() - paths.size()) * sizeof(decltype(paths)::value_type);
-        path_excess_cap += sizeof(paths);
+        size_t hash_table_excess_cap = 0;
+        hash_table_excess_cap += (path_id.bucket_count() - path_id.size()) * sizeof(decltype(path_id)::key_type);
+        hash_table_excess_cap += (path_id.bucket_count() - path_id.size()) * sizeof(decltype(path_id)::value_type);
+        hash_table_excess_cap += sizeof(path_id);
+        
+        size_t vector_excess_cap = 0;
+        vector_excess_cap += (paths.capacity() - paths.size()) * sizeof(decltype(paths)::value_type);
+        vector_excess_cap += sizeof(paths);
         
         size_t path_total = path_object_total + dead_object_total + path_excess_cap;
         
@@ -1999,7 +1999,8 @@ namespace sglib {
         out << "\tlinks: " << format_memory(links_total) << endl;
         out << "\tsteps: " << format_memory(steps_total) << endl;
         out << "\tdead paths: " << format_memory(dead_object_total) << endl;
-        out << "\texcess capacity: " << format_memory(path_excess_cap) << endl;
+        out << "\tht excess capacity: " << format_memory(hash_table_excess_cap) << endl;
+        out << "\tvec excess capacity: " << format_memory(vector_excess_cap) << endl;
         
         grand_total += path_total;
         
