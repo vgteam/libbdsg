@@ -322,7 +322,7 @@ private:
     void defragment_path(PackedPath& path, bool force = false);
     
     /// Convert a path name into an integer vector, assigning new chars as necessary
-    PackedVector encode_path_name(const string& path_name);
+    PackedVector encode_and_assign_path_name(const string& path_name);
     
     /// Convert a path name into an integer vector using only existing char assignments
     PackedVector encode_path_name(const string& path_name) const;
@@ -333,6 +333,9 @@ private:
     
     /// Decode the internal representation of a path name and return it as a string
     string decode_path_name(const PackedPath& path) const;
+    
+    /// Extract the internal representation of a path name, but do not decode it
+    PackedVector extract_encoded_path_name(const PackedPath& path) const;
     
     /// Defragment data structures when the orphaned records are this fraction of the whole.
     const static double defrag_factor;
@@ -458,7 +461,7 @@ private:
     const static size_t STEP_RECORD_SIZE;
     
     /// Map from path names to index in the paths vector.
-    string_hash_map<string, int64_t> path_id;
+    string_hash_map<PackedVector, int64_t> path_id;
     
     /// Vector of the embedded paths in the graph
     vector<PackedPath> paths;

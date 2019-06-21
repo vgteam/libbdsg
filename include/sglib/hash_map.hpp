@@ -6,6 +6,7 @@
 #include <type_traits>
 
 #include "sglib/wang_hash.hpp"
+#include "sglib/packed_structs.hpp"
 
 // Comment out to use sparse_hash_map and sparse_hash_set instead of
 // dense_hash_map and dense_hash_set.
@@ -85,6 +86,19 @@ struct hash<std::tuple<TT...>>
 };
 }
 #endif  // OVERLOAD_PAIR_HASH
+
+// make a hash function for PackedVectors
+namespace std {
+    struct hash<sglib::PackedVector> {
+        size_t operator(const sglib::PackedVector& vec) {
+            size_t hash_val = 0;
+            for (size_t i = 0; i < vec.size(); ++i) {
+                hash_combine(hash_val, vec.get(i));
+            }
+            return hash_val;
+        }
+    };
+}
 
 
 namespace sglib {

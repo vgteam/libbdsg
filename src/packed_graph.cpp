@@ -151,7 +151,7 @@ namespace sglib {
         // reconstruct the path_id mapping
         for (int64_t i = 0; i < paths.size(); i++) {
             if (!paths[i].is_deleted) {
-                path_id[decode_path_name(paths[i])] = i;
+                path_id[extract_encoded_path_name(paths[i])] = i;
             }
         }
         
@@ -805,7 +805,7 @@ namespace sglib {
                 path.tail = prev;
                 
                 // retrieve the ID of this path so we can match it to membership records
-                int64_t path_id_here = path_id.at(decode_path_name(path));
+                int64_t path_id_here = path_id.at(extract_encoded_path_name(path));
                 
                 // now we need to iterate over each node on the path exactly one time to update its membership
                 // records (even if the node occurs multiple times on this path), so we will use a bit deque
@@ -898,7 +898,7 @@ namespace sglib {
             
             // update the path IDs
             for (size_t i = 0; i < paths.size(); ++i) {
-                path_id[decode_path_name(paths[i])] = i;
+                path_id[extract_encoded_path_name(paths[i])] = i;
             }
             
             // update the path IDs in the membership records
@@ -1257,11 +1257,11 @@ namespace sglib {
     }
     
     bool PackedGraph::has_path(const std::string& path_name) const {
-        return path_id.count(path_name);
+        return path_id.count(encode_path_name(path_name));
     }
     
     path_handle_t PackedGraph::get_path_handle(const std::string& path_name) const {
-        return as_path_handle(path_id.at(path_name));
+        return as_path_handle(path_id.at(encode_path_name(path_name)));
     }
     
     string PackedGraph::get_path_name(const path_handle_t& path_handle) const {
@@ -1382,7 +1382,7 @@ namespace sglib {
         return true;
     }
     
-    PackedVector PackedGraph::encode_path_name(const string& path_name) {
+    PackedVector PackedGraph::encode_and_assign_path_name(const string& path_name) {
         PackedVector encoded;
         encoded.resize(path_name.size());
         for (size_t i = 0; i < path_name.size(); ++i) {
@@ -1404,6 +1404,15 @@ namespace sglib {
         for (size_t i = 0; i < path_name.size(); ++i) {
             path_names_iv.append(get_or_make_assignment(path_name.at(i)));
         }
+    }
+    
+    PackedVector PackedGraph::extract_encoded_path_name(const PackedPath& path) const {
+        PackedVector name;
+        name.resize(path.path_name_length);
+        for (size_t i = 0; i < name.size(); ++i) {
+            name.set(i, path_names_iv.get(path.path_name_start + i));
+        }
+        return name;
     }
     
     string PackedGraph::decode_path_name(const PackedPath& path) const {
@@ -1452,7 +1461,7 @@ namespace sglib {
             first_iter = false;
         }
         
-        path_id.erase(decode_path_name(packed_path));
+        path_id.erase(extract_encoded_path_name(packed_path));
         
         packed_path.is_deleted = true;
         packed_path.steps_iv.clear();
@@ -1467,11 +1476,12 @@ namespace sglib {
     
     path_handle_t PackedGraph::create_path_handle(const string& name, bool is_circular) {
         
-        if (path_id.count(name)) {
+        PackedVector encoded = encode_and_assign_path_name(name);
+        if (path_id.count(encoded)) {
             throw std::runtime_error("[PackedGraph] error: path of name " + name + " already exists, cannot create again");
         }
         
-        path_id[name] = paths.size();
+        path_id[encoded] = paths.size();
         path_handle_t path_handle = as_path_handle(paths.size());
         
         paths.emplace_back(is_circular);
@@ -1794,7 +1804,7 @@ namespace sglib {
         vector<string> names;
         names.reserve(path_id.size());
         for (const auto& path_id_record : path_id) {
-            names.push_back(path_id_record.first);
+            names.push_back(decode_path_name(paths[path_id_record.second]));
             unused_path_ids.erase(path_id_record.second);
         }
         
@@ -1806,7 +1816,7 @@ namespace sglib {
         
         size_t name_total = 0, id_total = 0, links_total = 0, steps_total = 0, other_total = 0;
         for (const auto& path_name : names) {
-            auto it = path_id.find(path_name);
+            auto it = path_id.find(encode_path_name(path_name));
             size_t path_name_mem = sizeof(it->first) + it->first.capacity() * sizeof(char);
             size_t path_id_mem = sizeof(it->second);
             const auto& packed_path = paths.at(it->second);
@@ -1833,8 +1843,8 @@ namespace sglib {
         // we may have missed deleted paths
         if (!unused_path_ids.empty()) {
             size_t dead_name_total = 0, dead_links_total = 0, dead_steps_total = 0, dead_other_total = 0;
-            for (int64_t path_id : unused_path_ids) {
-                const auto& packed_path = paths.at(path_id);
+            for (int64_t unused_path_id : unused_path_ids) {
+                const auto& packed_path = paths.at(unused_path_id);
                 dead_other_total += (sizeof(packed_path.is_deleted) + sizeof(packed_path.is_circular)
                                      + sizeof(packed_path.head) + sizeof(packed_path.tail)
                                      + sizeof(packed_path.deleted_step_records) + sizeof(packed_path.path_name_start)
@@ -1858,11 +1868,11 @@ namespace sglib {
         
         size_t path_total = name_total + id_total + links_total + steps_total + other_total;
         // add the local size and extra capacity in the path id hash table
-        path_total += (path_id.bucket_count() - path_id.size()) * sizeof(string);
-        path_total += (path_id.bucket_count() - path_id.size()) * sizeof(int64_t);
+        path_total += (path_id.bucket_count() - path_id.size()) * sizeof(decltype(path_id)::key_type);
+        path_total += (path_id.bucket_count() - path_id.size()) * sizeof(decltype(path_id)::value_type);
         path_total += sizeof(path_id);
         // add the local size and extra capacity in the path vector
-        path_total += (paths.capacity() - paths.size()) * sizeof(PackedPath);
+        path_total += (paths.capacity() - paths.size()) * sizeof(decltype(paths)::value_type);
         path_total += sizeof(paths);
         
         out << "paths (" << path_id.size() << ") total: " << format_memory(path_total) << endl;
