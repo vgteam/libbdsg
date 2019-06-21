@@ -1257,7 +1257,13 @@ namespace sglib {
     }
     
     bool PackedGraph::has_path(const std::string& path_name) const {
-        return path_id.count(encode_path_name(path_name));
+        auto encoded = encode_path_name(path_name);
+        if (encoded.empty()) {
+            return false;
+        }
+        else {
+            return path_id.count(encoded);
+        }
     }
     
     path_handle_t PackedGraph::get_path_handle(const std::string& path_name) const {
@@ -1395,7 +1401,13 @@ namespace sglib {
         PackedVector encoded;
         encoded.resize(path_name.size());
         for (size_t i = 0; i < path_name.size(); ++i) {
-            encoded.set(i, get_assignment(path_name.at(i)));
+            uint64_t encoded_char = get_assignment(path_name.at(i));
+            if (encoded_char == numeric_limits<uint64_t>::max()) {
+                // this path name contains characters we've never seen before
+                encoded.clear();
+                break;
+            }
+            encoded.set(i, encoded_char);
         }
         return encoded;
     }

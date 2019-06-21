@@ -321,20 +321,21 @@ private:
     /// WARNING: invalidates step_handle_t's to this path.
     void defragment_path(PackedPath& path, bool force = false);
     
-    /// Convert a path name into an integer vector, assigning new chars as necessary
+    /// Convert a path name into an integer vector, assigning new chars as necessary.
     PackedVector encode_and_assign_path_name(const string& path_name);
     
     /// Convert a path name into an integer vector using only existing char assignments
+    /// If the path name contains previously unseen characters, returns an empty vector.
     PackedVector encode_path_name(const string& path_name) const;
     
     /// Encode the path name into the internal representation and append it to the master
-    /// list of path names
+    /// list of path names.
     void append_path_name(const string& path_name);
     
-    /// Decode the internal representation of a path name and return it as a string
+    /// Decode the internal representation of a path name and return it as a string.
     string decode_path_name(const PackedPath& path) const;
     
-    /// Extract the internal representation of a path name, but do not decode it
+    /// Extract the internal representation of a path name, but do not decode it.
     PackedVector extract_encoded_path_name(const PackedPath& path) const;
     
     /// Defragment data structures when the orphaned records are this fraction of the whole.
@@ -477,7 +478,8 @@ private:
     /// Complement nucleotide encoded as [0, 4]
     inline uint64_t complement_encoded_nucleotide(const uint64_t& val) const;
     
-    /// Get the integer assignment of a char
+    /// Get the integer assignment of a char, or numeric_limits<uint64_t>::max()
+    /// if no assignment has been made
     inline uint64_t get_assignment(const char& c) const;
     /// Get the integer assignment of a char, assigning a new one if necessary
     inline uint64_t get_or_make_assignment(const char& c);
@@ -651,7 +653,13 @@ inline void PackedGraph::set_step_next(PackedPath& path, const uint64_t& step_in
 }
     
 inline uint64_t PackedGraph::get_assignment(const char& c) const {
-    return char_assignment.at(c);
+    auto it = char_assignment.find(c);
+    if (it != char_assignment.end()) {
+        return it->second;
+    }
+    else {
+        return numeric_limits<uint64_t>::max();
+    }
 }
 
 inline uint64_t PackedGraph::get_or_make_assignment(const char& c) {
