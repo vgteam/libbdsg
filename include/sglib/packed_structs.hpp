@@ -185,7 +185,7 @@ private:
  * size.
  */
 class RobustPagedVector {
-    
+public:
     /// Construct and set page size (starts empty)
     RobustPagedVector(size_t page_size);
     
@@ -723,7 +723,7 @@ inline void RobustPagedVector::resize(const size_t& new_size) {
 inline void RobustPagedVector::reserve(const size_t& future_size) {
     if (future_size > latter_pages.page_width()) {
         first_page.reserve(latter_pages.page_width());
-        latter_pages.reserve(new_size - latter_pages.page_width());
+        latter_pages.reserve(future_size - latter_pages.page_width());
     }
     else {
         first_page.reserve(future_size);
@@ -735,7 +735,7 @@ inline size_t RobustPagedVector::size() const {
 }
 
 inline bool RobustPagedVector::empty() const {
-    return first_page.empty() && latter_pages.empty()
+    return first_page.empty() && latter_pages.empty();
 }
 
 inline void RobustPagedVector::clear() {
