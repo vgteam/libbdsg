@@ -934,6 +934,24 @@ namespace sglib {
             
             // TODO: should I reassign the char to int mapping in case entire chars where ejected?
         }
+        
+        // consolidate the path name pointer vectors (we do this to get them to a tight allocation
+        // even if no paths have been deleted)
+        PagedVector new_path_name_start_iv(path_name_start_iv.page_width());
+        new_path_name_start_iv.resize(paths.size());
+        for (size_t i = 0; i < paths.size(); ++i) {
+            new_path_name_start_iv.set(i, path_name_start_iv.get(i));
+        }
+        path_name_start_iv = move(new_path_name_start_iv);
+        
+        PackedVector new_path_name_length_iv;
+        new_path_name_length_iv.resize(paths.size());
+        for (size_t i = 0; i < paths.size(); ++i) {
+            new_path_name_length_iv.set(i, path_name_length_iv.get(i));
+        }
+        path_name_length_iv = move(new_path_name_length_iv);
+        
+        // TODO: unless paths have been deleted, path_names_iv doesn't get a tight allocation...
     }
     
     void PackedGraph::compact_ids(const vector<handle_t>& order) {
