@@ -1961,7 +1961,7 @@ namespace sglib {
             links_total += links_mem;
             steps_total += steps_mem;
             link_length += packed_path.links_iv.size();
-            step_length += packed_path.listeps_ivnks_iv.size();
+            step_length += packed_path.steps_iv.size();
         }
         
         size_t path_object_total = name_total + id_total + links_total + steps_total;
