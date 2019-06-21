@@ -1906,8 +1906,8 @@ namespace sglib {
         out << "\tlinks: " << format_memory(links_total) << endl;
         out << "\tsteps: " << format_memory(steps_total) << endl;
         out << "\tother: " << format_memory(other_total) << endl;
-        out << "\tdead paths: " << format_memory(dead_object_total)
-        out << "\texcess capacity: " << format_memory(path_excess_cap)
+        out << "\tdead paths: " << format_memory(dead_object_total) << endl;
+        out << "\texcess capacity: " << format_memory(path_excess_cap) << endl;
         
         grand_total += path_total;
         
