@@ -42,6 +42,8 @@ namespace sglib {
     const size_t PackedGraph::PATH_PREV_OFFSET = 0;
     const size_t PackedGraph::PATH_NEXT_OFFSET = 1;
     
+    const double PATH_RESIZE_FACTOR = 1.25;
+    
     PackedGraph::PackedGraph() :
         graph_iv(NARROW_PAGE_WIDTH),
         seq_start_iv(NARROW_PAGE_WIDTH),
@@ -51,16 +53,12 @@ namespace sglib {
         path_membership_offset_iv(NARROW_PAGE_WIDTH),
         path_membership_id_iv(WIDE_PAGE_WIDTH) {
         
+        // set pretty full load factors
+        path_id.max_load_factor(0.5);
+        path_id.min_load_factor(0.75);
     }
     
-    PackedGraph::PackedGraph(istream& in) :
-        graph_iv(NARROW_PAGE_WIDTH),
-        seq_start_iv(NARROW_PAGE_WIDTH),
-        edge_lists_iv(WIDE_PAGE_WIDTH),
-        path_membership_node_iv(NARROW_PAGE_WIDTH),
-        path_membership_next_iv(NARROW_PAGE_WIDTH),
-        path_membership_offset_iv(NARROW_PAGE_WIDTH),
-        path_membership_id_iv(WIDE_PAGE_WIDTH) {
+    PackedGraph::PackedGraph(istream& in) : PackedGraph() {
         
         deserialize(in);
     }
@@ -134,6 +132,7 @@ namespace sglib {
         
         size_t num_paths;
         sdsl::read_member(num_paths, in);
+        paths.reserve(num_paths);
         for (size_t i = 0; i < num_paths; i++) {
             paths.emplace_back(false); // dummy circularity here, real in a few lines
             PackedPath& path = paths.back();
@@ -1248,6 +1247,7 @@ namespace sglib {
         path_membership_offset_iv.clear();
         path_membership_next_iv.clear();
         paths.clear();
+        paths.shrink_to_fit();
         path_id.clear();
         min_id = std::numeric_limits<nid_t>::max();
         max_id = 0;
@@ -1498,6 +1498,16 @@ namespace sglib {
         
         path_id[encoded] = paths.size();
         path_handle_t path_handle = as_path_handle(paths.size());
+        
+        // we manually handle the geometric expansion of the array so we can give it a smaller
+        // constant factor on the memory
+        if (paths.size() == paths.capacity()) {
+            size_t new_capacity = paths.capacity() * PATH_RESIZE_FACTOR;
+            if (new_capacity == paths.capacity()) {
+                new_capacity++;
+            }
+            paths.reserve(new_capacity);
+        }
         
         paths.emplace_back(is_circular);
         
@@ -1829,7 +1839,7 @@ namespace sglib {
             out << "individual paths:" << endl;
         }
         
-        size_t name_total = 0, id_total = 0, links_total = 0, steps_total = 0, other_total = 0, name_ptr_total = 0, list_ptr_total;
+        size_t name_total = 0, id_total = 0, links_total = 0, steps_total = 0, other_total = 0, name_ptr_total = 0, list_ptr_total = 0;
         for (const auto& path_name : names) {
             auto it = path_id.find(encode_path_name(path_name));
             size_t path_name_mem = it->first.memory_usage();
