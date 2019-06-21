@@ -111,11 +111,12 @@ RobustPagedVector::RobustPagedVector(size_t page_size) : latter_pages(page_size)
     // Nothing to do
 }
 
-RobustPagedVector::RobustPagedVector() : latter_pages(1) {
+RobustPagedVector::RobustPagedVector() : latter_pages(64) {
     // Nothing to do
 }
 
-RobustPagedVector::RobustPagedVector(istream& in) {
+
+RobustPagedVector::RobustPagedVector(istream& in) : latter_pages(64) { // dummy page size
     deserialize(in);
 }
 
