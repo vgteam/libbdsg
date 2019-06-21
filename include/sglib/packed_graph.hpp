@@ -332,7 +332,7 @@ private:
     void append_path_name(const string& path_name);
     
     /// Decode the internal representation of a path name and return it as a string
-    string decode_path_name(const PackedVector& path) const;
+    string decode_path_name(const PackedPath& path) const;
     
     /// Defragment data structures when the orphaned records are this fraction of the whole.
     const static double defrag_factor;
@@ -407,8 +407,15 @@ private:
     const static size_t MEMBERSHIP_OFFSET_RECORD_SIZE;
     const static size_t MEMBERSHIP_NEXT_RECORD_SIZE;
     
-    /// All path names, concatenated in a single vector
+    /// We will reassign char values from the path names to small integers
+    hash_map<char, uint64_t> char_assignment;
+    /// The inverse mapping from integer to the char value
+    string inverse_char_assignment;
+    
+    /// All path names, encoded according to the char assignments and concatenated in
+    /// a single vector
     PackedVector path_names_iv;
+    
     /*
      * A struct to package the data associated with a path through the graph.
      */
@@ -449,11 +456,6 @@ private:
     const static size_t PATH_NEXT_OFFSET;
     
     const static size_t STEP_RECORD_SIZE;
-    
-    /// We will reassign char values form path names to integers
-    hash_map<char, uint64_t> char_assignment;
-    /// The inverse mapping from integer to the char value
-    string inverse_char_assignment;
     
     /// Map from path names to index in the paths vector.
     string_hash_map<string, int64_t> path_id;

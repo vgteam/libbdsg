@@ -85,6 +85,9 @@ namespace sglib {
         path_membership_offset_iv.serialize(out);
         path_membership_next_iv.serialize(out);
         
+        // it's sufficient to only serialize one direction of the mapping
+        sdsl::write_member(inverse_char_assignment, out);
+        
         path_names_iv.serialize(out);
         
         sdsl::write_member(paths.size(), out);
@@ -120,6 +123,14 @@ namespace sglib {
         path_membership_id_iv.deserialize(in);
         path_membership_offset_iv.deserialize(in);
         path_membership_next_iv.deserialize(in);
+        
+        sdsl::read_member(inverse_char_assignment, in);
+        // reconstruct the forward char assignments
+        for (size_t i = 0; i < inverse_char_assignment.size(); ++i) {
+            char_assignment[inverse_char_assignment[i]] = i;
+        }
+        
+        path_names_iv.deserialize(in);
         
         size_t num_paths;
         sdsl::read_member(num_paths, in);
@@ -1395,7 +1406,7 @@ namespace sglib {
         }
     }
     
-    string PackedGraph::decode_path_name(const PackedVector& path) const {
+    string PackedGraph::decode_path_name(const PackedPath& path) const {
         string name(path.path_name_length, '\0');
         for (size_t i = 0; i < name.size(); ++i) {
             name[i] = get_char(path_names_iv.get(path.path_name_start + i));
@@ -1762,6 +1773,13 @@ namespace sglib {
         
         item_mem = path_membership_next_iv.memory_usage();
         out << "path_membership_next_iv: " << format_memory(item_mem) << endl;
+        grand_total += item_mem;
+        
+        item_mem = sizeof(inverse_char_assignment) + inverse_char_assignment.capacity() * sizeof(char);
+        item_mem += char_assignment.bucket_count() * (sizeof(decltype(char_assignment)::value_type)
+                                                      + sizeof(decltype(char_assignment)::key_type));
+        item_mem += sizeof(char_assignment);
+        out << "char assignment indexes: " << format_memory(item_mem) << endl;
         grand_total += item_mem;
         
         item_mem = path_names_iv.memory_usage();
