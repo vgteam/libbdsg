@@ -319,7 +319,24 @@ private:
     /// reallocating and defragmenting it. If so, do it. Optionally, defragment even if
     /// we have not deleted many things.
     /// WARNING: invalidates step_handle_t's to this path.
-    void defragment_path(PackedPath& path, bool force = false);
+    void defragment_path(const int64_t& path_idx, bool force = false);
+    
+    /// Convert a path name into an integer vector, assigning new chars as necessary.
+    PackedVector encode_and_assign_path_name(const string& path_name);
+    
+    /// Convert a path name into an integer vector using only existing char assignments
+    /// If the path name contains previously unseen characters, returns an empty vector.
+    PackedVector encode_path_name(const string& path_name) const;
+    
+    /// Encode the path name into the internal representation and append it to the master
+    /// list of path names.
+    void append_path_name(const string& path_name);
+    
+    /// Decode the internal representation of a path name and return it as a string.
+    string decode_path_name(const int64_t& path_idx) const;
+    
+    /// Extract the internal representation of a path name, but do not decode it.
+    PackedVector extract_encoded_path_name(const int64_t& path_idx) const;
     
     /// Defragment data structures when the orphaned records are this fraction of the whole.
     const static double defrag_factor;
@@ -394,14 +411,27 @@ private:
     const static size_t MEMBERSHIP_OFFSET_RECORD_SIZE;
     const static size_t MEMBERSHIP_NEXT_RECORD_SIZE;
     
+    /// We will reassign char values from the path names to small integers
+    hash_map<char, uint64_t> char_assignment;
+    /// The inverse mapping from integer to the char value
+    string inverse_char_assignment;
+    
+    /// All path names, encoded according to the char assignments and concatenated in
+    /// a single vector
+    PackedVector path_names_iv;
+    
+    /// The starting index of the path's name in path_names_iv for the path with the
+    /// same index in paths
+    PagedVector path_name_start_iv;
+    
+    /// The length of the path's name for the path with the same index in paths
+    PackedVector path_name_length_iv;
+    
     /*
      * A struct to package the data associated with a path through the graph.
      */
     struct PackedPath {
-        PackedPath(const string& name, bool is_circular) : name(name), is_circular(is_circular), steps_iv(PAGE_WIDTH), links_iv(PAGE_WIDTH) {}
-        
-        /// The path's name
-        string name;
+        PackedPath(bool is_circular) : is_circular(is_circular), steps_iv(NARROW_PAGE_WIDTH), links_iv(NARROW_PAGE_WIDTH) {}
         
         /// Marks whether this path has been deleted
         bool is_deleted = false;
@@ -433,18 +463,30 @@ private:
     const static size_t STEP_RECORD_SIZE;
     
     /// Map from path names to index in the paths vector.
-    string_hash_map<string, int64_t> path_id;
+    string_hash_map<PackedVector, int64_t> path_id;
     
     /// Vector of the embedded paths in the graph
     vector<PackedPath> paths;
+    static const double PATH_RESIZE_FACTOR;
     
     ///////////////////////////////////////////////////////////////////////
     /// Convenience functions to translate between encodings in the vectors
     ///////////////////////////////////////////////////////////////////////
     
-    inline uint8_t encode_nucleotide(const char& nt) const;
+    /// Map nucleotides into [0, 4]
+    inline uint64_t encode_nucleotide(const char& nt) const;
+    /// Map [0, 4] to nucleotides
     inline char decode_nucleotide(const uint64_t& val) const;
+    /// Complement nucleotide encoded as [0, 4]
     inline uint64_t complement_encoded_nucleotide(const uint64_t& val) const;
+    
+    /// Get the integer assignment of a char, or numeric_limits<uint64_t>::max()
+    /// if no assignment has been made
+    inline uint64_t get_assignment(const char& c) const;
+    /// Get the integer assignment of a char, assigning a new one if necessary
+    inline uint64_t get_or_make_assignment(const char& c);
+    /// Get the char assigned to an integer (must be already assigned)
+    inline char get_char(const uint64_t& assignment) const;
     
     inline size_t graph_iv_index(const handle_t& handle) const;
     
@@ -486,9 +528,9 @@ public:
     
     
     
-inline uint8_t PackedGraph::encode_nucleotide(const char& nt) const {
+inline uint64_t PackedGraph::encode_nucleotide(const char& nt) const {
     
-    uint8_t encoded;
+    uint64_t encoded;
     switch (nt) {
         case 'a':
         case 'A':
@@ -610,6 +652,32 @@ inline void PackedGraph::set_step_prev(PackedPath& path, const uint64_t& step_in
 
 inline void PackedGraph::set_step_next(PackedPath& path, const uint64_t& step_index, const uint64_t& next_index) {
     path.links_iv.set((step_index - 1) * PATH_RECORD_SIZE + PATH_NEXT_OFFSET, next_index);
+}
+    
+inline uint64_t PackedGraph::get_assignment(const char& c) const {
+    auto it = char_assignment.find(c);
+    if (it != char_assignment.end()) {
+        return it->second;
+    }
+    else {
+        return numeric_limits<uint64_t>::max();
+    }
+}
+
+inline uint64_t PackedGraph::get_or_make_assignment(const char& c) {
+    auto it = char_assignment.find(c);
+    if (it != char_assignment.end()) {
+        return it->second;
+    }
+    else {
+        char_assignment[c] = inverse_char_assignment.size();
+        inverse_char_assignment.push_back(c);
+        return inverse_char_assignment.size() - 1;
+    }
+}
+
+inline char PackedGraph::get_char(const uint64_t& assignment) const {
+    return inverse_char_assignment.at(assignment);
 }
 
 } // end dankness

@@ -35,6 +35,11 @@ public:
     PackedVector(PackedVector&& other) = default;
     /// Move assignment operator
     PackedVector& operator=(PackedVector&& other) = default;
+    
+    /// Copy constructor
+    PackedVector(const PackedVector& other) = default;
+    /// Copy assignment operator
+    PackedVector& operator=(const PackedVector& other) = default;
         
     /// Destructor
     ~PackedVector();
@@ -65,17 +70,21 @@ public:
     /// be included in the vector without reallocating. Never shrinks capacity.
     inline void reserve(const size_t& future_size);
         
-    /// Returns the number of values
+    /// Returns the number of values.
     inline size_t size() const;
         
-    /// Returns true if there are no entries and false otherwise
+    /// Returns true if there are no entries and false otherwise.
     inline bool empty() const;
 
-    /// Clears the backing vector
+    /// Clears the backing vector.
     inline void clear();
     
     /// Reports the amount of memory consumed by this object in bytes.
     size_t memory_usage() const;
+    
+    /// Returns true if the contents are identical (but not necessarily storage
+    /// parameters, such as pointer to data, capacity, bit width, etc.).
+    inline bool operator==(const PackedVector& other) const;
         
 private:
         
@@ -331,6 +340,19 @@ inline void PackedVector::clear() {
     vec.resize(0);
     vec.width(1);
     filled = 0;
+}
+    
+inline bool PackedVector::operator==(const PackedVector& other) const {
+    if (size() != other.size()) {
+        return false;
+    }
+    for (size_t i = 0; i < size(); ++i) {
+        if (get(i) != other.get(i)) {
+            return false;
+        }
+    }
+    
+    return true;
 }
     
 /////////////////////
