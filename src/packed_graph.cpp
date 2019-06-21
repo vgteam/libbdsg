@@ -138,6 +138,7 @@ namespace sglib {
         path_tail_iv.deserialize(in);
         path_deleted_steps_iv.deserialize(in);
         
+        paths.reserve(path_name_start_iv.size());
         for (size_t i = 0; i < path_name_start_iv.size(); i++) {
             paths.emplace_back();
             PackedPath& path = paths.back();
