@@ -35,6 +35,11 @@ public:
     PackedVector(PackedVector&& other) = default;
     /// Move assignment operator
     PackedVector& operator=(PackedVector&& other) = default;
+    
+    /// Copy constructor
+    PackedVector(const PackedVector& other) = default;
+    /// Copy assignment operator
+    PackedVector& operator=(const PackedVector& other) = default;
         
     /// Destructor
     ~PackedVector();

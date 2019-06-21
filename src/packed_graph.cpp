@@ -1475,6 +1475,9 @@ namespace sglib {
     }
     
     path_handle_t PackedGraph::create_path_handle(const string& name, bool is_circular) {
+        if (name.empty()) {
+            throw std::runtime_error("[PackedGraph] error: cannot create paths with no name");
+        }
         
         PackedVector encoded = encode_and_assign_path_name(name);
         if (path_id.count(encoded)) {
@@ -1817,7 +1820,7 @@ namespace sglib {
         size_t name_total = 0, id_total = 0, links_total = 0, steps_total = 0, other_total = 0;
         for (const auto& path_name : names) {
             auto it = path_id.find(encode_path_name(path_name));
-            size_t path_name_mem = sizeof(it->first) + it->first.capacity() * sizeof(char);
+            size_t path_name_mem = it->first.memory_usage();
             size_t path_id_mem = sizeof(it->second);
             const auto& packed_path = paths.at(it->second);
             size_t other_mem = (sizeof(packed_path.is_deleted) + sizeof(packed_path.is_circular)

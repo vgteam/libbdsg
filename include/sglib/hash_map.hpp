@@ -89,8 +89,9 @@ struct hash<std::tuple<TT...>>
 
 // make a hash function for PackedVectors
 namespace std {
+    template<>
     struct hash<sglib::PackedVector> {
-        size_t operator(const sglib::PackedVector& vec) {
+        size_t operator()(const sglib::PackedVector& vec) {
             size_t hash_val = 0;
             for (size_t i = 0; i < vec.size(); ++i) {
                 hash_combine(hash_val, vec.get(i));
