@@ -1829,21 +1829,23 @@ namespace sglib {
             out << "individual paths:" << endl;
         }
         
-        size_t name_total = 0, id_total = 0, links_total = 0, steps_total = 0, other_total = 0;
+        size_t name_total = 0, id_total = 0, links_total = 0, steps_total = 0, other_total = 0, name_ptr_total = 0, list_ptr_total;
         for (const auto& path_name : names) {
             auto it = path_id.find(encode_path_name(path_name));
             size_t path_name_mem = it->first.memory_usage();
             size_t path_id_mem = sizeof(it->second);
             const auto& packed_path = paths.at(it->second);
+            size_t name_ptr_mem = sizeof(packed_path.path_name_start) + sizeof(packed_path.path_name_length);
+            size_t list_ptr_mem = sizeof(packed_path.head) + sizeof(packed_path.tail);
             size_t other_mem = (sizeof(packed_path.is_deleted) + sizeof(packed_path.is_circular)
-                                + sizeof(packed_path.head) + sizeof(packed_path.tail)
-                                + sizeof(packed_path.deleted_step_records) + sizeof(packed_path.path_name_start)
-                                + sizeof(packed_path.path_name_length));
+                                + sizeof(packed_path.deleted_step_records));
             size_t links_mem = packed_path.links_iv.memory_usage();
             size_t steps_mem = packed_path.steps_iv.memory_usage();
             if (individual_paths) {
                 out << "\t" << path_name << ":" << endl;
                 out << "\t\tname: " << format_memory(path_name_mem) << endl;
+                out << "\t\tname ptrs: " << format_memory(name_ptr_mem) << endl;
+                out << "\t\tlist ptrs: " << format_memory(list_ptr_mem) << endl;
                 out << "\t\tid: " << format_memory(path_id_mem) << endl;
                 out << "\t\tlinks: " << format_memory(links_mem) << endl;
                 out << "\t\tsteps: " << format_memory(steps_mem) << endl;
@@ -1854,48 +1856,58 @@ namespace sglib {
             links_total += links_mem;
             steps_total += steps_mem;
             other_total += other_mem;
+            name_ptr_total += name_ptr_mem;
+            list_ptr_total += list_ptr_mem;
         }
+        
+        size_t path_object_total = name_total + id_total + links_total + steps_total + other_total + name_ptr_total + list_ptr_total;
+        
         // we may have missed deleted paths
+        size_t dead_links_total = 0, dead_steps_total = 0, dead_other_total = 0, dead_name_ptr_total = 0, dead_list_ptr_total = 0;
         if (!unused_path_ids.empty()) {
-            size_t dead_name_total = 0, dead_links_total = 0, dead_steps_total = 0, dead_other_total = 0;
             for (int64_t unused_path_id : unused_path_ids) {
                 const auto& packed_path = paths.at(unused_path_id);
+                dead_name_ptr_total += sizeof(packed_path.path_name_start) + sizeof(packed_path.path_name_length);
+                dead_list_ptr_total += sizeof(packed_path.head) + sizeof(packed_path.tail);
                 dead_other_total += (sizeof(packed_path.is_deleted) + sizeof(packed_path.is_circular)
-                                     + sizeof(packed_path.head) + sizeof(packed_path.tail)
-                                     + sizeof(packed_path.deleted_step_records) + sizeof(packed_path.path_name_start)
-                                     + sizeof(packed_path.path_name_length));
+                                     + sizeof(packed_path.deleted_step_records));
                 dead_links_total += packed_path.links_iv.memory_usage();
                 dead_steps_total += packed_path.steps_iv.memory_usage();
             }
             if (individual_paths) {
                 out << "\tdeleted paths (" << unused_path_ids.size() << ")" << endl;
+                out << "\t\tname ptrs: " << format_memory(dead_name_ptr_total) << endl;
+                out << "\t\tlist ptrs: " << format_memory(dead_list_ptr_total) << endl;
                 out << "\t\tid: " << format_memory(0) << endl;
                 out << "\t\tlinks: " << format_memory(dead_links_total) << endl;
                 out << "\t\tsteps: " << format_memory(dead_steps_total) << endl;
                 out << "\t\tother: " << format_memory(dead_other_total) << endl;
             }
-            name_total += dead_name_total;
-            links_total += dead_links_total;
-            steps_total += dead_steps_total;
-            other_total += dead_other_total;
         }
         
+        size_t dead_object_total = dead_links_total + dead_steps_total + dead_other_total + dead_name_ptr_total + dead_list_ptr_total;
         
-        size_t path_total = name_total + id_total + links_total + steps_total + other_total;
+        size_t path_excess_cap = 0;
         // add the local size and extra capacity in the path id hash table
-        path_total += (path_id.bucket_count() - path_id.size()) * sizeof(decltype(path_id)::key_type);
-        path_total += (path_id.bucket_count() - path_id.size()) * sizeof(decltype(path_id)::value_type);
-        path_total += sizeof(path_id);
+        path_excess_cap += (path_id.bucket_count() - path_id.size()) * sizeof(decltype(path_id)::key_type);
+        path_excess_cap += (path_id.bucket_count() - path_id.size()) * sizeof(decltype(path_id)::value_type);
+        path_excess_cap += sizeof(path_id);
         // add the local size and extra capacity in the path vector
-        path_total += (paths.capacity() - paths.size()) * sizeof(decltype(paths)::value_type);
-        path_total += sizeof(paths);
+        path_excess_cap += (paths.capacity() - paths.size()) * sizeof(decltype(paths)::value_type);
+        path_excess_cap += sizeof(paths);
+        
+        size_t path_total = path_object_total + dead_object_total + path_excess_cap;
         
         out << "paths (" << path_id.size() << ") total: " << format_memory(path_total) << endl;
         out << "\tname: " << format_memory(name_total) << endl;
+        out << "\tname ptrs: " << format_memory(name_ptr_total) << endl;
+        out << "\tlist ptrs: " << format_memory(list_ptr_total) << endl;
         out << "\tid: " << format_memory(id_total) << endl;
         out << "\tlinks: " << format_memory(links_total) << endl;
         out << "\tsteps: " << format_memory(steps_total) << endl;
         out << "\tother: " << format_memory(other_total) << endl;
+        out << "\tdead paths: " << format_memory(dead_object_total)
+        out << "\texcess capacity: " << format_memory(path_excess_cap)
         
         grand_total += path_total;
         
