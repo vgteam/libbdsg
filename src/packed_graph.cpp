@@ -52,7 +52,8 @@ namespace sglib {
         path_membership_next_iv(NARROW_PAGE_WIDTH),
         path_membership_offset_iv(NARROW_PAGE_WIDTH),
         path_membership_id_iv(WIDE_PAGE_WIDTH),
-        path_name_start_iv(NARROW_PAGE_WIDTH) {
+        path_name_start_iv(NARROW_PAGE_WIDTH),
+        path_head_iv(WIDE_PAGE_WIDTH) {
         
         // set pretty full load factors
         path_id.max_load_factor(0.5);
@@ -1731,7 +1732,7 @@ namespace sglib {
                 path_head_iv.set(path_idx, next_offset);
             }
             else if (step_offset == path_tail_iv.get(path_idx)) {
-                path_tail_iv.get(path_idx, prev_offset);
+                path_tail_iv.set(path_idx, prev_offset);
             }
             
             packed_path.deleted_step_records++;
@@ -1773,7 +1774,7 @@ namespace sglib {
             }
             else {
                 // place after the tail, since we're not putting it before anything
-                if (path_tail_iv.get(as_integer(path)) != 0) {
+                if (path_tail_iv.get(path_idx) != 0) {
                     // attach to the tail
                     uint64_t tail_next = get_step_next(packed_path, path_tail_iv.get(path_idx));
                     set_step_next(packed_path, path_tail_iv.get(path_idx), step_offset);
@@ -1985,7 +1986,6 @@ namespace sglib {
         
         out << "paths (" << path_id.size() << ") total: " << format_memory(path_total) << endl;
         out << "\tname: " << format_memory(name_total) << endl;
-        out << "\tlist ptrs: " << format_memory(list_ptr_total) << endl;
         out << "\tid: " << format_memory(id_total) << endl;
         out << "\tlinks: " << format_memory(links_total) << endl;
         out << "\tsteps: " << format_memory(steps_total) << endl;
