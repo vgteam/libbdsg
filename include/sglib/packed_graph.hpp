@@ -433,6 +433,14 @@ private:
     /// Bit-vector that marks whether the path at the same index is circular
     PackedVector path_is_circular_iv;
     
+    /// The 1-based index of the head of the linked list in steps_iv of the path
+    /// with the same index in paths
+    PagedVector path_head_iv;
+    
+    /// The 1-based index of the tail of the linked list in steps_iv of the path
+    /// with the same index in paths
+    PackedVector path_tail_iv;
+    
     /*
      * A struct to package the data associated with a path through the graph.
      */
@@ -446,12 +454,6 @@ private:
         /// The traversal value is stored in a separate vector at the matching index.
         /// {ID|orientation (bit-packed)}
         RobustPagedVector steps_iv;
-        
-        /// 1-based index of the head of the linked list in steps_iv.
-        size_t head = 0;
-        
-        /// 1-based index of the tail of the linked list in steps_iv.
-        size_t tail = 0;
         
         /// The number of steps that have been deleted from the path
         uint64_t deleted_step_records = 0;
