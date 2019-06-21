@@ -107,4 +107,34 @@ size_t PackedDeque::memory_usage() const {
     return sizeof(begin_idx) + sizeof(filled) + vec.memory_usage();
 }
 
+RobustPagedVector::RobustPagedVector(size_t page_size) : latter_pages(page_size) {
+    // Nothing to do
+}
+
+RobustPagedVector::RobustPagedVector() : latter_pages(64) {
+    // Nothing to do
+}
+
+
+RobustPagedVector::RobustPagedVector(istream& in) : latter_pages(64) { // dummy page size
+    deserialize(in);
+}
+
+RobustPagedVector::~RobustPagedVector() {
+    
+}
+
+void RobustPagedVector::deserialize(istream& in) {
+    first_page.deserialize(in);
+    latter_pages.deserialize(in);
+}
+
+void RobustPagedVector::serialize(ostream& out) const {
+    first_page.serialize(out);
+    latter_pages.serialize(out);
+}
+
+size_t RobustPagedVector::memory_usage() const {
+    return first_page.memory_usage() + latter_pages.memory_usage();
+}
 }

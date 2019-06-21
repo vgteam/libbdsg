@@ -180,6 +180,79 @@ private:
 };
 
 /*
+ * A dynamic integer vector with similar compression properties to the PagedVector,
+ * but better memory usage if the vector may be very small (relative to the page
+ * size.
+ */
+class RobustPagedVector {
+public:
+    /// Construct and set page size (starts empty)
+    RobustPagedVector(size_t page_size);
+    
+    /// Construct from contents in a stream
+    RobustPagedVector(istream& in);
+    
+    /// Move constructor
+    RobustPagedVector(RobustPagedVector&& other) = default;
+    /// Move assignment operator
+    RobustPagedVector& operator=(RobustPagedVector&& other) = default;
+    
+    // Destructor
+    ~RobustPagedVector();
+    
+    /// Clear current contents and load from contents in a stream
+    void deserialize(istream& in);
+    
+    /// Output contents to a stream
+    void serialize(ostream& out) const;
+    
+    /// Set the i-th value
+    inline void set(const size_t& i, const uint64_t& value);
+    
+    /// Returns the i-th value
+    inline uint64_t get(const size_t& i) const;
+    
+    /// Add a value to the end
+    inline void append(const uint64_t& value);
+    
+    /// Remove the last value
+    inline void pop();
+    
+    /// Either shrink the vector or grow the vector to the new size. New
+    /// entries created by growing are filled with 0.
+    inline void resize(const size_t& new_size);
+    
+    /// If necessary, expand capacity so that the given number of entries can
+    /// be included in the vector without reallocating. Never shrinks capacity.
+    inline void reserve(const size_t& future_size);
+    
+    /// Returns the number of values
+    inline size_t size() const;
+    
+    /// Returns true if there are no entries and false otherwise
+    inline bool empty() const;
+    
+    /// Clears the backing vector
+    inline void clear();
+    
+    /// Returns the page width of the vector
+    inline size_t page_width() const;
+    
+    /// Reports the amount of memory consumed by this object in bytes
+    size_t memory_usage() const;
+    
+private:
+    
+    RobustPagedVector();
+    
+    /// The first page_size entries go in this vector
+    PackedVector first_page;
+    
+    /// All entries beyond page_size go in this vector
+    PagedVector latter_pages;
+};
+
+/*
  * A deque implementation that maintains integers in bit-compressed form, with the bit
  * width automatically adjusted to the entries.
  */
@@ -599,6 +672,81 @@ inline uint64_t PagedVector::from_diff(const uint64_t& diff, const uint64_t& anc
         return anchor + diff - diff / 5 - 1;
     }
 }
+    
+inline void RobustPagedVector::set(const size_t& i, const uint64_t& value) {
+    if (i < latter_pages.page_width()) {
+        first_page.set(i, value);
+    }
+    else {
+        latter_pages.set(i - latter_pages.page_width(), value);
+    }
+}
+
+inline uint64_t RobustPagedVector::get(const size_t& i) const {
+    if (i < latter_pages.page_width()) {
+        return first_page.get(i);
+    }
+    else {
+        return latter_pages.get(i - latter_pages.page_width());
+    }
+}
+
+inline void RobustPagedVector::append(const uint64_t& value) {
+    if (first_page.size() < latter_pages.page_width()) {
+        first_page.append(value);
+    }
+    else {
+        latter_pages.append(value);
+    }
+}
+
+inline void RobustPagedVector::pop() {
+    if (latter_pages.empty()) {
+        first_page.pop();
+    }
+    else {
+        latter_pages.pop();
+    }
+}
+
+inline void RobustPagedVector::resize(const size_t& new_size) {
+    if (new_size > latter_pages.page_width()) {
+        first_page.resize(latter_pages.page_width());
+        latter_pages.resize(new_size - latter_pages.page_width());
+    }
+    else {
+        first_page.resize(new_size);
+        latter_pages.clear();
+    }
+}
+
+inline void RobustPagedVector::reserve(const size_t& future_size) {
+    if (future_size > latter_pages.page_width()) {
+        first_page.reserve(latter_pages.page_width());
+        latter_pages.reserve(future_size - latter_pages.page_width());
+    }
+    else {
+        first_page.reserve(future_size);
+    }
+}
+
+inline size_t RobustPagedVector::size() const {
+    return first_page.size() + latter_pages.size();
+}
+
+inline bool RobustPagedVector::empty() const {
+    return first_page.empty() && latter_pages.empty();
+}
+
+inline void RobustPagedVector::clear() {
+    first_page.clear();
+    latter_pages.clear();
+}
+
+inline size_t RobustPagedVector::page_width() const {
+    return latter_pages.page_width();
+}
+    
 }
 
 
