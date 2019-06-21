@@ -51,7 +51,8 @@ namespace sglib {
         path_membership_node_iv(NARROW_PAGE_WIDTH),
         path_membership_next_iv(NARROW_PAGE_WIDTH),
         path_membership_offset_iv(NARROW_PAGE_WIDTH),
-        path_membership_id_iv(WIDE_PAGE_WIDTH) {
+        path_membership_id_iv(WIDE_PAGE_WIDTH),
+        path_name_start_iv(NARROW_PAGE_WIDTH) {
         
         // set pretty full load factors
         path_id.max_load_factor(0.5);
@@ -879,13 +880,15 @@ namespace sglib {
             
             if (paths[i].is_deleted) {
                 num_paths_deleted++;
-                path_name_length_deleted += paths[i].path_name_length;
+                path_name_length_deleted += path_name_length_iv.get(i);
                 continue;
             }
             
-            // move non-deleted paths into the front of the vector
+            // move non-deleted paths into the front of the vectors
             if (num_paths_deleted > 0) {
                 paths[i - num_paths_deleted] = std::move(paths[i]);
+                path_name_start_iv.set(i - num_paths_deleted, path_name_start_iv.get(i));
+                path_name_length_iv.set(i - num_paths_deleted, path_name_length_iv.get(i));
             }
         }
         
