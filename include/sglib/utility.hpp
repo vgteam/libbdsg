@@ -2,6 +2,7 @@
 #define SGLIB_UTILITY_HPP_INCLUDED
 
 #include <string>
+#include <sstream>
 #include <iomanip>
 
 namespace sglib {

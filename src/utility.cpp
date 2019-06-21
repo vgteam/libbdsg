@@ -112,7 +112,7 @@ string toUppercase(const string& s) {
 }
 
 string format_memory(size_t s) {
-    auto round_to_sig_figs = [](double s, int figs) {
+    function<string(double, int)> round_to_sig_figs = [](double s, int figs) {
         stringstream strm;
         strm << std::setprecision(figs) << s;
         return string(strm.str());
