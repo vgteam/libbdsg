@@ -42,6 +42,8 @@ namespace sglib {
     const size_t PackedGraph::PATH_PREV_OFFSET = 0;
     const size_t PackedGraph::PATH_NEXT_OFFSET = 1;
     
+    const double PackedGraph::PATH_RESIZE_FACTOR = 1.25;
+    
     PackedGraph::PackedGraph() :
         graph_iv(NARROW_PAGE_WIDTH),
         seq_start_iv(NARROW_PAGE_WIDTH),
@@ -1499,9 +1501,8 @@ namespace sglib {
         
         // we manually handle the geometric expansion of the array so we can give it a smaller
         // constant factor on the memory
-        // TODO: magic number
         if (paths.size() == paths.capacity()) {
-            size_t new_capacity = paths.capacity() * 1.25;
+            size_t new_capacity = paths.capacity() * PATH_RESIZE_FACTOR;
             if (new_capacity == paths.capacity()) {
                 new_capacity++;
             }
