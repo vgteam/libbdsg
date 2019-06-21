@@ -1977,8 +1977,8 @@ namespace sglib {
             if (individual_paths) {
                 out << "\tdeleted paths (" << unused_path_ids.size() << ")" << endl;
                 out << "\t\tid: " << format_memory(0) << endl;
-                out << "\t\tlinks (" << link_length << "): " << format_memory(dead_links_total) << endl;
-                out << "\t\tsteps (" << step_length << "): " << format_memory(dead_steps_total) << endl;
+                out << "\t\tlinks: " << format_memory(dead_links_total) << endl;
+                out << "\t\tsteps: " << format_memory(dead_steps_total) << endl;
             }
         }
         
@@ -1998,8 +1998,8 @@ namespace sglib {
         out << "paths (" << path_id.size() << ") total: " << format_memory(path_total) << endl;
         out << "\tname: " << format_memory(name_total) << endl;
         out << "\tid: " << format_memory(id_total) << endl;
-        out << "\tlinks: " << format_memory(links_total) << endl;
-        out << "\tsteps: " << format_memory(steps_total) << endl;
+        out << "\tlinks (" <<  link_length << "): " << format_memory(links_total) << endl;
+        out << "\tsteps (" <<  step_length << "): " << format_memory(steps_total) << endl;
         out << "\tdead paths: " << format_memory(dead_object_total) << endl;
         out << "\tht excess capacity: " << format_memory(hash_table_excess_cap) << endl;
         out << "\tvec excess capacity: " << format_memory(vector_excess_cap) << endl;
