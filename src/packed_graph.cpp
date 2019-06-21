@@ -1940,7 +1940,7 @@ namespace sglib {
         if (individual_paths) {
             out << "individual paths:" << endl;
         }
-        
+        size_t link_length = 0, step_length = 0;
         size_t name_total = 0, id_total = 0, links_total = 0, steps_total = 0;
         for (const auto& path_name : names) {
             auto it = path_id.find(encode_path_name(path_name));
@@ -1953,13 +1953,15 @@ namespace sglib {
                 out << "\t" << path_name << ":" << endl;
                 out << "\t\tname: " << format_memory(path_name_mem) << endl;
                 out << "\t\tid: " << format_memory(path_id_mem) << endl;
-                out << "\t\tlinks: " << format_memory(links_mem) << endl;
-                out << "\t\tsteps: " << format_memory(steps_mem) << endl;
+                out << "\t\tlinks (" << packed_path.links_iv.size() << "): " << format_memory(links_mem) << endl;
+                out << "\t\tsteps (" << packed_path.steps_iv.size() << "): " << format_memory(steps_mem) << endl;
             }
             name_total += path_name_mem;
             id_total += path_id_mem;
             links_total += links_mem;
             steps_total += steps_mem;
+            link_length += packed_path.links_iv.size();
+            step_length += packed_path.listeps_ivnks_iv.size();
         }
         
         size_t path_object_total = name_total + id_total + links_total + steps_total;
@@ -1975,8 +1977,8 @@ namespace sglib {
             if (individual_paths) {
                 out << "\tdeleted paths (" << unused_path_ids.size() << ")" << endl;
                 out << "\t\tid: " << format_memory(0) << endl;
-                out << "\t\tlinks: " << format_memory(dead_links_total) << endl;
-                out << "\t\tsteps: " << format_memory(dead_steps_total) << endl;
+                out << "\t\tlinks (" << link_length << "): " << format_memory(dead_links_total) << endl;
+                out << "\t\tsteps (" << step_length << "): " << format_memory(dead_steps_total) << endl;
             }
         }
         
