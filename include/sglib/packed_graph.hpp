@@ -442,10 +442,10 @@ private:
         /// Linked list records that encode the oriented nodes of the path. Indexes are
         /// 1-based, with 0 used as a sentinel to indicate none further.
         /// {prev index, next index}
-        PagedVector links_iv;
+        RobustPagedVector links_iv;
         /// The traversal value is stored in a separate vector at the matching index.
         /// {ID|orientation (bit-packed)}
-        PagedVector steps_iv;
+        RobustPagedVector steps_iv;
         
         /// 1-based index of the head of the linked list in steps_iv.
         size_t head = 0;
