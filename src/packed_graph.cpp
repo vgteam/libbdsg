@@ -759,8 +759,8 @@ namespace sglib {
             if (path.head != 0) {
                 
                 // the path is non-empty, so we need to straighten it out and reallocate it
-                PagedVector new_steps_iv(path.steps_iv.page_width());
-                PagedVector new_links_iv(path.links_iv.page_width());
+                RobustPagedVector new_steps_iv(path.steps_iv.page_width());
+                RobustPagedVector new_links_iv(path.links_iv.page_width());
                 
                 // we will need to record the translation between path steps so we can update memberships later
                 PagedVector offset_translator(NARROW_PAGE_WIDTH);
@@ -861,8 +861,8 @@ namespace sglib {
             }
             else {
                 // the path is empty, so let's make sure it's not holding onto any capacity it doesn't need
-                path.links_iv = PagedVector(path.links_iv.page_width());
-                path.steps_iv = PagedVector(path.steps_iv.page_width());
+                path.links_iv = RobustPagedVector(path.links_iv.page_width());
+                path.steps_iv = RobustPagedVector(path.steps_iv.page_width());
             }
             
             path.deleted_step_records = 0;
