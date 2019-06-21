@@ -87,11 +87,11 @@ namespace sglib {
         sdsl::write_member(inverse_char_assignment, out);
         
         path_names_iv.serialize(out);
+        path_name_start_iv.serialize(out);
+        path_name_length_iv.serialize(out);
         
         sdsl::write_member(paths.size(), out);
         for (const PackedPath& path : paths) {
-            sdsl::write_member(path.path_name_start, out);
-            sdsl::write_member(path.path_name_length, out);
             sdsl::write_member(path.is_deleted, out);
             sdsl::write_member(path.is_circular, out);
             sdsl::write_member(path.head, out);
@@ -129,6 +129,8 @@ namespace sglib {
         }
         
         path_names_iv.deserialize(in);
+        path_name_start_iv.deserialize(in);
+        path_name_length_iv.deserialize(in);
         
         size_t num_paths;
         sdsl::read_member(num_paths, in);
@@ -136,8 +138,6 @@ namespace sglib {
         for (size_t i = 0; i < num_paths; i++) {
             paths.emplace_back(false); // dummy circularity here, real in a few lines
             PackedPath& path = paths.back();
-            sdsl::read_member(path.path_name_start, in);
-            sdsl::read_member(path.path_name_length, in);
             sdsl::read_member(path.is_deleted, in);
             sdsl::read_member(path.is_circular, in);
             sdsl::read_member(path.head, in);
@@ -150,7 +150,7 @@ namespace sglib {
         // reconstruct the path_id mapping
         for (int64_t i = 0; i < paths.size(); i++) {
             if (!paths[i].is_deleted) {
-                path_id[extract_encoded_path_name(paths[i])] = i;
+                path_id[extract_encoded_path_name(i)] = i;
             }
         }
         
@@ -743,7 +743,9 @@ namespace sglib {
         defragment();
     }
     
-    void PackedGraph::defragment_path(PackedPath& path, bool force) {
+    void PackedGraph::defragment_path(const int64_t& path_idx, bool force) {
+        
+        PackedPath& path = paths[path_idx];
         
         // we don't want to defrag deleted paths since they have already been cleared
         if (path.is_deleted) {
@@ -804,7 +806,7 @@ namespace sglib {
                 path.tail = prev;
                 
                 // retrieve the ID of this path so we can match it to membership records
-                int64_t path_id_here = path_id.at(extract_encoded_path_name(path));
+                int64_t path_id_here = path_id.at(extract_encoded_path_name(path_idx));
                 
                 // now we need to iterate over each node on the path exactly one time to update its membership
                 // records (even if the node occurs multiple times on this path), so we will use a bit deque
@@ -897,7 +899,7 @@ namespace sglib {
             
             // update the path IDs
             for (size_t i = 0; i < paths.size(); ++i) {
-                path_id[extract_encoded_path_name(paths[i])] = i;
+                path_id[extract_encoded_path_name(i)] = i;
             }
             
             // update the path IDs in the membership records
@@ -914,12 +916,14 @@ namespace sglib {
             size_t name_filled_so_far = 0;
             for (size_t i = 0; i < paths.size(); ++i) {
                 PackedPath& packed_path = paths[i];
-                for (size_t j = 0; j < packed_path.path_name_length; ++j) {
+                size_t name_start = path_name_start_iv.get(i);
+                size_t name_length = path_name_length_iv.get(i);
+                for (size_t j = 0; j < name_length; ++j) {
                     new_path_names_iv.set(name_filled_so_far + j,
-                                          path_names_iv.get(packed_path.path_name_start + j));
+                                          path_names_iv.get(name_start + j));
                 }
-                packed_path.path_name_start = name_filled_so_far;
-                name_filled_so_far += packed_path.path_name_length;
+                path_name_start_iv.set(i, name_filled_so_far);
+                name_filled_so_far += name_length;
             }
             
             // replace the old path names vector
@@ -994,7 +998,7 @@ namespace sglib {
         // remove deleted paths and force them to eject deleted material
         for (size_t i = 0; i < paths.size(); i++) {
             // force the path to defragment
-            defragment_path(paths[i], true);
+            defragment_path(i, true);
         }
         
         // push any paths we deleted out of the path vector
@@ -1271,7 +1275,7 @@ namespace sglib {
     }
     
     string PackedGraph::get_path_name(const path_handle_t& path_handle) const {
-        return decode_path_name(paths.at(as_integer(path_handle)));
+        return decode_path_name(as_integer(path_handle));
     }
     
     bool PackedGraph::get_is_circular(const path_handle_t& path_handle) const {
@@ -1418,19 +1422,21 @@ namespace sglib {
         }
     }
     
-    PackedVector PackedGraph::extract_encoded_path_name(const PackedPath& path) const {
+    PackedVector PackedGraph::extract_encoded_path_name(const int64_t& path_idx) const {
+        size_t name_start = path_name_start_iv.get(path_idx);
         PackedVector name;
-        name.resize(path.path_name_length);
+        name.resize(path_name_length_iv.get(path_idx));
         for (size_t i = 0; i < name.size(); ++i) {
-            name.set(i, path_names_iv.get(path.path_name_start + i));
+            name.set(i, path_names_iv.get(name_start + i));
         }
         return name;
     }
     
-    string PackedGraph::decode_path_name(const PackedPath& path) const {
-        string name(path.path_name_length, '\0');
+    string PackedGraph::decode_path_name(const int64_t& path_idx) const {
+        size_t name_start = path_name_start_iv.get(path_idx);
+        string name(path_name_length_iv.get(path_idx), '\0');
         for (size_t i = 0; i < name.size(); ++i) {
-            name[i] = get_char(path_names_iv.get(path.path_name_start + i));
+            name[i] = get_char(path_names_iv.get(name_start + i));
         }
         return name;
     }
@@ -1473,13 +1479,11 @@ namespace sglib {
             first_iter = false;
         }
         
-        path_id.erase(extract_encoded_path_name(packed_path));
+        path_id.erase(extract_encoded_path_name(as_integer(path)));
         
         packed_path.is_deleted = true;
         packed_path.steps_iv.clear();
         packed_path.links_iv.clear();
-        packed_path.path_name_start = 0;
-        packed_path.path_name_length = 0;
         packed_path.head = 0;
         packed_path.tail = 0;
         
@@ -1511,8 +1515,8 @@ namespace sglib {
         
         paths.emplace_back(is_circular);
         
-        paths.back().path_name_start = path_names_iv.size();
-        paths.back().path_name_length = name.size();
+        path_name_start_iv.append(path_names_iv.size());
+        path_name_length_iv.append(name.size());
         append_path_name(name);
         return path_handle;
     }
@@ -1821,6 +1825,14 @@ namespace sglib {
         out << "path_names_iv: " << format_memory(item_mem) << endl;
         grand_total += item_mem;
         
+        item_mem = path_name_start_iv.memory_usage();
+        out << "path_name_start_iv: " << format_memory(item_mem) << endl;
+        grand_total += item_mem;
+        
+        item_mem = path_name_length_iv.memory_usage();
+        out << "path_name_length_iv: " << format_memory(item_mem) << endl;
+        grand_total += item_mem;
+        
         unordered_set<int64_t> unused_path_ids;
         for (int64_t i = 0; i < paths.size(); i++) {
             unused_path_ids.insert(i);
@@ -1829,7 +1841,7 @@ namespace sglib {
         vector<string> names;
         names.reserve(path_id.size());
         for (const auto& path_id_record : path_id) {
-            names.push_back(decode_path_name(paths[path_id_record.second]));
+            names.push_back(decode_path_name(path_id_record.second));
             unused_path_ids.erase(path_id_record.second);
         }
         
@@ -1839,13 +1851,12 @@ namespace sglib {
             out << "individual paths:" << endl;
         }
         
-        size_t name_total = 0, id_total = 0, links_total = 0, steps_total = 0, other_total = 0, name_ptr_total = 0, list_ptr_total = 0;
+        size_t name_total = 0, id_total = 0, links_total = 0, steps_total = 0, other_total = 0, list_ptr_total = 0;
         for (const auto& path_name : names) {
             auto it = path_id.find(encode_path_name(path_name));
             size_t path_name_mem = it->first.memory_usage();
             size_t path_id_mem = sizeof(it->second);
             const auto& packed_path = paths.at(it->second);
-            size_t name_ptr_mem = sizeof(packed_path.path_name_start) + sizeof(packed_path.path_name_length);
             size_t list_ptr_mem = sizeof(packed_path.head) + sizeof(packed_path.tail);
             size_t other_mem = (sizeof(packed_path.is_deleted) + sizeof(packed_path.is_circular)
                                 + sizeof(packed_path.deleted_step_records));
@@ -1854,7 +1865,6 @@ namespace sglib {
             if (individual_paths) {
                 out << "\t" << path_name << ":" << endl;
                 out << "\t\tname: " << format_memory(path_name_mem) << endl;
-                out << "\t\tname ptrs: " << format_memory(name_ptr_mem) << endl;
                 out << "\t\tlist ptrs: " << format_memory(list_ptr_mem) << endl;
                 out << "\t\tid: " << format_memory(path_id_mem) << endl;
                 out << "\t\tlinks: " << format_memory(links_mem) << endl;
@@ -1866,18 +1876,16 @@ namespace sglib {
             links_total += links_mem;
             steps_total += steps_mem;
             other_total += other_mem;
-            name_ptr_total += name_ptr_mem;
             list_ptr_total += list_ptr_mem;
         }
         
-        size_t path_object_total = name_total + id_total + links_total + steps_total + other_total + name_ptr_total + list_ptr_total;
+        size_t path_object_total = name_total + id_total + links_total + steps_total + other_total + list_ptr_total;
         
         // we may have missed deleted paths
-        size_t dead_links_total = 0, dead_steps_total = 0, dead_other_total = 0, dead_name_ptr_total = 0, dead_list_ptr_total = 0;
+        size_t dead_links_total = 0, dead_steps_total = 0, dead_other_total = 0, dead_list_ptr_total = 0;
         if (!unused_path_ids.empty()) {
             for (int64_t unused_path_id : unused_path_ids) {
                 const auto& packed_path = paths.at(unused_path_id);
-                dead_name_ptr_total += sizeof(packed_path.path_name_start) + sizeof(packed_path.path_name_length);
                 dead_list_ptr_total += sizeof(packed_path.head) + sizeof(packed_path.tail);
                 dead_other_total += (sizeof(packed_path.is_deleted) + sizeof(packed_path.is_circular)
                                      + sizeof(packed_path.deleted_step_records));
@@ -1886,7 +1894,6 @@ namespace sglib {
             }
             if (individual_paths) {
                 out << "\tdeleted paths (" << unused_path_ids.size() << ")" << endl;
-                out << "\t\tname ptrs: " << format_memory(dead_name_ptr_total) << endl;
                 out << "\t\tlist ptrs: " << format_memory(dead_list_ptr_total) << endl;
                 out << "\t\tid: " << format_memory(0) << endl;
                 out << "\t\tlinks: " << format_memory(dead_links_total) << endl;
@@ -1895,7 +1902,7 @@ namespace sglib {
             }
         }
         
-        size_t dead_object_total = dead_links_total + dead_steps_total + dead_other_total + dead_name_ptr_total + dead_list_ptr_total;
+        size_t dead_object_total = dead_links_total + dead_steps_total + dead_other_total + dead_list_ptr_total;
         
         size_t path_excess_cap = 0;
         // add the local size and extra capacity in the path id hash table
@@ -1910,7 +1917,6 @@ namespace sglib {
         
         out << "paths (" << path_id.size() << ") total: " << format_memory(path_total) << endl;
         out << "\tname: " << format_memory(name_total) << endl;
-        out << "\tname ptrs: " << format_memory(name_ptr_total) << endl;
         out << "\tlist ptrs: " << format_memory(list_ptr_total) << endl;
         out << "\tid: " << format_memory(id_total) << endl;
         out << "\tlinks: " << format_memory(links_total) << endl;

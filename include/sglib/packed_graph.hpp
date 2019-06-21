@@ -319,7 +319,7 @@ private:
     /// reallocating and defragmenting it. If so, do it. Optionally, defragment even if
     /// we have not deleted many things.
     /// WARNING: invalidates step_handle_t's to this path.
-    void defragment_path(PackedPath& path, bool force = false);
+    void defragment_path(const int64_t& path_idx, bool force = false);
     
     /// Convert a path name into an integer vector, assigning new chars as necessary.
     PackedVector encode_and_assign_path_name(const string& path_name);
@@ -333,10 +333,10 @@ private:
     void append_path_name(const string& path_name);
     
     /// Decode the internal representation of a path name and return it as a string.
-    string decode_path_name(const PackedPath& path) const;
+    string decode_path_name(const int64_t& path_idx) const;
     
     /// Extract the internal representation of a path name, but do not decode it.
-    PackedVector extract_encoded_path_name(const PackedPath& path) const;
+    PackedVector extract_encoded_path_name(const int64_t& path_idx) const;
     
     /// Defragment data structures when the orphaned records are this fraction of the whole.
     const static double defrag_factor;
@@ -420,17 +420,18 @@ private:
     /// a single vector
     PackedVector path_names_iv;
     
+    /// The starting index of the path's name in path_names_iv for the path with the
+    /// same index in paths
+    PagedVector path_name_start_iv;
+    
+    /// The length of the path's name for the path with the same index in paths
+    PackedVector path_name_length_iv;
+    
     /*
      * A struct to package the data associated with a path through the graph.
      */
     struct PackedPath {
         PackedPath(bool is_circular) : is_circular(is_circular), steps_iv(NARROW_PAGE_WIDTH), links_iv(NARROW_PAGE_WIDTH) {}
-        
-        /// The starting index of the path's name in path_names_iv
-        size_t path_name_start = 0;
-        
-        /// The length of the path's name
-        size_t path_name_length = 0;
         
         /// Marks whether this path has been deleted
         bool is_deleted = false;
