@@ -427,17 +427,17 @@ private:
     /// The length of the path's name for the path with the same index in paths
     PackedVector path_name_length_iv;
     
+    /// Bit-vector that marks whether the path at the same index has been deleted
+    PackedVector path_is_deleted_iv;
+    
+    /// Bit-vector that marks whether the path at the same index is circular
+    PackedVector path_is_circular_iv;
+    
     /*
      * A struct to package the data associated with a path through the graph.
      */
     struct PackedPath {
-        PackedPath(bool is_circular) : is_circular(is_circular), steps_iv(NARROW_PAGE_WIDTH), links_iv(NARROW_PAGE_WIDTH) {}
-        
-        /// Marks whether this path has been deleted
-        bool is_deleted = false;
-        
-        /// Marks whether this path is circular
-        bool is_circular = false;
+        PackedPath() : steps_iv(NARROW_PAGE_WIDTH), links_iv(NARROW_PAGE_WIDTH) {}
         
         /// Linked list records that encode the oriented nodes of the path. Indexes are
         /// 1-based, with 0 used as a sentinel to indicate none further.

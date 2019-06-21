@@ -90,11 +90,10 @@ namespace sglib {
         path_names_iv.serialize(out);
         path_name_start_iv.serialize(out);
         path_name_length_iv.serialize(out);
+        path_is_deleted_iv.serialize(out);
+        path_is_circular_iv.serialize(out);
         
-        sdsl::write_member(paths.size(), out);
         for (const PackedPath& path : paths) {
-            sdsl::write_member(path.is_deleted, out);
-            sdsl::write_member(path.is_circular, out);
             sdsl::write_member(path.head, out);
             sdsl::write_member(path.tail, out);
             sdsl::write_member(path.deleted_step_records, out);
@@ -132,15 +131,12 @@ namespace sglib {
         path_names_iv.deserialize(in);
         path_name_start_iv.deserialize(in);
         path_name_length_iv.deserialize(in);
+        path_is_deleted_iv.deserialize(in);
+        path_is_circular_iv.deserialize(in);
         
-        size_t num_paths;
-        sdsl::read_member(num_paths, in);
-        paths.reserve(num_paths);
-        for (size_t i = 0; i < num_paths; i++) {
-            paths.emplace_back(false); // dummy circularity here, real in a few lines
+        for (size_t i = 0; i < path_name_start_iv.size(); i++) {
+            paths.emplace_back();
             PackedPath& path = paths.back();
-            sdsl::read_member(path.is_deleted, in);
-            sdsl::read_member(path.is_circular, in);
             sdsl::read_member(path.head, in);
             sdsl::read_member(path.tail, in);
             sdsl::read_member(path.deleted_step_records, in);
@@ -150,7 +146,7 @@ namespace sglib {
         
         // reconstruct the path_id mapping
         for (int64_t i = 0; i < paths.size(); i++) {
-            if (!paths[i].is_deleted) {
+            if (path_is_deleted_iv.get(i)) {
                 path_id[extract_encoded_path_name(i)] = i;
             }
         }
@@ -746,12 +742,12 @@ namespace sglib {
     
     void PackedGraph::defragment_path(const int64_t& path_idx, bool force) {
         
-        PackedPath& path = paths[path_idx];
-        
         // we don't want to defrag deleted paths since they have already been cleared
-        if (path.is_deleted) {
+        if (path_is_deleted_iv.get(path_idx)) {
             return;
         }
+        
+        PackedPath& path = paths[path_idx];
         
         // have we either deleted a lot of steps or forced a defrag?
         if (path.deleted_step_records > defrag_factor * (path.steps_iv.size() / PATH_RECORD_SIZE) || force) {
@@ -794,7 +790,7 @@ namespace sglib {
                 }
                 
                 // add the looping connection if this is a circular path
-                if (path.is_circular) {
+                if (path_is_circular_iv.get(path_idx)) {
                     new_links_iv.set(new_links_iv.size() - PATH_RECORD_SIZE + PATH_NEXT_OFFSET, 1);
                     new_links_iv.set(PATH_PREV_OFFSET, new_links_iv.size() / PATH_RECORD_SIZE);
                 }
@@ -878,7 +874,7 @@ namespace sglib {
             
             paths_deleted_before[i] = num_paths_deleted;
             
-            if (paths[i].is_deleted) {
+            if (path_is_deleted_iv.get(i)) {
                 num_paths_deleted++;
                 path_name_length_deleted += path_name_length_iv.get(i);
                 continue;
@@ -889,6 +885,8 @@ namespace sglib {
                 paths[i - num_paths_deleted] = std::move(paths[i]);
                 path_name_start_iv.set(i - num_paths_deleted, path_name_start_iv.get(i));
                 path_name_length_iv.set(i - num_paths_deleted, path_name_length_iv.get(i));
+                path_is_deleted_iv.set(i - num_paths_deleted, path_is_deleted_iv.get(i));
+                path_is_circular_iv.set(i - num_paths_deleted, path_is_circular_iv.get(i));
             }
         }
         
@@ -935,21 +933,35 @@ namespace sglib {
             // TODO: should I reassign the char to int mapping in case entire chars where ejected?
         }
         
-        // consolidate the path name pointer vectors (we do this to get them to a tight allocation
-        // even if no paths have been deleted)
+        // consolidate the vectors that share indexes with the paths vector (we do this to get them
+        // to a tight allocation even if no paths have been deleted)
         PagedVector new_path_name_start_iv(path_name_start_iv.page_width());
-        new_path_name_start_iv.resize(paths.size());
+        new_path_name_start_iv.reserve(paths.size());
         for (size_t i = 0; i < paths.size(); ++i) {
-            new_path_name_start_iv.set(i, path_name_start_iv.get(i));
+            new_path_name_start_iv.append(path_name_start_iv.get(i));
         }
         path_name_start_iv = move(new_path_name_start_iv);
         
         PackedVector new_path_name_length_iv;
-        new_path_name_length_iv.resize(paths.size());
+        new_path_name_length_iv.reserve(paths.size());
         for (size_t i = 0; i < paths.size(); ++i) {
-            new_path_name_length_iv.set(i, path_name_length_iv.get(i));
+            new_path_name_length_iv.append(path_name_length_iv.get(i));
         }
         path_name_length_iv = move(new_path_name_length_iv);
+        
+        PackedVector new_path_is_deleted_iv;
+        new_path_is_deleted_iv.reserve(paths.size());
+        for (size_t i = 0; i < paths.size(); ++i) {
+            new_path_is_deleted_iv.append(path_is_deleted_iv.get(i));
+        }
+        path_is_deleted_iv = move(new_path_is_deleted_iv);
+        
+        PackedVector new_path_is_circular_iv;
+        new_path_is_circular_iv.reserve(paths.size());
+        for (size_t i = 0; i < paths.size(); ++i) {
+            new_path_is_circular_iv.append(path_is_circular_iv.get(i));
+        }
+        path_is_circular_iv = move(new_path_is_circular_iv);
         
         // TODO: unless paths have been deleted, path_names_iv doesn't get a tight allocation...
     }
@@ -976,18 +988,20 @@ namespace sglib {
         }
         
         // update the node IDs of steps on paths
-        for (PackedPath& packed_path : paths){
+        for (size_t i = 0; i < paths.size(); ++i){
             
-            if (packed_path.is_deleted) {
+            if (path_is_deleted_iv.get(i)) {
                 continue;
             }
             
-            for (size_t i = 0; i < packed_path.steps_iv.size(); i += STEP_RECORD_SIZE) {
-                handle_t trav = decode_traversal(packed_path.steps_iv.get(i));
+            PackedPath& packed_path = paths[i];
+            
+            for (size_t j = 0; j < packed_path.steps_iv.size(); j += STEP_RECORD_SIZE) {
+                handle_t trav = decode_traversal(packed_path.steps_iv.get(j));
                 // only translate step records of nodes that have not been deleted
                 if (nid_to_graph_iv.get(get_id(trav) - min_id)) {
                     trav = get_handle(nid_trans.get(get_id(trav) - min_id), get_is_reverse(trav));
-                    packed_path.steps_iv.set(i, encode_traversal(trav));
+                    packed_path.steps_iv.set(j, encode_traversal(trav));
                 }
             }
         }
@@ -1300,7 +1314,7 @@ namespace sglib {
     }
     
     bool PackedGraph::get_is_circular(const path_handle_t& path_handle) const {
-        return paths.at(as_integer(path_handle)).is_circular;
+        return path_is_circular_iv.get(as_integer(path_handle));
     }
     
     size_t PackedGraph::get_step_count(const path_handle_t& path_handle) const {
@@ -1502,7 +1516,7 @@ namespace sglib {
         
         path_id.erase(extract_encoded_path_name(as_integer(path)));
         
-        packed_path.is_deleted = true;
+        path_is_deleted_iv.set(as_integer(path), true);
         packed_path.steps_iv.clear();
         packed_path.links_iv.clear();
         packed_path.head = 0;
@@ -1534,11 +1548,15 @@ namespace sglib {
             paths.reserve(new_capacity);
         }
         
-        paths.emplace_back(is_circular);
+        paths.emplace_back();
         
         path_name_start_iv.append(path_names_iv.size());
         path_name_length_iv.append(name.size());
+        path_is_circular_iv.append(is_circular);
+        path_is_deleted_iv.append(false);
+        
         append_path_name(name);
+        
         return path_handle;
     }
     
@@ -1566,7 +1584,7 @@ namespace sglib {
         }
         
         // update the looping connection if this is a circular path
-        if (packed_path.is_circular) {
+        if (path_is_circular_iv.get(as_integer(path))) {
             set_step_prev(packed_path, packed_path.head, packed_path.tail);
             set_step_next(packed_path, packed_path.tail, packed_path.head);
         }
@@ -1611,7 +1629,7 @@ namespace sglib {
         }
         
         // update the looping connection if this is a circular path
-        if (packed_path.is_circular) {
+        if (path_is_circular_iv.get(as_integer(path))) {
             set_step_prev(packed_path, packed_path.head, packed_path.tail);
             set_step_next(packed_path, packed_path.tail, packed_path.head);
         }
@@ -1786,7 +1804,7 @@ namespace sglib {
             set_step_next(packed_path, packed_path.tail, 0);
         }
         // set the annotation
-        packed_path.is_circular = circular;
+        path_is_circular_iv.set(as_integer(path), circular);
     }
     
     void PackedGraph::report_memory(ostream& out, bool individual_paths) const {
@@ -1854,6 +1872,14 @@ namespace sglib {
         out << "path_name_length_iv: " << format_memory(item_mem) << endl;
         grand_total += item_mem;
         
+        item_mem = path_is_deleted_iv.memory_usage();
+        out << "path_is_deleted_iv: " << format_memory(item_mem) << endl;
+        grand_total += item_mem;
+        
+        item_mem = path_is_circular_iv.memory_usage();
+        out << "path_is_circular_iv: " << format_memory(item_mem) << endl;
+        grand_total += item_mem;
+        
         unordered_set<int64_t> unused_path_ids;
         for (int64_t i = 0; i < paths.size(); i++) {
             unused_path_ids.insert(i);
@@ -1879,8 +1905,7 @@ namespace sglib {
             size_t path_id_mem = sizeof(it->second);
             const auto& packed_path = paths.at(it->second);
             size_t list_ptr_mem = sizeof(packed_path.head) + sizeof(packed_path.tail);
-            size_t other_mem = (sizeof(packed_path.is_deleted) + sizeof(packed_path.is_circular)
-                                + sizeof(packed_path.deleted_step_records));
+            size_t other_mem = sizeof(packed_path.deleted_step_records);
             size_t links_mem = packed_path.links_iv.memory_usage();
             size_t steps_mem = packed_path.steps_iv.memory_usage();
             if (individual_paths) {
@@ -1908,8 +1933,7 @@ namespace sglib {
             for (int64_t unused_path_id : unused_path_ids) {
                 const auto& packed_path = paths.at(unused_path_id);
                 dead_list_ptr_total += sizeof(packed_path.head) + sizeof(packed_path.tail);
-                dead_other_total += (sizeof(packed_path.is_deleted) + sizeof(packed_path.is_circular)
-                                     + sizeof(packed_path.deleted_step_records));
+                dead_other_total += sizeof(packed_path.deleted_step_records);
                 dead_links_total += packed_path.links_iv.memory_usage();
                 dead_steps_total += packed_path.steps_iv.memory_usage();
             }
