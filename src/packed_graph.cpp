@@ -1991,7 +1991,7 @@ namespace sglib {
         vector_excess_cap += (paths.capacity() - paths.size()) * sizeof(decltype(paths)::value_type);
         vector_excess_cap += sizeof(paths);
         
-        size_t path_total = path_object_total + dead_object_total + path_excess_cap;
+        size_t path_total = path_object_total + dead_object_total + vector_excess_cap + hash_table_excess_cap;
         
         out << "paths (" << path_id.size() << ") total: " << format_memory(path_total) << endl;
         out << "\tname: " << format_memory(name_total) << endl;
