@@ -965,7 +965,7 @@ namespace sglib {
         }
         path_is_circular_iv = move(new_path_is_circular_iv);
         
-        PackedVector new_path_head_iv;
+        PagedVector new_path_head_iv(path_head_iv.page_width());
         new_path_head_iv.reserve(paths.size());
         for (size_t i = 0; i < paths.size(); ++i) {
             new_path_head_iv.append(path_head_iv.get(i));
