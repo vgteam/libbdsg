@@ -1998,7 +1998,6 @@ namespace sglib {
         out << "\tid: " << format_memory(id_total) << endl;
         out << "\tlinks: " << format_memory(links_total) << endl;
         out << "\tsteps: " << format_memory(steps_total) << endl;
-        out << "\tother: " << format_memory(other_total) << endl;
         out << "\tdead paths: " << format_memory(dead_object_total) << endl;
         out << "\texcess capacity: " << format_memory(path_excess_cap) << endl;
         
