@@ -457,9 +457,6 @@ private:
         /// The traversal value is stored in a separate vector at the matching index.
         /// {ID|orientation (bit-packed)}
         RobustPagedVector steps_iv;
-        
-        /// The number of steps that have been deleted from the path
-        uint64_t deleted_step_records = 0;
     };
     const static size_t PATH_RECORD_SIZE;
     const static size_t PATH_PREV_OFFSET;
