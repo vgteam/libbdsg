@@ -26,7 +26,7 @@ using namespace std;
 using namespace handlegraph;
 
 
-class PackedGraph : public MutablePathDeletableHandleGraph {
+class PackedGraph : public MutablePathDeletableHandleGraph, public SerializableHandleGraph {
         
 public:
     PackedGraph();

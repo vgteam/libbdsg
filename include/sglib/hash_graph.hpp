@@ -19,7 +19,7 @@ namespace sglib {
 using namespace std;
 using namespace handlegraph;
 
-class HashGraph : public MutablePathDeletableHandleGraph {
+class HashGraph : public MutablePathDeletableHandleGraph, public SerializableHandleGraph {
         
 public:
     
