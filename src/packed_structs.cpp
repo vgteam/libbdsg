@@ -2,10 +2,10 @@
 //  packed_structs.hpp
 //
 
-#include "sglib/packed_structs.hpp"
+#include "bdsg/packed_structs.hpp"
 
 
-namespace sglib {
+namespace bdsg {
     
 const double PackedVector::factor = 1.25;
 const double PackedDeque::factor = 1.25;

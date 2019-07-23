@@ -1,5 +1,5 @@
-#ifndef SGLIB_SPLIT_STRAND_GRAPH_HPP_INCLUDED
-#define SGLIB_SPLIT_STRAND_GRAPH_HPP_INCLUDED
+#ifndef BDSG_SPLIT_STRAND_GRAPH_HPP_INCLUDED
+#define BDSG_SPLIT_STRAND_GRAPH_HPP_INCLUDED
 
 /** \file
  * split_strand_graph.hpp: defines a handle graph overlay that duplicates nodes
@@ -8,9 +8,9 @@
  */
 
 #include <handlegraph/expanding_overlay_graph.hpp>
-#include "sglib/utility.hpp"
+#include "bdsg/utility.hpp"
 
-namespace sglib {
+namespace bdsg {
 
 using namespace std;
 using namespace handlegraph;

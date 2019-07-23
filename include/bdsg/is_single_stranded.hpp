@@ -1,5 +1,5 @@
-#ifndef SGLIB_ALGORITHMS_IS_SINGLE_STRANDED_HPP_INCLUDED
-#define SGLIB_ALGORITHMS_IS_SINGLE_STRANDED_HPP_INCLUDED
+#ifndef BDSG_ALGORITHMS_IS_SINGLE_STRANDED_HPP_INCLUDED
+#define BDSG_ALGORITHMS_IS_SINGLE_STRANDED_HPP_INCLUDED
 
 /**
  * \file single_stranded.hpp
@@ -13,7 +13,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace sglib {
+namespace bdsg {
 namespace algorithms {
 
 using namespace std;

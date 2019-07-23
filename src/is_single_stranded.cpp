@@ -1,6 +1,6 @@
-#include "sglib/is_single_stranded.hpp"
+#include "bdsg/is_single_stranded.hpp"
 
-namespace sglib {
+namespace bdsg {
 namespace algorithms {
 
 using namespace std;

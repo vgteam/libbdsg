@@ -14,7 +14,7 @@ CXXFLAGS :=-O3 -Werror=return-type -std=c++14 -ggdb -g -msse4.2 -I$(INC_DIR) $(C
 .PHONY: .pre-build all clean install
 
 all:
-	make $(LIB_DIR)/libsglib.a
+	make $(LIB_DIR)/libbdsg.a
 
 .pre-build:
 	@if [ ! -d $(LIB_DIR) ]; then mkdir -p $(LIB_DIR); fi
@@ -23,36 +23,36 @@ all:
 # run .pre-build before we make anything at all.
 -include .pre-build
 
-$(OBJ_DIR)/eades_algorithm.o: $(SRC_DIR)/eades_algorithm.cpp $(INC_DIR)/sglib/eades_algorithm.hpp
+$(OBJ_DIR)/eades_algorithm.o: $(SRC_DIR)/eades_algorithm.cpp $(INC_DIR)/bdsg/eades_algorithm.hpp
 	$(CXX) $(CXXFLAGS) -c $(SRC_DIR)/eades_algorithm.cpp -o $(OBJ_DIR)/eades_algorithm.o 
 
-$(OBJ_DIR)/hash_graph.o: $(SRC_DIR)/hash_graph.cpp $(INC_DIR)/sglib/hash_graph.hpp
+$(OBJ_DIR)/hash_graph.o: $(SRC_DIR)/hash_graph.cpp $(INC_DIR)/bdsg/hash_graph.hpp
 	$(CXX) $(CXXFLAGS) -c $(SRC_DIR)/hash_graph.cpp -o $(OBJ_DIR)/hash_graph.o 
 
-$(OBJ_DIR)/is_single_stranded.o: $(SRC_DIR)/is_single_stranded.cpp $(INC_DIR)/sglib/is_single_stranded.hpp
+$(OBJ_DIR)/is_single_stranded.o: $(SRC_DIR)/is_single_stranded.cpp $(INC_DIR)/bdsg/is_single_stranded.hpp
 	$(CXX) $(CXXFLAGS) -c $(SRC_DIR)/is_single_stranded.cpp -o $(OBJ_DIR)/is_single_stranded.o 
 
-$(OBJ_DIR)/packed_graph.o: $(SRC_DIR)/packed_graph.cpp $(INC_DIR)/sglib/packed_graph.hpp
+$(OBJ_DIR)/packed_graph.o: $(SRC_DIR)/packed_graph.cpp $(INC_DIR)/bdsg/packed_graph.hpp
 	$(CXX) $(CXXFLAGS) -c $(SRC_DIR)/packed_graph.cpp -o $(OBJ_DIR)/packed_graph.o 
 
-$(OBJ_DIR)/packed_structs.o: $(SRC_DIR)/packed_structs.cpp $(INC_DIR)/sglib/packed_structs.hpp
+$(OBJ_DIR)/packed_structs.o: $(SRC_DIR)/packed_structs.cpp $(INC_DIR)/bdsg/packed_structs.hpp
 	$(CXX) $(CXXFLAGS) -c $(SRC_DIR)/packed_structs.cpp -o $(OBJ_DIR)/packed_structs.o 
 
-$(OBJ_DIR)/split_strand_graph.o: $(SRC_DIR)/split_strand_graph.cpp $(INC_DIR)/sglib/split_strand_graph.hpp
+$(OBJ_DIR)/split_strand_graph.o: $(SRC_DIR)/split_strand_graph.cpp $(INC_DIR)/bdsg/split_strand_graph.hpp
 	$(CXX) $(CXXFLAGS) -c $(SRC_DIR)/split_strand_graph.cpp -o $(OBJ_DIR)/split_strand_graph.o 
 
-$(OBJ_DIR)/utility.o: $(SRC_DIR)/utility.cpp $(INC_DIR)/sglib/utility.hpp
+$(OBJ_DIR)/utility.o: $(SRC_DIR)/utility.cpp $(INC_DIR)/bdsg/utility.hpp
 	$(CXX) $(CXXFLAGS) -c $(SRC_DIR)/utility.cpp -o $(OBJ_DIR)/utility.o 
 
-$(LIB_DIR)/libsglib.a: $(OBJS)
+$(LIB_DIR)/libbdsg.a: $(OBJS)
 	rm -f $@
 	ar rs $@ $(OBJ_DIR)/*.o
 
-install: $(LIB_DIR)/libsglib.a
+install: $(LIB_DIR)/libbdsg.a
 	mkdir -p $(INSTALL_LIB_DIR)
 	mkdir -p $(INSTALL_INC_DIR)
-	cp $(LIB_DIR)/libsglib.a $(INSTALL_LIB_DIR)/
-	cp -r $(INC_DIR)/sglib $(INSTALL_INC_DIR)/
+	cp $(LIB_DIR)/libbdsg.a $(INSTALL_LIB_DIR)/
+	cp -r $(INC_DIR)/bdsg $(INSTALL_INC_DIR)/
 
 clean:
 	rm -r $(OBJ_DIR)
