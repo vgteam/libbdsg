@@ -1,7 +1,7 @@
 //
 //  odgi
 //
-//  graph.hpp
+//  odgi.hpp
 //
 //  main dynamic compact graph definition
 //
@@ -475,3 +475,5 @@ const static uint64_t path_begin_marker = 0;
 const static uint64_t path_end_marker = 1;
 
 } // end dankness
+
+#endif
