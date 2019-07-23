@@ -20,7 +20,7 @@ The easiest way to build `libbdsg` is to use the [easy install repository](https
 
 ### Dependencies
 
-`sglib` has a few external dependencies:
+`libbdsg` has a few external dependencies:
 
 - [`libhandlegraph`](https://github.com/vgteam/libhandlegraph)
 - [`sdsl`](https://github.com/simongog/sdsl-lite)
