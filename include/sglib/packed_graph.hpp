@@ -439,7 +439,7 @@ private:
     
     /// The 1-based index of the tail of the linked list in steps_iv of the path
     /// with the same index in paths
-    PackedVector path_tail_iv;
+    PagedVector path_tail_iv;
     
     /// The number of steps that have have deleted from the path at the same index
     PackedVector path_deleted_steps_iv;
