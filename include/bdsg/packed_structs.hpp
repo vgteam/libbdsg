@@ -751,4 +751,4 @@ inline size_t RobustPagedVector::page_width() const {
 
 
 
-#endif /* dynamic_structs_hpp */
+#endif /* packed_structs_hpp */

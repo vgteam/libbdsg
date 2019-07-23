@@ -7,7 +7,7 @@ INSTALL_PREFIX?=/usr/local
 INSTALL_LIB_DIR=$(INSTALL_PREFIX)/lib
 INSTALL_INC_DIR=$(INSTALL_PREFIX)/include
 
-OBJS:=$(OBJ_DIR)/eades_algorithm.o $(OBJ_DIR)/hash_graph.o $(OBJ_DIR)/is_single_stranded.o $(OBJ_DIR)/packed_graph.o $(OBJ_DIR)/packed_structs.o $(OBJ_DIR)/split_strand_graph.o $(OBJ_DIR)/utility.o
+OBJS:=$(OBJ_DIR)/eades_algorithm.o $(OBJ_DIR)/hash_graph.o $(OBJ_DIR)/is_single_stranded.o $(OBJ_DIR)/node.o $(OBJ_DIR)/odgi.o $(OBJ_DIR)/packed_graph.o $(OBJ_DIR)/packed_structs.o $(OBJ_DIR)/split_strand_graph.o $(OBJ_DIR)/utility.o
 
 CXXFLAGS :=-O3 -Werror=return-type -std=c++14 -ggdb -g -msse4.2 -I$(INC_DIR) $(CXXFLAGS)
 
@@ -31,6 +31,12 @@ $(OBJ_DIR)/hash_graph.o: $(SRC_DIR)/hash_graph.cpp $(INC_DIR)/bdsg/hash_graph.hp
 
 $(OBJ_DIR)/is_single_stranded.o: $(SRC_DIR)/is_single_stranded.cpp $(INC_DIR)/bdsg/is_single_stranded.hpp
 	$(CXX) $(CXXFLAGS) -c $(SRC_DIR)/is_single_stranded.cpp -o $(OBJ_DIR)/is_single_stranded.o 
+
+$(OBJ_DIR)/node.o: $(SRC_DIR)/node.cpp $(INC_DIR)/bdsg/node.hpp
+	$(CXX) $(CXXFLAGS) -c $(SRC_DIR)/node.cpp -o $(OBJ_DIR)/node.o 
+
+$(OBJ_DIR)/odgi.o: $(SRC_DIR)/odgi.cpp $(INC_DIR)/bdsg/odgi.hpp
+	$(CXX) $(CXXFLAGS) -c $(SRC_DIR)/odgi.cpp -o $(OBJ_DIR)/odgi.o 
 
 $(OBJ_DIR)/packed_graph.o: $(SRC_DIR)/packed_graph.cpp $(INC_DIR)/bdsg/packed_graph.hpp
 	$(CXX) $(CXXFLAGS) -c $(SRC_DIR)/packed_graph.cpp -o $(OBJ_DIR)/packed_graph.o 
