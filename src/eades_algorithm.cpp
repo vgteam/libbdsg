@@ -6,9 +6,9 @@
 
 //#define debug_eades
 
-#include "sglib/eades_algorithm.hpp"
+#include "bdsg/eades_algorithm.hpp"
 
-namespace sglib {
+namespace bdsg {
 namespace algorithms {
 
 using namespace std;
