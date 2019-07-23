@@ -4,7 +4,7 @@
 
 #include "odgi.hpp"
 
-namespace sglib {
+namespace bdsg {
 
 /// Method to check if a node exists by ID
 bool ODGI::has_node(nid_t node_id) const {
@@ -1211,7 +1211,7 @@ std::pair<step_handle_t, step_handle_t> ODGI::rewrite_segment(const step_handle_
         old_seq.append(get_sequence(get_handle_of_step(step)));
         if (step == segment_end) break;
         if (!has_next_step(step)) {
-            std::cerr << "error [sglib::ODGI]: no next step found as expected in rewrite_segment" << std::endl;
+            std::cerr << "error [bdsg::ODGI]: no next step found as expected in rewrite_segment" << std::endl;
             assert(false);
         }
     }

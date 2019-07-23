@@ -1,11 +1,11 @@
-#ifndef SGLIB_VARINT_HPP
-#define SGLIB_VARINT_HPP
+#ifndef BDSG_VARINT_HPP
+#define BDSG_VARINT_HPP
 
 #include <cstdint>
 #include <cstring>
 #include <vector>
 
-namespace sglib {
+namespace bdsg {
 
 // Copyright 2016 Jakob Stoklund Olesen
 //

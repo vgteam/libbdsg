@@ -6,7 +6,8 @@
 //  main dynamic compact graph definition
 //
 
-#pragma once
+#ifndef BDSG_ODGI_HPP
+#define BDSG_ODGI_HPP
 
 #include <cstdio>
 #include <cstdint>
@@ -29,7 +30,7 @@
 #include "hash_map.hpp"
 #include "node.hpp"
 
-namespace sglib {
+namespace bdsg {
 
 using namespace handlegraph;
 

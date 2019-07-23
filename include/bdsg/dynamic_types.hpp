@@ -1,9 +1,9 @@
-#ifndef SGLIB_DYNAMIC_TYPE_HPP
-#define SGLIB_DYNAMIC_TYPE_HPP
+#ifndef BDSG_DYNAMIC_TYPE_HPP
+#define BDSG_DYNAMIC_TYPE_HPP
 
 #include "dynamic.hpp"
 
-namespace sglib {
+namespace bdsg {
 
 typedef dyn::succinct_bitvector<dyn::spsi<dyn::packed_vector,256,16> > suc_bv;
 typedef dyn::lciv<dyn::packed_vector,512,1> lciv_iv;

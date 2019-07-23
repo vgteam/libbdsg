@@ -2,7 +2,7 @@
 #include "varint.hpp"
 #include <cassert>
 
-namespace sglib {
+namespace bdsg {
 
 uint64_t node_t::sequence_size(void) const {
     return seq_bytes();

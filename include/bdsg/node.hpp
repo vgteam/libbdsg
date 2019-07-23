@@ -1,4 +1,5 @@
-#pragma once
+#ifndef BDSG_NODE_HPP
+#define BDSG_NODE_HPP
 
 #include <iostream>
 #include <cstdint>
@@ -11,7 +12,7 @@
 #include "dynamic.hpp"
 #include "varint.hpp"
 
-namespace sglib {
+namespace bdsg {
 
 using namespace handlegraph;
 using nid_t = handlegraph::nid_t;
