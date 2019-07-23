@@ -25,10 +25,10 @@
 #include <handlegraph/deletable_handle_graph.hpp>
 #include <handlegraph/mutable_path_deletable_handle_graph.hpp>
 #include "dynamic.hpp"
-#include "dynamic_types.hpp"
-#include "utility.hpp"
-#include "hash_map.hpp"
-#include "node.hpp"
+#include "bdsg/dynamic_types.hpp"
+#include "bdsg/utility.hpp"
+#include "bdsg/hash_map.hpp"
+#include "bdsg/node.hpp"
 
 namespace bdsg {
 
