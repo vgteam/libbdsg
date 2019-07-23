@@ -5,22 +5,22 @@
 //  vectors.
 //
 
-#ifndef SGLIB_PACKED_GRAPH_HPP_INCLUDED
-#define SGLIB_PACKED_GRAPH_HPP_INCLUDED
+#ifndef BDSG_PACKED_GRAPH_HPP_INCLUDED
+#define BDSG_PACKED_GRAPH_HPP_INCLUDED
 
 #include <utility>
 
 #include <handlegraph/mutable_path_deletable_handle_graph.hpp>
 
-#include "sglib/packed_structs.hpp"
-#include "sglib/split_strand_graph.hpp"
-#include "sglib/hash_map.hpp"
-#include "sglib/utility.hpp"
+#include "bdsg/packed_structs.hpp"
+#include "bdsg/split_strand_graph.hpp"
+#include "bdsg/hash_map.hpp"
+#include "bdsg/utility.hpp"
 
-#include "sglib/eades_algorithm.hpp"
+#include "bdsg/eades_algorithm.hpp"
 
 
-namespace sglib {
+namespace bdsg {
     
 using namespace std;
 using namespace handlegraph;
@@ -439,7 +439,7 @@ private:
     
     /// The 1-based index of the tail of the linked list in steps_iv of the path
     /// with the same index in paths
-    PackedVector path_tail_iv;
+    PagedVector path_tail_iv;
     
     /// The number of steps that have have deleted from the path at the same index
     PackedVector path_deleted_steps_iv;

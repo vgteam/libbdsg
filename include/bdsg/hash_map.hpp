@@ -1,12 +1,12 @@
-#ifndef SGLIB_HASH_MAP_HPP_INCLUDED
-#define SGLIB_HASH_MAP_HPP_INCLUDED
+#ifndef BDSG_HASH_MAP_HPP_INCLUDED
+#define BDSG_HASH_MAP_HPP_INCLUDED
 
 #include <cstdint>
 #include <tuple>
 #include <type_traits>
 
-#include "sglib/wang_hash.hpp"
-#include "sglib/packed_structs.hpp"
+#include "bdsg/wang_hash.hpp"
+#include "bdsg/packed_structs.hpp"
 
 // Comment out to use sparse_hash_map and sparse_hash_set instead of
 // dense_hash_map and dense_hash_set.
@@ -90,8 +90,8 @@ struct hash<std::tuple<TT...>>
 // make a hash function for PackedVectors
 namespace std {
     template<>
-    struct hash<sglib::PackedVector> {
-        size_t operator()(const sglib::PackedVector& vec) {
+    struct hash<bdsg::PackedVector> {
+        size_t operator()(const bdsg::PackedVector& vec) {
             size_t hash_val = 0;
             for (size_t i = 0; i < vec.size(); ++i) {
                 hash_combine(hash_val, vec.get(i));
@@ -102,7 +102,7 @@ namespace std {
 }
 
 
-namespace sglib {
+namespace bdsg {
 
 // We need this second type for enable_if-based specialization
 template<typename T, typename ImplementationMatched = void>

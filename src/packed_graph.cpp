@@ -2,12 +2,12 @@
 //  packed_graph.cpp
 //
 
-#include "sglib/packed_graph.hpp"
+#include "bdsg/packed_graph.hpp"
 
 #include <handlegraph/util.hpp>
 #include <atomic>
 
-namespace sglib {
+namespace bdsg {
 
     using namespace handlegraph;
     
@@ -53,7 +53,8 @@ namespace sglib {
         path_membership_offset_iv(NARROW_PAGE_WIDTH),
         path_membership_id_iv(WIDE_PAGE_WIDTH),
         path_name_start_iv(NARROW_PAGE_WIDTH),
-        path_head_iv(WIDE_PAGE_WIDTH) {
+        path_head_iv(WIDE_PAGE_WIDTH),
+        path_tail_iv(NARROW_PAGE_WIDTH) {
         
         // set pretty full load factors
         path_id.max_load_factor(0.5);
@@ -975,7 +976,7 @@ namespace sglib {
         }
         path_head_iv = move(new_path_head_iv);
         
-        PackedVector new_path_tail_iv;
+        PagedVector new_path_tail_iv(path_tail_iv.page_width());
         new_path_tail_iv.reserve(paths.size());
         for (size_t i = 0; i < paths.size(); ++i) {
             new_path_tail_iv.append(path_tail_iv.get(i));
@@ -1035,11 +1036,8 @@ namespace sglib {
         // make a vector to translate the new IDs to the offset of the node
         PackedDeque new_nid_to_graph_iv;
         new_nid_to_graph_iv.reserve(get_node_count());
-        for (nid_t node_id = min_id; node_id <= max_id; ++node_id) {
-            size_t offset = nid_to_graph_iv.get(node_id - min_id);
-            if (offset) {
-                new_nid_to_graph_iv.append_back(offset);
-            }
+        for (const handle_t& handle : order) {
+            new_nid_to_graph_iv.append_back(nid_to_graph_iv.get(get_id(handle) - min_id));
         }
         
         nid_to_graph_iv = move(new_nid_to_graph_iv);

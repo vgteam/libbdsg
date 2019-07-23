@@ -2,11 +2,11 @@
 //  hash_graph.cpp
 //
 
-#include "sglib/hash_graph.hpp"
+#include "bdsg/hash_graph.hpp"
 
 #include <handlegraph/util.hpp>
 
-namespace sglib {
+namespace bdsg {
     
     using namespace handlegraph;
     

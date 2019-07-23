@@ -1,12 +1,12 @@
-#ifndef SGLIB_UTILITY_HPP_INCLUDED
-#define SGLIB_UTILITY_HPP_INCLUDED
+#ifndef BDSG_UTILITY_HPP_INCLUDED
+#define BDSG_UTILITY_HPP_INCLUDED
 
 #include <string>
 #include <sstream>
 #include <iomanip>
 #include <functional>
 
-namespace sglib {
+namespace bdsg {
 
 using namespace std;
 

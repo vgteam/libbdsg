@@ -1,10 +1,10 @@
-# sglib
+# libbdsg
 
-Optimized sequence graph implementations for graph genomics
+Optimized bidirected sequence graph implementations for graph genomics
 
 ## About
 
-The main purpose of `sglib` is to provide high performance implementations of sequence graphs for graph-based pangenomics applications. The repository contains three graph implementations with different performance tradeoffs:
+The main purpose of `libbdsg` is to provide high performance implementations of sequence graphs for graph-based pangenomics applications. The repository contains three graph implementations with different performance tradeoffs:
 
 - HashGraph: prioritizes speed
 - ODGI: balances speed and low memory usage
@@ -16,11 +16,11 @@ All of these graph objects implement a common interface, so they can be used int
 
 ### Easy install
 
-The easiest way to build `sglib` is to use the [easy install repository](https://github.com/vgteam/sglib-easy), which coordinates `sglib` and its dependencies using Git submodules.
+The easiest way to build `libbdsg` is to use the [easy install repository](https://github.com/vgteam/libbdsg-easy), which coordinates `libbdsg` and its dependencies using Git submodules.
 
 ### Dependencies
 
-`sglib` has a few external dependencies:
+`libbdsg` has a few external dependencies:
 
 - [`libhandlegraph`](https://github.com/vgteam/libhandlegraph)
 - [`sdsl`](https://github.com/simongog/sdsl-lite)
@@ -30,11 +30,11 @@ The build process assumes that these libraries and their headers have been insta
 
 ### Building
 
-The following commands will create the `libsglib.a` library in the `lib` directory. 
+The following commands will create the `libbdsg.a` library in the `lib` directory. 
 
 ```
-git clone https://github.com/vgteam/sglib.git
-cd sglib
+git clone https://github.com/vgteam/libbdsg.git
+cd libbdsg
 make -j8
 ```
 
