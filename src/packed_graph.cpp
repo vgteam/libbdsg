@@ -2,12 +2,12 @@
 //  packed_graph.cpp
 //
 
-#include "sglib/packed_graph.hpp"
+#include "bdsg/packed_graph.hpp"
 
 #include <handlegraph/util.hpp>
 #include <atomic>
 
-namespace sglib {
+namespace bdsg {
 
     using namespace handlegraph;
     

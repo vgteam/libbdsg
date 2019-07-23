@@ -5,16 +5,16 @@
 //  hash tables
 //
 
-#ifndef SGLIB_HASH_GRAPH_HPP_INCLUDED
-#define SGLIB_HASH_GRAPH_HPP_INCLUDED
+#ifndef BDSG_HASH_GRAPH_HPP_INCLUDED
+#define BDSG_HASH_GRAPH_HPP_INCLUDED
 
 #include <handlegraph/mutable_path_deletable_handle_graph.hpp>
 
-#include "sglib/hash_map.hpp"
-#include "sglib/utility.hpp"
-#include "sglib/endianness.hpp"
+#include "bdsg/hash_map.hpp"
+#include "bdsg/utility.hpp"
+#include "bdsg/endianness.hpp"
 
-namespace sglib {
+namespace bdsg {
     
 using namespace std;
 using namespace handlegraph;

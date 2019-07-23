@@ -1,9 +1,9 @@
-#ifndef SGLIB_WANG_HASH_HPP_INCLUDED
-#define SGLIB_WANG_HASH_HPP_INCLUDED
+#ifndef BDSG_WANG_HASH_HPP_INCLUDED
+#define BDSG_WANG_HASH_HPP_INCLUDED
 
 #include <cstddef>
 
-namespace sglib {
+namespace bdsg {
 
 /// Thomas Wang's integer hash function. In many implementations, std::hash
 /// is identity function for integers, which leads to performance issues.

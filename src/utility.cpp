@@ -1,6 +1,6 @@
-#include "sglib/utility.hpp"
+#include "bdsg/utility.hpp"
 
-namespace sglib {
+namespace bdsg {
 
 static const char complement[256] = {'N', 'N', 'N', 'N', 'N', 'N', 'N', 'N', // 8
                                      'N', 'N', 'N', 'N', 'N', 'N', 'N', 'N', // 16

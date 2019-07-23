@@ -3,12 +3,12 @@
  */
 
 
-#include "sglib/split_strand_graph.hpp"
+#include "bdsg/split_strand_graph.hpp"
 
 #include <handlegraph/util.hpp>
 
 
-namespace sglib {
+namespace bdsg {
 
 using namespace std;
 using namespace handlegraph;

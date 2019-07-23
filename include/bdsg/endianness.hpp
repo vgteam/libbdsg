@@ -1,5 +1,5 @@
-#ifndef SGLIB_ENDIANNESS_HPP_INCLUDED
-#define SGLIB_ENDIANNESS_HPP_INCLUDED
+#ifndef BDSG_ENDIANNESS_HPP_INCLUDED
+#define BDSG_ENDIANNESS_HPP_INCLUDED
 
 /** \file endianness.hpp
  *  Methods for converting endianness in integers
@@ -8,7 +8,7 @@
 #include <cstdlib>
 #include <type_traits>
 
-namespace sglib {
+namespace bdsg {
 
     /**
      * A struct namespace for methods to handle endianness in integer values.
