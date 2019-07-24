@@ -1,5 +1,5 @@
-#ifndef BDSG_NODE_HPP
-#define BDSG_NODE_HPP
+#ifndef BSDG_NODE_HPP
+#define BSDG_NODE_HPP
 
 #include <iostream>
 #include <cstdint>

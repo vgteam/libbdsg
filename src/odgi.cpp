@@ -26,17 +26,17 @@ nid_t ODGI::get_id(const handle_t& handle) const {
 uint64_t ODGI::get_node_rank(const nid_t& node_id) const {
     return node_id - 1;
 }
-
+    
 /// Get the orientation of a handle
 bool ODGI::get_is_reverse(const handle_t& handle) const {
     return number_bool_packing::unpack_bit(handle);
 }
-
+    
 /// Invert the orientation of a handle (potentially without getting its ID)
 handle_t ODGI::flip(const handle_t& handle) const {
     return number_bool_packing::toggle_bit(handle);
 }
-
+    
 /// Get the length of a node
 size_t ODGI::get_length(const handle_t& handle) const {
     return node_v.at(number_bool_packing::unpack_number(handle)).sequence_size();
@@ -47,7 +47,7 @@ std::string ODGI::get_sequence(const handle_t& handle) const {
     auto& seq = node_v.at(number_bool_packing::unpack_number(handle)).sequence();
     return (get_is_reverse(handle) ? reverse_complement(seq) : seq);
 }
-
+    
 /// Loop over all the handles to next/previous (right/left) nodes. Passes
 /// them to a callback which returns false to stop iterating and true to
 /// continue. Returns true if we finished and false if we stopped early.
@@ -83,7 +83,7 @@ bool ODGI::follow_edges_impl(const handle_t& handle, bool go_left, const std::fu
     return true;
 }
 
-
+    
 /// Loop over all the nodes in the graph in their local forward
 /// orientations, in their internal stored order. Stop if the iteratee
 /// returns false. Can be told to run in parallel, in which case stopping
@@ -115,23 +115,23 @@ bool ODGI::for_each_handle_impl(const std::function<bool(const handle_t&)>& iter
 size_t ODGI::get_node_count(void) const {
     return node_v.size()-_deleted_node_count;
 }
-
+    
 /// Return the smallest ID in the graph, or some smaller number if the
 /// smallest ID is unavailable. Return value is unspecified if the graph is empty.
 nid_t ODGI::min_node_id(void) const {
     return _min_node_id;
 }
-
+    
 /// Return the largest ID in the graph, or some larger number if the
 /// largest ID is unavailable. Return value is unspecified if the graph is empty.
 nid_t ODGI::max_node_id(void) const {
     return _max_node_id;
 }
-
+    
 ////////////////////////////////////////////////////////////////////////////
 // Additional optional interface with a default implementation
 ////////////////////////////////////////////////////////////////////////////
-
+    
 /// Get the number of edges on the right (go_left = false) or left (go_left
 /// = true) side of the given handle. The default implementation is O(n) in
 /// the number of edges returned, but graph implementations that track this
@@ -141,22 +141,22 @@ size_t ODGI::get_degree(const handle_t& handle, bool go_left) const {
     follow_edges(handle, go_left, [&degree](const handle_t& h) { ++degree; });
     return degree;
 }
-
+    
 /**
  * This is the interface for a handle graph that stores embedded paths.
  */
-
+    
 ////////////////////////////////////////////////////////////////////////////
 // Path handle interface that needs to be implemented
 ////////////////////////////////////////////////////////////////////////////
-
+    
 /// Determine if a path name exists and is legal to get a path handle for.
 bool ODGI::has_path(const std::string& path_name) const {
     auto f = path_name_map.find(path_name);
     if (f == path_name_map.end()) return false;
     else return true;
 }
-
+    
 /// Look up the path handle for the given path name.
 /// The path with that name must exist.
 path_handle_t ODGI::get_path_handle(const std::string& path_name) const {
@@ -169,7 +169,7 @@ path_handle_t ODGI::get_path_handle(const std::string& path_name) const {
 std::string ODGI::get_path_name(const path_handle_t& path_handle) const {
     return path_metadata_v.at(as_integer(path_handle)).name;
 }
-
+    
 /// Returns the number of node steps in the path
 size_t ODGI::get_step_count(const path_handle_t& path_handle) const {
     return path_metadata_v.at(as_integer(path_handle)).length;
@@ -179,7 +179,7 @@ size_t ODGI::get_step_count(const path_handle_t& path_handle) const {
 size_t ODGI::get_path_count(void) const {
     return _path_count;
 }
-
+    
 /// Execute a function on each path in the graph
 bool ODGI::for_each_path_handle_impl(const std::function<bool(const path_handle_t&)>& iteratee) const {
     bool flag = true;
@@ -214,11 +214,11 @@ std::vector<step_handle_t> ODGI::steps_of_handle(const handle_t& handle,
                                                     bool match_orientation) const {
     std::vector<step_handle_t> res;
     for_each_step_on_handle(handle, [&](const step_handle_t& step) {
-        handle_t h = get_handle_of_step(step);
-        if (!match_orientation || get_is_reverse(h) == get_is_reverse(handle)) {
-            res.push_back(step);
-        }
-    });
+            handle_t h = get_handle_of_step(step);
+            if (!match_orientation || get_is_reverse(h) == get_is_reverse(handle)) {
+                res.push_back(step);
+            }
+        });
     return res;
 }
 
@@ -243,7 +243,7 @@ path_handle_t ODGI::get_path(const step_handle_t& step_handle) const {
 step_handle_t ODGI::path_begin(const path_handle_t& path_handle) const {
     return path_metadata_v.at(as_integer(path_handle)).first;
 }
-
+    
 /// Get a handle to the last step in a path
 /// The path MUST be nonempty.
 step_handle_t ODGI::path_back(const path_handle_t& path_handle) const {
@@ -275,13 +275,13 @@ bool ODGI::get_is_circular(const path_handle_t& path_handle) const {
 void ODGI::set_circularity(const path_handle_t& path_handle, bool circular) {
     path_metadata_v.at(as_integer(path_handle)).is_circular = circular;
 }
-
+    
 /// Returns true if the step is not the last step on the path, else false
 bool ODGI::has_next_step(const step_handle_t& step_handle) const {
     const node_t& node = node_v.at(number_bool_packing::unpack_number(get_handle_of_step(step_handle)));
     return node.get_path_step(as_integers(step_handle)[1]).next_id() != path_end_marker;
 }
-
+    
 /// Returns true if the step is not the first step on the path, else false
 bool ODGI::has_previous_step(const step_handle_t& step_handle) const {
     const node_t& node = node_v.at(number_bool_packing::unpack_number(get_handle_of_step(step_handle)));
@@ -355,7 +355,7 @@ path_handle_t ODGI::get_path_handle_of_step(const step_handle_t& step_handle) co
     auto& step = node.get_path_step(as_integers(step_handle)[1]);
     return as_path_handle(step.path_id());
 }
-
+    
 ////////////////////////////////////////////////////////////////////////////
 // Additional optional interface with a default implementation
 ////////////////////////////////////////////////////////////////////////////
@@ -398,7 +398,7 @@ void ODGI::for_each_step_in_path(const path_handle_t& path, const std::function<
         }
     } while (keep_going);
 }
-
+    
 /// Create a new node with the given sequence and return the handle.
 handle_t ODGI::create_handle(const std::string& sequence) {
     // get first deleted node to recycle
@@ -453,7 +453,7 @@ handle_t ODGI::create_handle(const std::string& sequence, const nid_t& id) {
     // return handle
     return number_bool_packing::pack(handle_rank, 0);
 }
-
+    
 /// Remove the node belonging to the given handle and all of its edges.
 /// Does not update any stored paths.
 /// Invalidates the destroyed handle.
@@ -467,9 +467,9 @@ void ODGI::destroy_handle(const handle_t& handle) {
     // enumerate the edges
     std::vector<edge_t> edges_to_destroy;
     follow_edges(fwd_handle, false, [&edges_to_destroy,&fwd_handle,this](const handle_t& h) {
-        edges_to_destroy.push_back(make_pair(fwd_handle, h)); });
+            edges_to_destroy.push_back(make_pair(fwd_handle, h)); });
     follow_edges(fwd_handle, true, [&edges_to_destroy,&fwd_handle,this](const handle_t& h) {
-        edges_to_destroy.push_back(make_pair(h, fwd_handle)); });
+            edges_to_destroy.push_back(make_pair(h, fwd_handle)); });
     // and then remove them
     for (auto& edge : edges_to_destroy) {
         destroy_edge(edge);
@@ -490,7 +490,7 @@ void ODGI::destroy_handle(const handle_t& handle) {
 }
 
 /*
- void ODGI::rebuild_id_handle_mapping(void) {
+void ODGI::rebuild_id_handle_mapping(void) {
     // for each live node, record the id in a new vector
     uint64_t j = 0;
     for (uint64_t i = 0; i < node_v.size(); ++i) {
@@ -498,19 +498,19 @@ void ODGI::destroy_handle(const handle_t& handle) {
         if (id == 0) continue;
         graph_id_map[id] = j++;
     }
-     for (uint64_t i = 0; i < node_v.size(); ++i) {
+    for (uint64_t i = 0; i < node_v.size(); ++i) {
         auto id = node_v[i].id();
         if (id == 0) {
             deleted_node_bv.remove(i);
         }
-     }
-     node_v.erase(std::remove_if(node_v.begin(), node_v.end(),
-                                 [&](const node_t& node) { return node.id() == 0; }),
-                  node_v.end());
- _  deleted_node_count = 0;
- }
- */
-
+    }
+    node_v.erase(std::remove_if(node_v.begin(), node_v.end(),
+                                [&](const node_t& node) { return node.id() == 0; }),
+                 node_v.end());
+    _deleted_node_count = 0;
+}
+*/
+    
 /// Create an edge connecting the given handles in the given order and orientations.
 /// Ignores existing edges.
 void ODGI::create_edge(const handle_t& left_h, const handle_t& right_h) {
@@ -521,7 +521,7 @@ void ODGI::create_edge(const handle_t& left_h, const handle_t& right_h) {
               << get_id(right_h) << ":" << get_is_reverse(right_h) << std::endl;
     */
     if (has_edge(left_h, right_h)) return; // do nothing if edge exists
-    
+
     uint64_t left_rank = number_bool_packing::unpack_number(left_h);
     uint64_t right_rank = number_bool_packing::unpack_number(right_h);
     uint64_t right_relative = edge_to_delta(right_h, left_h);
@@ -533,17 +533,17 @@ void ODGI::create_edge(const handle_t& left_h, const handle_t& right_h) {
                        edge_helper::pack(get_is_reverse(left_h),
                                          get_is_reverse(right_h),
                                          false));
-    
+
     ++_edge_count;
     // only insert the second side if it's on a different node
     if (left_rank == right_rank) return;
-    
+
     auto& right_node = node_v.at(right_rank);
     right_node.add_edge(right_relative,
                         edge_helper::pack(get_is_reverse(right_h),
                                           get_is_reverse(left_h),
                                           true));
-    
+
 }
 
 uint64_t ODGI::edge_delta_to_id(uint64_t base, uint64_t delta) const {
@@ -565,9 +565,9 @@ uint64_t ODGI::edge_to_delta(const handle_t& left, const handle_t& right) const 
 bool ODGI::has_edge(const handle_t& left, const handle_t& right) const {
     bool exists = false;
     follow_edges(left, false, [&right, &exists](const handle_t& next) {
-        if (next == right) exists = true;
-        return !exists;
-    });
+            if (next == right) exists = true;
+            return !exists;
+        });
     return exists;
 }
 
@@ -583,11 +583,11 @@ void ODGI::destroy_edge(const handle_t& left_h, const handle_t& right_h) {
     bool right_rev = get_is_reverse(right_h);
     uint64_t right_relative = edge_to_delta(right_h, left_h);
     uint64_t left_relative = edge_to_delta(left_h, right_h);
-    
+
     // remove the edge from both sides
     nid_t right_node_id = get_id(right_h);
     nid_t left_node_id = get_id(left_h);
-    
+
     std::vector<uint64_t> left_node_edges = left_node.edges();
     bool found_edge = false;
     for (uint64_t i = 0; i < left_node_edges.size(); ) {
@@ -601,12 +601,12 @@ void ODGI::destroy_edge(const handle_t& left_h, const handle_t& right_h) {
             to_curr ^= 1;
         }
         if (other_id == right_node_id && other_rev == right_rev) {
-            left_node.remove_edge((i-2)/2); //convert to edge rank
+            left_node.remove_edge((i-2)/2); //convert to edge rank 
             found_edge = true;
             break;
         }
     }
-    
+
     std::vector<uint64_t> right_node_edges = right_node.edges();
     for (uint64_t i = 0; i < right_node_edges.size(); ) {
         uint64_t other_id = edge_delta_to_id(right_node_id, right_node_edges.at(i++));
@@ -624,10 +624,10 @@ void ODGI::destroy_edge(const handle_t& left_h, const handle_t& right_h) {
             break;
         }
     }
-    
+
     _edge_count -= found_edge;
 }
-
+        
 /// Remove all nodes and edges. Does not update any stored paths.
 void ODGI::clear(void) {
     suc_bv null_bv;
@@ -645,15 +645,15 @@ void ODGI::clear(void) {
 
 void ODGI::clear_paths(void) {
     for_each_handle([&](const handle_t& handle) {
-        node_t& node = node_v.at(number_bool_packing::unpack_number(handle));
-        node.clear_path_steps();
-    });
+            node_t& node = node_v.at(number_bool_packing::unpack_number(handle));
+            node.clear_path_steps();
+        });
     _path_count = 0;
     _path_handle_next = 0;
     path_metadata_v.clear();
     path_name_map.clear();
 }
-
+    
 /// Swap the nodes corresponding to the given handles, in the ordering used
 /// by for_each_handle when looping over the graph. Other handles to the
 /// nodes being swapped must not be invalidated. If a swap is made while
@@ -679,8 +679,8 @@ void ODGI::apply_ordering(const std::vector<handle_t>& order_in, bool compact_id
     if (order_in.empty()) {
         base_order.reserve(get_node_count());
         for_each_handle([&](const handle_t& handle) {
-            base_order.push_back(handle);
-        });
+                base_order.push_back(handle);
+            });
         order = &base_order;
     } else {
         order = &order_in;
@@ -718,28 +718,28 @@ void ODGI::apply_ordering(const std::vector<handle_t>& order_in, bool compact_id
     // edges
     for (auto& handle : *order) {
         follow_edges(handle, false, [&](const handle_t& h) {
-            ordered.create_edge(ordered.get_handle(ids[number_bool_packing::unpack_number(handle) - min_handle_rank],
-                                                   get_is_reverse(handle)),
-                                ordered.get_handle(ids[number_bool_packing::unpack_number(h) - min_handle_rank],
-                                                   get_is_reverse(h)));
-        });
+                ordered.create_edge(ordered.get_handle(ids[number_bool_packing::unpack_number(handle) - min_handle_rank],
+                                                       get_is_reverse(handle)),
+                                    ordered.get_handle(ids[number_bool_packing::unpack_number(h) - min_handle_rank],
+                                                       get_is_reverse(h)));
+            });
         follow_edges(handle, true, [&](const handle_t& h) {
-            ordered.create_edge(ordered.get_handle(ids[number_bool_packing::unpack_number(h) - min_handle_rank],
-                                                   get_is_reverse(h)),
-                                ordered.get_handle(ids[number_bool_packing::unpack_number(handle) - min_handle_rank],
-                                                   get_is_reverse(handle)));
-        });
+                ordered.create_edge(ordered.get_handle(ids[number_bool_packing::unpack_number(h) - min_handle_rank],
+                                                       get_is_reverse(h)),
+                                    ordered.get_handle(ids[number_bool_packing::unpack_number(handle) - min_handle_rank],
+                                                       get_is_reverse(handle)));
+            });
     }
     // paths
     for_each_path_handle([&](const path_handle_t& old_path) {
-        path_handle_t new_path = ordered.create_path_handle(get_path_name(old_path));
-        for_each_step_in_path(old_path, [&](const step_handle_t& step) {
-            handle_t old_handle = get_handle_of_step(step);
-            handle_t new_handle = ordered.get_handle(ids[number_bool_packing::unpack_number(old_handle) - min_handle_rank],
-                                                     get_is_reverse(old_handle));
-            ordered.append_step(new_path, new_handle);
+            path_handle_t new_path = ordered.create_path_handle(get_path_name(old_path));
+            for_each_step_in_path(old_path, [&](const step_handle_t& step) {
+                    handle_t old_handle = get_handle_of_step(step);
+                    handle_t new_handle = ordered.get_handle(ids[number_bool_packing::unpack_number(old_handle) - min_handle_rank],
+                                                             get_is_reverse(old_handle));
+                    ordered.append_step(new_path, new_handle);
+                });
         });
-    });
     *this = ordered;
 }
 
@@ -747,27 +747,27 @@ void ODGI::apply_path_ordering(const std::vector<path_handle_t>& order) {
     ODGI ordered;
     // copy nodes
     for_each_handle([&](const handle_t& handle) {
-        ordered.create_handle(get_sequence(handle), get_id(handle));
-    });
+            ordered.create_handle(get_sequence(handle), get_id(handle));
+        });
     // copy edges
     for_each_handle([&](const handle_t& handle) {
-        follow_edges(handle, false, [&](const handle_t& h) {
-            ordered.create_edge(ordered.get_handle(get_id(handle), get_is_reverse(handle)),
-                                ordered.get_handle(get_id(h), get_is_reverse(h)));
+            follow_edges(handle, false, [&](const handle_t& h) {
+                    ordered.create_edge(ordered.get_handle(get_id(handle), get_is_reverse(handle)),
+                                        ordered.get_handle(get_id(h), get_is_reverse(h)));
+                });
+            follow_edges(flip(handle), false, [&](const handle_t& h) {
+                    ordered.create_edge(ordered.get_handle(get_id(handle), get_is_reverse(flip(handle))),
+                                        ordered.get_handle(get_id(h), get_is_reverse(h)));
+                });
         });
-        follow_edges(flip(handle), false, [&](const handle_t& h) {
-            ordered.create_edge(ordered.get_handle(get_id(handle), get_is_reverse(flip(handle))),
-                                ordered.get_handle(get_id(h), get_is_reverse(h)));
-        });
-    });
     // add the paths in order
     for (auto& path_handle : order) {
         path_handle_t new_path = ordered.create_path_handle(get_path_name(path_handle));
         for_each_step_in_path(path_handle, [&](const step_handle_t& step) {
-            handle_t old_handle = get_handle_of_step(step);
-            handle_t new_handle = ordered.get_handle(get_id(old_handle), get_is_reverse(old_handle));
-            ordered.append_step(new_path, new_handle);
-        });
+                handle_t old_handle = get_handle_of_step(step);
+                handle_t new_handle = ordered.get_handle(get_id(old_handle), get_is_reverse(old_handle));
+                ordered.append_step(new_path, new_handle);
+            });
     }
     *this = ordered;
 }
@@ -791,17 +791,17 @@ handle_t ODGI::apply_orientation(const handle_t& handle) {
     vector<handle_t> edges_rev_fwd;
     vector<handle_t> edges_rev_rev;
     follow_edges(fwd_handle, false, [&](const handle_t& h) {
-        edges_fwd_fwd.push_back(h);
-    });
+            edges_fwd_fwd.push_back(h);
+        });
     follow_edges(fwd_handle, true, [&](const handle_t& h) {
-        edges_fwd_rev.push_back(h);
-    });
+            edges_fwd_rev.push_back(h);
+        });
     follow_edges(rev_handle, false, [&](const handle_t& h) {
-        edges_rev_fwd.push_back(h);
-    });
+            edges_rev_fwd.push_back(h);
+        });
     follow_edges(rev_handle, true, [&](const handle_t& h) {
-        edges_rev_rev.push_back(h);
-    });
+            edges_rev_rev.push_back(h);
+        });
     for (auto& h : edges_fwd_fwd) destroy_edge(fwd_handle, h);
     for (auto& h : edges_fwd_rev) destroy_edge(h, fwd_handle);
     for (auto& h : edges_rev_fwd) destroy_edge(rev_handle, h);
@@ -812,14 +812,14 @@ handle_t ODGI::apply_orientation(const handle_t& handle) {
     // replace the handle sequence
     //set_handle_sequence(handle, seq);
     auto& node = node_v.at(number_bool_packing::unpack_number(handle));
-    
+
     // flip the node sequence
     node.set_sequence(get_sequence(handle));
-    
+
     // we need to flip any stored path fronts and backs as well
     std::pair<std::map<uint64_t, std::pair<uint64_t, bool>>, // path fronts
               std::map<uint64_t, std::pair<uint64_t, bool>>> // path backs
-    path_rewrites = node.flip_paths(path_begin_marker, path_end_marker);
+        path_rewrites = node.flip_paths(path_begin_marker, path_end_marker);
     for (auto& r : path_rewrites.first) {
         auto& p = path_metadata_v[r.first];
         step_handle_t step;
@@ -858,7 +858,7 @@ void ODGI::set_handle_sequence(const handle_t& handle, const std::string& seq) {
     assert(seq.size());
     node_v[number_bool_packing::unpack_number(handle)].set_sequence(seq);
 }
-
+    
 /// Split a handle's underlying node at the given offsets in the handle's
 /// orientation. Returns all of the handles to the parts. Other handles to
 /// the node being split may be invalidated. The split pieces stay in the
@@ -902,8 +902,8 @@ std::vector<handle_t> ODGI::divide_handle(const handle_t& handle, const std::vec
     // collect the handle's path context
     vector<step_handle_t> steps;
     for_each_step_on_handle(handle, [&](const step_handle_t& step) {
-        steps.push_back(step);
-    });
+            steps.push_back(step);
+        });
     // reverse the order to allow for safe rewriting
     std::reverse(steps.begin(), steps.end());
     /*
@@ -927,17 +927,17 @@ std::vector<handle_t> ODGI::divide_handle(const handle_t& handle, const std::vec
     vector<handle_t> edges_rev_fwd;
     vector<handle_t> edges_rev_rev;
     follow_edges(fwd_handle, false, [&](const handle_t& h) {
-        edges_fwd_fwd.push_back(h);
-    });
+            edges_fwd_fwd.push_back(h);
+        });
     follow_edges(fwd_handle, true, [&](const handle_t& h) {
-        edges_fwd_rev.push_back(h);
-    });
+            edges_fwd_rev.push_back(h);
+        });
     follow_edges(flip(fwd_handle), false, [&](const handle_t& h) {
-        edges_rev_fwd.push_back(h);
-    });
+            edges_rev_fwd.push_back(h);
+        });
     follow_edges(flip(fwd_handle), true, [&](const handle_t& h) {
-        edges_rev_rev.push_back(h);
-    });
+            edges_rev_rev.push_back(h);
+        });
     // destroy the handle
     destroy_handle(fwd_handle);
     // connect the ends to the previous context
@@ -961,11 +961,11 @@ handle_t ODGI::combine_handles(const std::vector<handle_t>& handles) {
     vector<handle_t> edges_rev_fwd;
     vector<handle_t> edges_rev_rev;
     follow_edges(handles.back(), false, [&](const handle_t& h) {
-        edges_fwd_fwd.push_back(h);
-    });
+            edges_fwd_fwd.push_back(h);
+        });
     follow_edges(handles.front(), true, [&](const handle_t& h) {
-        edges_fwd_rev.push_back(h);
-    });
+            edges_fwd_rev.push_back(h);
+        });
     // destroy the old handles
     for (auto& handle : handles) {
         destroy_handle(handle);
@@ -1002,7 +1002,7 @@ handle_t ODGI::combine_handles(const std::vector<handle_t>& handles) {
  * MutablePathMutableHandleGraph interface.
  * TODO: This is a very limited interface at the moment. It will probably need to be extended.
  */
-
+    
 /**
  * Destroy the given path. Invalidates handles to the path and its node steps.
  */
@@ -1011,13 +1011,13 @@ void ODGI::destroy_path(const path_handle_t& path) {
     // select everything with that handle in the path_handle_wt
     std::vector<step_handle_t> path_v;
     for_each_step_in_path(path, [this,&path_v](const step_handle_t& step) {
-        path_v.push_back(step);
-    });
+            path_v.push_back(step);
+        });
     // this is order dependent...
     // we need to destroy steps in their reverse ranks
     std::sort(path_v.begin(), path_v.end(), [](const step_handle_t& a, const step_handle_t& b) {
-        return as_integers(a)[0] == as_integers(b)[0] && as_integers(a)[1] > as_integers(b)[1]
-            || as_integers(a)[0] < as_integers(b)[0]; });
+            return as_integers(a)[0] == as_integers(b)[0] && as_integers(a)[1] > as_integers(b)[1]
+                || as_integers(a)[0] < as_integers(b)[0]; });
     for (auto& step : path_v) {
         destroy_step(step);
     }
@@ -1122,13 +1122,13 @@ void ODGI::destroy_step(const step_handle_t& step_handle) {
     handle_t handle = get_handle_of_step(step_handle);
     bool seen_curr = false;
     for_each_step_on_handle(handle, [&](const step_handle_t& step) {
-        if (seen_curr) {
-            decrement_rank(step);
-        }
-        if (step == step_handle) {
-            seen_curr = true;
-        }
-    });
+            if (seen_curr) {
+                decrement_rank(step);
+            }
+            if (step == step_handle) {
+                seen_curr = true;
+            }
+        });
     node_t& curr_node = node_v.at(number_bool_packing::unpack_number(get_handle_of_step(step_handle)));
     curr_node.remove_path_step(as_integers(step_handle)[1]);
 }
@@ -1216,7 +1216,7 @@ std::pair<step_handle_t, step_handle_t> ODGI::rewrite_segment(const step_handle_
     // collect the steps to replace
     std::vector<step_handle_t> steps;
     std::string old_seq, new_seq;
-    //std::vector<handle_t>
+    //std::vector<handle_t> 
     for (step_handle_t step = segment_begin; ; get_next_step(step)) {
         steps.push_back(step);
         old_seq.append(get_sequence(get_handle_of_step(step)));
@@ -1227,7 +1227,7 @@ std::pair<step_handle_t, step_handle_t> ODGI::rewrite_segment(const step_handle_
         }
     }
     for (auto& handle : new_segment) new_seq.append(get_sequence(handle));
-    // verify that we're making a valid rewrite
+    // verify that we're making a valid rewrite    
     assert(old_seq == new_seq);
     // find the before and after steps, which we'll link into
     step_handle_t before = get_previous_step(segment_begin);
@@ -1237,8 +1237,8 @@ std::pair<step_handle_t, step_handle_t> ODGI::rewrite_segment(const step_handle_
     auto& path_meta = path_metadata_v[as_integer(path)];
     // sort the steps so that we destroy from higher to lower ranks
     std::sort(steps.begin(), steps.end(), [](const step_handle_t& a, const step_handle_t& b) {
-        return as_integers(a)[0] == as_integers(b)[0] && as_integers(a)[1] > as_integers(b)[1]
-            || as_integers(a)[0] < as_integers(b)[0]; });
+            return as_integers(a)[0] == as_integers(b)[0] && as_integers(a)[1] > as_integers(b)[1]
+                || as_integers(a)[0] < as_integers(b)[0]; });
     for (auto& step : steps) {
         destroy_step(step);
     }
@@ -1272,10 +1272,10 @@ std::pair<step_handle_t, step_handle_t> ODGI::rewrite_segment(const step_handle_
 
 void ODGI::display(void) const {
     std::cerr << "------ graph state ------" << std::endl;
-    
+
     std::cerr << "_max_node_id = " << _max_node_id << std::endl;
     std::cerr << "_min_node_id = " << _min_node_id << std::endl;
-    
+
     //std::cerr << "graph_id_map" << "\t";
     //for (auto& k : graph_id_map) std::cerr << k.first << "->" << k.second << " "; std::cerr << std::endl;
     std::cerr << "node_v" << "\t";
@@ -1311,59 +1311,59 @@ void ODGI::display(void) const {
                   << as_integers(p.first)[0] << "/" << as_integers(p.first)[1] << "->"
                   << as_integers(p.last)[0] << "/" << as_integers(p.last)[1] << " ";
     } std::cerr << std::endl;
-    
+
     // not dumped...
     /// Stores path names in their internal order, delimited by '$'
     //dyn::wt_fmi path_name_fmi;
     /// Marks the beginning of each path name
     //dyn::suc_bv path_name_bv;
-    
+
 }
 
 void ODGI::to_gfa(std::ostream& out) const {
     out << "H\tVN:Z:1.0" << std::endl;
     // for each node
     for_each_handle([&out,this](const handle_t& h) {
-        out << "S\t" << get_id(h) << "\t" << get_sequence(h) << std::endl;
-        {
-            // use this direct iteration to avoid double counting edges
-            // we only consider write the edges relative to their start
-            const node_t& node = node_v.at(number_bool_packing::unpack_number(h));
-            bool is_rev = get_is_reverse(h);
-            nid_t node_id = get_id(h);
-            const std::vector<uint64_t> node_edges = node.edges();
-            for (uint64_t i = 0; i < node_edges.size(); i+=2) {
-                // unpack the edge
-                uint64_t other_id = edge_delta_to_id(node_id, node_edges.at(i));
-                uint8_t packed_edge = node_edges.at(i+1);
-                bool on_rev = edge_helper::unpack_on_rev(packed_edge);
-                bool other_rev = edge_helper::unpack_other_rev(packed_edge);
-                bool to_curr = edge_helper::unpack_to_curr(packed_edge);
-                if (!to_curr) {
-                    out << "L\t" << node_id << "\t"
-                    << (on_rev?"-":"+")
-                    << "\t" << other_id << "\t"
-                    << (other_rev?"-":"+")
-                    << "\t0M" << std::endl;
+            out << "S\t" << get_id(h) << "\t" << get_sequence(h) << std::endl;
+            {
+                // use this direct iteration to avoid double counting edges
+                // we only consider write the edges relative to their start
+                const node_t& node = node_v.at(number_bool_packing::unpack_number(h));
+                bool is_rev = get_is_reverse(h);
+                nid_t node_id = get_id(h);
+                const std::vector<uint64_t> node_edges = node.edges();
+                for (uint64_t i = 0; i < node_edges.size(); i+=2) {
+                    // unpack the edge
+                    uint64_t other_id = edge_delta_to_id(node_id, node_edges.at(i));
+                    uint8_t packed_edge = node_edges.at(i+1);
+                    bool on_rev = edge_helper::unpack_on_rev(packed_edge);
+                    bool other_rev = edge_helper::unpack_other_rev(packed_edge);
+                    bool to_curr = edge_helper::unpack_to_curr(packed_edge);
+                    if (!to_curr) {
+                        out << "L\t" << node_id << "\t"
+                            << (on_rev?"-":"+")
+                            << "\t" << other_id << "\t"
+                            << (other_rev?"-":"+")
+                            << "\t0M" << std::endl;
+                    }
                 }
             }
-        }
-    });
+        });
     for_each_path_handle([&out,this](const path_handle_t& p) {
-        //step_handle_t step = path_begin(p);
-        out << "P\t" << get_path_name(p) << "\t";
-        for_each_step_in_path(p, [this,&out](const step_handle_t& step) {
-            handle_t h = get_handle_of_step(step);
-            out << get_id(h) << (get_is_reverse(h)?"-":"+");
-            if (has_next_step(step)) out << ",";
+            //step_handle_t step = path_begin(p);
+            out << "P\t" << get_path_name(p) << "\t";
+            for_each_step_in_path(p, [this,&out](const step_handle_t& step) {
+                    handle_t h = get_handle_of_step(step);
+                    out << get_id(h) << (get_is_reverse(h)?"-":"+");
+                    if (has_next_step(step)) out << ",";
+                });
+            out << "\t";
+            for_each_step_in_path(p, [this,&out](const step_handle_t& step) {
+                    out << get_length(get_handle_of_step(step)) << "M";
+                    if (has_next_step(step)) out << ",";
+                });
+            out << std::endl;
         });
-        out << "\t";
-        for_each_step_in_path(p, [this,&out](const step_handle_t& step) {
-            out << get_length(get_handle_of_step(step)) << "M";
-            if (has_next_step(step)) out << ",";
-        });
-        out << std::endl;
-    });
 }
 
 uint64_t ODGI::serialize(std::ostream& out) {

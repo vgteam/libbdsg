@@ -6,8 +6,8 @@
 //  main dynamic compact graph definition
 //
 
-#ifndef BDSG_ODGI_HPP
-#define BDSG_ODGI_HPP
+#ifndef BSDG_ODGI_HPP
+#define BSDG_ODGI_HPP
 
 #include <cstdio>
 #include <cstdint>

@@ -1,5 +1,5 @@
-#ifndef BDSG_VARINT_HPP
-#define BDSG_VARINT_HPP
+#ifndef BSDG_VARINT_HPP
+#define BSDG_VARINT_HPP
 
 #include <cstdint>
 #include <cstring>

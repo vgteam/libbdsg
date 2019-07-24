@@ -30,8 +30,8 @@ std::vector<uint64_t> node_t::edges(void) const {
     if (edge_count()) {
         res.resize(edge_count()*EDGE_RECORD_LENGTH);
         sqvarint::decode(res.data(),
-                         (uint8_t*)bytes.data()+edge_start(),
-                         edge_count()*EDGE_RECORD_LENGTH);
+                       (uint8_t*)bytes.data()+edge_start(),
+                       edge_count()*EDGE_RECORD_LENGTH);
     }
     assert(res.size() == edge_count());
     return res;
@@ -112,7 +112,7 @@ node_t::flip_paths(const uint64_t& start_marker,
     clear_path_steps();
     // flip them and replace, recording which path starts and ends should be rewritten
     std::pair<std::map<uint64_t, std::pair<uint64_t, bool>>,
-    std::map<uint64_t, std::pair<uint64_t, bool>>> path_start_end_rewrites;
+              std::map<uint64_t, std::pair<uint64_t, bool>>> path_start_end_rewrites;
     uint64_t rank = 0;
     for (auto& step : steps) {
         // flip the step
@@ -180,12 +180,12 @@ void node_t::load(std::istream& in) {
 
 void node_t::display(void) const {
     std::cerr << "self_bytes " << bytes.size() << " "
-    << "seq_bytes " << seq_bytes() << " "
-    << "seq " << sequence() << " "
-    << "edge_start " << edge_start() << " "
-    << "edge_count " << edge_count() << " "
-    << "edge_bytes " << edge_bytes() << " "
-    << "path_count " << path_count() << " | ";
+              << "seq_bytes " << seq_bytes() << " "
+              << "seq " << sequence() << " "
+              << "edge_start " << edge_start() << " "
+              << "edge_count " << edge_count() << " "
+              << "edge_bytes " << edge_bytes() << " "
+              << "path_count " << path_count() << " | ";
     for (auto i : bytes) {
         std::cerr << (int) i << " ";
     }
@@ -193,11 +193,11 @@ void node_t::display(void) const {
     if (path_count()) {
         for (uint64_t i = 0; i < path_count(); ++i) {
             std::cerr
-            << path_steps.at(i) << ":"
-            << path_steps.at(i+1) << ":"
-            << path_steps.at(i+2) << ":"
-            << path_steps.at(i+3) << ":"
-            << path_steps.at(i+4) << " ";
+                << path_steps.at(i) << ":"
+                << path_steps.at(i+1) << ":"
+                << path_steps.at(i+2) << ":"
+                << path_steps.at(i+3) << ":"
+                << path_steps.at(i+4) << " ";
         }
     }
     std::cerr << std::endl;

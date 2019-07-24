@@ -1,5 +1,5 @@
-#ifndef BDSG_DYNAMIC_TYPE_HPP
-#define BDSG_DYNAMIC_TYPE_HPP
+#ifndef BSDG_DYNAMIC_TYPES_HPP
+#define BSDG_DYNAMIC_TYPES_HPP
 
 #include "dynamic.hpp"
 
