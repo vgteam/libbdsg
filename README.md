@@ -1,6 +1,6 @@
 # libbdsg
 
-Optimized bidirected sequence graph implementations for graph genomics
+Optimized **b**i**d**irected **s**equence **g**raph implementations for graph genomics
 
 ## About
 
