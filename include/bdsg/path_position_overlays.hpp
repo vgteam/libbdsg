@@ -377,10 +377,10 @@ private:
     /// Override the get_graph from the PositionOverlay with a mutable cast (which must be
     /// valid if the constructor was valid)
     inline MutablePathDeletableHandleGraph* get_graph() {
-        return (MutablePathDeletableHandleGraph*) graph;
+        return reinterpret_cast<MutablePathDeletableHandleGraph*>(graph);
     }
     
-}
+};
     
 }
 

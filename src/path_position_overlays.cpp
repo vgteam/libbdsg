@@ -27,7 +27,7 @@ namespace bdsg {
     }
     
     bool PositionOverlay::get_is_reverse(const handle_t& handle) const {
-        return get_graph()->;
+        return get_graph()->get_is_reverse(handle);
     }
     
     handle_t PositionOverlay::flip(const handle_t& handle) const {
@@ -176,7 +176,7 @@ namespace bdsg {
         auto iter = step_by_position.at(path).lower_bound(lookup_position);
         if (position - iter->first >= get_graph()->get_length(get_graph()->get_handle_of_step(iter->second))) {
             // this only occurs if the position was past the last base in the path
-            return get_graph()->path_end();
+            return get_graph()->path_end(path);
         }
         else {
             return iter->second;
@@ -227,14 +227,14 @@ namespace bdsg {
     }
     
     void MutablePositionOverlay::create_edge(const handle_t& left, const handle_t& right) {
-        get_graph()->create_handle(left, right);
+        get_graph()->create_edge(left, right);
     }
     
     void MutablePositionOverlay::destroy_edge(const handle_t& left, const handle_t& right) {
         get_graph()->destroy_edge(left, right);
     }
     
-    void clear(void) {
+    void MutablePositionOverlay::clear(void) {
         get_graph()->clear();
         offset_by_step.clear();
         step_by_position.clear();
@@ -256,10 +256,10 @@ namespace bdsg {
             
             // walk backwards until the beginning of the path or a step that still has its
             // position recorded
-            aauto prev = get_previous_step(new_step);
+            auto prev = get_previous_step(new_step);
             size_t walked_distance = 0;
             while (!offset_by_step.count(prev)) {
-                walked_distance += get_length(prev);
+                walked_distance += get_length(get_handle_of_step(prev));
                 // mid-loop stopping condition is also valid for circular paths
                 if (prev == path_begin(get_path_handle_of_step(new_step))) {
                     break;
@@ -277,7 +277,7 @@ namespace bdsg {
             }
             
             offset_by_step[new_step] = position;
-            step_by_position[get_handle_of_step(new_step)][position] = new_step;
+            step_by_position[get_path_handle_of_step(new_step)][position] = new_step;
         });
         
         return new_handle;
@@ -287,7 +287,7 @@ namespace bdsg {
         
         // the old steps need to be erased in the hash table
         for_each_step_on_handle(handle, [&](const step_handle_t& step) {
-            offset_by_step.erase(step)
+            offset_by_step.erase(step);
         });
         
         auto new_handles = get_graph()->divide_handle(handle, offsets);
@@ -304,7 +304,7 @@ namespace bdsg {
             auto prev = get_previous_step(new_step);
             size_t walked_distance = 0;
             while (!offset_by_step.count(prev)) {
-                walked_distance += get_length(prev);
+                walked_distance += get_length(get_handle_of_step(prev));
                 // mid-loop stopping condition is also valid for circular paths
                 if (prev == path_begin(get_path_handle_of_step(new_step))) {
                     break;
@@ -323,7 +323,7 @@ namespace bdsg {
             
             // add position annotations for all of the new handles (can also soak up adjacent
             // occurrences of the same node on this path)
-            auto& path_step_by_position = step_by_position[get_path_handle_of_step(step)];
+            auto& path_step_by_position = step_by_position[get_path_handle_of_step(new_step)];
             for (auto step = get_next_step(prev);
                  step != path_end(get_path_handle_of_step(new_step)) && !offset_by_step.count(step);
                  step = get_next_step(step)) {
@@ -347,7 +347,7 @@ namespace bdsg {
     void MutablePositionOverlay::apply_ordering(const vector<handle_t>& order, bool compact_ids) {
         // depending on the implementation, this may change the values of the handles, which
         // may change the value of the steps, so the index could be entirely invalidated
-        get_graph->apply_ordering(order, compact_ids);
+        get_graph()->apply_ordering(order, compact_ids);
         reindex_path_position();
     }
     
@@ -366,6 +366,7 @@ namespace bdsg {
         path_handle_t path_handle = get_graph()->create_path_handle(name, is_circular);
         min_path_offset[path_handle] = 0;
         step_by_position[path_handle] = map<int64_t, step_handle_t>();
+        return path_handle;
     }
     
     step_handle_t MutablePositionOverlay::append_step(const path_handle_t& path, const handle_t& to_append) {
@@ -394,7 +395,7 @@ namespace bdsg {
         
         // erase the records of all steps from the beginning of the segment onwards
         auto& path_step_by_position = step_by_position[get_path_handle_of_step(segment_begin)];
-        path_step_by_position.erase(path_step_by_position.find(starting_offset), path_step_by_position.end());
+        path_step_by_position.erase(path_step_by_position.find(offset), path_step_by_position.end());
         for (auto step = segment_begin; step != path_end(get_path_handle_of_step(segment_begin)); step = get_next_step(step)) {
             offset_by_step.erase(step);
         }

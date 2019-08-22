@@ -8,11 +8,16 @@
 #include <iostream>
 #include <vector>
 #include <cassert>
+#include <random>
+#include <sstream>
+#include <deque>
+#include <functional>
 
-#include "odgi.hpp"
-#include "packed_graph.hpp"
-#include "hash_graph.hpp"
-#include "packed_structs.hpp"
+#include "bdsg/odgi.hpp"
+#include "bdsg/packed_graph.hpp"
+#include "bdsg/hash_graph.hpp"
+#include "bdsg/packed_structs.hpp"
+#include "bdsg/path_position_overlays.hpp"
 
 using namespace bdsg;
 using namespace handlegraph;
@@ -31,7 +36,7 @@ void test_deletable_handle_graphs() {
         
         HashGraph hg;
         implementations.push_back(&hg);
-        
+
         ODGI og;
         implementations.push_back(&og);
         
@@ -850,7 +855,7 @@ void test_deletable_handle_graphs() {
                 count1 = count2 = 0;
                 found1 = found2 = false;
             }
-            
+
             vector<handle_t> parts = graph.divide_handle(h, vector<size_t>{1, 2});
             
             int count9 = 0, count10 = 0, count11 = 0, count12 = 0;
@@ -1068,6 +1073,8 @@ void test_deletable_handle_graphs() {
     
     // second batch of test involving self loops
     {
+        vector<DeletableHandleGraph*> implementations;
+        
         PackedGraph pg;
         implementations.push_back(&pg);
         
@@ -1280,9 +1287,7 @@ void test_mutable_path_handle_graphs() {
     
     for (MutablePathDeletableHandleGraph* implementation : implementations) {
         
-        MutablePathDeletableHandleGraph& graph = *implementation;
-        
-        auto check_path = [&](const path_handle_t& p, const vector<handle_t>& steps) {
+        auto check_path = [&](MutablePathDeletableHandleGraph& graph, const path_handle_t& p, const vector<handle_t>& steps) {
             
             assert(graph.get_step_count(p) == steps.size());
             
@@ -1338,18 +1343,20 @@ void test_mutable_path_handle_graphs() {
             }
         };
         
-        auto check_flips = [&](const path_handle_t& p, const vector<handle_t>& steps) {
+        auto check_flips = [&](MutablePathDeletableHandleGraph& graph, const path_handle_t& p, const vector<handle_t>& steps) {
             auto flipped = steps;
             for (size_t i = 0; i < steps.size(); i++) {
                 graph.apply_orientation(graph.flip(graph.forward(flipped[i])));
                 flipped[i] = graph.flip(flipped[i]);
-                check_path(p, flipped);
+                check_path(graph, p, flipped);
                 
                 graph.apply_orientation(graph.flip(graph.forward(flipped[i])));
                 flipped[i] = graph.flip(flipped[i]);
-                check_path(p, flipped);
+                check_path(graph, p, flipped);
             }
         };
+        
+        MutablePathDeletableHandleGraph& graph = *implementation;
         
         handle_t h1 = graph.create_handle("AC");
         handle_t h2 = graph.create_handle("CAGTGA");
@@ -1383,10 +1390,10 @@ void test_mutable_path_handle_graphs() {
         assert(graph.get_step_count(p1) == 3);
         
         // graph can traverse a path
-        check_path(p1, {h1, h2, h3});
+        check_path(graph, p1, {h1, h2, h3});
         
         // graph preserves paths when reversing nodes
-        check_flips(p1, {h1, h2, h3});
+        check_flips(graph, p1, {h1, h2, h3});
         
         // make a circular path
         path_handle_t p2 = graph.create_path_handle("2", true);
@@ -1396,7 +1403,7 @@ void test_mutable_path_handle_graphs() {
         graph.append_step(p2, graph.flip(h2));
         graph.append_step(p2, h3);
         
-        check_path(p2, {h1, graph.flip(h2), h3});
+        check_path(graph, p2, {h1, graph.flip(h2), h3});
         
         // graph can query steps of a node on paths
         
@@ -1470,8 +1477,8 @@ void test_mutable_path_handle_graphs() {
         
         // graph preserves paths when dividing nodes
         
-        check_path(p1, {h1, segments[0], segments[1], segments[2], h3});
-        check_path(p2, {h1, graph.flip(segments[2]), graph.flip(segments[1]), graph.flip(segments[0]), h3});
+        check_path(graph, p1, {h1, segments[0], segments[1], segments[2], h3});
+        check_path(graph, p2, {h1, graph.flip(segments[2]), graph.flip(segments[1]), graph.flip(segments[0]), h3});
         
         path_handle_t p3 = graph.create_path_handle("3");
         graph.append_step(p3, h1);
@@ -1496,7 +1503,7 @@ void test_mutable_path_handle_graphs() {
             for (bool circularity : {true, true, false, false, true}) {
                 graph.set_circularity(p, circularity);
                 assert(graph.get_is_circular(p) == circularity);
-                check_path(p, steps);
+                check_path(graph, p, steps);
             }
             
             graph.set_circularity(p, starting_circularity);
@@ -1531,8 +1538,8 @@ void test_mutable_path_handle_graphs() {
         assert(!found3);
         
         // check flips to see if membership records are still functional
-        check_flips(p1, {h1, segments[0], segments[1], segments[2], h3});
-        check_flips(p2, {h1, graph.flip(segments[2]), graph.flip(segments[1]), graph.flip(segments[0]), h3});
+        check_flips(graph, p1, {h1, segments[0], segments[1], segments[2], h3});
+        check_flips(graph, p2, {h1, graph.flip(segments[2]), graph.flip(segments[1]), graph.flip(segments[0]), h3});
         
         graph.destroy_path(p1);
         
@@ -1561,7 +1568,7 @@ void test_mutable_path_handle_graphs() {
         assert(!found3);
         
         // check flips to see if membership records are still functional
-        check_flips(p2, {h1, graph.flip(segments[2]), graph.flip(segments[1]), graph.flip(segments[0]), h3});
+        check_flips(graph, p2, {h1, graph.flip(segments[2]), graph.flip(segments[1]), graph.flip(segments[0]), h3});
         
         // make a path to rewrite
         path_handle_t p4 = graph.create_path_handle("4");
@@ -1571,7 +1578,7 @@ void test_mutable_path_handle_graphs() {
         graph.prepend_step(p4, segments[0]);
         graph.prepend_step(p4, h1);
         
-        check_flips(p4, {h1, segments[0], segments[1], segments[2], h3});
+        check_flips(graph, p4, {h1, segments[0], segments[1], segments[2], h3});
         
         auto check_rewritten_segment = [&](const pair<step_handle_t, step_handle_t>& new_segment,
                                            const vector<handle_t>& steps) {
@@ -1590,7 +1597,7 @@ void test_mutable_path_handle_graphs() {
         
         auto new_segment = graph.rewrite_segment(s1, s2, {graph.flip(segments[2]), graph.flip(segments[1]), graph.flip(segments[0])});
         
-        check_flips(p4, {h1, graph.flip(segments[2]), graph.flip(segments[1]), graph.flip(segments[0]), h3});
+        check_flips(graph, p4, {h1, graph.flip(segments[2]), graph.flip(segments[1]), graph.flip(segments[0]), h3});
         check_rewritten_segment(new_segment, {graph.flip(segments[2]), graph.flip(segments[1]), graph.flip(segments[0])});
         
         // rewrite around the end of a circular path to delete
@@ -1604,14 +1611,14 @@ void test_mutable_path_handle_graphs() {
         
         new_segment = graph.rewrite_segment(s1, s2, vector<handle_t>());
         
-        check_flips(p4, {graph.flip(segments[2]), graph.flip(segments[1]), graph.flip(segments[0])});
+        check_flips(graph, p4, {graph.flip(segments[2]), graph.flip(segments[1]), graph.flip(segments[0])});
         check_rewritten_segment(new_segment, vector<handle_t>());
         
         // add into an empty slot
         
         new_segment = graph.rewrite_segment(new_segment.first, new_segment.second, {graph.flip(h1), graph.flip(h3)});
         
-        check_flips(p4, {graph.flip(h1), graph.flip(h3), graph.flip(segments[2]), graph.flip(segments[1]), graph.flip(segments[0])});
+        check_flips(graph, p4, {graph.flip(h1), graph.flip(h3), graph.flip(segments[2]), graph.flip(segments[1]), graph.flip(segments[0])});
         check_rewritten_segment(new_segment, {graph.flip(h1), graph.flip(h3)});
         
     }
@@ -1619,8 +1626,900 @@ void test_mutable_path_handle_graphs() {
     cerr << "MutablePathDeletableHandleGraph tests successful!" << endl;
 }
 
-int main(void) {
+void test_packed_vector() {
+    enum vec_op_t {SET = 0, GET = 1, APPEND = 2, POP = 3, SERIALIZE = 4};
     
+    random_device rd;
+    default_random_engine prng(rd());
+    uniform_int_distribution<int> op_distr(0, 4);
+    
+    int num_runs = 1000;
+    int num_ops = 200;
+    int gets_per_op = 5;
+    int sets_per_op = 5;
+    int appends_per_op = 3;
+    int pops_per_op = 1;
+    
+    for (size_t i = 0; i < num_runs; i++) {
+        
+        uint64_t next_val = 0;
+        
+        vector<uint64_t> std_vec;
+        PackedVector dyn_vec;
+        
+        for (size_t j = 0; j < num_ops; j++) {
+            
+            vec_op_t op = (vec_op_t) op_distr(prng);
+            switch (op) {
+                case SET:
+                    if (!std_vec.empty()) {
+                        for (size_t k = 0; k < sets_per_op; k++) {
+                            size_t idx = prng() % dyn_vec.size();
+                            std_vec[idx] = next_val;
+                            dyn_vec.set(idx, next_val);
+                            next_val++;
+                        }
+                    }
+                    
+                    break;
+                    
+                case GET:
+                    if (!std_vec.empty()) {
+                        for (size_t k = 0; k < gets_per_op; k++) {
+                            size_t idx = prng() % dyn_vec.size();
+                            assert(std_vec[idx] == dyn_vec.get(idx));
+                            next_val++;
+                        }
+                    }
+                    
+                    break;
+                    
+                case APPEND:
+                    for (size_t k = 0; k < appends_per_op; k++) {
+                        std_vec.push_back(next_val);
+                        dyn_vec.append(next_val);
+                        next_val++;
+                    }
+                    
+                    break;
+                    
+                case POP:
+                    if (!std_vec.empty()) {
+                        for (size_t k = 0; k < pops_per_op; k++) {
+                            std_vec.pop_back();
+                            dyn_vec.pop();
+                        }
+                    }
+                    
+                    break;
+                    
+                case SERIALIZE:
+                {
+                    stringstream strm;
+                    
+                    dyn_vec.serialize(strm);
+                    strm.seekg(0);
+                    PackedVector copy_vec(strm);
+                    
+                    assert(copy_vec.size() == dyn_vec.size());
+                    for (size_t i = 0; i < copy_vec.size(); i++) {
+                        assert(copy_vec.get(i) == dyn_vec.get(i));
+                    }
+                    break;
+                }
+                    
+                default:
+                    break;
+            }
+            
+            assert(std_vec.empty() == dyn_vec.empty());
+            assert(std_vec.size() == dyn_vec.size());
+        }
+    }
+    cerr << "PackedVector tests successful!" << endl;
+}
+
+void test_paged_vector() {
+    enum vec_op_t {SET = 0, GET = 1, APPEND = 2, POP = 3, SERIALIZE = 4};
+    std::random_device rd;
+    std::default_random_engine prng(rd());
+    std::uniform_int_distribution<int> op_distr(0, 4);
+    std::uniform_int_distribution<int> page_distr(1, 5);
+    std::uniform_int_distribution<int> val_distr(0, 100);
+    
+    int num_runs = 1000;
+    int num_ops = 200;
+    int gets_per_op = 5;
+    int sets_per_op = 5;
+    int appends_per_op = 3;
+    int pops_per_op = 1;
+    
+    for (size_t i = 0; i < num_runs; i++) {
+        
+        uint64_t next_val = val_distr(prng);
+        
+        std::vector<uint64_t> std_vec;
+        PagedVector dyn_vec(page_distr(prng));
+        
+        for (size_t j = 0; j < num_ops; j++) {
+            
+            vec_op_t op = (vec_op_t) op_distr(prng);
+            switch (op) {
+                case SET:
+                    if (!std_vec.empty()) {
+                        for (size_t k = 0; k < sets_per_op; k++) {
+                            size_t idx = prng() % dyn_vec.size();
+                            std_vec[idx] = next_val;
+                            dyn_vec.set(idx, next_val);
+                            next_val = val_distr(prng);
+                        }
+                    }
+                    
+                    break;
+                    
+                case GET:
+                    if (!std_vec.empty()) {
+                        for (size_t k = 0; k < gets_per_op; k++) {
+                            size_t idx = prng() % dyn_vec.size();
+                            assert(std_vec[idx] == dyn_vec.get(idx));
+                            next_val = val_distr(prng);
+                        }
+                    }
+                    
+                    break;
+                    
+                case APPEND:
+                    for (size_t k = 0; k < appends_per_op; k++) {
+                        std_vec.push_back(next_val);
+                        dyn_vec.append(next_val);
+                        next_val = val_distr(prng);
+                    }
+                    
+                    break;
+                    
+                case POP:
+                    if (!std_vec.empty()) {
+                        for (size_t k = 0; k < pops_per_op; k++) {
+                            std_vec.pop_back();
+                            dyn_vec.pop();
+                        }
+                    }
+                    
+                    break;
+                    
+                case SERIALIZE:
+                {
+                    stringstream strm;
+                    
+                    dyn_vec.serialize(strm);
+                    strm.seekg(0);
+                    PagedVector copy_vec(strm);
+                    
+                    assert(copy_vec.size() == dyn_vec.size());
+                    for (size_t i = 0; i < copy_vec.size(); i++) {
+                        assert(copy_vec.get(i) == dyn_vec.get(i));
+                    }
+                    break;
+                }
+                    
+                default:
+                    break;
+            }
+            
+            assert(std_vec.empty() == dyn_vec.empty());
+            assert(std_vec.size() == dyn_vec.size());
+        }
+    }
+    cerr << "PagedVector tests successful!" << endl;
+}
+
+void test_packed_deque() {
+    enum deque_op_t {SET = 0, GET = 1, APPEND_LEFT = 2, POP_LEFT = 3, APPEND_RIGHT = 4, POP_RIGHT = 5, SERIALIZE = 6};
+    std::random_device rd;
+    std::default_random_engine prng(rd());
+    std::uniform_int_distribution<int> op_distr(0, 6);
+    
+    int num_runs = 1000;
+    int num_ops = 200;
+    int gets_per_op = 5;
+    int sets_per_op = 5;
+    int appends_per_op = 3;
+    int pops_per_op = 1;
+    
+    for (size_t i = 0; i < num_runs; i++) {
+        
+        uint64_t next_val = 0;
+        
+        std::deque<uint64_t> std_deq;
+        PackedDeque suc_deq;
+        
+        for (size_t j = 0; j < num_ops; j++) {
+            
+            deque_op_t op = (deque_op_t) op_distr(prng);
+            switch (op) {
+                case SET:
+                    if (!std_deq.empty()) {
+                        for (size_t k = 0; k < sets_per_op; k++) {
+                            size_t idx = prng() % std_deq.size();
+                            std_deq[idx] = next_val;
+                            suc_deq.set(idx, next_val);
+                            next_val++;
+                        }
+                    }
+                    
+                    break;
+                    
+                case GET:
+                    if (!std_deq.empty()) {
+                        for (size_t k = 0; k < gets_per_op; k++) {
+                            size_t idx = prng() % std_deq.size();
+                            assert(std_deq[idx] == suc_deq.get(idx));
+                            next_val++;
+                        }
+                    }
+                    
+                    break;
+                    
+                case APPEND_LEFT:
+                    for (size_t k = 0; k < appends_per_op; k++) {
+                        std_deq.push_front(next_val);
+                        suc_deq.append_front(next_val);
+                        next_val++;
+                    }
+                    
+                    break;
+                    
+                case POP_LEFT:
+                    for (size_t k = 0; k < pops_per_op && !std_deq.empty(); k++) {
+                        std_deq.pop_front();
+                        suc_deq.pop_front();
+                    }
+                    
+                    break;
+                    
+                case APPEND_RIGHT:
+                    for (size_t k = 0; k < appends_per_op; k++) {
+                        std_deq.push_back(next_val);
+                        suc_deq.append_back(next_val);
+                        next_val++;
+                    }
+                    
+                    break;
+                    
+                case POP_RIGHT:
+                    for (size_t k = 0; k < pops_per_op && !std_deq.empty(); k++) {
+                        std_deq.pop_back();
+                        suc_deq.pop_back();
+                    }
+                    
+                    break;
+                    
+                case SERIALIZE:
+                {
+                    stringstream strm;
+                    
+                    suc_deq.serialize(strm);
+                    strm.seekg(0);
+                    PackedDeque copy_deq(strm);
+                    
+                    assert(copy_deq.size() == suc_deq.size());
+                    for (size_t i = 0; i < copy_deq.size(); i++) {
+                        assert(copy_deq.get(i) == suc_deq.get(i));
+                    }
+                    break;
+                }
+                    
+                default:
+                    break;
+            }
+            
+            assert(std_deq.empty() == suc_deq.empty());
+            assert(std_deq.size() == suc_deq.size());
+        }
+    }
+    cerr << "PackedDeque tests successful!" << endl;
+}
+
+void test_packed_graph() {
+    
+    auto check_path = [&](MutablePathDeletableHandleGraph& graph, const path_handle_t& p, const vector<handle_t>& steps) {
+        
+        assert(graph.get_step_count(p) == steps.size());
+        
+        step_handle_t step = graph.path_begin(p);
+        for (int i = 0; i < steps.size(); i++) {
+            
+            assert(graph.get_path_handle_of_step(step) == p);
+            assert(graph.get_handle_of_step(step) == steps[i]);
+            
+            if (graph.get_is_circular(p)) {
+                assert(graph.has_next_step(step));
+                assert(graph.has_previous_step(step));
+            }
+            else {
+                assert(graph.has_next_step(step) == i + 1 < steps.size());
+                assert(graph.has_previous_step(step) == i > 0);
+            }
+            
+            step = graph.get_next_step(step);
+        }
+        
+        if (graph.get_is_circular(p) && !graph.is_empty(p)) {
+            assert(step == graph.path_begin(p));
+        }
+        else {
+            assert(step == graph.path_end(p));
+        }
+        
+        step = graph.path_back(p);
+        
+        for (int i = steps.size() - 1; i >= 0; i--) {
+            
+            assert(graph.get_path_handle_of_step(step) == p);
+            assert(graph.get_handle_of_step(step) == steps[i]);
+            
+            if (graph.get_is_circular(p)) {
+                assert(graph.has_next_step(step));
+                assert(graph.has_previous_step(step));
+            }
+            else {
+                assert(graph.has_next_step(step) == i + 1 < steps.size());
+                assert(graph.has_previous_step(step) == i > 0);
+            }
+            
+            step = graph.get_previous_step(step);
+        }
+        
+        if (graph.get_is_circular(p) && !graph.is_empty(p)) {
+            assert(step == graph.path_back(p));
+        }
+        else {
+            assert(step == graph.path_front_end(p));
+        }
+    };
+    
+    auto check_flips = [&](MutablePathDeletableHandleGraph& graph, const path_handle_t& p, const vector<handle_t>& steps) {
+        auto flipped = steps;
+        for (size_t i = 0; i < steps.size(); i++) {
+            graph.apply_orientation(graph.flip(graph.forward(flipped[i])));
+            flipped[i] = graph.flip(flipped[i]);
+            check_path(graph, p, flipped);
+            
+            graph.apply_orientation(graph.flip(graph.forward(flipped[i])));
+            flipped[i] = graph.flip(flipped[i]);
+            check_path(graph, p, flipped);
+        }
+    };
+    
+    // defragmentation
+    {
+        PackedGraph graph;
+        
+        handle_t h1 = graph.create_handle("ATGTAG");
+        handle_t h2 = graph.create_handle("ACCCC");
+        handle_t h3 = graph.create_handle("C");
+        handle_t h4 = graph.create_handle("ATT");
+        handle_t h5 = graph.create_handle("GGCA");
+        
+        graph.create_edge(h1, h2);
+        graph.create_edge(h1, h3);
+        graph.create_edge(h2, h3);
+        graph.create_edge(h3, h5);
+        graph.create_edge(h3, h4);
+        graph.create_edge(h4, h5);
+        
+        path_handle_t p0 = graph.create_path_handle("0");
+        path_handle_t p1 = graph.create_path_handle("1");
+        path_handle_t p2 = graph.create_path_handle("2");
+        
+        
+        graph.append_step(p0, h3);
+        graph.append_step(p0, h4);
+        graph.append_step(p0, h5);
+        
+        graph.append_step(p1, h1);
+        graph.append_step(p1, h3);
+        graph.append_step(p1, h5);
+        
+        graph.append_step(p2, h1);
+        graph.append_step(p2, h2);
+        graph.append_step(p2, h3);
+        graph.append_step(p2, h4);
+        graph.append_step(p2, h5);
+        
+        graph.destroy_path(p0);
+        graph.destroy_path(p2);
+        graph.destroy_handle(h2);
+        graph.destroy_handle(h4);
+        
+        assert(graph.get_sequence(h1) == "ATGTAG");
+        assert(graph.get_sequence(h3) == "C");
+        assert(graph.get_sequence(h5) == "GGCA");
+        
+        bool found = false;
+        graph.follow_edges(h1, false, [&](const handle_t& next) {
+            if (next == h3) {
+                found = true;
+            }
+            else {
+                assert(false);
+            }
+            return true;
+        });
+        assert(found);
+        
+        found = false;
+        graph.follow_edges(h3, false, [&](const handle_t& next) {
+            if (next == h5) {
+                found = true;
+            }
+            else {
+                assert(false);
+            }
+            return true;
+        });
+        assert(found);
+        
+        check_flips(graph, p1, {h1, h3, h5});
+    }
+    
+    // tightening vector allocations
+    {
+        PackedGraph graph;
+        handle_t h1 = graph.create_handle("ATGTAG");
+        handle_t h2 = graph.create_handle("ACCCC");
+        handle_t h3 = graph.create_handle("C");
+        handle_t h4 = graph.create_handle("ATT");
+        handle_t h5 = graph.create_handle("GGCA");
+        
+        graph.create_edge(h1, h2);
+        graph.create_edge(h1, h3);
+        graph.create_edge(h2, h3);
+        graph.create_edge(h3, h5);
+        graph.create_edge(h3, h4);
+        graph.create_edge(h4, h5);
+        
+        path_handle_t p0 = graph.create_path_handle("0");
+        path_handle_t p1 = graph.create_path_handle("1");
+        path_handle_t p2 = graph.create_path_handle("2");
+        
+        
+        graph.append_step(p0, h3);
+        graph.append_step(p0, h4);
+        graph.append_step(p0, h5);
+        
+        graph.append_step(p1, h1);
+        graph.append_step(p1, h3);
+        graph.append_step(p1, h5);
+        
+        graph.append_step(p2, h1);
+        graph.append_step(p2, h2);
+        graph.append_step(p2, h3);
+        graph.append_step(p2, h4);
+        graph.append_step(p2, h5);
+        
+        // delete some things, but not enough to trigger defragmentation
+        graph.destroy_path(p2);
+        graph.destroy_handle(h2);
+        // reallocate and compress down to the smaller size
+        graph.optimize(false);
+        
+        assert(graph.get_sequence(h1) == "ATGTAG");
+        assert(graph.get_sequence(h3) == "C");
+        assert(graph.get_sequence(h4) == "ATT");
+        assert(graph.get_sequence(h5) == "GGCA");
+        
+        int count = 0;
+        bool found1 = false, found2 = false;
+        graph.follow_edges(h1, false, [&](const handle_t& h) {
+            if (h == h3) {
+                found1 = true;
+            }
+            count++;
+        });
+        assert(found1);
+        assert(count == 1);
+        
+        count = 0;
+        found1 = false, found2 = false;
+        graph.follow_edges(h1, true, [&](const handle_t& h) {
+            count++;
+        });
+        assert(count == 0);
+        
+        count = 0;
+        found1 = false, found2 = false;
+        graph.follow_edges(h3, false, [&](const handle_t& h) {
+            if (h == h4) {
+                found1 = true;
+            }
+            if (h == h5) {
+                found2 = true;
+            }
+            count++;
+        });
+        assert(found1);
+        assert(found2);
+        assert(count == 2);
+        
+        count = 0;
+        found1 = false, found2 = false;
+        graph.follow_edges(h3, true, [&](const handle_t& h) {
+            if (h == h1) {
+                found1 = true;
+            }
+            count++;
+        });
+        assert(found1);
+        assert(count == 1);
+        
+        count = 0;
+        found1 = false, found2 = false;
+        graph.follow_edges(h4, false, [&](const handle_t& h) {
+            if (h == h5) {
+                found1 = true;
+            }
+            count++;
+        });
+        assert(found1);
+        assert(count == 1);
+        
+        count = 0;
+        found1 = false, found2 = false;
+        graph.follow_edges(h4, true, [&](const handle_t& h) {
+            if (h == h3) {
+                found1 = true;
+            }
+            count++;
+        });
+        assert(found1);
+        assert(count == 1);
+        
+        count = 0;
+        found1 = false, found2 = false;
+        graph.follow_edges(h5, false, [&](const handle_t& h) {
+            count++;
+        });
+        assert(count == 0);
+        
+        count = 0;
+        found1 = false, found2 = false;
+        graph.follow_edges(h5, true, [&](const handle_t& h) {
+            if (h == h3) {
+                found1 = true;
+            }
+            else if (h == h4) {
+                found2 = true;
+            }
+            count++;
+        });
+        assert(found1);
+        assert(found2);
+        assert(count == 2);
+        
+        check_flips(graph, p0, {h3, h4, h5});
+        check_flips(graph, p1, {h1, h3, h5});
+    }
+    
+    // optimizing with id reassignment
+    {
+        PackedGraph graph;
+        handle_t h1 = graph.create_handle("ATGTAG");
+        handle_t h2 = graph.create_handle("ACCCC");
+        handle_t h3 = graph.create_handle("C");
+        handle_t h4 = graph.create_handle("ATT");
+        handle_t h5 = graph.create_handle("GGCA");
+        
+        graph.create_edge(h1, h2);
+        graph.create_edge(h1, h3);
+        graph.create_edge(h2, h3);
+        graph.create_edge(h3, h5);
+        graph.create_edge(h3, h4);
+        graph.create_edge(h4, h5);
+        
+        path_handle_t p0 = graph.create_path_handle("0");
+        path_handle_t p1 = graph.create_path_handle("1");
+        path_handle_t p2 = graph.create_path_handle("2");
+        
+        
+        graph.append_step(p0, h3);
+        graph.append_step(p0, h4);
+        graph.append_step(p0, h5);
+        
+        graph.append_step(p1, h1);
+        graph.append_step(p1, h3);
+        graph.append_step(p1, h5);
+        
+        graph.append_step(p2, h1);
+        graph.append_step(p2, h2);
+        graph.append_step(p2, h3);
+        graph.append_step(p2, h4);
+        graph.append_step(p2, h5);
+        
+        // delete some things, but not enough to trigger defragmentation
+        graph.destroy_path(p2);
+        graph.destroy_handle(h2);
+        // reallocate and compress down to the smaller size, reassigning IDs
+        graph.optimize(true);
+        
+        set<nid_t> seen_ids;
+        
+        int count = 0;
+        bool found1 = false, found2 = false, found3 = false, found4 = false;
+        graph.for_each_handle([&](const handle_t& handle) {
+            if (graph.get_sequence(handle) == "ATGTAG") {
+                h1 = handle;
+                found1 = true;
+            }
+            else if (graph.get_sequence(handle) == "C") {
+                h3 = handle;
+                found2 = true;
+            }
+            else if (graph.get_sequence(handle) == "ATT") {
+                h4 = handle;
+                found3 = true;
+            }
+            else if (graph.get_sequence(handle) == "GGCA") {
+                h5 = handle;
+                found4 = true;
+            }
+            else {
+                assert(false);
+            }
+            count++;
+            
+            seen_ids.insert(graph.get_id(handle));
+            
+            assert(graph.get_id(handle) >= 1);
+            assert(graph.get_id(handle) <= 4);
+        });
+        
+        assert(found1);
+        assert(found2);
+        assert(found3);
+        assert(found4);
+        assert(count == 4);
+        assert(seen_ids.size() == 4);
+        
+        count = 0;
+        found1 = found2 = found3 = found4 = false;
+        
+        graph.follow_edges(h1, false, [&](const handle_t& h) {
+            if (h == h3) {
+                found1 = true;
+            }
+            count++;
+        });
+        assert(found1);
+        assert(count == 1);
+        
+        count = 0;
+        found1 = false, found2 = false;
+        graph.follow_edges(h1, true, [&](const handle_t& h) {
+            count++;
+        });
+        assert(count == 0);
+        
+        count = 0;
+        found1 = false, found2 = false;
+        graph.follow_edges(h3, false, [&](const handle_t& h) {
+            if (h == h4) {
+                found1 = true;
+            }
+            if (h == h5) {
+                found2 = true;
+            }
+            count++;
+        });
+        assert(found1);
+        assert(found2);
+        assert(count == 2);
+        
+        count = 0;
+        found1 = false, found2 = false;
+        graph.follow_edges(h3, true, [&](const handle_t& h) {
+            if (h == h1) {
+                found1 = true;
+            }
+            count++;
+        });
+        assert(found1);
+        assert(count == 1);
+        
+        count = 0;
+        found1 = false, found2 = false;
+        graph.follow_edges(h4, false, [&](const handle_t& h) {
+            if (h == h5) {
+                found1 = true;
+            }
+            count++;
+        });
+        assert(found1);
+        assert(count == 1);
+        
+        count = 0;
+        found1 = false, found2 = false;
+        graph.follow_edges(h4, true, [&](const handle_t& h) {
+            if (h == h3) {
+                found1 = true;
+            }
+            count++;
+        });
+        assert(found1);
+        assert(count == 1);
+        
+        count = 0;
+        found1 = false, found2 = false;
+        graph.follow_edges(h5, false, [&](const handle_t& h) {
+            count++;
+        });
+        assert(count == 0);
+        
+        count = 0;
+        found1 = false, found2 = false;
+        graph.follow_edges(h5, true, [&](const handle_t& h) {
+            if (h == h3) {
+                found1 = true;
+            }
+            else if (h == h4) {
+                found2 = true;
+            }
+            count++;
+        });
+        assert(found1);
+        assert(found2);
+        assert(count == 2);
+        
+        check_flips(graph, p0, {h3, h4, h5});
+        check_flips(graph, p1, {h1, h3, h5});
+    }
+    
+    cerr << "PackedGraph tests successful!" << endl;
+}
+
+void test_path_position_overlays() {
+    
+    PackedGraph pg;
+    HashGraph hg;
+    ODGI og;
+    
+    vector<MutablePathDeletableHandleGraph*> implementations;
+    
+    for (MutablePathDeletableHandleGraph* implementation : implementations) {
+        
+        MutablePathDeletableHandleGraph& graph = *implementation;
+        
+        handle_t h1 = graph.create_handle("AAA");
+        handle_t h2 = graph.create_handle("A");
+        handle_t h3 = graph.create_handle("T");
+        handle_t h4 = graph.create_handle("AAAAA");
+        
+        graph.create_edge(h1, h2);
+        graph.create_edge(h1, h3);
+        graph.create_edge(h2, h4);
+        graph.create_edge(h3, h4);
+        
+        path_handle_t p1 = graph.create_path_handle("p1");
+        step_handle_t s1 = graph.append_step(p1, h1);
+        step_handle_t s2 = graph.append_step(p1, h2);
+        step_handle_t s3 = graph.append_step(p1, h4);
+        
+        // static position overlay
+        {
+            PositionOverlay overlay(&graph);
+            
+            assert(overlay.get_path_length(p1) == 9);
+            
+            assert(overlay.get_position_of_step(s1) == 0);
+            assert(overlay.get_position_of_step(s2) == 3);
+            assert(overlay.get_position_of_step(s3) == 4);
+            
+            assert(overlay.get_step_at_position(p1, 0) == s1);
+            assert(overlay.get_step_at_position(p1, 1) == s1);
+            assert(overlay.get_step_at_position(p1, 2) == s1);
+            assert(overlay.get_step_at_position(p1, 3) == s2);
+            assert(overlay.get_step_at_position(p1, 4) == s3);
+            assert(overlay.get_step_at_position(p1, 5) == s3);
+            assert(overlay.get_step_at_position(p1, 6) == s3);
+            assert(overlay.get_step_at_position(p1, 7) == s3);
+            assert(overlay.get_step_at_position(p1, 8) == s3);
+            assert(overlay.get_step_at_position(p1, 9) == overlay.path_end(p1));
+        }
+        
+        // mutable position overlay
+        {
+            MutablePositionOverlay overlay(&graph);
+            
+            handle_t h5 = overlay.create_handle("AAAA");
+            
+            overlay.create_edge(h4, h5);
+            overlay.create_edge(h5, h5);
+            
+            step_handle_t s4 = overlay.append_step(p1, h5);
+            
+            assert(overlay.get_path_length(p1) == 13);
+            
+            assert(overlay.get_position_of_step(s4) == 9);
+            
+            assert(overlay.get_step_at_position(p1, 9) == s4);
+            assert(overlay.get_step_at_position(p1, 10) == s4);
+            assert(overlay.get_step_at_position(p1, 11) == s4);
+            assert(overlay.get_step_at_position(p1, 12) == s4);
+            assert(overlay.get_step_at_position(p1, 13) == overlay.path_end(p1));
+            
+            step_handle_t s5 = overlay.append_step(p1, h5);
+            
+            assert(overlay.get_path_length(p1) == 17);
+            
+            assert(overlay.get_position_of_step(s5) == 13);
+            
+            assert(overlay.get_step_at_position(p1, 13) == s5);
+            assert(overlay.get_step_at_position(p1, 14) == s5);
+            assert(overlay.get_step_at_position(p1, 15) == s5);
+            assert(overlay.get_step_at_position(p1, 16) == s5);
+            assert(overlay.get_step_at_position(p1, 17) == overlay.path_end(p1));
+            
+            path_handle_t p2 = overlay.create_path_handle("p2");
+            
+            assert(overlay.get_path_length(p2) == 0);
+            
+            step_handle_t s6 = overlay.prepend_step(p2, h3);
+            
+            assert(overlay.get_path_length(p2) == 1);
+            
+            assert(overlay.get_position_of_step(s6) == 0);
+            
+            assert(overlay.get_step_at_position(p2, 0) == s6);
+            assert(overlay.get_step_at_position(p2, 1) == overlay.path_end(p2));
+            
+            step_handle_t s7 = overlay.prepend_step(p2, h1);
+            
+            assert(overlay.get_path_length(p2) == 4);
+            
+            assert(overlay.get_position_of_step(s7) == 0);
+            assert(overlay.get_position_of_step(s6) == 3);
+            
+            assert(overlay.get_step_at_position(p2, 0) == s7);
+            assert(overlay.get_step_at_position(p2, 1) == s7);
+            assert(overlay.get_step_at_position(p2, 2) == s7);
+            assert(overlay.get_step_at_position(p2, 3) == s6);
+            assert(overlay.get_step_at_position(p2, 4) == overlay.path_end(p2));
+            
+            handle_t h2_flip = overlay.apply_orientation(overlay.flip(h2));
+            assert(overlay.get_handle_of_step(overlay.get_step_at_position(p1, 3)) == h2_flip);
+            
+            vector<size_t> offs_1{1};
+            auto parts_1 = overlay.divide_handle(overlay.flip(h1), offs_1);
+            assert(overlay.get_handle_of_step(overlay.get_step_at_position(p1, 0)) == overlay.flip(parts_1[1]));
+            assert(overlay.get_handle_of_step(overlay.get_step_at_position(p1, 1)) == overlay.flip(parts_1[1]));
+            assert(overlay.get_handle_of_step(overlay.get_step_at_position(p1, 2)) == overlay.flip(parts_1[0]));
+            assert(overlay.get_handle_of_step(overlay.get_step_at_position(p1, 3)) == h2_flip);
+            assert(overlay.get_handle_of_step(overlay.get_step_at_position(p2, 0)) == overlay.flip(parts_1[1]));
+            assert(overlay.get_handle_of_step(overlay.get_step_at_position(p2, 1)) == overlay.flip(parts_1[1]));
+            assert(overlay.get_handle_of_step(overlay.get_step_at_position(p2, 2)) == overlay.flip(parts_1[0]));
+            assert(overlay.get_handle_of_step(overlay.get_step_at_position(p2, 3)) == h3);
+            
+            
+            vector<size_t> offs_2{1, 3};
+            auto parts_2 = overlay.divide_handle(h5, offs_2);
+            assert(overlay.get_handle_of_step(overlay.get_step_at_position(p1, 9)) == parts_2[0]);
+            assert(overlay.get_handle_of_step(overlay.get_step_at_position(p1, 10)) == parts_2[1]);
+            assert(overlay.get_handle_of_step(overlay.get_step_at_position(p1, 11)) == parts_2[1]);
+            assert(overlay.get_handle_of_step(overlay.get_step_at_position(p1, 12)) == parts_2[2]);
+            assert(overlay.get_handle_of_step(overlay.get_step_at_position(p1, 13)) == parts_2[0]);
+            assert(overlay.get_handle_of_step(overlay.get_step_at_position(p1, 14)) == parts_2[1]);
+            assert(overlay.get_handle_of_step(overlay.get_step_at_position(p1, 15)) == parts_2[1]);
+            assert(overlay.get_handle_of_step(overlay.get_step_at_position(p1, 16)) == parts_2[2]);
+            assert(overlay.get_step_at_position(p1, 17) == overlay.path_end(p1));
+        }
+    }
+}
+
+int main(void) {
+    test_packed_vector();
+    test_paged_vector();
+    test_packed_deque();
+    test_packed_graph();
     test_deletable_handle_graphs();
     test_mutable_path_handle_graphs();
     
