@@ -38,7 +38,7 @@ void test_deletable_handle_graphs() {
         implementations.push_back(&hg);
 
         ODGI og;
-        implementations.push_back(&og);
+        //implementations.push_back(&og);
         
         // And test them
         
@@ -1082,7 +1082,7 @@ void test_deletable_handle_graphs() {
         implementations.push_back(&hg);
         
         ODGI og;
-        implementations.push_back(&og);
+        //implementations.push_back(&og);
         
         for (DeletableHandleGraph* implementation : implementations) {
             
@@ -1283,12 +1283,11 @@ void test_mutable_path_handle_graphs() {
     implementations.push_back(&hg);
     
     ODGI og;
-    implementations.push_back(&og);
+    //implementations.push_back(&og);
     
     for (MutablePathDeletableHandleGraph* implementation : implementations) {
         
         auto check_path = [&](MutablePathDeletableHandleGraph& graph, const path_handle_t& p, const vector<handle_t>& steps) {
-            
             assert(graph.get_step_count(p) == steps.size());
             
             step_handle_t step = graph.path_begin(p);
@@ -1344,6 +1343,7 @@ void test_mutable_path_handle_graphs() {
         };
         
         auto check_flips = [&](MutablePathDeletableHandleGraph& graph, const path_handle_t& p, const vector<handle_t>& steps) {
+
             auto flipped = steps;
             for (size_t i = 0; i < steps.size(); i++) {
                 graph.apply_orientation(graph.flip(graph.forward(flipped[i])));
@@ -1923,7 +1923,6 @@ void test_packed_deque() {
 void test_packed_graph() {
     
     auto check_path = [&](MutablePathDeletableHandleGraph& graph, const path_handle_t& p, const vector<handle_t>& steps) {
-        
         assert(graph.get_step_count(p) == steps.size());
         
         step_handle_t step = graph.path_begin(p);
@@ -1979,6 +1978,7 @@ void test_packed_graph() {
     };
     
     auto check_flips = [&](MutablePathDeletableHandleGraph& graph, const path_handle_t& p, const vector<handle_t>& steps) {
+
         auto flipped = steps;
         for (size_t i = 0; i < steps.size(); i++) {
             graph.apply_orientation(graph.flip(graph.forward(flipped[i])));
@@ -2384,6 +2384,9 @@ void test_path_position_overlays() {
     ODGI og;
     
     vector<MutablePathDeletableHandleGraph*> implementations;
+    implementations.push_back(&pg);
+    implementations.push_back(&hg);
+    //implementations.push_back(&og);
     
     for (MutablePathDeletableHandleGraph* implementation : implementations) {
         
@@ -2519,8 +2522,8 @@ int main(void) {
     test_packed_vector();
     test_paged_vector();
     test_packed_deque();
-    test_packed_graph();
     test_deletable_handle_graphs();
     test_mutable_path_handle_graphs();
+    test_packed_graph();
     
 }
