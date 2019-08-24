@@ -173,8 +173,14 @@ namespace bdsg {
                                                         const size_t& position) const {
         
         int64_t lookup_position = position + min_path_offset.at(path);
-        auto iter = step_by_position.at(path).lower_bound(lookup_position);
-        if (position - iter->first >= get_graph()->get_length(get_graph()->get_handle_of_step(iter->second))) {
+        
+        const auto& path_step_by_position = step_by_position.at(path);
+        if (path_step_by_position.empty()) {
+            return get_graph()->path_end(path);
+        }
+        
+        auto iter = --path_step_by_position.upper_bound(lookup_position);
+        if (lookup_position - iter->first >= get_graph()->get_length(get_graph()->get_handle_of_step(iter->second))) {
             // this only occurs if the position was past the last base in the path
             return get_graph()->path_end(path);
         }
@@ -196,7 +202,7 @@ namespace bdsg {
             get_graph()->for_each_step_in_path(path, [&](const step_handle_t& step) {
                 offset_by_step[step] = offset;
                 path_step_by_position[offset] = step;
-                get_graph()->get_length(get_graph()->get_handle_of_step(step));
+                offset += get_graph()->get_length(get_graph()->get_handle_of_step(step));
             });
         });
     }
@@ -253,38 +259,13 @@ namespace bdsg {
         handle_t new_handle = get_graph()->apply_orientation(handle);
         
         for_each_step_on_handle(new_handle, [&](const step_handle_t& new_step) {
-            
-            // walk backwards until the beginning of the path or a step that still has its
-            // position recorded
-            auto prev = get_previous_step(new_step);
-            size_t walked_distance = 0;
-            while (!offset_by_step.count(prev)) {
-                walked_distance += get_length(get_handle_of_step(prev));
-                // mid-loop stopping condition is also valid for circular paths
-                if (prev == path_begin(get_path_handle_of_step(new_step))) {
-                    break;
-                }
-                prev = get_previous_step(prev);
-            }
-            
-            // compute the position based on this walk
-            int64_t position;
-            if (prev == path_begin(get_path_handle_of_step(new_step))) {
-                position = walked_distance + min_path_offset[get_path_handle_of_step(new_step)];
-            }
-            else {
-                position = offset_by_step[prev] + get_length(get_handle_of_step(prev)) + walked_distance;
-            }
-            
-            offset_by_step[new_step] = position;
-            step_by_position[get_path_handle_of_step(new_step)][position] = new_step;
+            reindex_contiguous_segment(new_step);
         });
         
         return new_handle;
     }
     
     vector<handle_t> MutablePositionOverlay::divide_handle(const handle_t& handle, const std::vector<size_t>& offsets) {
-        
         // the old steps need to be erased in the hash table
         for_each_step_on_handle(handle, [&](const step_handle_t& step) {
             offset_by_step.erase(step);
@@ -293,46 +274,7 @@ namespace bdsg {
         auto new_handles = get_graph()->divide_handle(handle, offsets);
         
         for_each_step_on_handle(new_handles.front(), [&](const step_handle_t& new_step) {
-            
-            // we may have already re-annotated this occurrence starting from a different step
-            if (offset_by_step.count(new_step)) {
-                return;
-            }
-            
-            // walk backwards until the beginning of the path or a step that still has its
-            // position recorded
-            auto prev = get_previous_step(new_step);
-            size_t walked_distance = 0;
-            while (!offset_by_step.count(prev)) {
-                walked_distance += get_length(get_handle_of_step(prev));
-                // mid-loop stopping condition is also valid for circular paths
-                if (prev == path_begin(get_path_handle_of_step(new_step))) {
-                    break;
-                }
-                prev = get_previous_step(prev);
-            }
-            
-            // compute the position based on this walk
-            int64_t position;
-            if (prev == path_begin(get_path_handle_of_step(new_step))) {
-                position = walked_distance + min_path_offset[get_path_handle_of_step(new_step)];
-            }
-            else {
-                position = offset_by_step[prev] + get_length(get_handle_of_step(prev)) + walked_distance;
-            }
-            
-            // add position annotations for all of the new handles (can also soak up adjacent
-            // occurrences of the same node on this path)
-            auto& path_step_by_position = step_by_position[get_path_handle_of_step(new_step)];
-            for (auto step = get_next_step(prev);
-                 step != path_end(get_path_handle_of_step(new_step)) && !offset_by_step.count(step);
-                 step = get_next_step(step)) {
-                
-                path_step_by_position[position] = step;
-                offset_by_step[step] = position;
-                
-                position += get_length(get_handle_of_step(step));
-            }
+            reindex_contiguous_segment(new_step);
         });
         
         return new_handles;
@@ -423,5 +365,51 @@ namespace bdsg {
         offset_by_step.clear();
         min_path_offset.clear();
         index_path_positions();
+    }
+    
+    void MutablePositionOverlay::reindex_contiguous_segment(const step_handle_t& step) {
+        
+        // we may have already re-annotated this occurrence starting from a different step
+        if (offset_by_step.count(step)) {
+            return;
+        }
+        
+        // walk backwards until the beginning of the path or a step that still has its
+        // position recorded
+        auto walker = step;
+        while (!offset_by_step.count(walker)
+               && walker != path_begin(get_path_handle_of_step(step))) {
+            walker = get_previous_step(walker);
+        }
+        
+        // compute the position of the next step without an offset annotation
+        int64_t position;
+        if (offset_by_step.count(walker)) {
+            position = (min_path_offset[get_path_handle_of_step(step)]
+                        + offset_by_step[walker]
+                        + get_length(get_handle_of_step(walker)));
+            // point the walker at the next unindexed position
+            walker = get_next_step(walker);
+        }
+        else {
+            // we must have have hit path_begin to have exited the previous while loop
+            position = min_path_offset[get_path_handle_of_step(step)];
+        }
+        
+        // add position annotations for all of the new handles (can also soak up adjacent
+        // occurrences of the same node on this path)
+        auto& path_step_by_position = step_by_position[get_path_handle_of_step(step)];
+        for (; walker != path_end(get_path_handle_of_step(step)) && !offset_by_step.count(walker);
+             walker = get_next_step(walker)) {
+            
+            path_step_by_position[position] = walker;
+            offset_by_step[walker] = position;
+            
+            position += get_length(get_handle_of_step(walker));
+        }
+    }
+    
+    MutablePathDeletableHandleGraph* MutablePositionOverlay::get_graph() {
+        return reinterpret_cast<MutablePathDeletableHandleGraph*>(graph);
     }
 }

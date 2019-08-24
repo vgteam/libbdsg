@@ -2489,14 +2489,14 @@ void test_path_position_overlays() {
             assert(overlay.get_step_at_position(p2, 4) == overlay.path_end(p2));
             
             handle_t h2_flip = overlay.apply_orientation(overlay.flip(h2));
-            assert(overlay.get_handle_of_step(overlay.get_step_at_position(p1, 3)) == h2_flip);
+            assert(overlay.get_handle_of_step(overlay.get_step_at_position(p1, 3)) == overlay.flip(h2_flip));
             
             vector<size_t> offs_1{1};
             auto parts_1 = overlay.divide_handle(overlay.flip(h1), offs_1);
             assert(overlay.get_handle_of_step(overlay.get_step_at_position(p1, 0)) == overlay.flip(parts_1[1]));
             assert(overlay.get_handle_of_step(overlay.get_step_at_position(p1, 1)) == overlay.flip(parts_1[1]));
             assert(overlay.get_handle_of_step(overlay.get_step_at_position(p1, 2)) == overlay.flip(parts_1[0]));
-            assert(overlay.get_handle_of_step(overlay.get_step_at_position(p1, 3)) == h2_flip);
+            assert(overlay.get_handle_of_step(overlay.get_step_at_position(p1, 3)) == overlay.flip(h2_flip));
             assert(overlay.get_handle_of_step(overlay.get_step_at_position(p2, 0)) == overlay.flip(parts_1[1]));
             assert(overlay.get_handle_of_step(overlay.get_step_at_position(p2, 1)) == overlay.flip(parts_1[1]));
             assert(overlay.get_handle_of_step(overlay.get_step_at_position(p2, 2)) == overlay.flip(parts_1[0]));
@@ -2525,5 +2525,5 @@ int main(void) {
     test_deletable_handle_graphs();
     test_mutable_path_handle_graphs();
     test_packed_graph();
-    
+    test_path_position_overlays();
 }

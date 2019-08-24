@@ -1,7 +1,7 @@
 //
 //  path_position_overlays.hpp
 //  
-//  Contains generic overlays for MutablePathDeletableHandleGraph's that add the
+//  Contains generic overlays for PathHandleGraph's that add the
 //  PathPositionHandleGraph interface methods for querying steps by base-pair
 //  position.
 //
@@ -374,11 +374,14 @@ private:
     /// Clear indexes and rebuild them
     void reindex_path_position();
     
+    /// Indexes all of the steps contiguous with this one that are missing
+    /// from the offset indexes (e.g. after an edit operation). Does nothing
+    /// if the step is already indexed.
+    void reindex_contiguous_segment(const step_handle_t& step);
+    
     /// Override the get_graph from the PositionOverlay with a mutable cast (which must be
     /// valid if the constructor was valid)
-    inline MutablePathDeletableHandleGraph* get_graph() {
-        return reinterpret_cast<MutablePathDeletableHandleGraph*>(graph);
-    }
+    MutablePathDeletableHandleGraph* get_graph();
     
 };
     
