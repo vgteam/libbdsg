@@ -74,3 +74,5 @@ install: $(LIB_DIR)/libbdsg.a
 clean:
 	rm -r $(OBJ_DIR)
 	rm -r $(LIB_DIR)
+	rm -r $(BIN_DIR)
+
