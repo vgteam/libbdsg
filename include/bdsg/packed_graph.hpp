@@ -89,7 +89,7 @@ public:
     /// Returns a substring of a handle's sequence, in the orientation of the
     /// handle. If the indicated substring would extend beyond the end of the
     /// handle's sequence, the return value is truncated to the sequence's end.
-    virtual std::string get_subsequence(const handle_t& handle, size_t index, size_t size) const;
+    std::string get_subsequence(const handle_t& handle, size_t index, size_t size) const;
     
     /// Return the number of nodes in the graph
     size_t get_node_count(void) const;
