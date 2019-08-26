@@ -1095,41 +1095,44 @@ void ODGI::link_steps(const step_handle_t& from, const step_handle_t& to) {
 
 void ODGI::destroy_step(const step_handle_t& step_handle) {
     // erase reference to this step
+    step_handle_t prev, next;
     bool has_prev = has_previous_step(step_handle);
     bool has_next = has_next_step(step_handle);
-    if (!has_prev && !has_next) {
+    if (has_prev) {
+        prev = get_previous_step(step_handle);
+    }
+    if (has_next) {
+        next = get_next_step(step_handle);
+    }
+    if ((!has_prev && !has_next) || (has_next && next == step_handle)) {
         // we're about to erase the path, so we need to clean up the path metadata record
         path_handle_t path = get_path_handle_of_step(step_handle);
         path_name_map.erase(get_path_name(path));
         path_metadata_v[as_integer(path)] = path_metadata_t();
     } else {
         if (has_prev) {
-            auto step = get_previous_step(step_handle);
-            node_t& step_node = node_v.at(number_bool_packing::unpack_number(get_handle_of_step(step)));
-            uint64_t step_rank = as_integers(step)[1];
+            node_t& step_node = node_v.at(number_bool_packing::unpack_number(get_handle_of_step(prev)));
+            uint64_t step_rank = as_integers(prev)[1];
             node_t::step_t node_step = step_node.get_path_step(step_rank);
             //std::cerr << "destroy prev links " << step_node.id() << std::endl;
             node_step.set_next_id(path_end_marker);
             node_step.set_next_rank(0);
             step_node.set_path_step(step_rank, node_step);
         } else if (has_next) {
-            auto step = get_next_step(step_handle);
-            auto& p = path_metadata_v[as_integer(get_path_handle_of_step(step))];
-            p.first = step;
+            auto& p = path_metadata_v[as_integer(get_path_handle_of_step(next))];
+            p.first = next;
         }
         if (has_next) {
-            auto step = get_next_step(step_handle);
-            node_t& step_node = node_v.at(number_bool_packing::unpack_number(get_handle_of_step(step)));
-            uint64_t step_rank = as_integers(step)[1];
+            node_t& step_node = node_v.at(number_bool_packing::unpack_number(get_handle_of_step(next)));
+            uint64_t step_rank = as_integers(next)[1];
             node_t::step_t node_step = step_node.get_path_step(step_rank);
             //std::cerr << "destroy next links " << step_node.id() << std::endl;
             node_step.set_prev_id(path_begin_marker);
             node_step.set_prev_rank(0);
             step_node.set_path_step(step_rank, node_step);
         } else if (has_prev) {
-            auto step = get_previous_step(step_handle);
-            auto& p = path_metadata_v[as_integer(get_path_handle_of_step(step))];
-            p.last = step;
+            auto& p = path_metadata_v[as_integer(get_path_handle_of_step(prev))];
+            p.last = prev;
         }
     }
     // update other records on this path on this node
