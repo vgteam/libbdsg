@@ -253,7 +253,7 @@ step_handle_t ODGI::path_back(const path_handle_t& path_handle) const {
 /// Get the reverse end iterator
 step_handle_t ODGI::path_front_end(const path_handle_t& path_handle) const {
     step_handle_t step;
-    as_integers(step)[0] = as_integer(path_handle);
+    as_integers(step)[1] = as_integer(path_handle);
     as_integers(step)[0] = std::numeric_limits<uint64_t>::max()-1;
     return step;
 }
@@ -261,7 +261,7 @@ step_handle_t ODGI::path_front_end(const path_handle_t& path_handle) const {
 /// Get the forward end iterator
 step_handle_t ODGI::path_end(const path_handle_t& path_handle) const {
     step_handle_t step;
-    as_integers(step)[0] = as_integer(path_handle);
+    as_integers(step)[1] = as_integer(path_handle);
     as_integers(step)[0] = std::numeric_limits<uint64_t>::max();
     return step;
 }
@@ -279,13 +279,15 @@ void ODGI::set_circularity(const path_handle_t& path_handle, bool circular) {
 /// Returns true if the step is not the last step on the path, else false
 bool ODGI::has_next_step(const step_handle_t& step_handle) const {
     const node_t& node = node_v.at(number_bool_packing::unpack_number(get_handle_of_step(step_handle)));
-    return node.get_path_step(as_integers(step_handle)[1]).next_id() != path_end_marker;
+    return (node.get_path_step(as_integers(step_handle)[1]).next_id() != path_end_marker
+            || get_is_circular(get_path_handle_of_step(step_handle)));
 }
     
 /// Returns true if the step is not the first step on the path, else false
 bool ODGI::has_previous_step(const step_handle_t& step_handle) const {
     const node_t& node = node_v.at(number_bool_packing::unpack_number(get_handle_of_step(step_handle)));
-    return node.get_path_step(as_integers(step_handle)[1]).prev_id() != path_begin_marker;
+    return (node.get_path_step(as_integers(step_handle)[1]).prev_id() != path_begin_marker
+            || get_is_circular(get_path_handle_of_step(step_handle)));
 }
 
 bool ODGI::is_path_front_end(const step_handle_t& step_handle) const {
@@ -312,7 +314,13 @@ step_handle_t ODGI::get_next_step(const step_handle_t& step_handle) const {
     const node_t& node = node_v.at(number_bool_packing::unpack_number(curr_handle));
     auto& step = node.get_path_step(as_integers(step_handle)[1]);
     if (step.next_id() == path_end_marker) {
-        return path_end(as_path_handle(0));
+        path_handle_t path_handle = get_path_handle_of_step(step_handle);
+        if (get_is_circular(path_handle)) {
+            return path_begin(path_handle);
+        }
+        else {
+            return path_end(path_handle);
+        }
     }
     nid_t next_id = edge_delta_to_id(curr_id, step.next_id()-2);
     handle_t next_handle = get_handle(next_id);
@@ -339,7 +347,13 @@ step_handle_t ODGI::get_previous_step(const step_handle_t& step_handle) const {
     const node_t& node = node_v.at(number_bool_packing::unpack_number(curr_handle));
     auto& step = node.get_path_step(as_integers(step_handle)[1]);
     if (step.prev_id() == path_begin_marker) {
-        return path_front_end(as_path_handle(0));
+        path_handle_t path_handle = get_path_handle_of_step(step_handle);
+        if (get_is_circular(path_handle)) {
+            return path_back(path_handle);
+        }
+        else {
+            return path_front_end(path_handle);
+        }
     }
     nid_t prev_id = edge_delta_to_id(curr_id, step.prev_id()-2);
     handle_t prev_handle = get_handle(prev_id);
