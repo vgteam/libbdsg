@@ -33,7 +33,8 @@ std::vector<uint64_t> node_t::edges(void) const {
                        (uint8_t*)bytes.data()+edge_start(),
                        edge_count()*EDGE_RECORD_LENGTH);
     }
-    assert(res.size() == edge_count());
+
+    assert(res.size() == edge_count() * EDGE_RECORD_LENGTH);
     return res;
 }
 
