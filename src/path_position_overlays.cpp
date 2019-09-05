@@ -244,6 +244,7 @@ namespace bdsg {
         get_graph()->clear();
         offset_by_step.clear();
         step_by_position.clear();
+        min_path_offset.clear();
     }
     
     handle_t MutablePositionOverlay::apply_orientation(const handle_t& handle) {
@@ -297,6 +298,7 @@ namespace bdsg {
         
         // erase the path's indexes
         step_by_position.erase(path);
+        min_path_offset.erase(path);
         for_each_step_in_path(path, [&](const step_handle_t& step) {
             offset_by_step.erase(step);
         });
