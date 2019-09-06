@@ -18,6 +18,7 @@
 #include "bdsg/hash_graph.hpp"
 #include "bdsg/packed_structs.hpp"
 #include "bdsg/path_position_overlays.hpp"
+#include "bdsg/vectorizable_overlays.hpp"
 
 using namespace bdsg;
 using namespace handlegraph;
@@ -2518,6 +2519,76 @@ void test_path_position_overlays() {
     }
 }
 
+void test_vectorizable_overlays() {
+    
+    bdsg::PackedGraph pg;
+    bdsg::HashGraph hg;
+    
+    vector<MutablePathDeletableHandleGraph*> implementations;
+    implementations.push_back(&pg);
+    implementations.push_back(&hg);
+    //implementations.push_back(&og);
+    
+    for (MutablePathDeletableHandleGraph* implementation : implementations) {
+        cerr << endl << "*******************" << endl;
+        
+        MutablePathDeletableHandleGraph& graph = *implementation;
+        
+        handle_t h1 = graph.create_handle("AAA");
+        handle_t h2 = graph.create_handle("A");
+        handle_t h3 = graph.create_handle("T");
+        handle_t h4 = graph.create_handle("AAAAA");
+        
+        graph.create_edge(h1, h2);
+        graph.create_edge(h1, h3);
+        graph.create_edge(h2, h4);
+        graph.create_edge(h3, h4);
+        
+        path_handle_t p1 = graph.create_path_handle("p1");
+        step_handle_t s1 = graph.append_step(p1, h1);
+        step_handle_t s2 = graph.append_step(p1, h2);
+        step_handle_t s3 = graph.append_step(p1, h4);
+
+        
+        bdsg::VectorizableOverlay overlay(&graph);
+
+        set<size_t> edge_ranks;
+        size_t edge_count = 0;
+        graph.for_each_edge([&](edge_t edge) {
+            edge_ranks.insert(overlay.edge_index(edge));
+            ++edge_count;
+          });
+
+        // every edge gets a unique rank
+        assert(edge_ranks.size() == edge_count);
+
+        size_t node_count = 0;
+        map<size_t, nid_t> pos_to_node;
+        graph.for_each_handle([&](handle_t handle) {
+                pos_to_node[overlay.node_vector_offset(graph.get_id(handle))] = graph.get_id(handle);
+                ++node_count;
+          });
+
+        // every node gets a unique rank
+        assert(pos_to_node.size() == node_count);
+
+        auto pni = pos_to_node.begin();
+        auto next = pni;
+        for (++next; next != pos_to_node.end(); ++pni, ++next) {
+            assert(next->first - pni->first == graph.get_length(graph.get_handle(pni->second)));
+        }
+
+        // check that node_at_vector_offset works
+        graph.for_each_handle([&](handle_t handle) {
+                size_t pos = overlay.node_vector_offset(graph.get_id(handle));
+                for (size_t i = 0; i < graph.get_length(handle); ++i) {
+                    assert(overlay.node_at_vector_offset(pos + i + 1) == graph.get_id(handle));
+                }
+            });
+    }
+}
+
+
 int main(void) {
     test_packed_vector();
     test_paged_vector();
@@ -2526,4 +2597,5 @@ int main(void) {
     test_mutable_path_handle_graphs();
     test_packed_graph();
     test_path_position_overlays();
+    test_vectorizable_overlays();
 }
