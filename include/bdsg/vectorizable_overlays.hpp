@@ -19,7 +19,6 @@
 #include <handlegraph/handle_graph.hpp>
 #include <handlegraph/path_position_handle_graph.hpp>
 #include <handlegraph/expanding_overlay_graph.hpp>
-#include "handlegraph/util.hpp"
 
 namespace bdsg {
     
@@ -141,7 +140,7 @@ protected:
     virtual void index_nodes_and_edges();
     
     /// The graph we're overlaying
-    const HandleGraph* graph = nullptr;
+    const HandleGraph* underlying_graph = nullptr;
 
     /// Edge to rank
     // (I can't get it the pair_hash_map to compile with handle_t's, so using integers
@@ -159,13 +158,9 @@ protected:
     sdsl::rank_support_v<1> s_bv_rank;
     sdsl::bit_vector::select_1_type s_bv_select;
     
-    /// Getter for graph
-    virtual inline const HandleGraph* get_graph() const {
-        return graph;
-    }
 };
 
-class PathVectorizableOverlay : virtual public VectorizableOverlay, virtual public PathHandleGraph {
+class PathVectorizableOverlay : public VectorizableOverlay, virtual public PathHandleGraph {
 
 public:
     
@@ -175,8 +170,6 @@ public:
 
 public:
 
-    using VectorizableOverlay::has_node;
-    
     ////////////////////////////////////////////////////////////////////////////
     // Path handle interface that needs to be implemented
     ////////////////////////////////////////////////////////////////////////////
@@ -257,12 +250,12 @@ protected:
 
 protected:
     
-    /// Keep this around to avoid dynamic_casting this->graph every time we need path stuff
-    const PathHandleGraph* path_graph;
+    /// Keep this around to avoid dynamic_casting this->underlying_graph every time we need path stuff
+    const PathHandleGraph* underlying_path_graph = nullptr;
 };
 
 
-class PathPositionVectorizableOverlay : virtual public PathVectorizableOverlay, virtual public PathPositionHandleGraph {
+class PathPositionVectorizableOverlay : public PathVectorizableOverlay, virtual public PathPositionHandleGraph {
 
 public:
     
@@ -292,8 +285,8 @@ public:
     
 protected:
     
-    /// Keep this around to avoid dynamic_casting this->graph every time we need path stuff
-    const PathPositionHandleGraph* path_position_graph;
+    /// Keep this around to avoid dynamic_casting this->underlying_graph every time we need path stuff
+    const PathPositionHandleGraph* underlying_path_position_graph = nullptr;
 };
 
 
