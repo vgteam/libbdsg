@@ -131,5 +131,119 @@ void VectorizableOverlay::index_nodes_and_edges() {
     sdsl::util::assign(s_bv_rank, sdsl::rank_support_v<1>(&s_bv));
     sdsl::util::assign(s_bv_select, sdsl::bit_vector::select_1_type(&s_bv));
 }
+
+PathVectorizableOverlay::PathVectorizableOverlay(const PathHandleGraph* path_graph) :
+    VectorizableOverlay(path_graph),
+    path_graph(path_graph) {
+}
+
+PathVectorizableOverlay::PathVectorizableOverlay() {
+        
+}
     
+PathVectorizableOverlay::~PathVectorizableOverlay() {
+        
+}
+
+size_t PathVectorizableOverlay::get_path_count() const {
+    return path_graph->get_path_count();
+}
+    
+bool PathVectorizableOverlay::has_path(const std::string& path_name) const {
+    return path_graph->has_path(path_name);
+}
+    
+path_handle_t PathVectorizableOverlay::get_path_handle(const std::string& path_name) const {
+    return path_graph->get_path_handle(path_name);
+}
+    
+string PathVectorizableOverlay::get_path_name(const path_handle_t& path_handle) const {
+    return path_graph->get_path_name(path_handle);
+}
+    
+bool PathVectorizableOverlay::get_is_circular(const path_handle_t& path_handle) const {
+    return path_graph->get_is_circular(path_handle);
+}
+    
+size_t PathVectorizableOverlay::get_step_count(const path_handle_t& path_handle) const {
+    return path_graph->get_step_count(path_handle);
+}
+    
+handle_t PathVectorizableOverlay::get_handle_of_step(const step_handle_t& step_handle) const {
+    return path_graph->get_handle_of_step(step_handle);
+}
+    
+step_handle_t PathVectorizableOverlay::path_begin(const path_handle_t& path_handle) const {
+    return path_graph->path_begin(path_handle);
+}
+    
+step_handle_t PathVectorizableOverlay::path_end(const path_handle_t& path_handle) const {
+    return path_graph->path_end(path_handle);
+}
+    
+step_handle_t PathVectorizableOverlay::path_back(const path_handle_t& path_handle) const {
+    return path_graph->path_back(path_handle);
+}
+    
+step_handle_t PathVectorizableOverlay::path_front_end(const path_handle_t& path_handle) const {
+    return path_graph->path_front_end(path_handle);
+}
+    
+bool PathVectorizableOverlay::has_next_step(const step_handle_t& step_handle) const {
+    return path_graph->has_next_step(step_handle);
+}
+    
+bool PathVectorizableOverlay::has_previous_step(const step_handle_t& step_handle) const {
+    return path_graph->has_previous_step(step_handle);
+}
+    
+step_handle_t PathVectorizableOverlay::get_next_step(const step_handle_t& step_handle) const {
+    return path_graph->get_next_step(step_handle);
+}
+    
+step_handle_t PathVectorizableOverlay::get_previous_step(const step_handle_t& step_handle) const {
+    return path_graph->get_previous_step(step_handle);
+}
+    
+path_handle_t PathVectorizableOverlay::get_path_handle_of_step(const step_handle_t& step_handle) const {
+    return path_graph->get_path_handle_of_step(step_handle);
+}
+    
+bool PathVectorizableOverlay::for_each_path_handle_impl(const std::function<bool(const path_handle_t&)>& iteratee) const {
+    return path_graph->for_each_path_handle(iteratee);
+}
+    
+bool PathVectorizableOverlay::for_each_step_on_handle_impl(const handle_t& handle,
+                                                           const function<bool(const step_handle_t&)>& iteratee) const {
+    return path_graph->for_each_step_on_handle(handle, iteratee);
+}
+    
+
+PathPositionVectorizableOverlay::PathPositionVectorizableOverlay(const PathPositionHandleGraph* path_position_graph) :
+    PathVectorizableOverlay(path_position_graph),
+    path_position_graph(path_position_graph) {
+}
+
+PathPositionVectorizableOverlay::PathPositionVectorizableOverlay() {
+        
+}
+    
+PathPositionVectorizableOverlay::~PathPositionVectorizableOverlay() {
+        
+}
+
+size_t PathPositionVectorizableOverlay::get_path_length(const path_handle_t& path_handle) const {
+    return path_position_graph->get_path_length(path_handle);
+}
+
+size_t PathPositionVectorizableOverlay::get_position_of_step(const step_handle_t& step) const {
+    return path_position_graph->get_position_of_step(step);
+}
+    
+step_handle_t PathPositionVectorizableOverlay::get_step_at_position(const path_handle_t& path,
+                                                                    const size_t& position) const {
+    return path_position_graph->get_step_at_position(path, position);
+}
+
+
 }
