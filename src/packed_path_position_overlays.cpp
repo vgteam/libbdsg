@@ -7,7 +7,7 @@ namespace bdsg {
         index_path_positions();
     }
 
-    PackedPositionOverlay::PackedPositionOverlay() {
+    PackedPositionOverlay::PackedPositionOverlay() : steps_0(1), steps_1(1), positions(1) {
         
     }
     
@@ -175,7 +175,7 @@ namespace bdsg {
     step_handle_t PackedPositionOverlay::get_step_at_position(const path_handle_t& path,
                                                               const size_t& position) const {
         
-        const auto& range = path_range.at(as_integer(path_handle));
+        const auto& range = path_range.at(as_integer(path));
         
         // check if position it outside the range (handles edge case of an empty path too)
         if (position >= get_path_length(path)) {
@@ -208,6 +208,7 @@ namespace bdsg {
     
     void PackedPositionOverlay::index_path_positions() {
         
+        
         size_t cumul_path_size = 0;
         
         for_each_path_handle([&](const path_handle_t& path_handle) {
@@ -221,9 +222,7 @@ namespace bdsg {
         step_positions.resize(cumul_path_size);
         
         // make a perfect minimal hash over the step handles
-        step_hash = new boomphf::mphf<step_handle_t, boomphf::SingleHashFunctor<step_handle_t>>(cumul_path_size,
-                                                                                             BBHashHelper(graph),
-                                                                                             1, 1.0);
+        step_hash = new boomphf::mphf<step_handle_t, StepHash>(cumul_path_size, BBHashHelper(graph), 1, 1.0);
         
         size_t i = 0;
         for_each_path_handle([&](const path_handle_t& path_handle) {
@@ -248,21 +247,25 @@ namespace bdsg {
         });
     }
     
+    uint64_t PackedPositionOverlay::StepHash::operator()(const step_handle_t& step, uint64_t seed) const {
+        return hash<step_handle_t>()(step) ^ seed;
+    }
+    
     BBHashHelper::BBHashHelper(const PathHandleGraph* graph) : graph(graph) {
         path_handles.reserve(graph->get_path_count());
-        graph->for_each_path_handle([&](const path_handle_t& path_handle)) {
+        graph->for_each_path_handle([&](const path_handle_t& path_handle) {
             if (!graph->is_empty(path_handle)) {
                 // this path contains steps, we want to iterate over it
                 path_handles.push_back(path_handle);
             }
-        }
+        });
     }
     
-    BBHashHelper::iterator BBHashHelper::begin() {
+    BBHashHelper::iterator BBHashHelper::begin() const {
         return iterator(*this, 0);
     }
     
-    BBHashHelper::iterator BBHashHelper::end() {
+    BBHashHelper::iterator BBHashHelper::end() const {
         return iterator(*this, path_handles.size());
     }
     
@@ -280,6 +283,7 @@ namespace bdsg {
             ++path_handle_idx;
             step = iteratee.graph->path_begin(iteratee.path_handles[path_handle_idx]);
         }
+        return *this;
     }
     
     step_handle_t BBHashHelper::iterator::operator*() const {

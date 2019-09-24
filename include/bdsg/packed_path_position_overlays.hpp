@@ -12,8 +12,10 @@
 #include <handlegraph/mutable_path_deletable_handle_graph.hpp>
 #include <handlegraph/path_position_handle_graph.hpp>
 #include <handlegraph/expanding_overlay_graph.hpp>
+#include <handlegraph/util.hpp>
 #include <BooPHF.h>
 
+#include "bdsg/hash_map.hpp"
 #include "bdsg/packed_structs.hpp"
 
 namespace bdsg {
@@ -218,6 +220,12 @@ public:
     
 protected:
     
+    
+    // local BBHash style hash function for step handles
+    struct StepHash {
+        uint64_t operator()(const step_handle_t& step, uint64_t seed = 0xAAAAAAAA55555555ULL) const;
+    };
+    
     /// Construct the index over path positions
     void index_path_positions();
     
@@ -238,7 +246,7 @@ protected:
     PagedVector positions;
     
     /// A perfect minimal hash function for the step handles
-    boomphf::mphf<step_handle_t, boomphf::SingleHashFunctor<step_handle_t>>* hasher = nullptr;
+    boomphf::mphf<step_handle_t, StepHash>* step_hash = nullptr;
     
     /// The position of the step that hashes to a given index
     PackedVector step_positions;
@@ -277,10 +285,10 @@ public:
     };
     
     /// C++ style range begin over steps
-    iterator begin();
+    iterator begin() const;
     
     /// C++ style range end over steps
-    iterator end();
+    iterator end() const;
     
 private:
     /// The graph whose steps this iterates over
