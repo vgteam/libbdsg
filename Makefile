@@ -8,7 +8,7 @@ INSTALL_PREFIX?=/usr/local
 INSTALL_LIB_DIR=$(INSTALL_PREFIX)/lib
 INSTALL_INC_DIR=$(INSTALL_PREFIX)/include
 
-OBJS:=$(OBJ_DIR)/eades_algorithm.o $(OBJ_DIR)/hash_graph.o $(OBJ_DIR)/is_single_stranded.o $(OBJ_DIR)/node.o $(OBJ_DIR)/odgi.o $(OBJ_DIR)/packed_graph.o $(OBJ_DIR)/packed_structs.o $(OBJ_DIR)/path_position_overlays.o $(OBJ_DIR)/vectorizable_overlays.o $(OBJ_DIR)/split_strand_graph.o $(OBJ_DIR)/utility.o
+OBJS:=$(OBJ_DIR)/eades_algorithm.o $(OBJ_DIR)/hash_graph.o $(OBJ_DIR)/is_single_stranded.o $(OBJ_DIR)/node.o $(OBJ_DIR)/odgi.o $(OBJ_DIR)/packed_graph.o $(OBJ_DIR)/packed_structs.o $(OBJ_DIR)/path_position_overlays.o $(OBJ_DIR)/packed_path_position_overlays.o $(OBJ_DIR)/vectorizable_overlays.o $(OBJ_DIR)/split_strand_graph.o $(OBJ_DIR)/utility.o
 
 CXXFLAGS :=-O3 -Werror=return-type -std=c++14 -ggdb -g -msse4.2 -I$(INC_DIR) $(CXXFLAGS)
 
@@ -50,6 +50,9 @@ $(OBJ_DIR)/packed_structs.o: $(SRC_DIR)/packed_structs.cpp $(INC_DIR)/bdsg/packe
 
 $(OBJ_DIR)/path_position_overlays.o: $(SRC_DIR)/path_position_overlays.cpp $(INC_DIR)/bdsg/path_position_overlays.hpp
 	$(CXX) $(CXXFLAGS) -c $(SRC_DIR)/path_position_overlays.cpp -o $(OBJ_DIR)/path_position_overlays.o
+
+$(OBJ_DIR)/packed_path_position_overlays.o: $(SRC_DIR)/packed_path_position_overlays.cpp $(INC_DIR)/bdsg/packed_path_position_overlays.hpp
+	$(CXX) $(CXXFLAGS) -c $(SRC_DIR)/packed_path_position_overlays.cpp -o $(OBJ_DIR)/packed_path_position_overlays.o
 
 $(OBJ_DIR)/vectorizable_overlays.o: $(SRC_DIR)/vectorizable_overlays.cpp $(INC_DIR)/bdsg/vectorizable_overlays.hpp
 	$(CXX) $(CXXFLAGS) -c $(SRC_DIR)/vectorizable_overlays.cpp -o $(OBJ_DIR)/vectorizable_overlays.o

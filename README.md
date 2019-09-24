@@ -26,6 +26,7 @@ The easiest way to build `libbdsg` is to use the [easy install repository](https
 - [`sdsl`](https://github.com/simongog/sdsl-lite)
 - [`sparsepp`](https://github.com/greg7mdp/sparsepp)
 - [`DYNAMIC`](https://github.com/xxsds/DYNAMIC)
+- [`BBHash/alltypes`](https://github.com/rizkg/BBHash/tree/alltypes) 
 
 The build process assumes that these libraries and their headers have been installed in a place on the system where the compiler can find them (e.g. in `CPLUS_INCLUDE_PATH`).
 
