@@ -285,7 +285,13 @@ public:
      * to the method path_begin.
      */
     void set_circularity(const path_handle_t& path, bool circular);
-    
+
+    /**
+     * Set a minimum id to increment the id space by, used as a hint during construction.
+     * May have no effect on a backing implementation.
+     */
+    void set_id_increment(const nid_t& min_id);
+
 private:
     
     // Forward declaration so we can use it as an argument to methods

@@ -6,8 +6,7 @@
 //  main dynamic compact graph definition
 //
 
-#ifndef BSDG_ODGI_HPP
-#define BSDG_ODGI_HPP
+#pragma once
 
 #include <cstdio>
 #include <cstdint>
@@ -94,6 +93,10 @@ public:
     /// Return the largest ID in the graph, or some larger number if the
     /// largest ID is unavailable. Return value is unspecified if the graph is empty.
     nid_t max_node_id(void) const;
+
+    /// Set a minimum id to increment the id space by, used as a hint during construction.
+    /// May have no effect on a backing implementation.
+    void set_id_increment(const nid_t& min_id);
     
     /// Get a handle from a Visit Protobuf object.
     /// Must be using'd to avoid shadowing.
@@ -367,7 +370,7 @@ public:
 
     /// Load
     void load(std::istream& in);
-    
+
 /// These are the backing data structures that we use to fulfill the above functions
 
 private:
@@ -382,6 +385,7 @@ private:
     /// efficient id to handle/sequence conversion
     nid_t _max_node_id = 0;
     nid_t _min_node_id = 0;
+    nid_t _id_increment = 0;
     /// records nodes that are hidden, but used to compactly store path sequence that has been removed from the node space
     hash_set<uint64_t> graph_id_hidden_set;
 
@@ -475,5 +479,3 @@ const static uint64_t path_begin_marker = 0;
 const static uint64_t path_end_marker = 1;
 
 } // end dankness
-
-#endif
