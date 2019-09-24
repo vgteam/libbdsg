@@ -214,7 +214,7 @@ namespace bdsg {
         for_each_path_handle([&](const path_handle_t& path_handle) {
             cumul_path_size += get_step_count(path_handle);
         });
-        
+                
         // resize the vectors to the number of step handles
         steps_0.resize(cumul_path_size);
         steps_1.resize(cumul_path_size);
@@ -222,7 +222,7 @@ namespace bdsg {
         step_positions.resize(cumul_path_size);
         
         // make a perfect minimal hash over the step handles
-        step_hash = new boomphf::mphf<step_handle_t, StepHash>(cumul_path_size, BBHashHelper(graph), 1, 1.0);
+        step_hash = new boomphf::mphf<step_handle_t, StepHash>(cumul_path_size, BBHashHelper(graph), 1, 1.0, false, false);
         
         size_t i = 0;
         for_each_path_handle([&](const path_handle_t& path_handle) {
@@ -281,7 +281,9 @@ namespace bdsg {
             step == iteratee.graph->path_end(iteratee.path_handles[path_handle_idx])) {
             // we either went off the end or looped around a circular path to the beginning again
             ++path_handle_idx;
-            step = iteratee.graph->path_begin(iteratee.path_handles[path_handle_idx]);
+            if (path_handle_idx < iteratee.path_handles.size()) {
+                step = iteratee.graph->path_begin(iteratee.path_handles[path_handle_idx]);
+            }
         }
         return *this;
     }

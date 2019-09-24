@@ -18,6 +18,7 @@
 #include "bdsg/hash_graph.hpp"
 #include "bdsg/packed_structs.hpp"
 #include "bdsg/path_position_overlays.hpp"
+#include "bdsg/packed_path_position_overlays.hpp"
 #include "bdsg/vectorizable_overlays.hpp"
 
 using namespace bdsg;
@@ -2408,27 +2409,38 @@ void test_path_position_overlays() {
         step_handle_t s2 = graph.append_step(p1, h2);
         step_handle_t s3 = graph.append_step(p1, h4);
         
-        // static position overlay
+        // static position overlays
         {
-            PositionOverlay overlay(&graph);
+            vector<PathPositionHandleGraph*> overlays;
             
-            assert(overlay.get_path_length(p1) == 9);
+            PositionOverlay basic_overlay(&graph);
+            PackedPositionOverlay packed_overlay(&graph);
             
-            assert(overlay.get_position_of_step(s1) == 0);
-            assert(overlay.get_position_of_step(s2) == 3);
-            assert(overlay.get_position_of_step(s3) == 4);
+            overlays.push_back(&basic_overlay);
+            overlays.push_back(&packed_overlay);
             
-            assert(overlay.get_step_at_position(p1, 0) == s1);
-            assert(overlay.get_step_at_position(p1, 1) == s1);
-            assert(overlay.get_step_at_position(p1, 2) == s1);
-            assert(overlay.get_step_at_position(p1, 3) == s2);
-            assert(overlay.get_step_at_position(p1, 4) == s3);
-            assert(overlay.get_step_at_position(p1, 5) == s3);
-            assert(overlay.get_step_at_position(p1, 6) == s3);
-            assert(overlay.get_step_at_position(p1, 7) == s3);
-            assert(overlay.get_step_at_position(p1, 8) == s3);
-            assert(overlay.get_step_at_position(p1, 9) == overlay.path_end(p1));
+            for (PathPositionHandleGraph* implementation : overlays) {
+                PathPositionHandleGraph& overlay = *implementation;
+                
+                assert(overlay.get_path_length(p1) == 9);
+                
+                assert(overlay.get_position_of_step(s1) == 0);
+                assert(overlay.get_position_of_step(s2) == 3);
+                assert(overlay.get_position_of_step(s3) == 4);
+                
+                assert(overlay.get_step_at_position(p1, 0) == s1);
+                assert(overlay.get_step_at_position(p1, 1) == s1);
+                assert(overlay.get_step_at_position(p1, 2) == s1);
+                assert(overlay.get_step_at_position(p1, 3) == s2);
+                assert(overlay.get_step_at_position(p1, 4) == s3);
+                assert(overlay.get_step_at_position(p1, 5) == s3);
+                assert(overlay.get_step_at_position(p1, 6) == s3);
+                assert(overlay.get_step_at_position(p1, 7) == s3);
+                assert(overlay.get_step_at_position(p1, 8) == s3);
+                assert(overlay.get_step_at_position(p1, 9) == overlay.path_end(p1));
+            }
         }
+        
         
         // mutable position overlay
         {
@@ -2517,6 +2529,7 @@ void test_path_position_overlays() {
             assert(overlay.get_step_at_position(p1, 17) == overlay.path_end(p1));
         }
     }
+    cerr << "PathPositionOverlay tests successful!" << endl;
 }
 
 void test_vectorizable_overlays() {
@@ -2530,7 +2543,6 @@ void test_vectorizable_overlays() {
     //implementations.push_back(&og);
     
     for (MutablePathDeletableHandleGraph* implementation : implementations) {
-        cerr << endl << "*******************" << endl;
         
         MutablePathDeletableHandleGraph& graph = *implementation;
         
@@ -2586,6 +2598,7 @@ void test_vectorizable_overlays() {
                 }
             });
     }
+    cerr << "VectorizableOverlay tests successful!" << endl;
 }
 
 
