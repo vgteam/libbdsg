@@ -294,6 +294,10 @@ namespace bdsg {
         reindex_path_position();
     }
     
+    void MutablePositionOverlay::set_id_increment(const nid_t& min_id) {
+        // no-op
+    }
+    
     void MutablePositionOverlay::destroy_path(const path_handle_t& path) {
         
         // erase the path's indexes

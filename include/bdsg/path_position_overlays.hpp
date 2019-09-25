@@ -315,6 +315,8 @@ public:
     /// This may be a no-op in the case of graph implementations that do not have any mechanism to maintain an ordering.
     void apply_ordering(const vector<handle_t>& order, bool compact_ids = false);
     
+    /// No-op function (required by MutableHandleGraph interface)
+    void set_id_increment(const nid_t& min_id);
     
     ////////////////////////////////////////////////////////////////////////////
     // MutablePathHandleGraph interface
