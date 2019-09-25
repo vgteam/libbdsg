@@ -24,10 +24,8 @@ using namespace std;
 using namespace handlegraph;
 
 /*
- * An overlay that adds the PathPositionHandleGraph interface to a PathHandleGraph
- * by augmenting it with relatively simple data structures.
- *
- * To also provide mutable methods, see MutablePositionOverlay below.
+ * An overlay that adds the PathPositionHandleGraph interface to a static PathHandleGraph
+ * by augmenting it with compressed index data structures
  */
 class PackedPositionOverlay : public PathPositionHandleGraph, public ExpandingOverlayGraph {
         
