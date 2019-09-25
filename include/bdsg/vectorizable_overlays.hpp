@@ -19,6 +19,7 @@
 #include <handlegraph/handle_graph.hpp>
 #include <handlegraph/path_position_handle_graph.hpp>
 #include <handlegraph/expanding_overlay_graph.hpp>
+#include <BooPHF.h>
 
 namespace bdsg {
     
@@ -145,13 +146,22 @@ protected:
     /// Edge to rank
     // (I can't get it the pair_hash_map to compile with handle_t's, so using integers
     //  directly until I ca figure it out)
-    pair_hash_map<pair<uint64_t, uint64_t>, size_t> edge_to_rank;
+    /// for our edge hash table (inspired from vg's hash_map.hpp)
+    template<typename A, typename B>
+    struct boomph_pair_hash {
+        size_t operator()(const std::pair<A, B>& x, uint64_t seed=0) const {
+            size_t hash_val = boomphf::SingleHashFunctor<A>()(x.first, seed);
+            hash_val ^= boomphf::SingleHashFunctor<A>()(x.second, seed) + 0x9e3779b9 + (hash_val << 6) + (hash_val >> 2);
+            return hash_val;
+        }
+    };
+    boomphf::mphf<pair<uint64_t, uint64_t>, boomph_pair_hash<uint64_t, uint64_t>>* edge_to_rank;
     
     /// Rank to node
     vector<nid_t> rank_to_node;
 
     /// Node to rank (make no assumptions about id-space so use map instead of vector)
-    hash_map<nid_t, size_t> node_to_rank;
+    boomphf::mphf<nid_t, boomphf::SingleHashFunctor<nid_t>>* node_to_rank;
 
     /// Map between global sequence position and node rank
     sdsl::bit_vector s_bv;
@@ -288,7 +298,6 @@ protected:
     /// Keep this around to avoid dynamic_casting this->underlying_graph every time we need path stuff
     const PathPositionHandleGraph* underlying_path_position_graph = nullptr;
 };
-
 
 
 }

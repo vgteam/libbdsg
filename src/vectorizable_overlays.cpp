@@ -1,9 +1,13 @@
 #include "bdsg/vectorizable_overlays.hpp"
 #include "handlegraph/util.hpp"
+#include "bdsg/utility.hpp"
 
 namespace bdsg {
 
-VectorizableOverlay::VectorizableOverlay(const HandleGraph* graph) : underlying_graph(graph) {
+VectorizableOverlay::VectorizableOverlay(const HandleGraph* graph) :
+    underlying_graph(graph),
+    node_to_rank(nullptr),
+    edge_to_rank(nullptr) {
     assert(underlying_graph != nullptr);
     index_nodes_and_edges();
 }
@@ -13,7 +17,8 @@ VectorizableOverlay::VectorizableOverlay() {
 }
     
 VectorizableOverlay::~VectorizableOverlay() {
-        
+    delete node_to_rank;
+    delete edge_to_rank;
 }
     
 bool VectorizableOverlay::has_node(nid_t node_id) const {
@@ -82,7 +87,7 @@ nid_t VectorizableOverlay::max_node_id(void) const {
 
 // this gives a 0-based offset of the node
 size_t VectorizableOverlay::node_vector_offset(const nid_t& node_id) const {
-    return s_bv_select(node_to_rank.at(node_id));
+    return s_bv_select(node_to_rank->lookup(node_id) + 1);
 }
 
 // this expects a 1-based offset of the node
@@ -91,7 +96,7 @@ nid_t VectorizableOverlay::node_at_vector_offset(const size_t& offset) const {
 }
 
 size_t VectorizableOverlay::edge_index(const edge_t& edge) const {
-    return edge_to_rank.at(make_pair(as_integer(edge.first), as_integer(edge.second)));
+    return edge_to_rank->lookup(make_pair(as_integer(edge.first), as_integer(edge.second))) + 1;
 }
     
 handle_t VectorizableOverlay::get_underlying_handle(const handle_t& handle) const {
@@ -101,31 +106,44 @@ handle_t VectorizableOverlay::get_underlying_handle(const handle_t& handle) cons
 void VectorizableOverlay::index_nodes_and_edges() {
 
     // index the edges
-    //edge_to_rank.clear();
-    size_t edge_rank = 1;
+    delete edge_to_rank;
+    // todo: c++ style edge iteration in handle_graph interface so we can construct
+    // the boomphf sans buffer
+    vector<pair<uint64_t, uint64_t>> edge_buffer;
     underlying_graph->for_each_edge([&](const edge_t& edge) {
-            edge_to_rank[make_pair(as_integer(edge.first), as_integer(edge.second))] = edge_rank++;
+            edge_buffer.push_back(make_pair(as_integer(edge.first), as_integer(edge.second)));
         });
+    // note: we're mapping to 0-based rank, so need to add one after lookup
+    edge_to_rank = new boomphf::mphf<pair<uint64_t, uint64_t>, boomph_pair_hash<uint64_t, uint64_t>>(
+        edge_buffer.size(), edge_buffer, get_thread_count(), 1.0, false, false);
+    edge_buffer.clear();
 
     // index our node ranks
     rank_to_node.clear();
-    node_to_rank.clear();    
-    rank_to_node.resize(get_node_count() + 1);
-    node_to_rank.reserve(get_node_count());
+    rank_to_node.reserve(get_node_count() + 1);
+    delete node_to_rank;  
     size_t seq_length = 0;
-    size_t node_rank = 1;
     underlying_graph->for_each_handle([&](const handle_t& handle) {
             seq_length += underlying_graph->get_length(handle);
+            // we are just using this as a buffer for now
+            rank_to_node.push_back(underlying_graph->get_id(handle));
+        });
+    // note: we're mapping to 0-based rank, so need to add one after lookup
+    node_to_rank = new boomphf::mphf<nid_t, boomphf::SingleHashFunctor<nid_t>>(rank_to_node.size(), rank_to_node,
+                                                                               get_thread_count(), 1.0, false, false);
+    // add one to keep ranks in this table 1-based
+    rank_to_node.resize(get_node_count() + 1); 
+    rank_to_node[0] = -1;
+    // fill in the granks from the boomph
+    underlying_graph->for_each_handle([&](const handle_t& handle) {
             nid_t node_id = underlying_graph->get_id(handle);
-            rank_to_node[node_rank] = node_id;
-            node_to_rank[node_id] = node_rank;
-            ++node_rank;
+            rank_to_node[node_to_rank->lookup(node_id) + 1] = node_id;
         });
 
     // index our node offsets
     sdsl::util::assign(s_bv, sdsl::bit_vector(seq_length));
     seq_length = 0;
-    for (node_rank = 1; node_rank < rank_to_node.size(); ++node_rank) {
+    for (size_t node_rank = 1; node_rank < rank_to_node.size(); ++node_rank) {
         s_bv[seq_length] = 1;
         seq_length += underlying_graph->get_length(underlying_graph->get_handle(rank_to_node[node_rank]));
     }
