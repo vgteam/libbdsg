@@ -1,5 +1,5 @@
 #include "bdsg/packed_path_position_overlays.hpp"
-
+#include "bdsg/utility.hpp"
 
 namespace bdsg {
 
@@ -222,7 +222,7 @@ namespace bdsg {
         step_positions.resize(cumul_path_size);
         
         // make a perfect minimal hash over the step handles
-        step_hash = new boomphf::mphf<step_handle_t, StepHash>(cumul_path_size, BBHashHelper(graph), 1, 1.0, false, false);
+        step_hash = new boomphf::mphf<step_handle_t, StepHash>(cumul_path_size, BBHashHelper(graph), get_thread_count(), 1.0, false, false);
         
         size_t i = 0;
         for_each_path_handle([&](const path_handle_t& path_handle) {
