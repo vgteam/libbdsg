@@ -8,9 +8,17 @@ INSTALL_PREFIX?=/usr/local
 INSTALL_LIB_DIR=$(INSTALL_PREFIX)/lib
 INSTALL_INC_DIR=$(INSTALL_PREFIX)/include
 
+LIB_FLAGS:=-lbdsg -lsdsl -lhandlegraph -lomp
+
 OBJS:=$(OBJ_DIR)/eades_algorithm.o $(OBJ_DIR)/hash_graph.o $(OBJ_DIR)/is_single_stranded.o $(OBJ_DIR)/node.o $(OBJ_DIR)/odgi.o $(OBJ_DIR)/packed_graph.o $(OBJ_DIR)/packed_structs.o $(OBJ_DIR)/path_position_overlays.o $(OBJ_DIR)/packed_path_position_overlays.o $(OBJ_DIR)/vectorizable_overlays.o $(OBJ_DIR)/split_strand_graph.o $(OBJ_DIR)/utility.o
 
 CXXFLAGS :=-O3 -Werror=return-type -std=c++14 -ggdb -g -msse4.2 -I$(INC_DIR) $(CXXFLAGS)
+
+ifeq ($(shell uname -s),Darwin)
+	CXXFLAGS := $(CXXFLAGS) -Xpreprocessor -fopenmp
+else
+	CXXFLAGS := $(CXXFLAGS) -fopenmp
+endif
 
 .PHONY: .pre-build all clean install
 
@@ -68,7 +76,7 @@ $(LIB_DIR)/libbdsg.a: $(OBJS)
 	ar rs $@ $(OBJS)
 
 $(BIN_DIR)/test_libbdsg: $(LIB_DIR)/libbdsg.a $(SRC_DIR)/test_libbdsg.cpp 
-	$(CXX) $(CXXFLAGS) -L $(LIB_DIR) -lbdsg -lsdsl -lhandlegraph $(SRC_DIR)/test_libbdsg.cpp -o $(BIN_DIR)/test_libbdsg
+	$(CXX) $(CXXFLAGS) -L $(LIB_DIR) $(LIB_FLAGS) $(SRC_DIR)/test_libbdsg.cpp -o $(BIN_DIR)/test_libbdsg
 	chmod +x $(BIN_DIR)/test_libbdsg
 
 install: $(LIB_DIR)/libbdsg.a
