@@ -222,7 +222,7 @@ namespace bdsg {
         step_positions.resize(cumul_path_size);
         
         // make a perfect minimal hash over the step handles
-        step_hash = new boomphf::mphf<step_handle_t, StepHash>(cumul_path_size, BBHashHelper(graph), get_thread_count(), 1.0, false, false);
+        step_hash = new boomphf::mphf<step_handle_t, StepHash>(cumul_path_size, BBHashHelper(graph), get_thread_count(), 2.0, false, false);
         
         size_t i = 0;
         for_each_path_handle([&](const path_handle_t& path_handle) {
@@ -248,7 +248,11 @@ namespace bdsg {
     }
     
     uint64_t PackedPositionOverlay::StepHash::operator()(const step_handle_t& step, uint64_t seed) const {
-        return hash<step_handle_t>()(step) ^ seed;
+        const int64_t* int_step = as_integers(step);
+        uint64_t hsh1 = boomphf::SingleHashFunctor<int64_t>()(int_step[0], seed);
+        uint64_t hsh2 = boomphf::SingleHashFunctor<int64_t>()(int_step[1], seed);
+        // Boost combine for hash values
+        return hsh1 ^ (hsh2 + 0x9e3779b9 + (hsh1<<6) + (hsh1>>2));
     }
     
     BBHashHelper::BBHashHelper(const PathHandleGraph* graph) : graph(graph) {

@@ -115,7 +115,7 @@ void VectorizableOverlay::index_nodes_and_edges() {
         });
     // note: we're mapping to 0-based rank, so need to add one after lookup
     edge_to_rank = new boomphf::mphf<pair<uint64_t, uint64_t>, boomph_pair_hash<uint64_t, uint64_t>>(
-        edge_buffer.size(), edge_buffer, get_thread_count(), 1.0, false, false);
+        edge_buffer.size(), edge_buffer, get_thread_count(), 2.0, false, false);
     edge_buffer.clear();
 
     // index our node ranks
@@ -130,7 +130,7 @@ void VectorizableOverlay::index_nodes_and_edges() {
         });
     // note: we're mapping to 0-based rank, so need to add one after lookup
     node_to_rank = new boomphf::mphf<nid_t, boomphf::SingleHashFunctor<nid_t>>(rank_to_node.size(), rank_to_node,
-                                                                               get_thread_count(), 1.0, false, false);
+                                                                               get_thread_count(), 2.0, false, false);
     // add one to keep ranks in this table 1-based
     rank_to_node.resize(get_node_count() + 1); 
     rank_to_node[0] = -1;
