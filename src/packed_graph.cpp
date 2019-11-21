@@ -1841,6 +1841,10 @@ namespace bdsg {
         // no-op as this implementation does not require this hint for decent construction performance
     }
 
+    void PackedGraph::increment_node_ids(nid_t increment) {
+        throw runtime_error("Not implemented");
+    }
+
     void PackedGraph::report_memory(ostream& out, bool individual_paths) const {
         size_t grand_total = 0;
         size_t item_mem = sizeof(max_id) + sizeof(min_id);

@@ -292,7 +292,11 @@ public:
      */
     void set_id_increment(const nid_t& min_id);
 
-    
+    /**
+     * Add the given value to all node IDs
+     */
+    void increment_node_ids(nid_t increment);
+
 private:
     
     
