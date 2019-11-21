@@ -580,6 +580,10 @@ namespace bdsg {
     void HashGraph::set_id_increment(const nid_t& min_id) {
         // no-op as this implementation does not require this hint for decent construction performance
     }
+
+    void HashGraph::increment_node_ids(nid_t increment) {
+        throw runtime_error("Not implemented");
+    }
     
     HashGraph::path_t::path_t() {
         

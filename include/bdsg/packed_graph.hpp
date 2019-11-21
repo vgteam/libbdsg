@@ -292,6 +292,11 @@ public:
      */
     void set_id_increment(const nid_t& min_id);
 
+    /**
+     * Add the given value to all node IDs
+     */
+    void increment_node_ids(nid_t increment);
+
 private:
     
     // Forward declaration so we can use it as an argument to methods

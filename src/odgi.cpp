@@ -31,6 +31,11 @@ uint64_t ODGI::get_node_rank(const nid_t& node_id) const {
 void ODGI::set_id_increment(const nid_t& min_id) {
     _id_increment = min_id;
 }
+
+/// Add the given value to all node IDs
+void ODGI::increment_node_ids(nid_t increment) {
+    throw runtime_error("Not implemented");
+}
     
 /// Get the orientation of a handle
 bool ODGI::get_is_reverse(const handle_t& handle) const {
