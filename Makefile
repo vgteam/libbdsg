@@ -76,7 +76,7 @@ $(LIB_DIR)/libbdsg.a: $(OBJS)
 	ar rs $@ $(OBJS)
 
 $(BIN_DIR)/test_libbdsg: $(LIB_DIR)/libbdsg.a $(SRC_DIR)/test_libbdsg.cpp 
-	$(CXX) $(CXXFLAGS) -L $(LIB_DIR) $(LIB_FLAGS) $(SRC_DIR)/test_libbdsg.cpp -o $(BIN_DIR)/test_libbdsg
+	$(CXX) $(CXXFLAGS) -L $(LIB_DIR) $(SRC_DIR)/test_libbdsg.cpp -o $(BIN_DIR)/test_libbdsg $(LIB_FLAGS)
 	chmod +x $(BIN_DIR)/test_libbdsg
 
 install: $(LIB_DIR)/libbdsg.a
