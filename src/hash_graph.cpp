@@ -980,7 +980,7 @@ namespace bdsg {
         return handlegraph::number_bool_packing::unpack_number(handle);
     }
     
-    handle_t HashGraph::apply_id_offset(const handle_t& internal, nid_t id_offset) const {
+    handle_t HashGraph::apply_id_offset(const handle_t& internal, nid_t id_offset) {
         nid_t node_id = handlegraph::number_bool_packing::unpack_number(internal);
         bool is_reverse = handlegraph::number_bool_packing::unpack_bit(internal);
         return handlegraph::number_bool_packing::pack(node_id + id_offset, is_reverse);
