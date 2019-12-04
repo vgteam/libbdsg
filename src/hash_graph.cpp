@@ -37,20 +37,20 @@ namespace bdsg {
     void HashGraph::create_edge(const handle_t& left, const handle_t& right) {
         
         if (get_is_reverse(left)) {
-            graph[get_id(left)].left_edges.push_back(right);
+            graph[get_internal_id(left)].left_edges.push_back(right);
         }
         else {
-            graph[get_id(left)].right_edges.push_back(right);
+            graph[get_internal_id(left)].right_edges.push_back(right);
         }
         
         // a reversing self-edge only touches one side of one node, so we only want
         // to add it to a single edge list rather than two
         if (left != flip(right)){
             if (get_is_reverse(right)) {
-                graph[get_id(right)].right_edges.push_back(flip(left));
+                graph[get_internal_id(right)].right_edges.push_back(flip(left));
             }
             else {
-                graph[get_id(right)].left_edges.push_back(flip(left));
+                graph[get_internal_id(right)].left_edges.push_back(flip(left));
             }
         }
     }
@@ -60,15 +60,19 @@ namespace bdsg {
     }
     
     handle_t HashGraph::get_handle(const nid_t& node_id, bool is_reverse) const {
-        return handlegraph::number_bool_packing::pack(node_id, is_reverse);
+        return handlegraph::number_bool_packing::pack(node_id - id_offset, is_reverse);
     }
     
-    nid_t HashGraph::get_id(const handle_t& handle) const {
+    nid_t HashGraph::get_internal_id(const handle_t& handle) const {
         return handlegraph::number_bool_packing::unpack_number(handle);
     }
     
+    nid_t HashGraph::get_id(const handle_t& handle) const {
+        return get_internal_id(handle) + id_offset;
+    }
+    
     bool HashGraph::get_is_reverse(const handle_t& handle) const {
-        return handlegraph::number_bool_packing::unpack_bit(handle);;
+        return handlegraph::number_bool_packing::unpack_bit(handle);
     }
     
     handle_t HashGraph::flip(const handle_t& handle) const {
@@ -76,19 +80,19 @@ namespace bdsg {
     }
     
     size_t HashGraph::get_length(const handle_t& handle) const {
-        return graph.at(get_id(handle)).sequence.size();
+        return graph.at(get_internal_id(handle)).sequence.size();
     }
     
     string HashGraph::get_sequence(const handle_t& handle) const {
-        return get_is_reverse(handle) ? reverse_complement(graph.at(get_id(handle)).sequence)
-                                      : graph.at(get_id(handle)).sequence;
+        return get_is_reverse(handle) ? reverse_complement(graph.at(get_internal_id(handle)).sequence)
+                                      : graph.at(get_internal_id(handle)).sequence;
     }
     
     bool HashGraph::follow_edges_impl(const handle_t& handle, bool go_left,
                                       const std::function<bool(const handle_t&)>& iteratee) const {
         
-        auto& edge_list = get_is_reverse(handle) != go_left ? graph.at(get_id(handle)).left_edges
-                                                            : graph.at(get_id(handle)).right_edges;
+        auto& edge_list = get_is_reverse(handle) != go_left ? graph.at(get_internal_id(handle)).left_edges
+                                                            : graph.at(get_internal_id(handle)).right_edges;
         
         bool keep_going = true;
         for (auto it = edge_list.begin(); it != edge_list.end() && keep_going; it++) {
@@ -110,18 +114,18 @@ namespace bdsg {
     }
     
     size_t HashGraph::get_degree(const handle_t& handle, bool go_left) const {
-        auto& edge_list = get_is_reverse(handle) != go_left ? graph.at(get_id(handle)).left_edges
-                                                            : graph.at(get_id(handle)).right_edges;
+        auto& edge_list = get_is_reverse(handle) != go_left ? graph.at(get_internal_id(handle)).left_edges
+                                                            : graph.at(get_internal_id(handle)).right_edges;
         return edge_list.size();
     }
     
     char HashGraph::get_base(const handle_t& handle, size_t index) const {
-        const string& seq = graph.at(get_id(handle)).sequence;
+        const string& seq = graph.at(get_internal_id(handle)).sequence;
         return get_is_reverse(handle) ? reverse_complement(seq.at(seq.size() - index - 1)) : seq.at(index);
     }
     
     string HashGraph::get_subsequence(const handle_t& handle, size_t index, size_t size) const {
-        const string& seq = graph.at(get_id(handle)).sequence;
+        const string& seq = graph.at(get_internal_id(handle)).sequence;
         size = min(size, seq.size() - index);
         return get_is_reverse(handle) ? reverse_complement(seq.substr(seq.size() - index - size, size)) : seq.substr(index, size);
     }
@@ -164,16 +168,16 @@ namespace bdsg {
         }
         
         // reverse the sequence
-        node_t& node = graph[get_id(handle)];
+        node_t& node = graph[get_internal_id(handle)];
         node.sequence = reverse_complement(node.sequence);
         
         // reverse the orientation of the handle in the edge lists
         for (vector<handle_t>* edge_list : {&node.left_edges, &node.right_edges}) {
             for (const handle_t& target : *edge_list) {
-                node_t& other_node = graph[get_id(target)];
+                node_t& other_node = graph[get_internal_id(target)];
                 auto& bwd_edge_list = get_is_reverse(target) ? other_node.right_edges : other_node.left_edges;
                 for (handle_t& bwd_handle : bwd_edge_list) {
-                    if (get_id(bwd_handle) == get_id(handle)) {
+                    if (get_internal_id(bwd_handle) == get_internal_id(handle)) {
                         bwd_handle = flip(bwd_handle);
                         break;
                     }
@@ -220,20 +224,20 @@ namespace bdsg {
         // divvy up the sequence onto separate nodes
         for (size_t i = 0; i < forward_offsets.size(); i++) {
             size_t length = (i + 1 < forward_offsets.size() ? forward_offsets[i + 1] : node_length) - forward_offsets[i];
-            return_val.push_back(create_handle(graph[get_id(handle)].sequence.substr(forward_offsets[i], length)));
+            return_val.push_back(create_handle(graph[get_internal_id(handle)].sequence.substr(forward_offsets[i], length)));
         }
-        graph[get_id(handle)].sequence = graph[get_id(handle)].sequence.substr(0, forward_offsets.front());
+        graph[get_internal_id(handle)].sequence = graph[get_internal_id(handle)].sequence.substr(0, forward_offsets.front());
         
         // move the edges out the end of the node to the final one
-        node_t& final_node = graph[get_id(return_val.back())];
-        final_node.right_edges = move(graph[get_id(handle)].right_edges);
-        graph[get_id(handle)].right_edges.clear();
+        node_t& final_node = graph[get_internal_id(return_val.back())];
+        final_node.right_edges = move(graph[get_internal_id(handle)].right_edges);
+        graph[get_internal_id(handle)].right_edges.clear();
         
         // update the backwards references back onto this node
         for (const handle_t& next : final_node.right_edges) {
             for (handle_t& bwd_target : get_is_reverse(next) ?
-                                        graph[get_id(next)].right_edges :
-                                        graph[get_id(next)].left_edges) {
+                                        graph[get_internal_id(next)].right_edges :
+                                        graph[get_internal_id(next)].left_edges) {
                 if (bwd_target == flip(forward_handle)) {
                     bwd_target = flip(return_val.back());
                     break;
@@ -247,19 +251,19 @@ namespace bdsg {
         }
         
         // update the paths and the occurrence records
-        for (path_mapping_t* mapping : graph[get_id(handle)].occurrences) {
+        for (path_mapping_t* mapping : graph[get_internal_id(handle)].occurrences) {
             path_t& path = paths[mapping->path_id];
             if (get_is_reverse(mapping->handle)) {
                 for (size_t i = return_val.size() - 1; i > 0; i--) {
                     path_mapping_t* new_mapping = path.insert_before(flip(return_val[i]), mapping);
-                    graph[get_id(return_val[i])].occurrences.push_back(new_mapping);
+                    graph[get_internal_id(return_val[i])].occurrences.push_back(new_mapping);
                 }
             }
             else {
                 mapping = mapping->next;
                 for (size_t i = 1; i < return_val.size(); i++) {
                     path_mapping_t* new_mapping = path.insert_before(return_val[i], mapping);
-                    graph[get_id(return_val[i])].occurrences.push_back(new_mapping);
+                    graph[get_internal_id(return_val[i])].occurrences.push_back(new_mapping);
                 }
             }
         }
@@ -297,12 +301,12 @@ namespace bdsg {
     void HashGraph::destroy_handle(const handle_t& handle) {
         
         // remove backwards references from edges on other nodes
-        node_t& node = graph[get_id(handle)];
+        node_t& node = graph[get_internal_id(handle)];
         for (vector<handle_t>* edge_list : {&node.left_edges, &node.right_edges}) {
             for (const handle_t& next : *edge_list) {
-                auto& bwd_edge_list = get_is_reverse(next) ? graph[get_id(next)].right_edges : graph[get_id(next)].left_edges;
+                auto& bwd_edge_list = get_is_reverse(next) ? graph[get_internal_id(next)].right_edges : graph[get_internal_id(next)].left_edges;
                 for (handle_t& bwd_target : bwd_edge_list) {
-                    if (get_id(bwd_target) == get_id(handle)) {
+                    if (get_internal_id(bwd_target) == get_internal_id(handle)) {
                         bwd_target = bwd_edge_list.back();
                         bwd_edge_list.pop_back();
                         break;
@@ -312,13 +316,13 @@ namespace bdsg {
         }
         
         // remove this node from the relevant indexes
-        graph.erase(get_id(handle));
+        graph.erase(get_internal_id(handle));
     }
     
     void HashGraph::destroy_edge(const handle_t& left, const handle_t& right) {
         
         // remove this edge from left
-        node_t& left_node = graph[get_id(left)];
+        node_t& left_node = graph[get_internal_id(left)];
         auto& left_edge_list = get_is_reverse(left) ? left_node.left_edges : left_node.right_edges;
         
         for (handle_t& next : left_edge_list) {
@@ -330,7 +334,7 @@ namespace bdsg {
         }
         
         // remove this edge from right
-        node_t& right_node = graph[get_id(right)];
+        node_t& right_node = graph[get_internal_id(right)];
         auto& right_edge_list = get_is_reverse(right) ? right_node.right_edges : right_node.left_edges;
         
         for (handle_t& prev : right_edge_list) {
@@ -345,6 +349,7 @@ namespace bdsg {
     void HashGraph::clear(void) {
         max_id = 0;
         min_id = numeric_limits<nid_t>::max();
+        id_offset = 0;
         next_path_id = 1;
         graph.clear();
         path_id.clear();
@@ -443,7 +448,7 @@ namespace bdsg {
     
     bool HashGraph::for_each_step_on_handle_impl(const handle_t& handle,
                                                  const function<bool(const step_handle_t&)>& iteratee) const {
-        for (path_mapping_t* mapping : graph.at(get_id(handle)).occurrences) {
+        for (path_mapping_t* mapping : graph.at(get_internal_id(handle)).occurrences) {
             step_handle_t step;
             as_integers(step)[0] = mapping->path_id;
             as_integers(step)[1] = intptr_t(mapping);
@@ -460,7 +465,7 @@ namespace bdsg {
         // remove the records of nodes occurring on this path
         for_each_step_in_path(path, [&](const step_handle_t& step) {
             path_mapping_t* mapping = (path_mapping_t*) intptr_t(as_integers(step)[1]);
-            vector<path_mapping_t*>& node_occs = graph[get_id(mapping->handle)].occurrences;
+            vector<path_mapping_t*>& node_occs = graph[get_internal_id(mapping->handle)].occurrences;
             for (size_t i = 0; i < node_occs.size(); i++) {
                 if (node_occs[i] == mapping) {
                     node_occs[i] = node_occs.back();
@@ -486,7 +491,7 @@ namespace bdsg {
         
         path_t& path_list = paths[as_integer(path)];
         path_mapping_t* mapping = path_list.push_back(to_append);
-        graph[get_id(to_append)].occurrences.push_back(mapping);
+        graph[get_internal_id(to_append)].occurrences.push_back(mapping);
         
         step_handle_t step;
         as_integers(step)[0] = as_integer(path);
@@ -498,7 +503,7 @@ namespace bdsg {
         
         path_t& path_list = paths[as_integer(path)];
         path_mapping_t* mapping = path_list.push_front(to_prepend);
-        graph[get_id(to_prepend)].occurrences.push_back(mapping);
+        graph[get_internal_id(to_prepend)].occurrences.push_back(mapping);
         
         step_handle_t step;
         as_integers(step)[0] = as_integer(path);
@@ -523,7 +528,7 @@ namespace bdsg {
         for (path_mapping_t* mapping = begin; mapping != end;) {
             
             // remove this occurrence of the mapping from the occurrences index
-            auto& node_occurrences = graph[get_id(mapping->handle)].occurrences;
+            auto& node_occurrences = graph[get_internal_id(mapping->handle)].occurrences;
             for (size_t i = 0; i < node_occurrences.size(); ++i){
                 if (node_occurrences[i] == mapping) {
                     node_occurrences[i] = node_occurrences.back();
@@ -548,7 +553,7 @@ namespace bdsg {
         for (const handle_t& handle : new_segment) {
             
             path_mapping_t* mapping = path_list.insert_before(handle, end);
-            graph[get_id(handle)].occurrences.push_back(mapping);
+            graph[get_internal_id(handle)].occurrences.push_back(mapping);
             
             if (first_iter) {
                 as_integers(new_range.first)[1] = intptr_t(mapping);
@@ -582,7 +587,7 @@ namespace bdsg {
     }
 
     void HashGraph::increment_node_ids(nid_t increment) {
-        throw runtime_error("Not implemented");
+        id_offset += increment; 
     }
     
     HashGraph::path_t::path_t() {
@@ -778,7 +783,7 @@ namespace bdsg {
         return inserting;
     }
     
-    void HashGraph::path_t::serialize(ostream& out) const {
+    void HashGraph::path_t::serialize(ostream& out, nid_t id_offset) const {
         
         out.write((const char*) &is_circular, sizeof(is_circular) / sizeof(char));
         
@@ -797,7 +802,12 @@ namespace bdsg {
         bool first_iter = true;
         while (mapping && (first_iter || mapping != head)) { // extra condition for circular paths
             
-            int64_t step = endianness<int64_t>::to_big_endian(as_integer(mapping->handle));
+            // Apply the node ID offset to each handle
+            nid_t mapping_node_id = handlegraph::number_bool_packing::unpack_number(mapping->handle);
+            bool mapping_is_reverse = handlegraph::number_bool_packing::unpack_bit(mapping->handle);
+            handle_t offset_handle = handlegraph::number_bool_packing::pack(mapping_node_id + id_offset, mapping_is_reverse);
+            
+            int64_t step = endianness<int64_t>::to_big_endian(as_integer(offset_handle));
 
             out.write((const char*) &step, sizeof(step) / sizeof(char));
             mapping = mapping->next;
@@ -896,10 +906,10 @@ namespace bdsg {
     }
     
     void HashGraph::serialize(ostream& out) const {
-        nid_t max_id_out = endianness<nid_t>::to_big_endian(max_id);
+        nid_t max_id_out = endianness<nid_t>::to_big_endian(max_id +  id_offset);
         out.write((const char*) &max_id_out, sizeof(max_id_out) / sizeof(char));
         
-        nid_t min_id_out = endianness<nid_t>::to_big_endian(min_id);
+        nid_t min_id_out = endianness<nid_t>::to_big_endian(min_id + id_offset);
         out.write((const char*) &min_id_out, sizeof(min_id_out) / sizeof(char));
         
         int64_t next_path_id_out = endianness<int64_t>::to_big_endian(next_path_id);
@@ -909,7 +919,7 @@ namespace bdsg {
         out.write((const char*) &graph_size_out, sizeof(graph_size_out) / sizeof(char));
         
         for (const pair<nid_t, node_t>& node_record : graph) {
-            nid_t node_id_out = endianness<nid_t>::to_big_endian(node_record.first);
+            nid_t node_id_out = endianness<nid_t>::to_big_endian(node_record.first + id_offset);
             out.write((const char*) &node_id_out, sizeof(node_id_out) / sizeof(char));
             node_record.second.serialize(out);
         }
@@ -917,7 +927,7 @@ namespace bdsg {
         uint64_t paths_size_out = endianness<uint64_t>::to_big_endian(paths.size());
         out.write((const char*) &paths_size_out, sizeof(paths_size_out) / sizeof(char));
         for (const pair<int64_t, path_t>& path_record : paths) {
-            path_record.second.serialize(out);
+            path_record.second.serialize(out, id_offset);
         }
     }
     
@@ -970,7 +980,7 @@ namespace bdsg {
                  mapping != nullptr && (first_iter || mapping != path.head); // for circular paths
                  mapping = mapping->next) {
                 
-                graph[get_id(mapping->handle)].occurrences.push_back(mapping);
+                graph[get_internal_id(mapping->handle)].occurrences.push_back(mapping);
                 first_iter = false;
             }
         }
