@@ -408,6 +408,9 @@ private:
     /// Get ther internal ID of a handle which is its index into internal data structures.
     /// Does not have id_offset applied.
     nid_t get_internal_id(const handle_t& handle) const;
+    
+    /// Convert a handle from an internal handle to a real ID space, serializable handle.
+    handle_t apply_id_offset(const handle_t& internal) const;
 };
     
     
