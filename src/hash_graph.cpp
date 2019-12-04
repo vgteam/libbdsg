@@ -28,9 +28,9 @@ namespace bdsg {
     }
     
     handle_t HashGraph::create_handle(const string& sequence, const nid_t& id) {
-        graph[id] = node_t(sequence);
-        max_id = max(max_id, id);
-        min_id = min(min_id, id);
+        graph[id - id_offset] = node_t(sequence);
+        max_id = max(max_id, id - id_offset);
+        min_id = min(min_id, id - id_offset);
         return get_handle(id, false);
     }
     
@@ -106,11 +106,11 @@ namespace bdsg {
     }
     
     nid_t HashGraph::min_node_id(void) const {
-        return min_id;
+        return min_id + id_offset;
     }
     
     nid_t HashGraph::max_node_id(void) const {
-        return max_id;
+        return max_id + id_offset;
     }
     
     size_t HashGraph::get_degree(const handle_t& handle, bool go_left) const {
