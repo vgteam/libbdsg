@@ -296,6 +296,11 @@ public:
      * Add the given value to all node IDs
      */
     void increment_node_ids(nid_t increment);
+    
+    /**
+     * Reassign all node IDs as specified by the old->new mapping function.
+     */
+    void reassign_node_ids(const std::function<nid_t(const nid_t&)>& get_new_id);
 
 private:
     
@@ -412,6 +417,9 @@ private:
     
     /// Convert a handle from an internal handle to a real ID space, serializable handle.
     static handle_t apply_id_offset(const handle_t& internal, nid_t id_offset);
+    
+    /// Replace the ID in a handle with a different number
+    static handle_t set_id(const handle_t& internal, nid_t new_id);
 };
     
     

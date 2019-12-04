@@ -586,6 +586,67 @@ namespace bdsg {
         id_offset += increment; 
     }
     
+    void HashGraph::reassign_node_ids(const std::function<nid_t(const nid_t&)>& get_new_id) {
+        // We're going to have to move all the nodes to this new map.
+        hash_map<nid_t, node_t> new_graph;
+        
+        nid_t new_max_id = 0;
+        nid_t new_min_id = std::numeric_limits<nid_t>::max();
+        
+        // We also need to make sure to respect id_offset when calling the translation function.
+        auto it = graph.begin();
+        while (it != graph.end()) {
+            // For each node we have
+            auto& record = it->second;
+            
+            // Convert its ID
+            nid_t new_id = get_new_id(it->first + id_offset);
+            new_max_id = std::min(new_max_id, new_id);
+            new_min_id = std::min(new_min_id, new_id);
+            
+            // Set up a new record for it
+            auto& new_record = new_graph[new_id];
+            
+            // Move and copy to fill it
+            new_record.sequence = std::move(record.sequence);
+            new_record.left_edges.reserve(record.left_edges.size());
+            for (const handle_t& old_handle : record.left_edges) {
+                // Transform the IDs in all the handles for left edges
+                new_record.left_edges.emplace_back(set_id(old_handle, get_new_id(get_id(old_handle))));
+            }
+            for (const handle_t& old_handle : record.right_edges) {
+                // Transform the IDs in all the handles for right edges
+                new_record.right_edges.emplace_back(set_id(old_handle, get_new_id(get_id(old_handle))));
+            }
+            new_record.occurrences = std::move(record.occurrences);
+        
+            // Remove from old map
+            it = graph.erase(it);
+        }
+        
+        // Apply the new graph
+        graph = std::move(new_graph);
+        
+        // Now we just have to change the paths, in place, so we don't break occurrence pointers
+        for (auto& id_and_path : paths) {
+            // For each path
+            bool first_iter = true;
+            for (path_mapping_t* here = id_and_path.second.head;
+                here != nullptr && (first_iter || here != id_and_path.second.head);
+                here = here->next) {
+                
+                // For each mapping in the possibly circular linked list, transform the ID in the handle.
+                here->handle = set_id(here->handle, get_new_id(get_id(here->handle)));
+                first_iter = false;
+            }
+        }
+        
+        // Now apply the graph metadata (and zero the ID offset).
+        max_id = new_max_id;
+        min_id = new_min_id;
+        id_offset = 0;
+    }
+    
     HashGraph::path_t::path_t() {
         
     }
@@ -984,6 +1045,11 @@ namespace bdsg {
         nid_t node_id = handlegraph::number_bool_packing::unpack_number(internal);
         bool is_reverse = handlegraph::number_bool_packing::unpack_bit(internal);
         return handlegraph::number_bool_packing::pack(node_id + id_offset, is_reverse);
+    }
+    
+    handle_t HashGraph::set_id(const handle_t& internal, nid_t new_id) {
+        bool is_reverse = handlegraph::number_bool_packing::unpack_bit(internal);
+        return handlegraph::number_bool_packing::pack(new_id, is_reverse);
     }
     
 }
