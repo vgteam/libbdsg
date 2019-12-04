@@ -838,7 +838,7 @@ namespace bdsg {
         }
     }
     
-    void HashGraph::node_t::serialize(ostream& out) const {
+    void HashGraph::node_t::serialize(ostream& out, nid_t id_offset) const {
         
         uint64_t seq_size_out = endianness<uint64_t>::to_big_endian( sequence.size());
         out.write((const char*) &seq_size_out, sizeof(seq_size_out) / sizeof(char));
@@ -911,7 +911,7 @@ namespace bdsg {
         for (const pair<nid_t, node_t>& node_record : graph) {
             nid_t node_id_out = endianness<nid_t>::to_big_endian(node_record.first + id_offset);
             out.write((const char*) &node_id_out, sizeof(node_id_out) / sizeof(char));
-            node_record.second.serialize(out);
+            node_record.second.serialize(out, id_offset);
         }
         
         uint64_t paths_size_out = endianness<uint64_t>::to_big_endian(paths.size());

@@ -327,8 +327,9 @@ private:
         /// The occurrences of this node on paths;
         vector<path_mapping_t*> occurrences;
         
-        /// Write the node to an out stream
-        void serialize(ostream& out) const;
+        /// Write the node to an out stream, applying the given ID offset to
+        /// nodes referenced by edges.
+        void serialize(ostream& out, nid_t id_offset = 0) const;
         /// Read the node (in the format written by serialize()) from an in stream.
         void deserialize(istream& in);
     };
