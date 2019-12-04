@@ -407,7 +407,7 @@ private:
     
     /// Get ther internal ID of a handle which is its index into internal data structures.
     /// Does not have id_offset applied.
-    nid_t HashGraph::get_internal_id(const handle_t& handle) const;
+    nid_t get_internal_id(const handle_t& handle) const;
 };
     
     
