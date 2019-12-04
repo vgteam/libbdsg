@@ -797,7 +797,7 @@ namespace bdsg {
         path_mapping_t* mapping = head;
         bool first_iter = true;
         while (mapping && (first_iter || mapping != head)) { // extra condition for circular paths
-            int64_t step = endianness<int64_t>::to_big_endian(as_integer(apply_id_offset(mapping->handle)));
+            int64_t step = endianness<int64_t>::to_big_endian(as_integer(apply_id_offset(mapping->handle, id_offset)));
 
             out.write((const char*) &step, sizeof(step) / sizeof(char));
             mapping = mapping->next;
@@ -847,14 +847,14 @@ namespace bdsg {
         uint64_t left_edges_size_out = endianness<uint64_t>::to_big_endian(left_edges.size());
         out.write((const char*) &left_edges_size_out, sizeof(left_edges_size_out) / sizeof(char));
         for (size_t i = 0; i < left_edges.size(); i++) {
-        
+            int64_t next_out = endianness<int64_t>::to_big_endian(as_integer(apply_id_offset(left_edges[i], id_offset))); 
             out.write((const char*) &next_out, sizeof(next_out) / sizeof(char));
         }
         
         uint64_t right_edges_size_out = endianness<uint64_t>::to_big_endian(right_edges.size());
         out.write((const char*) &right_edges_size_out, sizeof(right_edges_size_out) / sizeof(char));
         for (size_t i = 0; i < right_edges.size(); i++) {
-            int64_t next_out = endianness<int64_t>::to_big_endian(as_integer(right_edges[i]));
+            int64_t next_out = endianness<int64_t>::to_big_endian(as_integer(apply_id_offset(right_edges[i], id_offset)));
             out.write((const char*) &next_out, sizeof(next_out) / sizeof(char));
         }
         
@@ -980,7 +980,7 @@ namespace bdsg {
         return handlegraph::number_bool_packing::unpack_number(handle);
     }
     
-    handle_t HashGraph::apply_id_offset(const handle_t& internal) const {
+    handle_t HashGraph::apply_id_offset(const handle_t& internal, nid_t id_offset) const {
         nid_t node_id = handlegraph::number_bool_packing::unpack_number(internal);
         bool is_reverse = handlegraph::number_bool_packing::unpack_bit(internal);
         return handlegraph::number_bool_packing::pack(node_id + id_offset, is_reverse);

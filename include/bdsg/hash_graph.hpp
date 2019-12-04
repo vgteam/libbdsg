@@ -410,7 +410,7 @@ private:
     nid_t get_internal_id(const handle_t& handle) const;
     
     /// Convert a handle from an internal handle to a real ID space, serializable handle.
-    handle_t apply_id_offset(const handle_t& internal) const;
+    static handle_t apply_id_offset(const handle_t& internal, nid_t id_offset) const;
 };
     
     
