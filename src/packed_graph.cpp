@@ -1844,6 +1844,10 @@ namespace bdsg {
     void PackedGraph::increment_node_ids(nid_t increment) {
         throw runtime_error("Not implemented");
     }
+    
+    void PackedGraph::reassign_node_ids(const std::function<nid_t(const nid_t&)>& get_new_id) {
+        throw runtime_error("Not implemented");
+    }
 
     void PackedGraph::report_memory(ostream& out, bool individual_paths) const {
         size_t grand_total = 0;

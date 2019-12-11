@@ -296,6 +296,11 @@ public:
      * Add the given value to all node IDs
      */
     void increment_node_ids(nid_t increment);
+    
+    /**
+     * Reassign all node IDs as specified by the old->new mapping function.
+     */
+    void reassign_node_ids(const std::function<nid_t(const nid_t&)>& get_new_id);
 
 private:
     
