@@ -106,6 +106,9 @@ namespace bdsg {
         sdsl::write_member(deleted_node_records, out);
         sdsl::write_member(deleted_edge_records, out);
         sdsl::write_member(deleted_membership_records, out);
+        sdsl::write_member(deleted_bases, out);
+        sdsl::write_member(reversing_self_edge_records, out);
+        sdsl::write_member(deleted_reversing_self_edge_records, out);
     }
     
     void PackedGraph::deserialize(istream& in) {
@@ -157,6 +160,9 @@ namespace bdsg {
         sdsl::read_member(deleted_node_records, in);
         sdsl::read_member(deleted_edge_records, in);
         sdsl::read_member(deleted_membership_records, in);
+        sdsl::read_member(deleted_bases, in);
+        sdsl::read_member(reversing_self_edge_records, in);
+        sdsl::read_member(deleted_reversing_self_edge_records, in);
     }
     
     size_t PackedGraph::new_node_record(nid_t node_id) {
@@ -250,6 +256,7 @@ namespace bdsg {
         
         // don't double add a reversing self edge
         if (g_iv_left == g_iv_right) {
+            ++reversing_self_edge_records;
             return;
         }
         
@@ -406,6 +413,15 @@ namespace bdsg {
             return true;
         }
         
+    }
+
+    size_t PackedGraph::get_edge_count() const {
+        // each edge (except reversing self edges) are stored twice in the edge vector
+        return ((edge_lists_iv.size() / EDGE_RECORD_SIZE) + reversing_self_edge_records) / 2 - deleted_edge_records;
+    }
+
+    size_t PackedGraph::get_total_length() const {
+        return seq_iv.size() - deleted_bases;
     }
     
     char PackedGraph::get_base(const handle_t& handle, size_t index) const {
@@ -676,6 +692,8 @@ namespace bdsg {
     
     void PackedGraph::destroy_handle(const handle_t& handle) {
         
+        deleted_bases += get_length(handle);
+        
         // remove the back-references to the edges
         follow_edges(handle, false, [&](const handle_t& next) {
             remove_edge_reference(flip(next), flip(handle));
@@ -683,6 +701,9 @@ namespace bdsg {
             // we don't actually bother removing the reference, but we will also consider
             // the edge on the deleting node to be deleted and hence count it up here
             ++deleted_edge_records;
+            if (next == flip(handle)) {
+                ++deleted_reversing_self_edge_records;
+            }
             return true;
         });
         follow_edges(handle, true, [&](const handle_t& prev) {
@@ -692,6 +713,9 @@ namespace bdsg {
             // we don't actually bother removing the reference, but we will also consider
             // the edge on the deleting node to be deleted and hence count it up here
             ++deleted_edge_records;
+            if (prev == flip(handle)) {
+                ++deleted_reversing_self_edge_records;
+            }
             return true;
         });
         
@@ -735,11 +759,17 @@ namespace bdsg {
                               get_next_edge_index(edge_list_idx));
         }
         ++deleted_edge_records;
+        if (on == flip(to)) {
+            ++deleted_reversing_self_edge_records;
+        }
     }
     
     void PackedGraph::destroy_edge(const handle_t& left, const handle_t& right) {
         remove_edge_reference(left, right);
-        remove_edge_reference(flip(right), flip(left));
+        if (left != flip(right)) {
+            // this edge is a reversing self edge, so it only has one reference
+            remove_edge_reference(flip(right), flip(left));
+        }
         defragment();
     }
     
@@ -1076,12 +1106,8 @@ namespace bdsg {
         // replace the old one
         nid_to_graph_iv = std::move(new_nid_to_graph_iv);
         
-        // count up the total length of all non-deleted sequence (a little costly but we're
-        // not tracking deleted sequence anywhere)
-        size_t total_seq_len = 0;
-        for (size_t i = 0; i < seq_length_iv.size(); i += SEQ_LENGTH_RECORD_SIZE) {
-            total_seq_len += seq_length_iv.get(i);
-        }
+        // count up the total length of all non-deleted sequence
+        size_t total_seq_len = seq_iv.size() - deleted_bases;
         
         // make a new seq_iv of exactly the right size
         PackedVector new_seq_iv;
@@ -1101,6 +1127,7 @@ namespace bdsg {
         }
         // replace the old seq iv
         seq_iv = std::move(new_seq_iv);
+        deleted_bases = 0;
     }
     
     void PackedGraph::defragment(bool force) {
@@ -1201,6 +1228,8 @@ namespace bdsg {
             edge_lists_iv = std::move(new_edge_lists_iv);
             
             deleted_edge_records = 0;
+            reversing_self_edge_records -= deleted_reversing_self_edge_records;
+            deleted_reversing_self_edge_records = 0;
         }
         
         if (deleted_membership_records > defrag_factor * (path_membership_next_iv.size() / MEMBERSHIP_NEXT_RECORD_SIZE) || force) {
@@ -1317,6 +1346,9 @@ namespace bdsg {
         deleted_edge_records = 0;
         deleted_node_records = 0;
         deleted_membership_records = 0;
+        deleted_bases = 0;
+        reversing_self_edge_records = 0;
+        deleted_reversing_self_edge_records = 0;
     }
     
     bool PackedGraph::has_path(const std::string& path_name) const {

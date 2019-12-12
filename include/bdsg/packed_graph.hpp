@@ -82,6 +82,14 @@ public:
     /// order is not defined.
     bool for_each_handle_impl(const std::function<bool(const handle_t&)>& iteratee, bool parallel = false) const;
     
+    /// Return the total number of edges in the graph. If not overridden,
+    /// counts them all in linear time.
+    size_t get_edge_count() const;
+    
+    /// Return the total length of all nodes in the graph, in bp. If not
+    /// overridden, loops over all nodes in linear time.
+    size_t get_total_length() const;
+    
     /// Returns one base of a handle's sequence, in the orientation of the
     /// handle.
     char get_base(const handle_t& handle, size_t index) const;
@@ -536,6 +544,9 @@ private:
     uint64_t deleted_node_records = 0;
     uint64_t deleted_edge_records = 0;
     uint64_t deleted_membership_records = 0;
+    uint64_t deleted_bases = 0;
+    uint64_t reversing_self_edge_records = 0;
+    uint64_t deleted_reversing_self_edge_records = 0;
     
 public:
     
