@@ -211,8 +211,7 @@ namespace bdsg {
         
         if (id >= min_id && id < min_id + nid_to_graph_iv.size()) {
             if (nid_to_graph_iv.get(id - min_id) != 0) {
-                cerr << "error:[PackedGraph] tried to create a node with ID " << id << ", but this ID already belongs to a different node" << endl;
-                exit(1);
+                throw std::runtime_error("error:[PackedGraph] tried to create a node with ID " + std::to_string(id) + ", but this ID already belongs to a different node");
             }
         }
         
@@ -1025,7 +1024,9 @@ namespace bdsg {
     
     void PackedGraph::compact_ids(const vector<handle_t>& order) {
         
-        assert(order.size() == get_node_count());
+        if (order.size() != get_node_count()) {
+            throw std::runtime_error("error:[PackedGraph] attempted to compact node IDs according to an incomplete ordering of the nodes");
+        }
         
         // use the layout to make a translator between current IDs and the IDs we will reassign
         PagedVector nid_trans(NARROW_PAGE_WIDTH);
@@ -1034,52 +1035,13 @@ namespace bdsg {
             nid_trans.set(get_id(order[i]) - min_id, i + 1);
         }
         
-        // update the node IDs of edges
-        for (size_t i = EDGE_TRAV_OFFSET; i < edge_lists_iv.size(); i += EDGE_RECORD_SIZE) {
-            handle_t trav = decode_traversal(edge_lists_iv.get(i));
-            // only translate edges to nodes that have not been deleted
-            if (nid_to_graph_iv.get(get_id(trav) - min_id)) {
-                trav = get_handle(nid_trans.get(get_id(trav) - min_id), get_is_reverse(trav));
-                edge_lists_iv.set(i, encode_traversal(trav));
-            }
-        }
+        // for safety, let's copy this in case it's modified during reassignment
+        nid_t pre_assignment_min_id = min_id;
         
-        // update the node IDs of steps on paths
-        for (size_t i = 0; i < paths.size(); ++i){
-            
-            if (path_is_deleted_iv.get(i)) {
-                continue;
-            }
-            
-            PackedPath& packed_path = paths[i];
-            
-            for (size_t j = 0; j < packed_path.steps_iv.size(); j += STEP_RECORD_SIZE) {
-                handle_t trav = decode_traversal(packed_path.steps_iv.get(j));
-                // only translate step records of nodes that have not been deleted
-                if (nid_to_graph_iv.get(get_id(trav) - min_id)) {
-                    trav = get_handle(nid_trans.get(get_id(trav) - min_id), get_is_reverse(trav));
-                    packed_path.steps_iv.set(j, encode_traversal(trav));
-                }
-            }
-        }
-        
-        // make a vector to translate the new IDs to the offset of the node
-        PackedDeque new_nid_to_graph_iv;
-        new_nid_to_graph_iv.reserve(get_node_count());
-        for (const handle_t& handle : order) {
-            new_nid_to_graph_iv.append_back(nid_to_graph_iv.get(get_id(handle) - min_id));
-        }
-        
-        nid_to_graph_iv = move(new_nid_to_graph_iv);
-        
-        if (new_nid_to_graph_iv.size() > 0) {
-            min_id = 1;
-            max_id = nid_to_graph_iv.size();
-        }
-        else {
-            min_id = numeric_limits<nid_t>::max();
-            max_id = 0;
-        }
+        // reassign the node IDs according to the order
+        reassign_node_ids([&](const nid_t& node_id) {
+            return nid_trans.get(node_id - pre_assignment_min_id);
+        });
     }
     
     void PackedGraph::tighten() {
@@ -1715,8 +1677,7 @@ namespace bdsg {
                                                                     const vector<handle_t>& new_segment) {
         
         if (get_path_handle_of_step(segment_begin) != get_path_handle_of_step(segment_end)) {
-            cerr << "error:[PackedGraph] attempted to rewrite a path segment delimited by steps on two different paths" << endl;
-            exit(1);
+            throw std::runtime_error("error:[PackedGraph] attempted to rewrite a path segment delimited by steps on two different paths");
         }
         
         size_t path_idx = as_integers(segment_begin)[0];
@@ -1880,17 +1841,47 @@ namespace bdsg {
     
     void PackedGraph::reassign_node_ids(const std::function<nid_t(const nid_t&)>& get_new_id) {
         
-        // initialize new ID variables
+        // update the node IDs of edges
+        for (size_t i = EDGE_TRAV_OFFSET; i < edge_lists_iv.size(); i += EDGE_RECORD_SIZE) {
+            handle_t trav = decode_traversal(edge_lists_iv.get(i));
+            // only translate edges to nodes that have not been deleted
+            if (nid_to_graph_iv.get(get_id(trav) - min_id)) {
+                trav = get_handle(get_new_id(get_id(trav)), get_is_reverse(trav));
+                edge_lists_iv.set(i, encode_traversal(trav));
+            }
+        }
+        
+        // update the node IDs of steps on paths
+        for (size_t i = 0; i < paths.size(); ++i){
+            
+            if (path_is_deleted_iv.get(i)) {
+                continue;
+            }
+            
+            PackedPath& packed_path = paths[i];
+            
+            for (size_t j = 0; j < packed_path.steps_iv.size(); j += STEP_RECORD_SIZE) {
+                handle_t trav = decode_traversal(packed_path.steps_iv.get(j));
+                // only translate step records of nodes that have not been deleted
+                if (nid_to_graph_iv.get(get_id(trav) - min_id)) {
+                    trav = get_handle(get_new_id(get_id(trav)), get_is_reverse(trav));
+                    packed_path.steps_iv.set(j, encode_traversal(trav));
+                }
+            }
+        }
+        
+        // initialize new ID member variables
         nid_t new_max_id = 0;
         nid_t new_min_id = std::numeric_limits<nid_t>::max();
         PackedDeque new_nid_to_graph_iv;
-        
+        new_nid_to_graph_iv.reserve(get_node_count());
+
         for (size_t i = 0; i < nid_to_graph_iv.size(); ++i) {
             if (nid_to_graph_iv.get(i) != 0) {
                 // there is a node with this ID
-                
+
                 nid_t new_id = get_new_id(min_id + i);
-                
+
                 // expand the new ID vector as necessary
                 if (new_nid_to_graph_iv.empty()) {
                     new_nid_to_graph_iv.append_back(0);
@@ -1907,12 +1898,12 @@ namespace bdsg {
                 // update the min and max ID
                 new_max_id = std::max(new_id, new_max_id);
                 new_min_id = std::min(new_id, new_min_id);
-                
+
                 // copy the value of the old ID vector over
                 new_nid_to_graph_iv.set(new_id - new_min_id, nid_to_graph_iv.get(i));
             }
         }
-        
+
         // replace the old ID variables
         min_id = new_min_id;
         max_id = new_max_id;
