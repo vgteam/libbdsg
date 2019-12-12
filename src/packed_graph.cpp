@@ -1874,11 +1874,49 @@ namespace bdsg {
     }
 
     void PackedGraph::increment_node_ids(nid_t increment) {
-        throw runtime_error("Not implemented");
+        min_id += increment;
+        max_id += increment;
     }
     
     void PackedGraph::reassign_node_ids(const std::function<nid_t(const nid_t&)>& get_new_id) {
-        throw runtime_error("Not implemented");
+        
+        // initialize new ID variables
+        nid_t new_max_id = 0;
+        nid_t new_min_id = std::numeric_limits<nid_t>::max();
+        PackedDeque new_nid_to_graph_iv;
+        
+        for (size_t i = 0; i < nid_to_graph_iv.size(); ++i) {
+            if (nid_to_graph_iv.get(i) != 0) {
+                // there is a node with this ID
+                
+                nid_t new_id = get_new_id(min_id + i);
+                
+                // expand the new ID vector as necessary
+                if (new_nid_to_graph_iv.empty()) {
+                    new_nid_to_graph_iv.append_back(0);
+                }
+                else {
+                    for (int64_t j = new_id; j < new_min_id; ++j) {
+                        new_nid_to_graph_iv.append_front(0);
+                    }
+                    for (int64_t j = nid_to_graph_iv.size(); j <= new_id - new_min_id; ++j) {
+                        new_nid_to_graph_iv.append_back(0);
+                    }
+                }
+
+                // update the min and max ID
+                new_max_id = std::max(new_id, new_max_id);
+                new_min_id = std::min(new_id, new_min_id);
+                
+                // copy the value of the old ID vector over
+                new_nid_to_graph_iv.set(new_id - new_min_id, nid_to_graph_iv.get(i));
+            }
+        }
+        
+        // replace the old ID variables
+        min_id = new_min_id;
+        max_id = new_max_id;
+        nid_to_graph_iv = move(new_nid_to_graph_iv);
     }
 
     void PackedGraph::report_memory(ostream& out, bool individual_paths) const {
