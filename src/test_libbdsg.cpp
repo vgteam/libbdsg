@@ -2009,7 +2009,7 @@ void test_packed_graph() {
             check_path(graph, p, flipped);
         }
     };
-    
+        
     // defragmentation
     {
         PackedGraph graph;
@@ -2260,7 +2260,6 @@ void test_packed_graph() {
         graph.destroy_handle(h2);
         // reallocate and compress down to the smaller size, reassigning IDs
         graph.optimize(true);
-        
         set<nid_t> seen_ids;
         
         int count = 0;

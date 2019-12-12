@@ -329,7 +329,7 @@ public:
     /// The mapping function may return 0. In this case, the input ID will
     /// remain unchanged. The mapping function should not return any ID for
     /// which it would return 0.
-    void reassign_node_ids(const std::function<nid_t(const nid_t&)>& get_new_id)
+    void reassign_node_ids(const std::function<nid_t(const nid_t&)>& get_new_id);
     
     ////////////////////////////////////////////////////////////////////////////
     // MutablePathHandleGraph interface

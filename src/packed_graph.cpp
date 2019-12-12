@@ -1890,11 +1890,11 @@ namespace bdsg {
                     for (int64_t j = new_id; j < new_min_id; ++j) {
                         new_nid_to_graph_iv.append_front(0);
                     }
-                    for (int64_t j = nid_to_graph_iv.size(); j <= new_id - new_min_id; ++j) {
+                    for (int64_t j = new_nid_to_graph_iv.size(); j <= new_id - new_min_id; ++j) {
                         new_nid_to_graph_iv.append_back(0);
                     }
                 }
-
+                
                 // update the min and max ID
                 new_max_id = std::max(new_id, new_max_id);
                 new_min_id = std::min(new_id, new_min_id);
