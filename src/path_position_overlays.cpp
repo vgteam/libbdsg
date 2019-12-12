@@ -298,6 +298,18 @@ namespace bdsg {
         // no-op
     }
     
+    void MutablePositionOverlay::increment_node_ids(nid_t increment) {
+        // this can invalidate step handles, so there's no real option except to reindex completely
+        get_graph()->increment_node_ids(increment);
+        reindex_path_position();
+    }
+
+    void MutablePositionOverlay::reassign_node_ids(const std::function<nid_t(const nid_t&)>& get_new_id) {
+        // this can invalidate step handles, so there's no real option except to reindex completely
+        get_graph()->reassign_node_ids(get_new_id);
+        reindex_path_position();
+    }
+
     void MutablePositionOverlay::destroy_path(const path_handle_t& path) {
         
         // erase the path's indexes

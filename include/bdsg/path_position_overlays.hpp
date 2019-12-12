@@ -318,6 +318,19 @@ public:
     /// No-op function (required by MutableHandleGraph interface)
     void set_id_increment(const nid_t& min_id);
     
+    /// Add the given value to all node IDs.
+    /// Has a default implementation in terms of reassign_node_ids, but can be
+    /// implemented more efficiently in some graphs.
+    void increment_node_ids(nid_t increment);
+    
+    /// Renumber all node IDs using the given function, which, given an old ID, returns the new ID.
+    /// Modifies the graph in place. Invalidates all outstanding handles.
+    /// If the graph supports paths, they also must be updated.
+    /// The mapping function may return 0. In this case, the input ID will
+    /// remain unchanged. The mapping function should not return any ID for
+    /// which it would return 0.
+    void reassign_node_ids(const std::function<nid_t(const nid_t&)>& get_new_id);
+    
     ////////////////////////////////////////////////////////////////////////////
     // MutablePathHandleGraph interface
     ////////////////////////////////////////////////////////////////////////////
