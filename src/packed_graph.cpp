@@ -1835,8 +1835,9 @@ namespace bdsg {
     }
 
     void PackedGraph::increment_node_ids(nid_t increment) {
-        min_id += increment;
-        max_id += increment;
+        reassign_node_ids([&](const nid_t& node_id) {
+            return node_id + increment;
+        });
     }
     
     void PackedGraph::reassign_node_ids(const std::function<nid_t(const nid_t&)>& get_new_id) {
