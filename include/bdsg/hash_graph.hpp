@@ -9,6 +9,7 @@
 #define BDSG_HASH_GRAPH_HPP_INCLUDED
 
 #include <handlegraph/mutable_path_deletable_handle_graph.hpp>
+#include <handlegraph/serializable_handle_graph.hpp>
 
 #include "bdsg/hash_map.hpp"
 #include "bdsg/utility.hpp"
@@ -33,11 +34,15 @@ public:
     /// Deserialize from a stream of data
     HashGraph(istream& in);
     
-    /// Write the graph to an out stream.
-    void serialize(ostream& out) const;
+private:
     
-    /// Read the graph (in the format written by serialize()) from an in stream.
-    void deserialize(istream& in);
+    /// Write the graph to an out stream (called from the inherited 'serialize'  method)
+    void serialize_impl(ostream& out) const;
+    
+    /// Read the graph from an in stream (called from the inherited 'deserialize'  method)
+    void deserialize_impl(istream& in);
+    
+public:
     
     ////////////////////////////////////////////////////////////////////////////
     // Handle methods
@@ -302,6 +307,13 @@ public:
      */
     void reassign_node_ids(const std::function<nid_t(const nid_t&)>& get_new_id);
 
+    ////////////////////////////////////////////////////////////////////////////
+    // I/O helper function
+    ////////////////////////////////////////////////////////////////////////////
+    
+    /// Returns a static high-entropy number to indicate the class
+    uint64_t get_magic_number() const;
+    
 private:
     
     

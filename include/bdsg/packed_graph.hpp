@@ -11,6 +11,7 @@
 #include <utility>
 
 #include <handlegraph/mutable_path_deletable_handle_graph.hpp>
+#include <handlegraph/serializable_handle_graph.hpp>
 
 #include "bdsg/packed_structs.hpp"
 #include "bdsg/split_strand_graph.hpp"
@@ -39,11 +40,15 @@ public:
     /// Construct from a stream
     PackedGraph(istream& in);
     
-    /// Output to a stream
-    void serialize(ostream& out) const;
+private:
     
-    /// Load contents from a stream and replace current contents
-    void deserialize(istream& in);
+    /// Write the graph to an out stream (called from the inherited 'serialize'  method)
+    void serialize_impl(ostream& out) const;
+    
+    /// Read the graph from an in stream (called from the inherited 'deserialize'  method)
+    void deserialize_impl(istream& in);
+    
+public:
     
     ////////////////////////////////////////////////////////////////////////////
     // HandleGraph interface
@@ -310,6 +315,13 @@ public:
      */
     void reassign_node_ids(const std::function<nid_t(const nid_t&)>& get_new_id);
 
+    ////////////////////////////////////////////////////////////////////////////
+    // I/O helper function
+    ////////////////////////////////////////////////////////////////////////////
+    ///
+    /// Returns a static high-entropy number to indicate the class
+    uint64_t get_magic_number() const;
+    
 private:
     
     // Forward declaration so we can use it as an argument to methods
