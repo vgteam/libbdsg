@@ -1037,8 +1037,8 @@ namespace bdsg {
         }
     }
 
-    uint64_t HashGraph::get_magic_number() const {
-        return 5374646450303776071ull;
+    uint32_t HashGraph::get_magic_number() const {
+        return 676155192ul;
     }
     
     nid_t HashGraph::get_internal_id(const handle_t& handle) const {

@@ -6,6 +6,18 @@
 
 namespace bdsg {
 
+void ODGI::serialize_impl(std::ostream& out) const {
+    serialize_and_measure(out);
+}
+
+void ODGI::deserialize_impl(std::istream& in) {
+    load(in);
+}
+
+uint32_t ODGI::get_magic_number() const {
+    return 2880272692ul;
+}
+
 /// Method to check if a node exists by ID
 bool ODGI::has_node(nid_t node_id) const {
     uint64_t rank = get_node_rank(node_id);
@@ -1383,7 +1395,7 @@ void ODGI::to_gfa(std::ostream& out) const {
         });
 }
 
-uint64_t ODGI::serialize(std::ostream& out) {
+uint64_t ODGI::serialize_and_measure(std::ostream& out) const {
     //rebuild_id_handle_mapping();
     uint64_t written = 0;
     out.write((char*)&_max_node_id,sizeof(_max_node_id));

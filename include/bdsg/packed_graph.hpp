@@ -318,9 +318,9 @@ public:
     ////////////////////////////////////////////////////////////////////////////
     // I/O helper function
     ////////////////////////////////////////////////////////////////////////////
-    ///
+
     /// Returns a static high-entropy number to indicate the class
-    uint64_t get_magic_number() const;
+    uint32_t get_magic_number() const;
     
 private:
     

@@ -165,8 +165,8 @@ namespace bdsg {
         sdsl::read_member(deleted_reversing_self_edge_records, in);
     }
 
-    uint64_t PackedGraph::get_magic_number() const {
-        return 13977948028453062949ull;
+    uint32_t PackedGraph::get_magic_number() const {
+        return 3080648541ul;
     }
     
     size_t PackedGraph::new_node_record(nid_t node_id) {
