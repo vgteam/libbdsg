@@ -70,7 +70,7 @@ namespace bdsg {
         
     }
     
-    void PackedGraph::serialize_impl(ostream& out) const {
+    void PackedGraph::serialize_members(ostream& out) const {
         sdsl::write_member(max_id, out);
         sdsl::write_member(min_id, out);
         
@@ -111,7 +111,7 @@ namespace bdsg {
         sdsl::write_member(deleted_reversing_self_edge_records, out);
     }
     
-    void PackedGraph::deserialize_impl(istream& in) {
+    void PackedGraph::deserialize_members(istream& in) {
         sdsl::read_member(max_id, in);
         sdsl::read_member(min_id, in);
         

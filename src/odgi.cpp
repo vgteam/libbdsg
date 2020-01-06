@@ -6,11 +6,11 @@
 
 namespace bdsg {
 
-void ODGI::serialize_impl(std::ostream& out) const {
+void ODGI::serialize_members(std::ostream& out) const {
     serialize_and_measure(out);
 }
 
-void ODGI::deserialize_impl(std::istream& in) {
+void ODGI::deserialize_members(std::istream& in) {
     load(in);
 }
 

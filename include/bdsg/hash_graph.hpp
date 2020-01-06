@@ -37,10 +37,10 @@ public:
 private:
     
     /// Write the graph to an out stream (called from the inherited 'serialize'  method)
-    void serialize_impl(ostream& out) const;
+    void serialize_members(ostream& out) const;
     
     /// Read the graph from an in stream (called from the inherited 'deserialize'  method)
-    void deserialize_impl(istream& in);
+    void deserialize_members(istream& in);
     
 public:
     

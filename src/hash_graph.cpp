@@ -956,7 +956,7 @@ namespace bdsg {
         }
     }
     
-    void HashGraph::serialize_impl(ostream& out) const {
+    void HashGraph::serialize_members(ostream& out) const {
         nid_t max_id_out = endianness<nid_t>::to_big_endian(max_id +  id_offset);
         out.write((const char*) &max_id_out, sizeof(max_id_out) / sizeof(char));
         
@@ -982,7 +982,7 @@ namespace bdsg {
         }
     }
     
-    void HashGraph::deserialize_impl(istream& in) {
+    void HashGraph::deserialize_members(istream& in) {
         clear();
         
         nid_t max_id_in;

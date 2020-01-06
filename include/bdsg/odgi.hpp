@@ -51,10 +51,10 @@ public:
 private:
     
     /// Serialization that implements the inherited "serialze" method
-    void serialize_impl(std::ostream& out) const;
+    void serialize_members(std::ostream& out) const;
     
     /// Deserialization that implements the inherited "deserialze" method
-    void deserialize_impl(std::istream& in);
+    void deserialize_members(std::istream& in);
 
 public:
     
