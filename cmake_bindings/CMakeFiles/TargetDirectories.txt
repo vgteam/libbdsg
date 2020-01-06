@@ -1,0 +1,3 @@
+/home/ctcisar/git/libbdsg-easy/deps/libbdsg/cmake_bindings/CMakeFiles/rebuild_cache.dir
+/home/ctcisar/git/libbdsg-easy/deps/libbdsg/cmake_bindings/CMakeFiles/bdsg.dir
+/home/ctcisar/git/libbdsg-easy/deps/libbdsg/cmake_bindings/CMakeFiles/edit_cache.dir

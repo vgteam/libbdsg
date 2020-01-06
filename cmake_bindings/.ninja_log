@@ -1,0 +1,24 @@
+# ninja log v5
+0	10673	1576875032	CMakeFiles/bdsg.dir/bdsg.o	ec227593067e8ed2
+3	12541	1576875034	CMakeFiles/bdsg.dir/std/postypes.o	c701940455172827
+6	13613	1576875035	CMakeFiles/bdsg.dir/handlegraph/types.o	5547173efed4c63b
+20	17026	1576875039	CMakeFiles/bdsg.dir/std/ostream_tcc.o	c33a8e4c8cc3e240
+31	19359	1576875041	CMakeFiles/bdsg.dir/handlegraph/handle_graph.o	d501061ad725f001
+10	20921	1576875043	CMakeFiles/bdsg.dir/std/locale_classes.o	e11c13d43cec2fe6
+10752	21021	1576875043	CMakeFiles/bdsg.dir/bdsg/is_single_stranded.o	86596e3350fdb389
+17059	26836	1576875048	CMakeFiles/bdsg.dir/bdsg/wang_hash.o	111b304e498932e3
+13661	26975	1576875049	CMakeFiles/bdsg.dir/handlegraph/deletable_handle_graph.o	4be1dc7eedb0188f
+21072	33123	1576875055	CMakeFiles/bdsg.dir/bdsg/varint.o	dd22a1e6640215e3
+12582	35268	1576875057	CMakeFiles/bdsg.dir/handlegraph/path_handle_graph.o	e646359aa5331c69
+26875	39600	1576875061	CMakeFiles/bdsg.dir/bdsg/varint_1.o	a48e297d2eaf9a3f
+19400	43241	1576875065	CMakeFiles/bdsg.dir/bdsg/packed_structs.o	f43f15d43eb1b1f0
+33157	48732	1576875070	CMakeFiles/bdsg.dir/handlegraph/expanding_overlay_graph.o	f2c174dbb96f4552
+20947	49898	1576875072	CMakeFiles/bdsg.dir/bdsg/utility.o	681e2585863d75c6
+39637	55376	1576875077	CMakeFiles/bdsg.dir/handlegraph/path_position_handle_graph.o	f164226ad7975f1e
+35307	64515	1576875086	CMakeFiles/bdsg.dir/bdsg/split_strand_graph.o	713579a720ddda4b
+27008	66234	1576875088	CMakeFiles/bdsg.dir/bdsg/node.o	9f50cf05a40fbd8e
+43276	66667	1576875088	CMakeFiles/bdsg.dir/bdsg/packed_path_position_overlays.o	72ac2adf8eef0b3b
+48792	70672	1576875092	CMakeFiles/bdsg.dir/bdsg/path_position_overlays.o	8235423a0f8121a1
+49933	71119	1576875093	CMakeFiles/bdsg.dir/bdsg/vectorizable_overlays.o	f97e0f6b7a3122bd
+55400	71154	1576875093	CMakeFiles/bdsg.dir/bdsg/vectorizable_overlays_1.o	b163ce093b59418a
+71154	74757	1576875096	bdsg.so	f3051e408b432bd3
