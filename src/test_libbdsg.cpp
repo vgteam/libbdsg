@@ -25,6 +25,62 @@ using namespace bdsg;
 using namespace handlegraph;
 using namespace std;
 
+void test_serializable_handle_graphs() {
+    
+    vector<pair<SerializableHandleGraph*, SerializableHandleGraph*>> implementations;
+    
+    PackedGraph pg_out, pg_in;
+    implementations.emplace_back(&pg_out, &pg_in);
+    
+    HashGraph hg_out, hg_in;
+    implementations.emplace_back(&hg_out, &hg_in);
+    
+    ODGI og_out, og_in;
+    implementations.emplace_back(&og_out, &og_in);
+        
+    for (pair<SerializableHandleGraph*, SerializableHandleGraph*> implementation : implementations) {
+        
+        MutablePathMutableHandleGraph* build_graph = dynamic_cast<MutablePathMutableHandleGraph*>(implementation.first);
+        PathHandleGraph* check_graph = dynamic_cast<PathHandleGraph*>(implementation.second);
+        SerializableHandleGraph* serialize_graph = implementation.first;
+        SerializableHandleGraph* deserialize_graph = implementation.second;
+        
+        handle_t h1 = build_graph->create_handle("GATT");
+        handle_t h2 = build_graph->create_handle("TTGA");
+        handle_t h3 = build_graph->create_handle("T");
+        handle_t h4 = build_graph->create_handle("CA");
+        
+        build_graph->create_edge(h1, h2);
+        build_graph->create_edge(h1, build_graph->flip(h3));
+        build_graph->create_edge(h2, h3);
+        build_graph->create_edge(build_graph->flip(h3), h4);
+        
+        path_handle_t p = build_graph->create_path_handle("path");
+        build_graph->append_step(p, h1);
+        build_graph->append_step(p, h2);
+        build_graph->append_step(p, h4);
+        
+        stringstream strm;
+        
+        serialize_graph->serialize(strm);
+        strm.seekg(0);
+        deserialize_graph->deserialize(strm);
+        
+        assert(build_graph->get_node_count() == check_graph->get_node_count());
+        assert(build_graph->get_edge_count() == check_graph->get_edge_count());
+        assert(build_graph->get_path_count() == check_graph->get_path_count());
+        
+        for (handle_t h : {h1, h2, h3, h4}) {
+            assert(check_graph->has_node(build_graph->get_id(h)));
+            assert(check_graph->get_sequence(check_graph->get_handle(build_graph->get_id(h))) == build_graph->get_sequence(h));
+        }
+        
+        assert(check_graph->get_step_count(check_graph->get_path_handle(build_graph->get_path_name(p))) == build_graph->get_step_count(p));
+    }
+    
+    cerr << "SerializableHandleGraph tests successful!" << endl;
+}
+
 void test_deletable_handle_graphs() {
     
     // first batch of tests
@@ -2624,6 +2680,7 @@ int main(void) {
     test_packed_deque();
     test_deletable_handle_graphs();
     test_mutable_path_handle_graphs();
+    test_serializable_handle_graphs();
     test_packed_graph();
     test_path_position_overlays();
     test_vectorizable_overlays();

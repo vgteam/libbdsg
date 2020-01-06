@@ -23,6 +23,7 @@
 #include <handlegraph/mutable_path_mutable_handle_graph.hpp>
 #include <handlegraph/deletable_handle_graph.hpp>
 #include <handlegraph/mutable_path_deletable_handle_graph.hpp>
+#include <handlegraph/serializable_handle_graph.hpp>
 #include "dynamic.hpp"
 #include "bdsg/dynamic_types.hpp"
 #include "bdsg/utility.hpp"
@@ -36,7 +37,7 @@ using namespace handlegraph;
 // Resolve ambiguous nid_t typedef by putting it in our namespace.
 using nid_t = handlegraph::nid_t;
 
-class ODGI : public MutablePathDeletableHandleGraph {
+class ODGI : public MutablePathDeletableHandleGraph, public SerializableHandleGraph {
 
 public:
 
@@ -46,7 +47,20 @@ public:
     }
 
     ~ODGI(void) { clear(); }
+    
+private:
+    
+    /// Serialization that implements the inherited "serialze" method
+    void serialize_members(std::ostream& out) const;
+    
+    /// Deserialization that implements the inherited "deserialze" method
+    void deserialize_members(std::istream& in);
 
+public:
+    
+    /// Return a high-entropy number to indicate which handle graph implementation this is
+    uint32_t get_magic_number() const;
+    
     /// Method to check if a node exists by ID
     bool has_node(nid_t node_id) const;
     
@@ -372,7 +386,7 @@ public:
     void to_gfa(std::ostream& out) const;
 
     /// Serialize
-    uint64_t serialize(std::ostream& out);
+    uint64_t serialize_and_measure(std::ostream& out) const;
 
     /// Load
     void load(std::istream& in);

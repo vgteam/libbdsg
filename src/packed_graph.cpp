@@ -70,7 +70,7 @@ namespace bdsg {
         
     }
     
-    void PackedGraph::serialize(ostream& out) const {
+    void PackedGraph::serialize_members(ostream& out) const {
         sdsl::write_member(max_id, out);
         sdsl::write_member(min_id, out);
         
@@ -111,7 +111,7 @@ namespace bdsg {
         sdsl::write_member(deleted_reversing_self_edge_records, out);
     }
     
-    void PackedGraph::deserialize(istream& in) {
+    void PackedGraph::deserialize_members(istream& in) {
         sdsl::read_member(max_id, in);
         sdsl::read_member(min_id, in);
         
@@ -163,6 +163,10 @@ namespace bdsg {
         sdsl::read_member(deleted_bases, in);
         sdsl::read_member(reversing_self_edge_records, in);
         sdsl::read_member(deleted_reversing_self_edge_records, in);
+    }
+
+    uint32_t PackedGraph::get_magic_number() const {
+        return 3080648541ul;
     }
     
     size_t PackedGraph::new_node_record(nid_t node_id) {
