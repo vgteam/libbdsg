@@ -123,7 +123,6 @@ void VectorizableOverlay::index_nodes_and_edges() {
     std::sort(rank_to_node.begin(), rank_to_node.end());
     
     // Note: we're mapping to 0-based rank, so need to add one after lookup
-    cerr << "Compute minimal perfect hash of " << rank_to_node.size() << " nodes." << endl;
     node_to_rank.reset(new boomphf::mphf<nid_t, boomphf::SingleHashFunctor<nid_t>>(rank_to_node.size(), rank_to_node,
                                                                                    get_thread_count(), 2.0, false, false));
     
@@ -166,7 +165,6 @@ void VectorizableOverlay::index_nodes_and_edges() {
     std::sort(edge_buffer.begin(), edge_buffer.end());
     
     // note: we're mapping to 0-based rank, so need to add one after lookup
-    cerr << "Compute minimal perfect hash of " << edge_buffer.size() << " edges." << endl;
     edge_to_rank.reset(new boomphf::mphf<pair<pair<nid_t, bool>, pair<nid_t, bool>>, boomph_pair_pair_hash<nid_t, bool, nid_t, bool>>(
         edge_buffer.size(), edge_buffer, get_thread_count(), 2.0, false, false));
     edge_buffer.clear();
