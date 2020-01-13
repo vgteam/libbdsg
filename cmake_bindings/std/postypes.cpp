@@ -1,4 +1,4 @@
-#include <bits/types/__mbstate_t.h>
+#include <cwchar>
 #include <ios>
 #include <sstream> // __str__
 #include <string>

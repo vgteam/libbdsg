@@ -1,4 +1,4 @@
-#include <bits/types/__mbstate_t.h>
+#include <cwchar>
 #include <chrono>
 #include <deque>
 #include <internal/gap_bitvector.hpp>

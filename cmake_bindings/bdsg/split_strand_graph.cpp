@@ -1,6 +1,6 @@
 #include <bdsg/packed_graph.hpp>
 #include <bdsg/split_strand_graph.hpp>
-#include <bits/types/__mbstate_t.h>
+#include <cwchar>
 #include <functional>
 #include <handlegraph/handle_graph.hpp>
 #include <handlegraph/path_handle_graph.hpp>

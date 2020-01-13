@@ -1,6 +1,6 @@
 #include <bdsg/node.hpp>
 #include <bdsg/odgi.hpp>
-#include <bits/types/__mbstate_t.h>
+#include <cwchar>
 #include <functional>
 #include <handlegraph/handle_graph.hpp>
 #include <handlegraph/types.hpp>

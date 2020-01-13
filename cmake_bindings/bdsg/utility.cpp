@@ -1,6 +1,6 @@
 #include <bdsg/hash_graph.hpp>
 #include <bdsg/utility.hpp>
-#include <bits/types/__mbstate_t.h>
+#include <cwchar>
 #include <functional>
 #include <handlegraph/handle_graph.hpp>
 #include <handlegraph/path_handle_graph.hpp>
