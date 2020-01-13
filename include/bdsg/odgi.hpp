@@ -119,15 +119,18 @@ public:
     size_t get_degree(const handle_t& handle, bool go_left) const;
     
     /// Get the locally forward version of a handle
-    handle_t forward(const handle_t& handle) const;
+    // Default is used
+    //handle_t forward(const handle_t& handle) const;
     
     /// A pair of handles can be used as an edge. When so used, the handles have a
     /// canonical order and orientation.
-    edge_t edge_handle(const handle_t& left, const handle_t& right) const;
+    // Default is used
+    //edge_t edge_handle(const handle_t& left, const handle_t& right) const;
     
     /// Such a pair can be viewed from either inward end handle and produce the
     /// outward handle you would arrive at.
-    handle_t traverse_edge_handle(const edge_t& edge, const handle_t& left) const;
+    // Default is used
+    //handle_t traverse_edge_handle(const edge_t& edge, const handle_t& left) const;
     
     ////////////////////////////////////////////////////////////////////////////
     // Path handle interface
