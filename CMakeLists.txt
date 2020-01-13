@@ -68,9 +68,8 @@ include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 
 # sdsl-lite (full build using its cmake config)
 ExternalProject_Add(sdsl-lite
-  GIT_REPOSITORY "https://github.com/simongog/sdsl-lite.git"
-  GIT_TAG "ddb0fbbc33bb183baa616f17eb48e261ac2a3672"
-  CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_DIR} # TODO ADD static build flag
+  SOURCE_DIR "${CMAKE_SOURCE_DIR}/deps/sdsl-lite"
+  CMAKE_ARGS "${CMAKE_ARGS};-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>"
   UPDATE_COMMAND ""
   INSTALL_COMMAND "")
 ExternalProject_Get_property(sdsl-lite INSTALL_DIR)
@@ -79,46 +78,37 @@ set(sdsl-lite-divsufsort_INCLUDE "${INSTALL_DIR}/src/sdsl-lite-build/external/li
 set(sdsl-lite_LIB "${INSTALL_DIR}/src/sdsl-lite-build/lib")
 set(sdsl-lite-divsufsort_LIB "${INSTALL_DIR}/src/sdsl-lite-build/external/libdivsufsort/lib")
 
-# DYNAMIC (full build using its cmake config)
+# DYNAMIC (header only)
 ExternalProject_Add(dynamic
-  GIT_REPOSITORY "https://github.com/vgteam/DYNAMIC.git"
-  GIT_TAG "0da557fbd0613377bbde26dd60ded655bea58d3b"
-  # we don't actually install dynamic... it's header only
-  #CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_DIR}
+  SOURCE_DIR "${CMAKE_SOURCE_DIR}/deps/DYNAMIC"
   UPDATE_COMMAND ""
   INSTALL_COMMAND ""
   BUILD_COMMAND ""
   CONFIGURE_COMMAND "")
-ExternalProject_Get_property(dynamic INSTALL_DIR)
-set(dynamic_INCLUDE "${INSTALL_DIR}/src/dynamic/include")
+ExternalProject_Get_property(dynamic SOURCE_DIR)
+set(dynamic_INCLUDE "${SOURCE_DIR}/include")
 
 # hopscotch_map (required by DYNAMIC)
 ExternalProject_Add(hopscotch_map
-  GIT_REPOSITORY "https://github.com/Tessil/hopscotch-map.git"
-  # we don't actually install hopscotch_map... it's header only
-  #CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_DIR}
+  SOURCE_DIR "${CMAKE_SOURCE_DIR}/deps/hopscotch-map"
   UPDATE_COMMAND ""
   INSTALL_COMMAND ""
   BUILD_COMMAND ""
   CONFIGURE_COMMAND "")
-ExternalProject_Get_property(hopscotch_map INSTALL_DIR)
-set(hopscotch_map_INCLUDE "${INSTALL_DIR}/src/hopscotch_map/include")
+ExternalProject_Get_property(hopscotch_map SOURCE_DIR)
+set(hopscotch_map_INCLUDE "${SOURCE_DIR}/include")
 
 # libhandlegraph (full build using its cmake config)
 ExternalProject_Add(handlegraph
-  GIT_REPOSITORY "https://github.com/vgteam/libhandlegraph.git"
-  GIT_TAG "f261c36d0343ca1643bbf4d3ca5ef66a381708ef"
-  CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_DIR}
-  UPDATE_COMMAND ""
-  INSTALL_COMMAND "")
+  SOURCE_DIR "${CMAKE_SOURCE_DIR}/deps/libhandlegraph"
+  CMAKE_ARGS "${CMAKE_ARGS};-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>")
 ExternalProject_Get_property(handlegraph INSTALL_DIR)
-set(handlegraph_INCLUDE "${INSTALL_DIR}/src/handlegraph/src/include")
-set(handlegraph_LIB "${INSTALL_DIR}/src/handlegraph-build")
+set(handlegraph_INCLUDE "${INSTALL_DIR}/include")
+set(handlegraph_LIB "${INSTALL_DIR}/lib")
 
 # BBHash perfect hasher
 ExternalProject_Add(bbhash
-  GIT_REPOSITORY "https://github.com/vgteam/BBHash.git"
-  GIT_TAG "ccc22805eae48aca2a01a7ff5ef8e002857020d3"
+  SOURCE_DIR "${CMAKE_SOURCE_DIR}/deps/BBHash"
   UPDATE_COMMAND ""
   INSTALL_COMMAND ""
   BUILD_COMMAND ""
@@ -128,17 +118,17 @@ set(bbhash_INCLUDE "${SOURCE_DIR}")
 
 # sparsepp
 ExternalProject_Add(sparsepp
-  GIT_REPOSITORY "https://github.com/edawson/sparsepp.git"
-  GIT_TAG "1c5a285e87b2244383efe0398f9992acd61234e9"
-  BUILD_IN_SOURCE TRUE
-  CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_DIR} # TODO ADD static build flag
+  #GIT_REPOSITORY "https://github.com/edawson/sparsepp.git"
+  SOURCE_DIR "${CMAKE_SOURCE_DIR}/deps/sparsepp"
+  CMAKE_ARGS "${CMAKE_ARGS};-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>"
+#CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_DIR} # TODO ADD static build flag
   UPDATE_COMMAND ""
   INSTALL_COMMAND ""
   BUILD_COMMAND ""
   CONFIGURE_COMMAND "")
-ExternalProject_Get_property(sparsepp INSTALL_DIR)
-set(sparsepp_INCLUDE "${INSTALL_DIR}/src/sparsepp/")
-set(sparsepp_LIB "${INSTALL_DIR}/src/sparsepp/")
+ExternalProject_Get_property(sparsepp SOURCE_DIR)
+set(sparsepp_INCLUDE "${SOURCE_DIR}")
+#set(sparsepp_LIB "${SOURCE_DIR}/src/sparsepp/")
 
 # pybind11
 #ExternalProject_Add(pybind11
@@ -215,16 +205,12 @@ set_target_properties(test_libbdsg PROPERTIES OUTPUT_NAME "test_libbdsg")
 
 # todo, for python bindings
 
-#if (NOT EXISTS ${CMAKE_SOURCE_DIR}/deps/pybind11/CMakeLists.txt)
-#  execute_process(COMMAND git submodule update --init --recursive)
-#endif()
-
-#add_subdirectory(deps/pybind11)
-#pybind11_add_module(bdsg_pybind11 "${CMAKE_SOURCE_DIR}/src/pythonmodule.cpp")
-#add_dependencies(bdsg_pybind11 ${bdsg_DEPS} libbdsg)
-#target_include_directories(bdsg_pybind11 PUBLIC ${bdsg_INCLUDES})
-#target_link_libraries(bdsg_pybind11 PRIVATE "${CMAKE_SOURCE_DIR}/lib/libbdsg.a" "${bdsg_LIBS}")
-#set_target_properties(bdsg_pybind11 PROPERTIES OUTPUT_NAME "bdsg")
+#add_subdirectory(deps/pybind11) # added as a submodule
+#pybind11_add_module(odgi_pybind11 "${CMAKE_SOURCE_DIR}/src/pythonmodule.cpp")
+#add_dependencies(odgi_pybind11 ${odgi_DEPS} libodgi_static)
+#target_include_directories(odgi_pybind11 PUBLIC ${odgi_INCLUDES})
+#target_link_libraries(odgi_pybind11 PRIVATE "${CMAKE_SOURCE_DIR}/lib/libodgi.a" "${odgi_LIBS}")
+#set_target_properties(odgi_pybind11 PROPERTIES OUTPUT_NAME "odgi")
 
 if (APPLE)
 elseif (TRUE)
