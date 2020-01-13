@@ -218,7 +218,7 @@ set(bdsg_LIBS
 target_include_directories(bdsg_objs PUBLIC ${bdsg_INCLUDES})
 set_target_properties(bdsg_objs PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
 
-add_library(libbdsg SHARED $<TARGET_OBJECTS:bdsg_objs>)
+add_library(libbdsg STATIC $<TARGET_OBJECTS:bdsg_objs>)
 set_target_properties(libbdsg PROPERTIES OUTPUT_NAME "bdsg")
 set_target_properties(libbdsg PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
 
