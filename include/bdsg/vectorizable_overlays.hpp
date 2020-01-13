@@ -140,13 +140,23 @@ protected:
     /// Construct the index over path positions
     virtual void index_nodes_and_edges();
     
+    /// Re-canonicalize the edge into a representation based on node IDs and orientations.
+    pair<pair<nid_t, bool>, pair<nid_t, bool>> canonicalize_edge(const edge_t& edge) const;
+    
     /// The graph we're overlaying
     const HandleGraph* underlying_graph = nullptr;
 
-    /// Edge to rank
+    /// Minimal perfect hash defining an (arbitrary) ordering of the node IDs in the graph.
+    /// Needs to be based on node IDs so we get the same arbitrary ordering regardless of handle values.
+    /// Uses 0-based ranks.
+    unique_ptr<boomphf::mphf<nid_t, boomphf::SingleHashFunctor<nid_t>>> node_to_rank;
+    
+    /// Rank to node ID (inverse of node_to_rank), but using 1-based ranks.
+    vector<nid_t> rank_to_node;
+    
     // (I can't get it the pair_hash_map to compile with handle_t's, so using integers
     //  directly until I ca figure it out)
-    /// for our edge hash table (inspired from vg's hash_map.hpp)
+    // for our edge hash table (inspired from vg's hash_map.hpp)
     template<typename A, typename B>
     struct boomph_pair_hash {
         size_t operator()(const std::pair<A, B>& x, uint64_t seed=0) const {
@@ -155,13 +165,21 @@ protected:
             return hash_val;
         }
     };
-    boomphf::mphf<pair<uint64_t, uint64_t>, boomph_pair_hash<uint64_t, uint64_t>>* edge_to_rank;
     
-    /// Rank to node
-    vector<nid_t> rank_to_node;
-
-    /// Node to rank (make no assumptions about id-space so use map instead of vector)
-    boomphf::mphf<nid_t, boomphf::SingleHashFunctor<nid_t>>* node_to_rank;
+    template<typename A, typename B, typename C, typename D>
+    struct boomph_pair_pair_hash {
+        size_t operator()(const std::pair<std::pair<A, B>, std::pair<C, D>>& x, uint64_t seed=0) const {
+            size_t hash_val = boomph_pair_hash<A, B>()(x.first, seed);
+            hash_val ^= boomph_pair_hash<C, D>()(x.second, seed) + 0x9e3779b9 + (hash_val << 6) + (hash_val >> 2);
+            return hash_val;
+        }
+    };
+    
+    /// Edge to rank. Represents edges as pairs of (node ID, is_reverse), in
+    /// whichever orientation gives the smallest-value pair. Can't use pairs of
+    /// handles because the arbitrary ordering has to be independent of handle
+    /// values.
+    unique_ptr<boomphf::mphf<pair<pair<nid_t, bool>, pair<nid_t, bool>>, boomph_pair_pair_hash<nid_t, bool, nid_t, bool>>> edge_to_rank;
 
     /// Map between global sequence position and node rank
     sdsl::bit_vector s_bv;

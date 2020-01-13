@@ -5,20 +5,17 @@
 namespace bdsg {
 
 VectorizableOverlay::VectorizableOverlay(const HandleGraph* graph) :
-    underlying_graph(graph),
-    node_to_rank(nullptr),
-    edge_to_rank(nullptr) {
+    underlying_graph(graph) {
     assert(underlying_graph != nullptr);
     index_nodes_and_edges();
 }
 
 VectorizableOverlay::VectorizableOverlay() {
-        
+    // Nothing to do!
 }
     
 VectorizableOverlay::~VectorizableOverlay() {
-    delete node_to_rank;
-    delete edge_to_rank;
+    // Nothing to do!
 }
     
 bool VectorizableOverlay::has_node(nid_t node_id) const {
@@ -96,7 +93,7 @@ nid_t VectorizableOverlay::node_at_vector_offset(const size_t& offset) const {
 }
 
 size_t VectorizableOverlay::edge_index(const edge_t& edge) const {
-    return edge_to_rank->lookup(make_pair(as_integer(edge.first), as_integer(edge.second))) + 1;
+    return edge_to_rank->lookup(canonicalize_edge(edge)) + 1;
 }
     
 handle_t VectorizableOverlay::get_underlying_handle(const handle_t& handle) const {
@@ -105,50 +102,84 @@ handle_t VectorizableOverlay::get_underlying_handle(const handle_t& handle) cons
     
 void VectorizableOverlay::index_nodes_and_edges() {
 
-    // index the edges
-    delete edge_to_rank;
-    // todo: c++ style edge iteration in handle_graph interface so we can construct
-    // the boomphf sans buffer
-    vector<pair<uint64_t, uint64_t>> edge_buffer;
-    underlying_graph->for_each_edge([&](const edge_t& edge) {
-            edge_buffer.push_back(make_pair(as_integer(edge.first), as_integer(edge.second)));
-        });
-    // note: we're mapping to 0-based rank, so need to add one after lookup
-    edge_to_rank = new boomphf::mphf<pair<uint64_t, uint64_t>, boomph_pair_hash<uint64_t, uint64_t>>(
-        edge_buffer.size(), edge_buffer, get_thread_count(), 2.0, false, false);
-    edge_buffer.clear();
 
+    // First we establish a sort order on the nodes.
+    
     // index our node ranks
     rank_to_node.clear();
     rank_to_node.reserve(get_node_count() + 1);
-    delete node_to_rank;  
+    node_to_rank.reset();
+    
     size_t seq_length = 0;
     underlying_graph->for_each_handle([&](const handle_t& handle) {
-            seq_length += underlying_graph->get_length(handle);
-            // we are just using this as a buffer for now
-            rank_to_node.push_back(underlying_graph->get_id(handle));
-        });
-    // note: we're mapping to 0-based rank, so need to add one after lookup
-    node_to_rank = new boomphf::mphf<nid_t, boomphf::SingleHashFunctor<nid_t>>(rank_to_node.size(), rank_to_node,
-                                                                               get_thread_count(), 2.0, false, false);
-    // add one to keep ranks in this table 1-based
-    rank_to_node.resize(get_node_count() + 1); 
-    rank_to_node[0] = -1;
-    // fill in the granks from the boomph
+        seq_length += underlying_graph->get_length(handle);
+        // We are just using this as a buffer for now.
+        rank_to_node.push_back(underlying_graph->get_id(handle));
+    });
+    
+    // Now sort the handles by node ID, ascending.
+    // This means the minimal perfect hash function should always see the same
+    // input, so it should always produe the same ordering.
+    std::sort(rank_to_node.begin(), rank_to_node.end());
+    
+    // Note: we're mapping to 0-based rank, so need to add one after lookup
+    node_to_rank.reset(new boomphf::mphf<nid_t, boomphf::SingleHashFunctor<nid_t>>(rank_to_node.size(), rank_to_node,
+                                                                                   get_thread_count(), 2.0, false, false));
+    
+    
+    // Add one slot to keep ranks in this table 1-based.
+    rank_to_node.resize(rank_to_node.size() + 1);
+    // Rank slot 0 should never be read. Put the 0 node ID which should never exist.
+    rank_to_node[0] = 0;
+    
+    // Fill in the ranks by reading back from the boomph, which can't be iterated by itself.
+    // It defines its own order that it wants us to use.
     underlying_graph->for_each_handle([&](const handle_t& handle) {
-            nid_t node_id = underlying_graph->get_id(handle);
-            rank_to_node[node_to_rank->lookup(node_id) + 1] = node_id;
-        });
+        // Note that we don't depend on this iteration being in any particular order.
+        nid_t id = underlying_graph->get_id(handle);
+        rank_to_node[node_to_rank->lookup(id) + 1] = id;
+    });
 
-    // index our node offsets
+    // Index our node offsets along the linearized sequence
     sdsl::util::assign(s_bv, sdsl::bit_vector(seq_length));
     seq_length = 0;
     for (size_t node_rank = 1; node_rank < rank_to_node.size(); ++node_rank) {
         s_bv[seq_length] = 1;
+        // TODO: this is one get_handle per node which may not be cheap.
         seq_length += underlying_graph->get_length(underlying_graph->get_handle(rank_to_node[node_rank]));
     }
     sdsl::util::assign(s_bv_rank, sdsl::rank_support_v<1>(&s_bv));
     sdsl::util::assign(s_bv_select, sdsl::bit_vector::select_1_type(&s_bv));
+    
+    // Now we need to do the edges. We need to impose an arbitrary order besed entirely on node IDs and orientations.
+    
+    edge_to_rank.reset();
+    vector<pair<pair<nid_t, bool>, pair<nid_t, bool>>> edge_buffer;
+    underlying_graph->for_each_edge([&](const edge_t& edge) {
+        // Fill the buffer with ID, orientation representations of the edges.
+        edge_buffer.push_back(canonicalize_edge(edge));
+    });
+    
+    // Sort them in some consistent order, so we always feed the same thing to
+    // the minimal perfect hash function for the same graph.
+    std::sort(edge_buffer.begin(), edge_buffer.end());
+    
+    // note: we're mapping to 0-based rank, so need to add one after lookup
+    edge_to_rank.reset(new boomphf::mphf<pair<pair<nid_t, bool>, pair<nid_t, bool>>, boomph_pair_pair_hash<nid_t, bool, nid_t, bool>>(
+        edge_buffer.size(), edge_buffer, get_thread_count(), 2.0, false, false));
+    edge_buffer.clear();
+}
+
+pair<pair<nid_t, bool>, pair<nid_t, bool>> VectorizableOverlay::canonicalize_edge(const edge_t& edge) const {
+    // Unpack the handles
+    pair<nid_t, bool> left = std::make_pair(underlying_graph->get_id(edge.first), underlying_graph->get_is_reverse(edge.first));
+    pair<nid_t, bool> right = std::make_pair(underlying_graph->get_id(edge.second), underlying_graph->get_is_reverse(edge.second));
+    
+    pair<nid_t, bool> flipped_right = std::make_pair(right.first, !right.second);
+    pair<nid_t, bool> flipped_left = std::make_pair(left.first, !left.second);
+    
+    // Consider the edge in both orientations and return the one that compares smaller.
+    return std::min(std::make_pair(left, right), std::make_pair(flipped_right, flipped_left));
 }
 
 PathVectorizableOverlay::PathVectorizableOverlay(const PathHandleGraph* path_graph) :

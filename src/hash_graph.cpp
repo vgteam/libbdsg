@@ -35,7 +35,17 @@ namespace bdsg {
     }
     
     void HashGraph::create_edge(const handle_t& left, const handle_t& right) {
+       
+        // look for the edge
+        bool add_edge = follow_edges(left, false, [&](const handle_t& next) {
+            return next != right;
+        });
         
+        // don't duplicate it
+        if (!add_edge) {
+            return;
+        }
+       
         if (get_is_reverse(left)) {
             graph[get_internal_id(left)].left_edges.push_back(right);
         }
