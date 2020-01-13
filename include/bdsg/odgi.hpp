@@ -210,9 +210,6 @@ public:
     /// Returns a handle to the path that an step is on
     path_handle_t get_path_handle_of_step(const step_handle_t& step_handle) const;
     
-    /// Returns the 0-based ordinal rank of a step on a path
-    size_t get_ordinal_rank_of_step(const step_handle_t& step_handle) const;
-
     /// Returns true if the given path is empty, and false otherwise
     bool is_empty(const path_handle_t& path_handle) const;
 
@@ -352,14 +349,6 @@ public:
      */
     step_handle_t append_step(const path_handle_t& path, const handle_t& to_append);
 
-    /**
-     * Insert a visit to a node to the given path between the given steps.
-     * Returns a handle to the new step on the path which is appended.
-
-     * Handles to prior steps on the path, and to other paths, must remain valid.
-     */
-    step_handle_t insert_step(const step_handle_t& before, const step_handle_t& after, const handle_t& to_insert);
-    
     /// Set the step to the given handle, possibly re-linking and cleaning up if needed
     step_handle_t set_step(const step_handle_t& step_handle, const handle_t& handle);
 

@@ -85,7 +85,6 @@ public:
     const std::vector<node_t::step_t> get_path_steps(void) const;
     const step_t get_path_step(const uint64_t& rank) const;
     void remove_path_step(const uint64_t& rank);
-    void update_path_last_bytes(void);
     void clear(void);
     void clear_path_steps(void);
     uint64_t serialize(std::ostream& out) const;
