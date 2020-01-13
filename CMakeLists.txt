@@ -75,7 +75,7 @@ include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 ExternalProject_Add(sdsl-lite
   GIT_REPOSITORY "https://github.com/simongog/sdsl-lite.git"
   GIT_TAG "ddb0fbbc33bb183baa616f17eb48e261ac2a3672"
-  CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_DIR} # TODO ADD static build flag
+  CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_DIR} -DBUILD_SHARED_LIBS=ON
   UPDATE_COMMAND ""
   INSTALL_COMMAND "")
 ExternalProject_Get_property(sdsl-lite INSTALL_DIR)
@@ -208,24 +208,23 @@ set(bdsg_INCLUDES
 )
 
 set(bdsg_LIBS
-  "${CMAKE_SOURCE_DIR}/lib/libbdsg.a"
-  "${sdsl-lite_LIB}/libsdsl.a"
-  "${sdsl-lite-divsufsort_LIB}/libdivsufsort.a"
-  "${sdsl-lite-divsufsort_LIB}/libdivsufsort64.a"
-  "${handlegraph_LIB}/libhandlegraph.a"
+  "${sdsl-lite_LIB}/libsdsl.so"
+  "${sdsl-lite-divsufsort_LIB}/libdivsufsort.so"
+  "${sdsl-lite-divsufsort_LIB}/libdivsufsort64.so"
+  "${handlegraph_LIB}/libhandlegraph.so"
   "-ldl")
 
 target_include_directories(bdsg_objs PUBLIC ${bdsg_INCLUDES})
 set_target_properties(bdsg_objs PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
 
-add_library(libbdsg STATIC $<TARGET_OBJECTS:bdsg_objs>)
+add_library(libbdsg SHARED $<TARGET_OBJECTS:bdsg_objs>)
 set_target_properties(libbdsg PROPERTIES OUTPUT_NAME "bdsg")
 set_target_properties(libbdsg PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
 
 add_executable(test_libbdsg
   ${CMAKE_SOURCE_DIR}/src/test_libbdsg.cpp)
 # add_dependencies(test_libbdsg libbdsg)
-target_link_libraries(test_libbdsg ${bdsg_LIBS})
+target_link_libraries(test_libbdsg libbdsg ${bdsg_LIBS})
 #  "${sdsl-lite_LIB}/libsdsl.a")
 target_include_directories(test_libbdsg PUBLIC ${bdsg_INCLUDES})
 set_target_properties(test_libbdsg PROPERTIES OUTPUT_NAME "test_libbdsg")
@@ -237,7 +236,7 @@ list(FILTER pybind11_API EXCLUDE REGEX ".*CMakeCXXCompilerId.cpp$")
 pybind11_add_module(bdsg_pybind11 ${pybind11_API})
 add_dependencies(bdsg_pybind11 ${bdsg_DEPS} libbdsg)
 target_include_directories(bdsg_pybind11 PUBLIC ${bdsg_INCLUDES})
-target_link_libraries(bdsg_pybind11 PRIVATE "${CMAKE_SOURCE_DIR}/lib/libbdsg.a" "${bdsg_LIBS}") # << this is problem
+target_link_libraries(bdsg_pybind11 PRIVATE libbdsg "${bdsg_LIBS}")
 set_target_properties(bdsg_pybind11 PROPERTIES OUTPUT_NAME "bdsg")
 
 if (APPLE)
