@@ -227,7 +227,7 @@ add_executable(test_libbdsg
 # add_dependencies(test_libbdsg libbdsg)
 target_link_libraries(test_libbdsg ${bdsg_LIBS})
 #  "${sdsl-lite_LIB}/libsdsl.a")
-#target_include_directories(test_libbdsg PUBLIC ${bdsg_INCLUDES})
+target_include_directories(test_libbdsg PUBLIC ${bdsg_INCLUDES})
 set_target_properties(test_libbdsg PROPERTIES OUTPUT_NAME "test_libbdsg")
 
 # TODO for python bindings
