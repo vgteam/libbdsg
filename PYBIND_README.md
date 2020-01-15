@@ -20,5 +20,12 @@ If the only changes were to the backend of libbdsg, there is no need to modify t
 
 The included script `make_and_run_binder.py` will automatically download and build Binder (if this has not already been done) and run binder on libbdsg, placing the output .cpp files in cmake_bindings.  *Note that building Binder is very slow.*
 
+This script has two dependencies: `gitpython` is needed to clone the repo and `ninja` is needed to build binder.  These can be installed with:
+
+```
+pip3 install gitpython
+sudo apt-get install ninja-build
+```
+
 Specific functions/classes/enums can be manually included or excluded from binding by modifying the included `config.cfg`, as specified in the [binder documentation](https://cppbinder.readthedocs.io/en/latest/config.html#config-file-options).
 

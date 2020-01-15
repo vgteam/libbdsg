@@ -22,19 +22,17 @@ this_project_namespace_to_bind = 'bdsg'
 python_module_name = 'bdsg'
 
 def clone_repos():
-    if not os.path.exists(f'binder/pybind11'):
+    if not glob.glob("binder"):
+        print("Binder not found, cloning repo...")
         os.mkdir("binder")
-        git.Git("binder").clone("https://github.com/RosettaCommons/pybind11.git")
-    if not os.path.exists(f'binder/binder'):
-        git.Git("binder").clone("https://github.com/RosettaCommons/binder.git")
-    pybind_source = f'binder/pybind11/include'
-    binder_source = f'binder/binder/source'
+        git.Git(".").clone("https://github.com/RosettaCommons/binder.git")
 
 def build_binder():
-    if not os.path.exists(f'build/*/*/bin/binder'):
-        os.chdir("binder/binder")
+    if not glob.glob("./build/*/*/bin/*"):
+        print("Binder not compiled, using packaged build.py...")
         os.system(f'{get_python_inc().split("/")[-1]} build.py')
-    binder_executable = glob.glob(f'build/*/*/bin/binder')[0]
+    pybind_source = f'build/pybind11/include'
+    binder_executable = glob.glob(f'./build/*/*/bin/')[0] + "binder"
 
 def make_all_includes():
     all_includes = []
@@ -78,6 +76,7 @@ def make_bindings_code(all_includes_fn):
 
 def main():
     clone_repos()
+    os.chdir("binder")
     build_binder()
     all_includes_fn = make_all_includes()
     make_bindings_code(all_includes_fn)
