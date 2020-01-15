@@ -32,7 +32,8 @@ def clone_repos():
 
 def build_binder():
     if not os.path.exists(f'build/*/*/bin/binder'):
-        os.system(f'{get_python_inc().split("/")[-1]} binder/binder/build.py')
+        os.chdir("binder/binder")
+        os.system(f'{get_python_inc().split("/")[-1]} build.py')
     binder_executable = glob.glob(f'build/*/*/bin/binder')[0]
 
 def make_all_includes():
