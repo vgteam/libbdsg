@@ -611,7 +611,7 @@ namespace bdsg {
             
             // Convert its ID
             nid_t new_id = get_new_id(it->first + id_offset);
-            new_max_id = std::min(new_max_id, new_id);
+            new_max_id = std::max(new_max_id, new_id);
             new_min_id = std::min(new_min_id, new_id);
             
             // Set up a new record for it
