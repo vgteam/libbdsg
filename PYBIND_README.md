@@ -27,5 +27,7 @@ pip3 install gitpython
 sudo apt-get install ninja-build
 ```
 
+Note that binder requires that includes be of the format `#include <*>` and not `#include "*"`.  This script will automatically change the includes in the source files before running them into binder and will revert them when completed, but if an error is thrown from binder they will not be reverted.  It is advised to ensure that you can revert any changes through `git checkout -- src`.
+
 Specific functions/classes/enums can be manually included or excluded from binding by modifying the included `config.cfg`, as specified in the [binder documentation](https://cppbinder.readthedocs.io/en/latest/config.html#config-file-options).
 
