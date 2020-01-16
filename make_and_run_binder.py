@@ -10,10 +10,7 @@ from distutils.sysconfig import get_python_inc
 
 
 # Overall script settings
-binder_executable = f''
 bindings_dir = 'cmake_bindings'
-binder_source = f''
-pybind_source = f''
 use_pybind_stl = True
 #use_pybind_stl = False
 this_project_source = f'{os.getcwd()}/src'
@@ -32,7 +29,7 @@ def build_binder():
         print("Binder not compiled, using packaged build.py...")
         os.system(f'{get_python_inc().split("/")[-1]} build.py')
     pybind_source = f'build/pybind11/include'
-    binder_executable = glob.glob(f'./build/*/*/bin/')[0] + "binder"
+    return glob.glob('./build/*/*/bin/')[0] + "binder"
 
 def make_all_includes():
     all_includes = []
@@ -57,7 +54,7 @@ def make_all_includes():
     return all_include_filename
 
 
-def make_bindings_code(all_includes_fn):
+def make_bindings_code(all_includes_fn, binder_executable):
     shutil.rmtree(bindings_dir, ignore_errors=True)
     os.mkdir(bindings_dir)
     command = (f'{binder_executable} --root-module {python_module_name} '
@@ -77,9 +74,9 @@ def make_bindings_code(all_includes_fn):
 def main():
     clone_repos()
     os.chdir("binder")
-    build_binder()
+    binder_executable = build_binder()
     all_includes_fn = make_all_includes()
-    make_bindings_code(all_includes_fn)
+    make_bindings_code(all_includes_fn, binder_executable)
 
 
 if __name__ == '__main__':
