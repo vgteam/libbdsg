@@ -1,6 +1,6 @@
 #include <bdsg/hash_graph.hpp>
 #include <bdsg/utility.hpp>
-#include <cwchar>
+#include <bits/types/__mbstate_t.h>
 #include <functional>
 #include <handlegraph/handle_graph.hpp>
 #include <handlegraph/path_handle_graph.hpp>
@@ -21,6 +21,7 @@
 #include <functional>
 #include <string>
 #include <pybind11/stl.h>
+#include <fstream>
 
 
 #ifndef BINDER_PYBIND11_TYPE_CASTER
@@ -742,6 +743,8 @@ void bind_bdsg_utility(std::function< pybind11::module &(std::string const &name
 		cl.def( pybind11::init( [](){ return new bdsg::HashGraph(); }, [](){ return new PyCallBack_bdsg_HashGraph(); } ) );
 		cl.def( pybind11::init<class std::basic_istream<char> &>(), pybind11::arg("in") );
 
+		cl.def( pybind11::init( [](PyCallBack_bdsg_HashGraph const &o){ return new PyCallBack_bdsg_HashGraph(o); } ) );
+		cl.def( pybind11::init( [](bdsg::HashGraph const &o){ return new bdsg::HashGraph(o); } ) );
 		cl.def("serialize", (void (bdsg::HashGraph::*)(std::ostream &) const) &bdsg::HashGraph::serialize, "Write the graph to an out stream.\n\nC++: bdsg::HashGraph::serialize(std::ostream &) const --> void", pybind11::arg("out"));
 		cl.def("deserialize", (void (bdsg::HashGraph::*)(class std::basic_istream<char> &)) &bdsg::HashGraph::deserialize, "Read the graph (in the format written by serialize()) from an in stream.\n\nC++: bdsg::HashGraph::deserialize(class std::basic_istream<char> &) --> void", pybind11::arg("in"));
 		cl.def("has_node", (bool (bdsg::HashGraph::*)(long) const) &bdsg::HashGraph::has_node, "Method to check if a node exists by ID\n\nC++: bdsg::HashGraph::has_node(long) const --> bool", pybind11::arg("node_id"));
@@ -796,6 +799,7 @@ void bind_bdsg_utility(std::function< pybind11::module &(std::string const &name
 		cl.def("set_circularity", (void (bdsg::HashGraph::*)(const struct handlegraph::path_handle_t &, bool)) &bdsg::HashGraph::set_circularity, "Make a path circular or non-circular. If the path is becoming circular, the\n last step is joined to the first step. If the path is becoming linear, the\n step considered \"last\" is unjoined from the step considered \"first\" according\n to the method path_begin.\n\nC++: bdsg::HashGraph::set_circularity(const struct handlegraph::path_handle_t &, bool) --> void", pybind11::arg("path"), pybind11::arg("circular"));
 		cl.def("set_id_increment", (void (bdsg::HashGraph::*)(const long &)) &bdsg::HashGraph::set_id_increment, "Set a minimum id to increment the id space by, used as a hint during construction.\n May have no effect on a backing implementation.\n\nC++: bdsg::HashGraph::set_id_increment(const long &) --> void", pybind11::arg("min_id"));
 		cl.def("increment_node_ids", (void (bdsg::HashGraph::*)(long)) &bdsg::HashGraph::increment_node_ids, "Add the given value to all node IDs\n\nC++: bdsg::HashGraph::increment_node_ids(long) --> void", pybind11::arg("increment"));
+		cl.def("reassign_node_ids", (void (bdsg::HashGraph::*)(const class std::function<long (const long &)> &)) &bdsg::HashGraph::reassign_node_ids, "Reassign all node IDs as specified by the old->new mapping function.\n\nC++: bdsg::HashGraph::reassign_node_ids(const class std::function<long (const long &)> &) --> void", pybind11::arg("get_new_id"));
 		cl.def("assign", (class bdsg::HashGraph & (bdsg::HashGraph::*)(const class bdsg::HashGraph &)) &bdsg::HashGraph::operator=, "C++: bdsg::HashGraph::operator=(const class bdsg::HashGraph &) --> class bdsg::HashGraph &", pybind11::return_value_policy::automatic, pybind11::arg(""));
 	}
 }

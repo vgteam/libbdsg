@@ -1,6 +1,6 @@
 #include <bdsg/node.hpp>
 #include <bdsg/odgi.hpp>
-#include <cwchar>
+#include <bits/types/__mbstate_t.h>
 #include <functional>
 #include <handlegraph/handle_graph.hpp>
 #include <handlegraph/types.hpp>
@@ -20,6 +20,7 @@
 #include <functional>
 #include <string>
 #include <pybind11/stl.h>
+#include <fstream>
 
 
 #ifndef BINDER_PYBIND11_TYPE_CASTER
@@ -698,6 +699,7 @@ void bind_bdsg_node(std::function< pybind11::module &(std::string const &namespa
 		}
 
 		cl.def( pybind11::init( [](){ return new bdsg::node_t(); } ) );
+		cl.def( pybind11::init( [](bdsg::node_t const &o){ return new bdsg::node_t(o); } ) );
 		cl.def("seq_start", (const unsigned long (bdsg::node_t::*)() const) &bdsg::node_t::seq_start, "C++: bdsg::node_t::seq_start() const --> const unsigned long");
 		cl.def("seq_bytes", (const unsigned long (bdsg::node_t::*)() const) &bdsg::node_t::seq_bytes, "C++: bdsg::node_t::seq_bytes() const --> const unsigned long");
 		cl.def("edge_start", (const unsigned long (bdsg::node_t::*)() const) &bdsg::node_t::edge_start, "C++: bdsg::node_t::edge_start() const --> const unsigned long");
@@ -714,6 +716,7 @@ void bind_bdsg_node(std::function< pybind11::module &(std::string const &namespa
 		cl.def("remove_edge", (void (bdsg::node_t::*)(const unsigned long &)) &bdsg::node_t::remove_edge, "C++: bdsg::node_t::remove_edge(const unsigned long &) --> void", pybind11::arg("rank"));
 		cl.def("add_path_step", (void (bdsg::node_t::*)(const unsigned long &, const bool &, const unsigned long &, const unsigned long &, const unsigned long &, const unsigned long &)) &bdsg::node_t::add_path_step, "C++: bdsg::node_t::add_path_step(const unsigned long &, const bool &, const unsigned long &, const unsigned long &, const unsigned long &, const unsigned long &) --> void", pybind11::arg("path_id"), pybind11::arg("is_rev"), pybind11::arg("prev_id"), pybind11::arg("prev_rank"), pybind11::arg("next_id"), pybind11::arg("next_rank"));
 		cl.def("add_path_step", (void (bdsg::node_t::*)(const struct bdsg::node_t::step_t &)) &bdsg::node_t::add_path_step, "C++: bdsg::node_t::add_path_step(const struct bdsg::node_t::step_t &) --> void", pybind11::arg("step"));
+		cl.def("set_path_step", (void (bdsg::node_t::*)(const unsigned long &, const unsigned long &, const bool &, const unsigned long &, const unsigned long &, const unsigned long &, const unsigned long &)) &bdsg::node_t::set_path_step, "C++: bdsg::node_t::set_path_step(const unsigned long &, const unsigned long &, const bool &, const unsigned long &, const unsigned long &, const unsigned long &, const unsigned long &) --> void", pybind11::arg("rank"), pybind11::arg("path_id"), pybind11::arg("is_rev"), pybind11::arg("prev_id"), pybind11::arg("prev_rank"), pybind11::arg("next_id"), pybind11::arg("next_rank"));
 		cl.def("set_path_step", (void (bdsg::node_t::*)(const unsigned long &, const struct bdsg::node_t::step_t &)) &bdsg::node_t::set_path_step, "C++: bdsg::node_t::set_path_step(const unsigned long &, const struct bdsg::node_t::step_t &) --> void", pybind11::arg("rank"), pybind11::arg("step"));
 		cl.def("flip_paths", (struct std::pair<class std::map<unsigned long, struct std::pair<unsigned long, bool>, struct std::less<unsigned long>, class std::allocator<struct std::pair<const unsigned long, struct std::pair<unsigned long, bool> > > >, class std::map<unsigned long, struct std::pair<unsigned long, bool>, struct std::less<unsigned long>, class std::allocator<struct std::pair<const unsigned long, struct std::pair<unsigned long, bool> > > > > (bdsg::node_t::*)(const unsigned long &, const unsigned long &)) &bdsg::node_t::flip_paths, "C++: bdsg::node_t::flip_paths(const unsigned long &, const unsigned long &) --> struct std::pair<class std::map<unsigned long, struct std::pair<unsigned long, bool>, struct std::less<unsigned long>, class std::allocator<struct std::pair<const unsigned long, struct std::pair<unsigned long, bool> > > >, class std::map<unsigned long, struct std::pair<unsigned long, bool>, struct std::less<unsigned long>, class std::allocator<struct std::pair<const unsigned long, struct std::pair<unsigned long, bool> > > > >", pybind11::arg("start_marker"), pybind11::arg("end_marker"));
 		cl.def("get_path_step", (const struct bdsg::node_t::step_t (bdsg::node_t::*)(const unsigned long &) const) &bdsg::node_t::get_path_step, "C++: bdsg::node_t::get_path_step(const unsigned long &) const --> const struct bdsg::node_t::step_t", pybind11::arg("rank"));
@@ -730,6 +733,8 @@ void bind_bdsg_node(std::function< pybind11::module &(std::string const &namespa
 	{ // bdsg::ODGI file:bdsg/odgi.hpp line:39
 		pybind11::class_<bdsg::ODGI, std::shared_ptr<bdsg::ODGI>, PyCallBack_bdsg_ODGI, handlegraph::MutablePathDeletableHandleGraph> cl(M("bdsg"), "ODGI", "");
 		cl.def( pybind11::init( [](){ return new bdsg::ODGI(); }, [](){ return new PyCallBack_bdsg_ODGI(); } ) );
+		cl.def( pybind11::init( [](PyCallBack_bdsg_ODGI const &o){ return new PyCallBack_bdsg_ODGI(o); } ) );
+		cl.def( pybind11::init( [](bdsg::ODGI const &o){ return new bdsg::ODGI(o); } ) );
 		cl.def("has_node", (bool (bdsg::ODGI::*)(long) const) &bdsg::ODGI::has_node, "Method to check if a node exists by ID\n\nC++: bdsg::ODGI::has_node(long) const --> bool", pybind11::arg("node_id"));
 		cl.def("get_handle", [](bdsg::ODGI const &o, const long & a0) -> handlegraph::handle_t { return o.get_handle(a0); }, "", pybind11::arg("node_id"));
 		cl.def("get_handle", (struct handlegraph::handle_t (bdsg::ODGI::*)(const long &, bool) const) &bdsg::ODGI::get_handle, "Look up the handle for the node with the given ID in the given orientation\n\nC++: bdsg::ODGI::get_handle(const long &, bool) const --> struct handlegraph::handle_t", pybind11::arg("node_id"), pybind11::arg("is_reverse"));
@@ -743,6 +748,7 @@ void bind_bdsg_node(std::function< pybind11::module &(std::string const &namespa
 		cl.def("max_node_id", (long (bdsg::ODGI::*)() const) &bdsg::ODGI::max_node_id, "Return the largest ID in the graph, or some larger number if the\n largest ID is unavailable. Return value is unspecified if the graph is empty.\n\nC++: bdsg::ODGI::max_node_id() const --> long");
 		cl.def("set_id_increment", (void (bdsg::ODGI::*)(const long &)) &bdsg::ODGI::set_id_increment, "Set a minimum id to increment the id space by, used as a hint during construction.\n May have no effect on a backing implementation.\n\nC++: bdsg::ODGI::set_id_increment(const long &) --> void", pybind11::arg("min_id"));
 		cl.def("increment_node_ids", (void (bdsg::ODGI::*)(long)) &bdsg::ODGI::increment_node_ids, "Add the given value to all node IDs\n\nC++: bdsg::ODGI::increment_node_ids(long) --> void", pybind11::arg("increment"));
+		cl.def("reassign_node_ids", (void (bdsg::ODGI::*)(const class std::function<long (const long &)> &)) &bdsg::ODGI::reassign_node_ids, "Reassign all node IDs as specified by the old->new mapping function.\n\nC++: bdsg::ODGI::reassign_node_ids(const class std::function<long (const long &)> &) --> void", pybind11::arg("get_new_id"));
 		cl.def("get_degree", (unsigned long (bdsg::ODGI::*)(const struct handlegraph::handle_t &, bool) const) &bdsg::ODGI::get_degree, "Get the number of edges on the right (go_left = false) or left (go_left\n = true) side of the given handle. The default implementation is O(n) in\n the number of edges returned, but graph implementations that track this\n information more efficiently can override this method.\n\nC++: bdsg::ODGI::get_degree(const struct handlegraph::handle_t &, bool) const --> unsigned long", pybind11::arg("handle"), pybind11::arg("go_left"));
 		cl.def("has_path", (bool (bdsg::ODGI::*)(const std::string &) const) &bdsg::ODGI::has_path, "Determine if a path name exists and is legal to get a path handle for.\n\nC++: bdsg::ODGI::has_path(const std::string &) const --> bool", pybind11::arg("path_name"));
 		cl.def("get_path_handle", (struct handlegraph::path_handle_t (bdsg::ODGI::*)(const std::string &) const) &bdsg::ODGI::get_path_handle, "Look up the path handle for the given path name.\n The path with that name must exist.\n\nC++: bdsg::ODGI::get_path_handle(const std::string &) const --> struct handlegraph::path_handle_t", pybind11::arg("path_name"));

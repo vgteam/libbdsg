@@ -14,6 +14,7 @@
 #include <functional>
 #include <string>
 #include <pybind11/stl.h>
+#include <fstream>
 
 
 #ifndef BINDER_PYBIND11_TYPE_CASTER
@@ -608,6 +609,8 @@ void bind_bdsg_vectorizable_overlays_1(std::function< pybind11::module &(std::st
 		cl.def( pybind11::init<const class handlegraph::PathPositionHandleGraph *>(), pybind11::arg("path_position_graph") );
 
 		cl.def( pybind11::init( [](){ return new bdsg::PathPositionVectorizableOverlay(); }, [](){ return new PyCallBack_bdsg_PathPositionVectorizableOverlay(); } ) );
+		cl.def( pybind11::init( [](PyCallBack_bdsg_PathPositionVectorizableOverlay const &o){ return new PyCallBack_bdsg_PathPositionVectorizableOverlay(o); } ) );
+		cl.def( pybind11::init( [](bdsg::PathPositionVectorizableOverlay const &o){ return new bdsg::PathPositionVectorizableOverlay(o); } ) );
 		cl.def("get_path_length", (unsigned long (bdsg::PathPositionVectorizableOverlay::*)(const struct handlegraph::path_handle_t &) const) &bdsg::PathPositionVectorizableOverlay::get_path_length, "Returns the length of a path measured in bases of sequence.\n\nC++: bdsg::PathPositionVectorizableOverlay::get_path_length(const struct handlegraph::path_handle_t &) const --> unsigned long", pybind11::arg("path_handle"));
 		cl.def("get_position_of_step", (unsigned long (bdsg::PathPositionVectorizableOverlay::*)(const struct handlegraph::step_handle_t &) const) &bdsg::PathPositionVectorizableOverlay::get_position_of_step, "Returns the position along the path of the beginning of this step measured in\n bases of sequence. In a circular path, positions start at the step returned by\n path_begin().\n\nC++: bdsg::PathPositionVectorizableOverlay::get_position_of_step(const struct handlegraph::step_handle_t &) const --> unsigned long", pybind11::arg("step"));
 		cl.def("get_step_at_position", (struct handlegraph::step_handle_t (bdsg::PathPositionVectorizableOverlay::*)(const struct handlegraph::path_handle_t &, const unsigned long &) const) &bdsg::PathPositionVectorizableOverlay::get_step_at_position, "Returns the step at this position, measured in bases of sequence starting at\n the step returned by path_begin(). If the position is past the end of the\n path, returns path_end().\n\nC++: bdsg::PathPositionVectorizableOverlay::get_step_at_position(const struct handlegraph::path_handle_t &, const unsigned long &) const --> struct handlegraph::step_handle_t", pybind11::arg("path"), pybind11::arg("position"));

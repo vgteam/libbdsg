@@ -1,4 +1,4 @@
-#include <cwchar>
+#include <bits/types/__mbstate_t.h>
 #include <functional>
 #include <handlegraph/handle_graph.hpp>
 #include <handlegraph/types.hpp>
@@ -17,6 +17,7 @@
 #include <functional>
 #include <string>
 #include <pybind11/stl.h>
+#include <fstream>
 
 
 #ifndef BINDER_PYBIND11_TYPE_CASTER
@@ -321,8 +322,8 @@ void bind_handlegraph_handle_graph(std::function< pybind11::module &(std::string
 {
 	{ // handlegraph::HandleGraph file:handlegraph/handle_graph.hpp line:22
 		pybind11::class_<handlegraph::HandleGraph, std::shared_ptr<handlegraph::HandleGraph>, PyCallBack_handlegraph_HandleGraph> cl(M("handlegraph"), "HandleGraph", "");
-		cl.def( pybind11::init( [](){ return new PyCallBack_handlegraph_HandleGraph(); } ) );
 		cl.def(pybind11::init<PyCallBack_handlegraph_HandleGraph const &>());
+		cl.def( pybind11::init( [](){ return new PyCallBack_handlegraph_HandleGraph(); } ) );
 		cl.def("follow_edges", (bool (handlegraph::HandleGraph::*)(const struct handlegraph::handle_t &, bool, const class std::function<bool (const struct handlegraph::handle_t &)> &) const) &handlegraph::HandleGraph::follow_edges<std::function<bool (const handlegraph::handle_t &)>>, "C++: handlegraph::HandleGraph::follow_edges(const struct handlegraph::handle_t &, bool, const class std::function<bool (const struct handlegraph::handle_t &)> &) const --> bool", pybind11::arg("handle"), pybind11::arg("go_left"), pybind11::arg("iteratee"));
 		cl.def("for_each_handle", [](handlegraph::HandleGraph const &o, const class std::function<bool (const struct handlegraph::handle_t &)> & a0) -> bool { return o.for_each_handle(a0); }, "", pybind11::arg("iteratee"));
 		cl.def("for_each_handle", (bool (handlegraph::HandleGraph::*)(const class std::function<bool (const struct handlegraph::handle_t &)> &, bool) const) &handlegraph::HandleGraph::for_each_handle<std::function<bool (const handlegraph::handle_t &)>>, "C++: handlegraph::HandleGraph::for_each_handle(const class std::function<bool (const struct handlegraph::handle_t &)> &, bool) const --> bool", pybind11::arg("iteratee"), pybind11::arg("parallel"));
@@ -350,6 +351,7 @@ void bind_handlegraph_handle_graph(std::function< pybind11::module &(std::string
 	{ // handlegraph::SerializableHandleGraph file:handlegraph/handle_graph.hpp line:172
 		pybind11::class_<handlegraph::SerializableHandleGraph, std::shared_ptr<handlegraph::SerializableHandleGraph>, PyCallBack_handlegraph_SerializableHandleGraph> cl(M("handlegraph"), "SerializableHandleGraph", "");
 		cl.def( pybind11::init( [](){ return new PyCallBack_handlegraph_SerializableHandleGraph(); } ) );
+		cl.def(pybind11::init<PyCallBack_handlegraph_SerializableHandleGraph const &>());
 		cl.def("serialize", (void (handlegraph::SerializableHandleGraph::*)(std::ostream &) const) &handlegraph::SerializableHandleGraph::serialize, "C++: handlegraph::SerializableHandleGraph::serialize(std::ostream &) const --> void", pybind11::arg("out"));
 		cl.def("deserialize", (void (handlegraph::SerializableHandleGraph::*)(class std::basic_istream<char> &)) &handlegraph::SerializableHandleGraph::deserialize, "C++: handlegraph::SerializableHandleGraph::deserialize(class std::basic_istream<char> &) --> void", pybind11::arg("in"));
 		cl.def("assign", (class handlegraph::SerializableHandleGraph & (handlegraph::SerializableHandleGraph::*)(const class handlegraph::SerializableHandleGraph &)) &handlegraph::SerializableHandleGraph::operator=, "C++: handlegraph::SerializableHandleGraph::operator=(const class handlegraph::SerializableHandleGraph &) --> class handlegraph::SerializableHandleGraph &", pybind11::return_value_policy::automatic, pybind11::arg(""));
@@ -357,6 +359,7 @@ void bind_handlegraph_handle_graph(std::function< pybind11::module &(std::string
 	{ // handlegraph::VectorizableHandleGraph file:handlegraph/handle_graph.hpp line:192
 		pybind11::class_<handlegraph::VectorizableHandleGraph, std::shared_ptr<handlegraph::VectorizableHandleGraph>, PyCallBack_handlegraph_VectorizableHandleGraph> cl(M("handlegraph"), "VectorizableHandleGraph", "");
 		cl.def( pybind11::init( [](){ return new PyCallBack_handlegraph_VectorizableHandleGraph(); } ) );
+		cl.def(pybind11::init<PyCallBack_handlegraph_VectorizableHandleGraph const &>());
 		cl.def("node_vector_offset", (unsigned long (handlegraph::VectorizableHandleGraph::*)(const long &) const) &handlegraph::VectorizableHandleGraph::node_vector_offset, "C++: handlegraph::VectorizableHandleGraph::node_vector_offset(const long &) const --> unsigned long", pybind11::arg("node_id"));
 		cl.def("node_at_vector_offset", (long (handlegraph::VectorizableHandleGraph::*)(const unsigned long &) const) &handlegraph::VectorizableHandleGraph::node_at_vector_offset, "C++: handlegraph::VectorizableHandleGraph::node_at_vector_offset(const unsigned long &) const --> long", pybind11::arg("offset"));
 		cl.def("edge_index", (unsigned long (handlegraph::VectorizableHandleGraph::*)(const struct std::pair<struct handlegraph::handle_t, struct handlegraph::handle_t> &) const) &handlegraph::VectorizableHandleGraph::edge_index, "C++: handlegraph::VectorizableHandleGraph::edge_index(const struct std::pair<struct handlegraph::handle_t, struct handlegraph::handle_t> &) const --> unsigned long", pybind11::arg("edge"));

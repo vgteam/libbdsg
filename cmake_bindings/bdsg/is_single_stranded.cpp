@@ -12,6 +12,7 @@
 #include <functional>
 #include <string>
 #include <pybind11/stl.h>
+#include <fstream>
 
 
 #ifndef BINDER_PYBIND11_TYPE_CASTER

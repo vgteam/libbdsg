@@ -18,12 +18,16 @@ this_project_namespace_to_bind = 'bdsg'
 python_module_name = 'bdsg'
 
 def clone_repos():
+    # download the most recent copy of binder from git
     if not glob.glob("binder"):
         print("Binder not found, cloning repo...")
         os.mkdir("binder")
         git.Git(".").clone("https://github.com/RosettaCommons/binder.git")
 
 def build_binder():
+    # check for binder executable in the location we expect it
+    # if it's not there, build binder with the included script
+    # returns location of executable
     if not glob.glob("./build/*/*/bin/*"):
         print("Binder not compiled, using packaged build.py...")
         os.system(f'{get_python_inc().split("/")[-1]} build.py')
@@ -31,6 +35,9 @@ def build_binder():
     return "binder/" + glob.glob('./build/*/*/bin/')[0] + "binder"
 
 def clean_includes():
+    # goes through source code and replaces all quote-format includes with
+    # carrot-style includes.
+    # returns a dict with the files that were changed and what changes were made
     changes_made = dict()
     matcher = re.compile('^\s*#include "')
     # find instances of includes we need to change
@@ -39,6 +46,11 @@ def clean_includes():
                      glob.glob(f'{this_project_source}/**/*.h', recursive=True) +
                      glob.glob(f'{this_project_source}/**/*.cc', recursive=True) + 
                      glob.glob(f'{this_project_source}/**/*.c', recursive=True) + 
+                     glob.glob(f'{this_project_source}/../include/**/*.hpp', recursive=True) + # this format needed to reach headers
+                     glob.glob(f'{this_project_source}/../include/**/*.cpp', recursive=True) +
+                     glob.glob(f'{this_project_source}/../include/**/*.h', recursive=True) +
+                     glob.glob(f'{this_project_source}/../include/**/*.cc', recursive=True) +
+                     glob.glob(f'{this_project_source}/../include/**/*.c', recursive=True) +
                      glob.glob(f'{this_project_source}/../build/*/src/*/*.hpp', recursive=True) + 
                      glob.glob(f'{this_project_source}/../build/*/src/*/*.cpp', recursive=True) + 
                      glob.glob(f'{this_project_source}/../build/*/src/*/*.h', recursive=True) + 
@@ -69,6 +81,7 @@ def clean_includes():
     return changes_made
 
 def make_all_includes():
+    # generates an .hpp file with all includes in this project that need to be bound
     all_includes = []
     all_include_filename = 'all_cmake_includes.hpp'
     for filename in (glob.glob(f'{this_project_source}/**/*.hpp', recursive=True) +
@@ -97,8 +110,10 @@ def make_all_includes():
 
 
 def make_bindings_code(all_includes_fn, binder_executable):
+    # runs the binder executable with required parameters
     shutil.rmtree(bindings_dir, ignore_errors=True)
     os.mkdir(bindings_dir)
+    # be sure to include dirs for dependencies so it won't get lost
     proj_include = glob.glob("build/*/src/*/include")
     proj_include = " -I".join(proj_include)
     command = (f'{binder_executable} --root-module {python_module_name} '
@@ -111,6 +126,7 @@ def make_bindings_code(all_includes_fn, binder_executable):
     subprocess.check_call(command)
 
 def revert_include_changes(changes_made):
+    # go through dict of changes and revert them in source files
     for filename in changes_made.keys():
         filedata = ""
         listInd = 0 

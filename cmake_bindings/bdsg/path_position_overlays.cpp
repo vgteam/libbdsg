@@ -16,6 +16,7 @@
 #include <functional>
 #include <string>
 #include <pybind11/stl.h>
+#include <fstream>
 
 
 #ifndef BINDER_PYBIND11_TYPE_CASTER
@@ -1322,6 +1323,8 @@ void bind_bdsg_path_position_overlays(std::function< pybind11::module &(std::str
 		cl.def("optimize", [](bdsg::MutablePositionOverlay &o) -> void { return o.optimize(); }, "");
 		cl.def("optimize", (void (bdsg::MutablePositionOverlay::*)(bool)) &bdsg::MutablePositionOverlay::optimize, "Adjust the representation of the graph in memory to improve performance.\n Optionally, allow the node IDs to be reassigned to further improve\n performance.\n Note: Ideally, this method is called one time once there is expected to be\n few graph modifications in the future.\n\nC++: bdsg::MutablePositionOverlay::optimize(bool) --> void", pybind11::arg("allow_id_reassignment"));
 		cl.def("set_id_increment", (void (bdsg::MutablePositionOverlay::*)(const long &)) &bdsg::MutablePositionOverlay::set_id_increment, "No-op function (required by MutableHandleGraph interface)\n\nC++: bdsg::MutablePositionOverlay::set_id_increment(const long &) --> void", pybind11::arg("min_id"));
+		cl.def("increment_node_ids", (void (bdsg::MutablePositionOverlay::*)(long)) &bdsg::MutablePositionOverlay::increment_node_ids, "Add the given value to all node IDs.\n Has a default implementation in terms of reassign_node_ids, but can be\n implemented more efficiently in some graphs.\n\nC++: bdsg::MutablePositionOverlay::increment_node_ids(long) --> void", pybind11::arg("increment"));
+		cl.def("reassign_node_ids", (void (bdsg::MutablePositionOverlay::*)(const class std::function<long (const long &)> &)) &bdsg::MutablePositionOverlay::reassign_node_ids, "Renumber all node IDs using the given function, which, given an old ID, returns the new ID.\n Modifies the graph in place. Invalidates all outstanding handles.\n If the graph supports paths, they also must be updated.\n The mapping function may return 0. In this case, the input ID will\n remain unchanged. The mapping function should not return any ID for\n which it would return 0.\n\nC++: bdsg::MutablePositionOverlay::reassign_node_ids(const class std::function<long (const long &)> &) --> void", pybind11::arg("get_new_id"));
 		cl.def("destroy_path", (void (bdsg::MutablePositionOverlay::*)(const struct handlegraph::path_handle_t &)) &bdsg::MutablePositionOverlay::destroy_path, "Destroy the given path. Invalidates handles to the path and its node steps.\n\nC++: bdsg::MutablePositionOverlay::destroy_path(const struct handlegraph::path_handle_t &) --> void", pybind11::arg("path"));
 		cl.def("create_path_handle", [](bdsg::MutablePositionOverlay &o, const class std::__cxx11::basic_string<char> & a0) -> handlegraph::path_handle_t { return o.create_path_handle(a0); }, "", pybind11::arg("name"));
 		cl.def("create_path_handle", (struct handlegraph::path_handle_t (bdsg::MutablePositionOverlay::*)(const std::string &, bool)) &bdsg::MutablePositionOverlay::create_path_handle, "Create a path with the given name. The caller must ensure that no path\n with the given name exists already, or the behavior is undefined.\n Returns a handle to the created empty path. Handles to other paths must\n remain valid.\n\nC++: bdsg::MutablePositionOverlay::create_path_handle(const std::string &, bool) --> struct handlegraph::path_handle_t", pybind11::arg("name"), pybind11::arg("is_circular"));

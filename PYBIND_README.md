@@ -18,9 +18,9 @@ If the only changes were to the backend of libbdsg, there is no need to modify t
 
 #### How to Update Bindings
 
-The included script `make_and_run_binder.py` will automatically download and build Binder (if this has not already been done) and run binder on libbdsg, placing the output .cpp files in cmake_bindings.  *Note: building Binder is very slow.*
+The included script `make_and_run_binder.py` will automatically download and build Binder (if this has not already been done) and run binder on libbdsg, placing the output .cpp files in cmake_bindings.  *Note: Binder will require up to ~2.6 Gb of free disk space, and takes some time to compile.*
 
-This script has two dependencies: `gitpython` is needed to clone the repo and `ninja` is needed to build binder.  These can be installed with:
+Before running this script, it is required to have run cmake and make to populate the dependency source files.  Additionally, this script has two dependencies: `gitpython` is needed to clone the repo and `ninja` is needed to build binder.  These can be installed with:
 
 ```
 pip3 install gitpython

@@ -13,6 +13,7 @@
 #include <functional>
 #include <string>
 #include <pybind11/stl.h>
+#include <fstream>
 
 
 #ifndef BINDER_PYBIND11_TYPE_CASTER
@@ -834,6 +835,8 @@ void bind_bdsg_vectorizable_overlays(std::function< pybind11::module &(std::stri
 		cl.def( pybind11::init<const class handlegraph::HandleGraph *>(), pybind11::arg("graph") );
 
 		cl.def( pybind11::init( [](){ return new bdsg::VectorizableOverlay(); }, [](){ return new PyCallBack_bdsg_VectorizableOverlay(); } ) );
+		cl.def( pybind11::init( [](PyCallBack_bdsg_VectorizableOverlay const &o){ return new PyCallBack_bdsg_VectorizableOverlay(o); } ) );
+		cl.def( pybind11::init( [](bdsg::VectorizableOverlay const &o){ return new bdsg::VectorizableOverlay(o); } ) );
 		cl.def("has_node", (bool (bdsg::VectorizableOverlay::*)(long) const) &bdsg::VectorizableOverlay::has_node, "Method to check if a node exists by ID\n\nC++: bdsg::VectorizableOverlay::has_node(long) const --> bool", pybind11::arg("node_id"));
 		cl.def("get_handle", [](bdsg::VectorizableOverlay const &o, const long & a0) -> handlegraph::handle_t { return o.get_handle(a0); }, "", pybind11::arg("node_id"));
 		cl.def("get_handle", (struct handlegraph::handle_t (bdsg::VectorizableOverlay::*)(const long &, bool) const) &bdsg::VectorizableOverlay::get_handle, "Look up the handle for the node with the given ID in the given orientation\n\nC++: bdsg::VectorizableOverlay::get_handle(const long &, bool) const --> struct handlegraph::handle_t", pybind11::arg("node_id"), pybind11::arg("is_reverse"));
@@ -860,6 +863,8 @@ void bind_bdsg_vectorizable_overlays(std::function< pybind11::module &(std::stri
 		cl.def( pybind11::init<const class handlegraph::PathHandleGraph *>(), pybind11::arg("path_graph") );
 
 		cl.def( pybind11::init( [](){ return new bdsg::PathVectorizableOverlay(); }, [](){ return new PyCallBack_bdsg_PathVectorizableOverlay(); } ) );
+		cl.def( pybind11::init( [](PyCallBack_bdsg_PathVectorizableOverlay const &o){ return new PyCallBack_bdsg_PathVectorizableOverlay(o); } ) );
+		cl.def( pybind11::init( [](bdsg::PathVectorizableOverlay const &o){ return new bdsg::PathVectorizableOverlay(o); } ) );
 		cl.def("get_path_count", (unsigned long (bdsg::PathVectorizableOverlay::*)() const) &bdsg::PathVectorizableOverlay::get_path_count, "Returns the number of paths stored in the graph\n\nC++: bdsg::PathVectorizableOverlay::get_path_count() const --> unsigned long");
 		cl.def("has_path", (bool (bdsg::PathVectorizableOverlay::*)(const std::string &) const) &bdsg::PathVectorizableOverlay::has_path, "Determine if a path name exists and is legal to get a path handle for.\n\nC++: bdsg::PathVectorizableOverlay::has_path(const std::string &) const --> bool", pybind11::arg("path_name"));
 		cl.def("get_path_handle", (struct handlegraph::path_handle_t (bdsg::PathVectorizableOverlay::*)(const std::string &) const) &bdsg::PathVectorizableOverlay::get_path_handle, "Look up the path handle for the given path name.\n The path with that name must exist.\n\nC++: bdsg::PathVectorizableOverlay::get_path_handle(const std::string &) const --> struct handlegraph::path_handle_t", pybind11::arg("path_name"));

@@ -11,6 +11,7 @@
 #include <functional>
 #include <string>
 #include <pybind11/stl.h>
+#include <fstream>
 
 
 #ifndef BINDER_PYBIND11_TYPE_CASTER
@@ -251,8 +252,8 @@ void bind_handlegraph_expanding_overlay_graph(std::function< pybind11::module &(
 {
 	{ // handlegraph::ExpandingOverlayGraph file:handlegraph/expanding_overlay_graph.hpp line:17
 		pybind11::class_<handlegraph::ExpandingOverlayGraph, std::shared_ptr<handlegraph::ExpandingOverlayGraph>, PyCallBack_handlegraph_ExpandingOverlayGraph, handlegraph::HandleGraph> cl(M("handlegraph"), "ExpandingOverlayGraph", "");
-		cl.def( pybind11::init( [](){ return new PyCallBack_handlegraph_ExpandingOverlayGraph(); } ) );
 		cl.def(pybind11::init<PyCallBack_handlegraph_ExpandingOverlayGraph const &>());
+		cl.def( pybind11::init( [](){ return new PyCallBack_handlegraph_ExpandingOverlayGraph(); } ) );
 		cl.def("get_underlying_handle", (struct handlegraph::handle_t (handlegraph::ExpandingOverlayGraph::*)(const struct handlegraph::handle_t &) const) &handlegraph::ExpandingOverlayGraph::get_underlying_handle, "C++: handlegraph::ExpandingOverlayGraph::get_underlying_handle(const struct handlegraph::handle_t &) const --> struct handlegraph::handle_t", pybind11::arg("handle"));
 		cl.def("assign", (class handlegraph::ExpandingOverlayGraph & (handlegraph::ExpandingOverlayGraph::*)(const class handlegraph::ExpandingOverlayGraph &)) &handlegraph::ExpandingOverlayGraph::operator=, "C++: handlegraph::ExpandingOverlayGraph::operator=(const class handlegraph::ExpandingOverlayGraph &) --> class handlegraph::ExpandingOverlayGraph &", pybind11::return_value_policy::automatic, pybind11::arg(""));
 	}

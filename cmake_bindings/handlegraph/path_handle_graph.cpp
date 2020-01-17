@@ -16,6 +16,7 @@
 #include <functional>
 #include <string>
 #include <pybind11/stl.h>
+#include <fstream>
 
 
 #ifndef BINDER_PYBIND11_TYPE_CASTER
@@ -490,8 +491,8 @@ void bind_handlegraph_path_handle_graph(std::function< pybind11::module &(std::s
 {
 	{ // handlegraph::PathHandleGraph file:handlegraph/path_handle_graph.hpp line:20
 		pybind11::class_<handlegraph::PathHandleGraph, std::shared_ptr<handlegraph::PathHandleGraph>, PyCallBack_handlegraph_PathHandleGraph, handlegraph::HandleGraph> cl(M("handlegraph"), "PathHandleGraph", "");
-		cl.def( pybind11::init( [](){ return new PyCallBack_handlegraph_PathHandleGraph(); } ) );
 		cl.def(pybind11::init<PyCallBack_handlegraph_PathHandleGraph const &>());
+		cl.def( pybind11::init( [](){ return new PyCallBack_handlegraph_PathHandleGraph(); } ) );
 		cl.def("get_path_count", (unsigned long (handlegraph::PathHandleGraph::*)() const) &handlegraph::PathHandleGraph::get_path_count, "C++: handlegraph::PathHandleGraph::get_path_count() const --> unsigned long");
 		cl.def("has_path", (bool (handlegraph::PathHandleGraph::*)(const std::string &) const) &handlegraph::PathHandleGraph::has_path, "C++: handlegraph::PathHandleGraph::has_path(const std::string &) const --> bool", pybind11::arg("path_name"));
 		cl.def("get_path_handle", (struct handlegraph::path_handle_t (handlegraph::PathHandleGraph::*)(const std::string &) const) &handlegraph::PathHandleGraph::get_path_handle, "C++: handlegraph::PathHandleGraph::get_path_handle(const std::string &) const --> struct handlegraph::path_handle_t", pybind11::arg("path_name"));
@@ -525,6 +526,7 @@ void bind_handlegraph_path_handle_graph(std::function< pybind11::module &(std::s
 			cl.def("__ne__", (bool (handlegraph::PathForEachSocket::iterator::*)(const class handlegraph::PathForEachSocket::iterator &) const) &handlegraph::PathForEachSocket::iterator::operator!=, "C++: handlegraph::PathForEachSocket::iterator::operator!=(const class handlegraph::PathForEachSocket::iterator &) const --> bool", pybind11::arg("other"));
 		}
 
+		cl.def( pybind11::init( [](handlegraph::PathForEachSocket const &o){ return new handlegraph::PathForEachSocket(o); } ) );
 		cl.def("begin", (class handlegraph::PathForEachSocket::iterator (handlegraph::PathForEachSocket::*)() const) &handlegraph::PathForEachSocket::begin, "C++: handlegraph::PathForEachSocket::begin() const --> class handlegraph::PathForEachSocket::iterator");
 		cl.def("end", (class handlegraph::PathForEachSocket::iterator (handlegraph::PathForEachSocket::*)() const) &handlegraph::PathForEachSocket::end, "C++: handlegraph::PathForEachSocket::end() const --> class handlegraph::PathForEachSocket::iterator");
 	}

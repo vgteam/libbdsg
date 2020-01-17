@@ -1,4 +1,4 @@
-#include <cwchar>
+#include <bits/types/__mbstate_t.h>
 #include <ios>
 #include <sstream> // __str__
 #include <string>
@@ -7,6 +7,7 @@
 #include <functional>
 #include <string>
 #include <pybind11/stl.h>
+#include <fstream>
 
 
 #ifndef BINDER_PYBIND11_TYPE_CASTER

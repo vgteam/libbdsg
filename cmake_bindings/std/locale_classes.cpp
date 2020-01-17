@@ -1,4 +1,4 @@
-#include <cwchar>
+#include <bits/types/__mbstate_t.h>
 #include <chrono>
 #include <deque>
 #include <internal/gap_bitvector.hpp>
@@ -27,6 +27,7 @@
 #include <functional>
 #include <string>
 #include <pybind11/stl.h>
+#include <fstream>
 
 
 #ifndef BINDER_PYBIND11_TYPE_CASTER
@@ -223,25 +224,25 @@ void bind_std_locale_classes(std::function< pybind11::module &(std::string const
 	}
 	// std::_Ios_Openmode file:bits/ios_base.h line:111
 	pybind11::enum_<std::_Ios_Openmode>(M("std"), "_Ios_Openmode", pybind11::arithmetic(), "")
-		.value("_S_app", std::_Ios_Openmode::_S_app)
-		.value("_S_ate", std::_Ios_Openmode::_S_ate)
-		.value("_S_bin", std::_Ios_Openmode::_S_bin)
-		.value("_S_in", std::_Ios_Openmode::_S_in)
-		.value("_S_out", std::_Ios_Openmode::_S_out)
-		.value("_S_trunc", std::_Ios_Openmode::_S_trunc)
-		.value("_S_ios_openmode_end", std::_Ios_Openmode::_S_ios_openmode_end)
-		.value("_S_ios_openmode_max", std::_Ios_Openmode::_S_ios_openmode_max)
-		.value("_S_ios_openmode_min", std::_Ios_Openmode::_S_ios_openmode_min)
+		.value("_S_app", std::_S_app)
+		.value("_S_ate", std::_S_ate)
+		.value("_S_bin", std::_S_bin)
+		.value("_S_in", std::_S_in)
+		.value("_S_out", std::_S_out)
+		.value("_S_trunc", std::_S_trunc)
+		.value("_S_ios_openmode_end", std::_S_ios_openmode_end)
+		.value("_S_ios_openmode_max", std::_S_ios_openmode_max)
+		.value("_S_ios_openmode_min", std::_S_ios_openmode_min)
 		.export_values();
 
 ;
 
 	// std::_Ios_Seekdir file:bits/ios_base.h line:193
 	pybind11::enum_<std::_Ios_Seekdir>(M("std"), "_Ios_Seekdir", pybind11::arithmetic(), "")
-		.value("_S_beg", std::_Ios_Seekdir::_S_beg)
-		.value("_S_cur", std::_Ios_Seekdir::_S_cur)
-		.value("_S_end", std::_Ios_Seekdir::_S_end)
-		.value("_S_ios_seekdir_end", std::_Ios_Seekdir::_S_ios_seekdir_end)
+		.value("_S_beg", std::_S_beg)
+		.value("_S_cur", std::_S_cur)
+		.value("_S_end", std::_S_end)
+		.value("_S_ios_seekdir_end", std::_S_ios_seekdir_end)
 		.export_values();
 
 ;
