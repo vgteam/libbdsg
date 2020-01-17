@@ -39,11 +39,11 @@ def clean_includes():
                      glob.glob(f'{this_project_source}/**/*.h', recursive=True) +
                      glob.glob(f'{this_project_source}/**/*.cc', recursive=True) + 
                      glob.glob(f'{this_project_source}/**/*.c', recursive=True) + 
-                     glob.glob(f'{this_project_source}/build/*/src/*/*.hpp', recursive=True) + 
-                     glob.glob(f'{this_project_source}/build/*/src/*/*.cpp', recursive=True) + 
-                     glob.glob(f'{this_project_source}/build/*/src/*/*.h', recursive=True) + 
-                     glob.glob(f'{this_project_source}/build/*/src/*/*.cc', recursive=True) + 
-                     glob.glob(f'{this_project_source}/build/*/src/*/*.c', recursive=True)):
+                     glob.glob(f'{this_project_source}/../build/*/src/*/*.hpp', recursive=True) + 
+                     glob.glob(f'{this_project_source}/../build/*/src/*/*.cpp', recursive=True) + 
+                     glob.glob(f'{this_project_source}/../build/*/src/*/*.h', recursive=True) + 
+                     glob.glob(f'{this_project_source}/../build/*/src/*/*.cc', recursive=True) + 
+                     glob.glob(f'{this_project_source}/../build/*/src/*/*.c', recursive=True)):
         changes_made[filename] = list()
         with open(filename, 'r') as fh:
             for line in fh:
@@ -75,12 +75,12 @@ def make_all_includes():
                      glob.glob(f'{this_project_source}/**/*.cpp', recursive=True) +
                      glob.glob(f'{this_project_source}/**/*.h', recursive=True) +
                      glob.glob(f'{this_project_source}/**/*.cc', recursive=True) +
-                     glob.glob(f'{this_project_source}/**/*.c', recursive=True) + 
-                     glob.glob(f'{this_project_source}/build/*/src/*/*.hpp', recursive=True) +  
-                     glob.glob(f'{this_project_source}/build/*/src/*/*.cpp', recursive=True) +  
-                     glob.glob(f'{this_project_source}/build/*/src/*/*.h', recursive=True) +
-                     glob.glob(f'{this_project_source}/build/*/src/*/*.cc', recursive=True) + 
-                     glob.glob(f'{this_project_source}/build/*/src/*/*.c', recursive=True)):
+                     glob.glob(f'{this_project_source}/**/*.c', recursive=True)):
+#                     glob.glob(f'{this_project_source}/../build/*/src/*/*.hpp', recursive=True) +  
+#                     glob.glob(f'{this_project_source}/../build/*/src/*/*.cpp', recursive=True) +  
+#                     glob.glob(f'{this_project_source}/../build/*/src/*/*.h', recursive=True) +
+#                     glob.glob(f'{this_project_source}/../build/*/src/*/*.cc', recursive=True) + 
+#                     glob.glob(f'{this_project_source}/../build/*/src/*/*.c', recursive=True)):
         with open(filename, 'r') as fh:
             for line in fh:
                 if line.startswith('#include'):
@@ -99,19 +99,16 @@ def make_all_includes():
 def make_bindings_code(all_includes_fn, binder_executable):
     shutil.rmtree(bindings_dir, ignore_errors=True)
     os.mkdir(bindings_dir)
+    proj_include = glob.glob("build/*/src/*/include")
+    proj_include = " -I".join(proj_include)
     command = (f'{binder_executable} --root-module {python_module_name} '
                f'--prefix {os.getcwd()}/{bindings_dir}/ '
                f'--bind {this_project_namespace_to_bind} '
                + ('--config config.cfg ') +
                f' {all_includes_fn} -- -std=c++14 '
-               f'-I{this_project_include} -DNDEBUG -v').split()
+               f'-I{this_project_include} {proj_include} -DNDEBUG -v').split()
     print('BINDER COMMAND:', ' '.join(command))
     subprocess.check_call(command)
-    sources_to_compile = []
-    with open(f'{bindings_dir}/{python_module_name}.sources', 'r') as fh:
-        for line in fh:
-            sources_to_compile.append(line.strip())
-    return sources_to_compilie
 
 def revert_include_changes(changes_made):
     for filename in changes_made.keys():
@@ -120,10 +117,10 @@ def revert_include_changes(changes_made):
         with open(filename, 'r') as fh:
             for line in fh:
                 if listInd < len(changes_made[filename]) and line == changes_made[filename][listInd][1]:
-                    filedata += changes_made[filename][listInd][0] + "\n"
+                    filedata += changes_made[filename][listInd][0]
                     listInd += 1
                 else:
-                    filedata += line + "\n"
+                    filedata += line
         with open(filename, 'w') as fh:
             fh.write(filedata)
 
