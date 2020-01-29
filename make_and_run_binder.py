@@ -18,16 +18,18 @@ this_project_namespace_to_bind = 'bdsg'
 python_module_name = 'bdsg'
 
 def clone_repos():
-    # download the most recent copy of binder from git
+    ''' download the most recent copy of binder from git '''
     if not glob.glob("binder"):
         print("Binder not found, cloning repo...")
         os.mkdir("binder")
         git.Git(".").clone("https://github.com/RosettaCommons/binder.git")
 
 def build_binder():
-    # check for binder executable in the location we expect it
-    # if it's not there, build binder with the included script
-    # returns location of executable
+    '''
+    check for binder executable in the location we expect it
+    if it's not there, build binder with the included script
+    :return: location of executable
+    '''
     if not glob.glob("./build/*/*/bin/*"):
         print("Binder not compiled, using packaged build.py...")
         os.system(f'{get_python_inc().split("/")[-1]} build.py')
@@ -35,12 +37,21 @@ def build_binder():
     return "binder/" + glob.glob('./build/*/*/bin/')[0] + "binder"
 
 def clean_includes():
-    # goes through source code and replaces all quote-format includes with
-    # carrot-style includes.
-    # returns a dict with the files that were changed and what changes were made
+    '''
+    goes through source code and replaces all quote-format includes with carrot-style includes.
+    :return: a dict with the files that were changed and what changes were made
+    '''
     changes_made = dict()
     matcher = re.compile('^\s*#include "')
     # find instances of includes we need to change
+#    files = list()
+#    searchroot = os.path.abspath(f'{this_project_source}/../')
+#    for (root,dirs,fils) in os.walk(searchroot):
+#        for fl in fils:
+#            if(fl.endswith(("hpp","cpp","h","cc","c")) and ("src" in root or "include" in root)):
+#                files.append(root+"/"+fl)
+#    print(f'found source files {files}')
+#    for filename in files:
     for filename in (glob.glob(f'{this_project_source}/**/*.hpp', recursive=True) + 
                      glob.glob(f'{this_project_source}/**/*.cpp', recursive=True) +
                      glob.glob(f'{this_project_source}/**/*.h', recursive=True) +
@@ -81,7 +92,7 @@ def clean_includes():
     return changes_made
 
 def make_all_includes():
-    # generates an .hpp file with all includes in this project that need to be bound
+    ''' generates an .hpp file with all includes in this project that need to be bound '''
     all_includes = []
     all_include_filename = 'all_cmake_includes.hpp'
     for filename in (glob.glob(f'{this_project_source}/**/*.hpp', recursive=True) +
@@ -110,23 +121,28 @@ def make_all_includes():
 
 
 def make_bindings_code(all_includes_fn, binder_executable):
-    # runs the binder executable with required parameters
+    ''' runs the binder executable with required parameters '''
     shutil.rmtree(bindings_dir, ignore_errors=True)
     os.mkdir(bindings_dir)
     # be sure to include dirs for dependencies so it won't get lost
     proj_include = glob.glob("build/*/src/*/include")
-    proj_include = " -I".join(proj_include)
-    command = (f'{binder_executable} --root-module {python_module_name} '
-               f'--prefix {os.getcwd()}/{bindings_dir}/ '
-               f'--bind {this_project_namespace_to_bind} '
-               + ('--config config.cfg ') +
-               f' {all_includes_fn} -- -std=c++14 '
-               f'-I{this_project_include} {proj_include} -DNDEBUG -v').split()
+    # proj_include = " -I".join(proj_include)
+    proj_include = [f'-I{i}' for i in proj_include]
+    command = [binder_executable, "--root-module", python_module_name, "--prefix", f'{os.getcwd()}/{bindings_dir}/', '--bind', this_project_namespace_to_bind, "--config", "config.cfg", all_includes_fn, "--", "-std=c++14", f'-I{this_project_include}']
+    command = command + proj_include
+    command.append("-DNDEBUG")
+    command.append("-v")
+    #command = (f'{binder_executable} --root-module {python_module_name} '
+    #           f'--prefix {os.getcwd()}/{bindings_dir}/ '
+    #           f'--bind {this_project_namespace_to_bind} '
+    #           + ('--config config.cfg ') +
+    #           f' {all_includes_fn} -- -std=c++14 '
+    #           f'-I{this_project_include} {proj_include} -DNDEBUG -v').split()
     print('BINDER COMMAND:', ' '.join(command))
     subprocess.check_call(command)
 
 def revert_include_changes(changes_made):
-    # go through dict of changes and revert them in source files
+    ''' go through dict of changes and revert them in source files '''
     for filename in changes_made.keys():
         filedata = ""
         listInd = 0 
