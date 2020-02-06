@@ -1,15 +1,20 @@
 # Specify the minimum version for CMake
 
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.11)
 
 # Project's name
 project(bdsg)
 # We build using c++14
 set(CMAKE_CXX_STANDARD 14)
 
+# needed so the pybidnings don't freak out
+
 # Use all standard-compliant optimizations
 set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -g")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -g")
+
+# set up FetchContent so we can incorporate pybind11
+include(FetchContent)
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
@@ -70,7 +75,7 @@ include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 ExternalProject_Add(sdsl-lite
   GIT_REPOSITORY "https://github.com/simongog/sdsl-lite.git"
   GIT_TAG "ddb0fbbc33bb183baa616f17eb48e261ac2a3672"
-  CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_DIR} # TODO ADD static build flag
+  CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_DIR} -DBUILD_SHARED_LIBS=ON
   UPDATE_COMMAND ""
   INSTALL_COMMAND "")
 ExternalProject_Get_property(sdsl-lite INSTALL_DIR)
@@ -141,16 +146,26 @@ set(sparsepp_INCLUDE "${INSTALL_DIR}/src/sparsepp/")
 set(sparsepp_LIB "${INSTALL_DIR}/src/sparsepp/")
 
 # pybind11
-#ExternalProject_Add(pybind11
-#    GIT_REPOSITORY https://github.com/pybind/pybind11.git 
-#    GIT_TAG v2.2.4
+# ExternalProject_Add(pybind
+#    GIT_REPOSITORY "https://github.com/RosettaCommons/pybind11.git" 
+#    UPDATE_COMMAND ""
+#    GIT_TAG "35045eeef8969b7b446c64b192502ac1cbf7c451" 
+  # we don't actually install pybind11... it's header only
+#    UPDATE_COMMAND ""
 #    CONFIGURE_COMMAND ""
 #    BUILD_COMMAND ""
-#    INSTALL_COMMAND "")
-#ExternalProject_Get_Property(pybind11 SOURCE_DIR)
-#set(pybind11_INCLUDE_DIRS ${SOURCE_DIR}/include)
-#set(pybind11_DIR ${SOURCE_DIR})
-#add_subdirectory(${pybind11_DIR})
+#    INSTALL_COMMAND ""
+#)
+#ExternalProject_Get_Property(pybind INSTALL_DIR)
+FetchContent_Declare(
+	pybind11
+	GIT_REPOSITORY https://github.com/RosettaCommons/pybind11.git
+	GIT_TAG 35045eeef8969b7b446c64b192502ac1cbf7c451
+)
+FetchContent_GetProperties(pybind11)
+if (NOT pybind11_POPULATED)
+	FetchContent_Populate(pybind11)
+endif()
 
 #set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_BUILD_TYPE Debug)
@@ -177,7 +192,8 @@ set(bdsg_DEPS
     hopscotch_map
     handlegraph
     bbhash
-    sparsepp)
+    sparsepp
+)
 add_dependencies(bdsg_objs ${bdsg_DEPS})
 
 set(bdsg_INCLUDES
@@ -188,43 +204,40 @@ set(bdsg_INCLUDES
   "${hopscotch_map_INCLUDE}"
   "${handlegraph_INCLUDE}"
   "${sparsepp_INCLUDE}"
-  "${bbhash_INCLUDE}")
+  "${bbhash_INCLUDE}"
+)
 
 set(bdsg_LIBS
-  "${CMAKE_SOURCE_DIR}/lib/libbdsg.a"
-  "${sdsl-lite_LIB}/libsdsl.a"
-  "${sdsl-lite-divsufsort_LIB}/libdivsufsort.a"
-  "${sdsl-lite-divsufsort_LIB}/libdivsufsort64.a"
-  "${handlegraph_LIB}/libhandlegraph.a"
+  "${sdsl-lite_LIB}/libsdsl.so"
+  "${sdsl-lite-divsufsort_LIB}/libdivsufsort.so"
+  "${sdsl-lite-divsufsort_LIB}/libdivsufsort64.so"
+  "${handlegraph_LIB}/libhandlegraph.so"
   "-ldl")
 
 target_include_directories(bdsg_objs PUBLIC ${bdsg_INCLUDES})
 set_target_properties(bdsg_objs PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
 
-add_library(libbdsg STATIC $<TARGET_OBJECTS:bdsg_objs>)
+add_library(libbdsg SHARED $<TARGET_OBJECTS:bdsg_objs>)
 set_target_properties(libbdsg PROPERTIES OUTPUT_NAME "bdsg")
 set_target_properties(libbdsg PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
 
 add_executable(test_libbdsg
   ${CMAKE_SOURCE_DIR}/src/test_libbdsg.cpp)
-add_dependencies(test_libbdsg libbdsg)
-target_link_libraries(test_libbdsg ${bdsg_LIBS})
+# add_dependencies(test_libbdsg libbdsg)
+target_link_libraries(test_libbdsg libbdsg ${bdsg_LIBS})
 #  "${sdsl-lite_LIB}/libsdsl.a")
 target_include_directories(test_libbdsg PUBLIC ${bdsg_INCLUDES})
 set_target_properties(test_libbdsg PROPERTIES OUTPUT_NAME "test_libbdsg")
 
-# todo, for python bindings
-
-#if (NOT EXISTS ${CMAKE_SOURCE_DIR}/deps/pybind11/CMakeLists.txt)
-#  execute_process(COMMAND git submodule update --init --recursive)
-#endif()
-
-#add_subdirectory(deps/pybind11)
-#pybind11_add_module(bdsg_pybind11 "${CMAKE_SOURCE_DIR}/src/pythonmodule.cpp")
-#add_dependencies(bdsg_pybind11 ${bdsg_DEPS} libbdsg)
-#target_include_directories(bdsg_pybind11 PUBLIC ${bdsg_INCLUDES})
-#target_link_libraries(bdsg_pybind11 PRIVATE "${CMAKE_SOURCE_DIR}/lib/libbdsg.a" "${bdsg_LIBS}")
-#set_target_properties(bdsg_pybind11 PROPERTIES OUTPUT_NAME "bdsg")
+# TODO for python bindings
+add_subdirectory(${pybind11_SOURCE_DIR} ${pybind11_BINARY_DIR})
+file(GLOB_RECURSE pybind11_API "${CMAKE_SOURCE_DIR}/cmake_bindings/*.cpp")
+list(FILTER pybind11_API EXCLUDE REGEX ".*CMakeCXXCompilerId.cpp$")
+pybind11_add_module(bdsg_pybind11 ${pybind11_API})
+add_dependencies(bdsg_pybind11 ${bdsg_DEPS} libbdsg)
+target_include_directories(bdsg_pybind11 PUBLIC ${bdsg_INCLUDES})
+target_link_libraries(bdsg_pybind11 PRIVATE libbdsg "${bdsg_LIBS}")
+set_target_properties(bdsg_pybind11 PROPERTIES OUTPUT_NAME "bdsg")
 
 if (APPLE)
 elseif (TRUE)
