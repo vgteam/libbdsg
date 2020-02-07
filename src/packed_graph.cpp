@@ -1850,9 +1850,15 @@ namespace bdsg {
         for (size_t i = EDGE_TRAV_OFFSET; i < edge_lists_iv.size(); i += EDGE_RECORD_SIZE) {
             handle_t trav = decode_traversal(edge_lists_iv.get(i));
             // only translate edges to nodes that have not been deleted
-            if (nid_to_graph_iv.get(get_id(trav) - min_id)) {
-                trav = get_handle(get_new_id(get_id(trav)), get_is_reverse(trav));
-                edge_lists_iv.set(i, encode_traversal(trav));
+            auto trav_id = get_id(trav);
+            if (trav_id >= min_id) {
+                auto idx = trav_id - min_id;
+                if (idx < nid_to_graph_iv.size()) {
+                    if (nid_to_graph_iv.get(idx)) {
+                        trav = get_handle(get_new_id(trav_id), get_is_reverse(trav));
+                        edge_lists_iv.set(i, encode_traversal(trav));
+                    }
+                }
             }
         }
         
@@ -1867,10 +1873,17 @@ namespace bdsg {
             
             for (size_t j = 0; j < packed_path.steps_iv.size(); j += STEP_RECORD_SIZE) {
                 handle_t trav = decode_traversal(packed_path.steps_iv.get(j));
+                
                 // only translate step records of nodes that have not been deleted
-                if (nid_to_graph_iv.get(get_id(trav) - min_id)) {
-                    trav = get_handle(get_new_id(get_id(trav)), get_is_reverse(trav));
-                    packed_path.steps_iv.set(j, encode_traversal(trav));
+                auto trav_id = get_id(trav);
+                if (trav_id >= min_id) {
+                    auto idx = trav_id - min_id;
+                    if (idx < nid_to_graph_iv.size()) {
+                        if (nid_to_graph_iv.get(idx)) {
+                            trav = get_handle(get_new_id(get_id(trav)), get_is_reverse(trav));
+                            packed_path.steps_iv.set(j, encode_traversal(trav));
+                        }
+                    }
                 }
             }
         }
