@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import git
 import re
+from contextlib import contextmanager
 from distutils.sysconfig import get_python_inc
 
 
@@ -36,10 +37,13 @@ def build_binder():
     pybind_source = f'binder/build/pybind11/include'
     return "binder/" + glob.glob('./build/*/*/bin/')[0] + "binder"
 
+
+@contextmanager
 def clean_includes():
     '''
-    goes through source code and replaces all quote-format includes with carrot-style includes.
-    :return: a dict with the files that were changed and what changes were made
+    Goes through source code and replaces all quote-format includes with carrot-style includes on entry.
+
+    Reverts changes on exit.
     '''
     changes_made = dict()
     matcher = re.compile('^\s*#include "')
@@ -89,7 +93,22 @@ def clean_includes():
                     filedata += line
         with open(filename, 'w') as fh:
             fh.write(filedata)
-    return changes_made
+    try:
+        yield
+    finally:
+        for filename in changes_made.keys():
+            filedata = ""
+            listInd = 0 
+            with open(filename, 'r') as fh:
+                for line in fh:
+                    if listInd < len(changes_made[filename]) and line == changes_made[filename][listInd][1]:
+                        filedata += changes_made[filename][listInd][0]
+                        listInd += 1
+                    else:
+                        filedata += line
+            with open(filename, 'w') as fh:
+                fh.write(filedata)
+        
 
 def make_all_includes():
     ''' generates an .hpp file with all includes in this project that need to be bound '''
@@ -141,31 +160,14 @@ def make_bindings_code(all_includes_fn, binder_executable):
     print('BINDER COMMAND:', ' '.join(command))
     subprocess.check_call(command)
 
-def revert_include_changes(changes_made):
-    ''' go through dict of changes and revert them in source files '''
-    for filename in changes_made.keys():
-        filedata = ""
-        listInd = 0 
-        with open(filename, 'r') as fh:
-            for line in fh:
-                if listInd < len(changes_made[filename]) and line == changes_made[filename][listInd][1]:
-                    filedata += changes_made[filename][listInd][0]
-                    listInd += 1
-                else:
-                    filedata += line
-        with open(filename, 'w') as fh:
-            fh.write(filedata)
-
 def main():
     clone_repos()
     os.chdir("binder")
     binder_executable = build_binder()
     os.chdir("..")
-    changes_made = clean_includes()
-    print(f"made the following changes to source: {changes_made}")
-    all_includes_fn = make_all_includes()
-    make_bindings_code(all_includes_fn, binder_executable)
-    revert_include_changes(changes_made)
+    with clean_includes():
+        all_includes_fn = make_all_includes()
+        make_bindings_code(all_includes_fn, binder_executable)
 
 if __name__ == '__main__':
     main()
