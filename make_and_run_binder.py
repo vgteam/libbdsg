@@ -2,6 +2,7 @@
 
 import glob
 import os
+import platform
 import sys
 import shutil
 import subprocess
@@ -143,11 +144,23 @@ def make_bindings_code(all_includes_fn, binder_executable):
     ''' runs the binder executable with required parameters '''
     shutil.rmtree(bindings_dir, ignore_errors=True)
     os.mkdir(bindings_dir)
-    # be sure to include dirs for dependencies so it won't get lost
-    proj_include = glob.glob("build/*/src/*/include")
+    # Find all the include directories for dependencies.
+    # Some dependency repos have an include and some have an src/include.
+    # TODO: This (and a lot of this script) relies on a cmake build having been done out of "build" beforehand!
+    proj_include = (glob.glob("build/*/src/*/include") +
+                    glob.glob("build/*/src/*/src/include"))
     # proj_include = " -I".join(proj_include)
     proj_include = [f'-I{i}' for i in proj_include]
     command = [binder_executable, "--root-module", python_module_name, "--prefix", f'{os.getcwd()}/{bindings_dir}/', '--bind', this_project_namespace_to_bind, "--config", "config.cfg", all_includes_fn, "--", "-std=c++14", f'-I{this_project_include}']
+    if platform.system() == 'Darwin':
+        # On (newer) Macs, Binder can't find the C++ STL because it is not in
+        # /usr/include but under a weird path returned by xcode-select -p and
+        # then /usr/include.  See
+        # https://github.com/RosettaCommons/binder/issues/26#issuecomment-322538385
+        # and
+        # https://developer.apple.com/documentation/xcode_release_notes/xcode_10_release_notes#3035624
+        sdk_path = subprocess.check_output(['xcode-select', '-p']).decode('utf8').strip()
+        command.append('-isystem' + os.path.join(sdk_path, 'usr', 'include', 'c++', 'v1'))
     command = command + proj_include
     command.append("-DNDEBUG")
     command.append("-v")
