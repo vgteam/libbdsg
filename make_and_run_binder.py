@@ -159,8 +159,11 @@ def make_bindings_code(all_includes_fn, binder_executable):
         # https://github.com/RosettaCommons/binder/issues/26#issuecomment-322538385
         # and
         # https://developer.apple.com/documentation/xcode_release_notes/xcode_10_release_notes#3035624
-        sdk_path = subprocess.check_output(['xcode-select', '-p']).decode('utf8').strip()
-        command.append('-isystem' + os.path.join(sdk_path, 'usr', 'include', 'c++', 'v1'))
+        stl_path = os.path.join(subprocess.check_output(['xcode-select', '-p']).decode('utf8').strip(), 'usr', 'include', 'c++', 'v1')
+        command.append('-isystem' + stl_path)
+        # But we also need the MacOS SDK, which provides e.g. the "real" string.h that this STL depends on
+        sdk_path=subprocess.check_output(['xcrun', '-sdk', 'macosx', '--show-sdk-path']).decode('utf8').strip()
+        command.append('-isysroot' + sdk_path)
     command = command + proj_include
     command.append("-DNDEBUG")
     command.append("-v")
