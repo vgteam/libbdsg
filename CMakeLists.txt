@@ -38,7 +38,7 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
   set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
   set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS} -lomp")
-  
+
 elseif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
   find_package(OpenMP REQUIRED)
@@ -208,11 +208,11 @@ set(bdsg_INCLUDES
 )
 
 set(bdsg_LIBS
-  "${sdsl-lite_LIB}/libsdsl.so"
-  "${sdsl-lite-divsufsort_LIB}/libdivsufsort.so"
-  "${sdsl-lite-divsufsort_LIB}/libdivsufsort64.so"
-  "${handlegraph_LIB}/libhandlegraph.so"
-  "-ldl")
+  "${sdsl-lite_LIB}/libsdsl${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  "${sdsl-lite-divsufsort_LIB}/libdivsufsort${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  "${sdsl-lite-divsufsort_LIB}/libdivsufsort64${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  "${handlegraph_LIB}/libhandlegraph${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  "-ldl" "-lomp")
 
 target_include_directories(bdsg_objs PUBLIC ${bdsg_INCLUDES})
 set_target_properties(bdsg_objs PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
@@ -220,11 +220,14 @@ set_target_properties(bdsg_objs PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
 add_library(libbdsg SHARED $<TARGET_OBJECTS:bdsg_objs>)
 set_target_properties(libbdsg PROPERTIES OUTPUT_NAME "bdsg")
 set_target_properties(libbdsg PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
+# On Mac at least, we need to link the library against the other dependency libraries
+# If we link them as PUBLIC they come along when anything links against libbdsg, as they should.
+target_link_libraries(libbdsg PUBLIC ${bdsg_LIBS})
 
 add_executable(test_libbdsg
   ${CMAKE_SOURCE_DIR}/src/test_libbdsg.cpp)
 # add_dependencies(test_libbdsg libbdsg)
-target_link_libraries(test_libbdsg libbdsg ${bdsg_LIBS})
+target_link_libraries(test_libbdsg libbdsg)
 #  "${sdsl-lite_LIB}/libsdsl.a")
 target_include_directories(test_libbdsg PUBLIC ${bdsg_INCLUDES})
 set_target_properties(test_libbdsg PROPERTIES OUTPUT_NAME "test_libbdsg")
