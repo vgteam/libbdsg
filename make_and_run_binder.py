@@ -147,8 +147,11 @@ def make_bindings_code(all_includes_fn, binder_executable):
     # Find all the include directories for dependencies.
     # Some dependency repos have an include and some have an src/include.
     # TODO: This (and a lot of this script) relies on a cmake build having been done out of "build" beforehand!
+    # BBHash and sparsepp have weird project structures and needs to be handled specially.
     proj_include = (glob.glob("build/*/src/*/include") +
-                    glob.glob("build/*/src/*/src/include"))
+                    glob.glob("build/*/src/*/src/include") +
+                    ["build/sparsepp-prefix/src/sparsepp",
+                     "build/bbhash-prefix/src/bbhash"])
     # proj_include = " -I".join(proj_include)
     proj_include = [f'-I{i}' for i in proj_include]
     command = [binder_executable, "--root-module", python_module_name, "--prefix", f'{os.getcwd()}/{bindings_dir}/', '--bind', this_project_namespace_to_bind, "--config", "config.cfg", all_includes_fn, "--", "-std=c++14", f'-I{this_project_include}']
@@ -164,6 +167,9 @@ def make_bindings_code(all_includes_fn, binder_executable):
         # But we also need the MacOS SDK, which provides e.g. the "real" string.h that this STL depends on
         sdk_path=subprocess.check_output(['xcrun', '-sdk', 'macosx', '--show-sdk-path']).decode('utf8').strip()
         command.append('-isysroot' + sdk_path)
+        # Also make sure to look for libomp from macports or homebrew, like CMakeLists.txt does
+        command.append('-I/opt/local/include/libomp')
+        command.append('-I/usr/local/include')
     command = command + proj_include
     command.append("-DNDEBUG")
     command.append("-v")
