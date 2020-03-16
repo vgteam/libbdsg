@@ -22,7 +22,10 @@ def clone_repos():
     ''' download the most recent copy of binder from git '''
     if not glob.glob("binder"):
         print("Binder not found, cloning repo...")
-        subprocess.check_call(['git', 'clone', 'https://github.com/RosettaCommons/binder.git', 'binder'])
+        # TODO: Change back to https://github.com/RosettaCommons/binder.git
+        # master when https://github.com/RosettaCommons/binder/pull/99 is
+        # fixed.
+        subprocess.check_call(['git', 'clone', '--branch', 'patch-1', 'https://github.com/adamnovak/binder.git', 'binder'])
 
 def build_binder():
     '''
