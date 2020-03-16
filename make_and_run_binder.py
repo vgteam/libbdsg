@@ -7,8 +7,9 @@ import sys
 import shutil
 import subprocess
 import re
+import multiprocessing
 from contextlib import contextmanager
-from distutils.sysconfig import get_python_inc
+
 
 
 # Overall script settings
@@ -29,14 +30,15 @@ def clone_repos():
 
 def build_binder():
     '''
-    check for binder executable in the location we expect it
-    if it's not there, build binder with the included script
-    :return: location of executable
+    Check for binder executable in the location we expect it.
+    If it's not there, build binder with the included script.
+    Expects to run in the binder directory.
+    :return: location of executable, relative to project directory
     '''
     if not glob.glob("./build/*/*/bin/*"):
         print("Binder not compiled, using packaged build.py...")
-        os.system(f'{get_python_inc().split("/")[-1]} build.py')
-    pybind_source = f'binder/build/pybind11/include'
+        # TODO: Use CPU counting that accounts for container quotas?
+        subprocess.check_call([sys.executable, 'build.py', '--jobs', str(multiprocessing.cpu_count())])
     return "binder/" + glob.glob('./build/*/*/bin/')[0] + "binder"
 
 
