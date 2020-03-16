@@ -5,7 +5,11 @@
 #include <sstream>
 #include <iomanip>
 #include <functional>
-#include <omp.h>
+
+// Binder can't always find OpenMP's headers.
+// So we hackily declare the one OppenMP function we use, to avoid including omp.h.
+// TODO: Make get_thread_count not inline instead?
+int omp_get_num_threads(void);
 
 namespace bdsg {
 
