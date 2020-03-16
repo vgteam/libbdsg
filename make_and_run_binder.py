@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.7
+#!/usr/bin/env python3
 
 import glob
 import os
@@ -6,7 +6,6 @@ import platform
 import sys
 import shutil
 import subprocess
-import git
 import re
 from contextlib import contextmanager
 from distutils.sysconfig import get_python_inc
@@ -23,8 +22,7 @@ def clone_repos():
     ''' download the most recent copy of binder from git '''
     if not glob.glob("binder"):
         print("Binder not found, cloning repo...")
-        os.mkdir("binder")
-        git.Git(".").clone("https://github.com/RosettaCommons/binder.git")
+        subprocess.check_call(['git', 'clone', 'https://github.com/RosettaCommons/binder.git', 'binder'])
 
 def build_binder():
     '''

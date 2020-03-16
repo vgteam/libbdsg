@@ -20,10 +20,9 @@ Changes to the backend of libbdsg do not require modification to the python bind
 
 The included script `make_and_run_binder.py` will automatically download and build Binder (if this has not already been done) and run binder on libbdsg, placing the output .cpp files in cmake_bindings.  *Note: Binder will require up to ~2.6 Gb of free disk space, and takes some time to compile.*
 
-Before running this script, it is required to run cmake and make to populate the dependency source files.  Additionally, this script has two dependencies: `gitpython` is needed to clone the repo and `ninja` is needed to build binder.  These can be installed with:
+Before running this script, it is required to run cmake and make to populate the dependency source files.  Additionally, besides `git`, this script depends on `ninja`, which is needed by binder's build system. This can be installed on Ubuntu with:
 
 ```
-pip3 install gitpython
 sudo apt-get install ninja-build
 ```
 
