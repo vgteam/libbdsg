@@ -1,6 +1,7 @@
 # Specify the minimum version for CMake
 
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.10)
+# We can't use CMake 3.11 until we no longer have to run on Ubuntu 18.04.
 
 # Project's name
 project(bdsg)
@@ -12,10 +13,6 @@ set(CMAKE_CXX_STANDARD 14)
 # Use all standard-compliant optimizations
 set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -g")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -g")
-
-# set up FetchContent so we can incorporate pybind11
-include(FetchContent)
-
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
   # assumes clang build
@@ -38,6 +35,9 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
   set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
   set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS} -lomp")
+  
+  # Mac needs libdl and libomp when linking the library
+  set(PLATFORM_EXTRA_LIB_FLAGS -ldl -lomp)
 
 elseif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
@@ -47,6 +47,9 @@ elseif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS} -fopenmp")
   set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS} -fopenmp")
   set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+  
+  # Linux only needs libdl when linking the library
+  set(PLATFORM_EXTRA_LIB_FLAGS -ldl)
   
 endif()
 
@@ -146,26 +149,47 @@ set(sparsepp_INCLUDE "${INSTALL_DIR}/src/sparsepp/")
 set(sparsepp_LIB "${INSTALL_DIR}/src/sparsepp/")
 
 # pybind11
-# ExternalProject_Add(pybind
-#    GIT_REPOSITORY "https://github.com/RosettaCommons/pybind11.git" 
-#    UPDATE_COMMAND ""
-#    GIT_TAG "35045eeef8969b7b446c64b192502ac1cbf7c451" 
-  # we don't actually install pybind11... it's header only
-#    UPDATE_COMMAND ""
-#    CONFIGURE_COMMAND ""
-#    BUILD_COMMAND ""
-#    INSTALL_COMMAND ""
-#)
-#ExternalProject_Get_Property(pybind INSTALL_DIR)
-FetchContent_Declare(
-	pybind11
-	GIT_REPOSITORY https://github.com/RosettaCommons/pybind11.git
-	GIT_TAG 35045eeef8969b7b446c64b192502ac1cbf7c451
-)
-FetchContent_GetProperties(pybind11)
-if (NOT pybind11_POPULATED)
-	FetchContent_Populate(pybind11)
+if (CMAKE_MAJOR_VERSION EQUAL "3" AND CMAKE_MINOR_VERSION EQUAL "10")
+    # We need pybind11 installed in ./pybind11 *before* CMake can finish processing this file.
+    # On CMake 3.11+ we can do that automatically.
+    # But on CMake 3.10, available on Ubuntu 18.04, it needs to happen manually:
+    message(WARNING "Running on CMake without FetchContent_Declare; make sure pybind11 has been manually installed")
+    message(WARNING "Run in project root:\ngit clone https://github.com/RosettaCommons/pybind11.git\ncd pybind11\ngit checkout 35045eeef8969b7b446c64b192502ac1cbf7c451\ncd ..")
+    add_subdirectory(pybind11)
+else()
+    # This FetchContent_Declare logic works only on CMake 3.11+.
+    # We can't use it on Ubuntu 18.04
+    
+    # set up FetchContent so we can incorporate pybind11
+    include(FetchContent)
+    
+    FetchContent_Declare(
+        pybind11
+        GIT_REPOSITORY https://github.com/RosettaCommons/pybind11.git
+        GIT_TAG 35045eeef8969b7b446c64b192502ac1cbf7c451
+    )
+    FetchContent_GetProperties(pybind11)
+    if (NOT pybind11_POPULATED)
+        FetchContent_Populate(pybind11)
+    endif()
+    
+    add_subdirectory(${pybind11_SOURCE_DIR} ${pybind11_BINARY_DIR})
 endif()
+
+# This ExternalProject logic works on CMake 3.10, available on Ubuntu 18.04.
+# We don't actually install pybind11; it's header only
+ExternalProject_Add(pybind
+    GIT_REPOSITORY "https://github.com/RosettaCommons/pybind11.git" 
+    UPDATE_COMMAND ""
+    GIT_TAG "35045eeef8969b7b446c64b192502ac1cbf7c451" 
+    UPDATE_COMMAND ""
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+)
+ExternalProject_Get_Property(pybind INSTALL_DIR)
+
+
 
 #set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_BUILD_TYPE Debug)
@@ -212,7 +236,7 @@ set(bdsg_LIBS
   "${sdsl-lite-divsufsort_LIB}/libdivsufsort${CMAKE_SHARED_LIBRARY_SUFFIX}"
   "${sdsl-lite-divsufsort_LIB}/libdivsufsort64${CMAKE_SHARED_LIBRARY_SUFFIX}"
   "${handlegraph_LIB}/libhandlegraph${CMAKE_SHARED_LIBRARY_SUFFIX}"
-  "-ldl" "-lomp")
+  ${PLATFORM_EXTRA_LIB_FLAGS})
 
 target_include_directories(bdsg_objs PUBLIC ${bdsg_INCLUDES})
 set_target_properties(bdsg_objs PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
@@ -233,7 +257,6 @@ target_include_directories(test_libbdsg PUBLIC ${bdsg_INCLUDES})
 set_target_properties(test_libbdsg PROPERTIES OUTPUT_NAME "test_libbdsg")
 
 # TODO for python bindings
-add_subdirectory(${pybind11_SOURCE_DIR} ${pybind11_BINARY_DIR})
 file(GLOB_RECURSE pybind11_API "${CMAKE_SOURCE_DIR}/cmake_bindings/*.cpp")
 list(FILTER pybind11_API EXCLUDE REGEX ".*CMakeCXXCompilerId.cpp$")
 pybind11_add_module(bdsg_pybind11 ${pybind11_API})

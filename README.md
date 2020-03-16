@@ -32,6 +32,8 @@ The build process assumes that these libraries and their headers have been insta
 
 ### Building
 
+#### With `make` (library only)
+
 The following commands will create the `libbdsg.a` library in the `lib` directory. 
 
 ```
@@ -52,3 +54,22 @@ Or to install in an alternate location:
 INSTALL_PREFIX=/other/path/ make install
 ```
 
+#### With `cmake` (library and Python binding)
+
+**If running on Ubuntu 18.04**, or other platforms with **CMake 3.10**, CMake cannot automatically install pybind11 and use it as part of the build process. You will have to install it manually. From the project root:
+
+```
+git clone https://github.com/RosettaCommons/pybind11.git
+cd pybind11
+git checkout 35045eeef8969b7b446c64b192502ac1cbf7c451
+cd ..
+```
+
+Once you have done that, or if you have **CMake 3.11 or newer**, run:
+
+```
+mkdir build
+cd build
+cmake ..
+make
+```
