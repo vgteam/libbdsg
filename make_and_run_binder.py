@@ -43,7 +43,7 @@ def build_binder():
         subprocess.check_call([sys.executable, 'build.py', '--jobs', str(multiprocessing.cpu_count())])
     return "binder/" + glob.glob('./build/*/*/bin/')[0] + "binder"
 
-def all_sources_and_headers():
+def all_sources_and_headers(include_deps=False):
     '''
     Find all source or include files relevant to the project.
     Yields their paths.
@@ -53,7 +53,9 @@ def all_sources_and_headers():
     # Define the extensions we are interested in
     extensions = ['hpp', 'cpp', 'h', 'cc', 'c']
     # And the paths we want to look in
-    paths = [f'{this_project_source}/**/*', f'{this_project_include}/**/*',  f'{this_project_deps}/*/src/*/*']
+    paths = [f'{this_project_source}/**/*', f'{this_project_include}/**/*']
+    if include_deps:
+        paths.append(f'{this_project_deps}/*/src/*/*')
     # Get an iterable of glob iterables that search all combinations
     all_globs = (glob.glob(f'{f}.{e}', recursive=True) for f, e in itertools.product(paths, extensions))
     for filename in itertools.chain.from_iterable(all_globs):
@@ -121,11 +123,14 @@ def clean_includes():
         
 
 def make_all_includes():
-    ''' generates an .hpp file with all includes in this project that need to be bound '''
+    '''
+    Generates an .hpp file with all includes in this project that need to be bound.
+    We collect all the include directives from this project's sources.
+    '''
     all_includes = []
     all_include_filename = 'all_cmake_includes.hpp'
     
-    for filename in all_sources_and_headers():
+    for filename in all_sources_and_headers(include_deps=False):
         # Then for each file found by any search
         with open(filename, 'r') as fh:
             for line in fh:
