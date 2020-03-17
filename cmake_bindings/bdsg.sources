@@ -10,8 +10,6 @@ handlegraph/mutable_handle_graph.cpp
 bdsg/wang_hash.cpp
 bdsg/packed_structs.cpp
 bdsg/utility.cpp
-bdsg/varint.cpp
-bdsg/varint_1.cpp
 bdsg/odgi.cpp
 handlegraph/expanding_overlay_graph.cpp
 bdsg/split_strand_graph.cpp

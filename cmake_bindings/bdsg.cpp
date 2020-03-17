@@ -19,8 +19,6 @@ void bind_handlegraph_mutable_handle_graph(std::function< pybind11::module &(std
 void bind_bdsg_wang_hash(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_packed_structs(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_utility(std::function< pybind11::module &(std::string const &namespace_) > &M);
-void bind_bdsg_varint(std::function< pybind11::module &(std::string const &namespace_) > &M);
-void bind_bdsg_varint_1(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_odgi(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_handlegraph_expanding_overlay_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_split_strand_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
@@ -45,8 +43,6 @@ PYBIND11_MODULE(bdsg, root_module) {
 	std::vector< std::pair<std::string, std::string> > sub_modules {
 		{"", "bdsg"},
 		{"bdsg", "algorithms"},
-		{"bdsg", "msbvarint"},
-		{"bdsg", "sqvarint"},
 		{"", "handlegraph"},
 		{"", "std"},
 	};
@@ -65,8 +61,6 @@ PYBIND11_MODULE(bdsg, root_module) {
 	bind_bdsg_wang_hash(M);
 	bind_bdsg_packed_structs(M);
 	bind_bdsg_utility(M);
-	bind_bdsg_varint(M);
-	bind_bdsg_varint_1(M);
 	bind_bdsg_odgi(M);
 	bind_handlegraph_expanding_overlay_graph(M);
 	bind_bdsg_split_strand_graph(M);
