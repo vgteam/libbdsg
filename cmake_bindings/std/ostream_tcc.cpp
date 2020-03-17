@@ -1,4 +1,3 @@
-#include <bits/types/__mbstate_t.h>
 #include <ios>
 #include <istream>
 #include <locale>

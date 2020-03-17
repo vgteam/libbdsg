@@ -1,9 +1,9 @@
 #include <bdsg/hash_graph.hpp>
 #include <bdsg/utility.hpp>
-#include <bits/types/__mbstate_t.h>
 #include <functional>
 #include <handlegraph/handle_graph.hpp>
 #include <handlegraph/path_handle_graph.hpp>
+#include <handlegraph/serializable_handle_graph.hpp>
 #include <handlegraph/types.hpp>
 #include <ios>
 #include <istream>
@@ -31,36 +31,10 @@
 	PYBIND11_MAKE_OPAQUE(std::shared_ptr<void>);
 #endif
 
-// bdsg::HashGraph file:bdsg/hash_graph.hpp line:22
+// bdsg::HashGraph file:bdsg/hash_graph.hpp line:23
 struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 	using bdsg::HashGraph::HashGraph;
 
-	void serialize(class std::basic_ostream<char> & a0) const override { 
-		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "serialize");
-		if (overload) {
-			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
-				static pybind11::detail::overload_caster_t<void> caster;
-				return pybind11::detail::cast_ref<void>(std::move(o), caster);
-			}
-			else return pybind11::detail::cast_safe<void>(std::move(o));
-		}
-		return HashGraph::serialize(a0);
-	}
-	void deserialize(class std::basic_istream<char> & a0) override { 
-		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "deserialize");
-		if (overload) {
-			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
-				static pybind11::detail::overload_caster_t<void> caster;
-				return pybind11::detail::cast_ref<void>(std::move(o), caster);
-			}
-			else return pybind11::detail::cast_safe<void>(std::move(o));
-		}
-		return HashGraph::deserialize(a0);
-	}
 	bool has_node(long a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "has_node");
@@ -672,6 +646,45 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 		}
 		return HashGraph::set_id_increment(a0);
 	}
+	void increment_node_ids(long a0) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "increment_node_ids");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
+				static pybind11::detail::overload_caster_t<void> caster;
+				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<void>(std::move(o));
+		}
+		return HashGraph::increment_node_ids(a0);
+	}
+	void reassign_node_ids(const class std::function<long (const long &)> & a0) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "reassign_node_ids");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
+				static pybind11::detail::overload_caster_t<void> caster;
+				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<void>(std::move(o));
+		}
+		return HashGraph::reassign_node_ids(a0);
+	}
+	unsigned int get_magic_number() const override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_magic_number");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>();
+			if (pybind11::detail::cast_is_temporary_value_reference<unsigned int>::value) {
+				static pybind11::detail::overload_caster_t<unsigned int> caster;
+				return pybind11::detail::cast_ref<unsigned int>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<unsigned int>(std::move(o));
+		}
+		return HashGraph::get_magic_number();
+	}
 	bool is_empty(const struct handlegraph::path_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "is_empty");
@@ -698,55 +711,105 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 		}
 		return HandleGraph::has_edge(a0, a1);
 	}
+	unsigned long get_edge_count() const override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_edge_count");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>();
+			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
+				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+		}
+		return HandleGraph::get_edge_count();
+	}
+	unsigned long get_total_length() const override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_total_length");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>();
+			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
+				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+		}
+		return HandleGraph::get_total_length();
+	}
+	void serialize_members(class std::basic_ostream<char> & a0) const override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "serialize_members");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
+				static pybind11::detail::overload_caster_t<void> caster;
+				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<void>(std::move(o));
+		}
+		pybind11::pybind11_fail("Tried to call pure virtual function \"SerializableHandleGraph::serialize_members\"");
+	}
+	void deserialize_members(class std::basic_istream<char> & a0) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "deserialize_members");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
+				static pybind11::detail::overload_caster_t<void> caster;
+				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<void>(std::move(o));
+		}
+		pybind11::pybind11_fail("Tried to call pure virtual function \"SerializableHandleGraph::deserialize_members\"");
+	}
 };
 
 void bind_bdsg_utility(std::function< pybind11::module &(std::string const &namespace_) > &M)
 {
-	// bdsg::reverse_complement(const char &) file:bdsg/utility.hpp line:14
+	// bdsg::reverse_complement(const char &) file:bdsg/utility.hpp line:20
 	M("bdsg").def("reverse_complement", (char (*)(const char &)) &bdsg::reverse_complement, "C++: bdsg::reverse_complement(const char &) --> char", pybind11::arg("c"));
 
-	// bdsg::reverse_complement(const std::string &) file:bdsg/utility.hpp line:15
+	// bdsg::reverse_complement(const std::string &) file:bdsg/utility.hpp line:21
 	M("bdsg").def("reverse_complement", (std::string (*)(const std::string &)) &bdsg::reverse_complement, "C++: bdsg::reverse_complement(const std::string &) --> std::string", pybind11::arg("seq"));
 
-	// bdsg::reverse_complement_in_place(std::string &) file:bdsg/utility.hpp line:16
+	// bdsg::reverse_complement_in_place(std::string &) file:bdsg/utility.hpp line:22
 	M("bdsg").def("reverse_complement_in_place", (void (*)(std::string &)) &bdsg::reverse_complement_in_place, "C++: bdsg::reverse_complement_in_place(std::string &) --> void", pybind11::arg("seq"));
 
-	// bdsg::is_all_n(const std::string &) file:bdsg/utility.hpp line:19
+	// bdsg::is_all_n(const std::string &) file:bdsg/utility.hpp line:25
 	M("bdsg").def("is_all_n", (bool (*)(const std::string &)) &bdsg::is_all_n, "Return True if the given string is entirely Ns of either case, and false\n otherwise.\n\nC++: bdsg::is_all_n(const std::string &) --> bool", pybind11::arg("seq"));
 
-	// bdsg::allATGC(const std::string &) file:bdsg/utility.hpp line:21
+	// bdsg::allATGC(const std::string &) file:bdsg/utility.hpp line:27
 	M("bdsg").def("allATGC", (bool (*)(const std::string &)) &bdsg::allATGC, "C++: bdsg::allATGC(const std::string &) --> bool", pybind11::arg("s"));
 
-	// bdsg::allATGCN(const std::string &) file:bdsg/utility.hpp line:22
+	// bdsg::allATGCN(const std::string &) file:bdsg/utility.hpp line:28
 	M("bdsg").def("allATGCN", (bool (*)(const std::string &)) &bdsg::allATGCN, "C++: bdsg::allATGCN(const std::string &) --> bool", pybind11::arg("s"));
 
-	// bdsg::nonATGCNtoN(const std::string &) file:bdsg/utility.hpp line:23
+	// bdsg::nonATGCNtoN(const std::string &) file:bdsg/utility.hpp line:29
 	M("bdsg").def("nonATGCNtoN", (std::string (*)(const std::string &)) &bdsg::nonATGCNtoN, "C++: bdsg::nonATGCNtoN(const std::string &) --> std::string", pybind11::arg("s"));
 
-	// bdsg::toUppercase(const std::string &) file:bdsg/utility.hpp line:25
+	// bdsg::toUppercase(const std::string &) file:bdsg/utility.hpp line:31
 	M("bdsg").def("toUppercase", (std::string (*)(const std::string &)) &bdsg::toUppercase, "C++: bdsg::toUppercase(const std::string &) --> std::string", pybind11::arg("s"));
 
-	// bdsg::dna_as_int(char) file:bdsg/utility.hpp line:27
+	// bdsg::dna_as_int(char) file:bdsg/utility.hpp line:33
 	M("bdsg").def("dna_as_int", (int (*)(char)) &bdsg::dna_as_int, "C++: bdsg::dna_as_int(char) --> int", pybind11::arg("c"));
 
-	// bdsg::int_as_dna(int) file:bdsg/utility.hpp line:42
+	// bdsg::int_as_dna(int) file:bdsg/utility.hpp line:48
 	M("bdsg").def("int_as_dna", (char (*)(int)) &bdsg::int_as_dna, "C++: bdsg::int_as_dna(int) --> char", pybind11::arg("i"));
 
-	// bdsg::format_memory(unsigned long) file:bdsg/utility.hpp line:58
+	// bdsg::format_memory(unsigned long) file:bdsg/utility.hpp line:64
 	M("bdsg").def("format_memory", (std::string (*)(unsigned long)) &bdsg::format_memory, "C++: bdsg::format_memory(unsigned long) --> std::string", pybind11::arg("s"));
 
-	// bdsg::get_thread_count() file:bdsg/utility.hpp line:62
+	// bdsg::get_thread_count() file:bdsg/utility.hpp line:68
 	M("bdsg").def("get_thread_count", (int (*)()) &bdsg::get_thread_count, "Return the number of threads that OMP will produce for a parallel section.\n TODO: Assumes that this is the same for every parallel section.\n\nC++: bdsg::get_thread_count() --> int");
 
-	{ // bdsg::HashGraph file:bdsg/hash_graph.hpp line:22
+	{ // bdsg::HashGraph file:bdsg/hash_graph.hpp line:23
 		pybind11::class_<bdsg::HashGraph, std::shared_ptr<bdsg::HashGraph>, PyCallBack_bdsg_HashGraph, handlegraph::MutablePathDeletableHandleGraph, handlegraph::SerializableHandleGraph> cl(M("bdsg"), "HashGraph", "");
 		cl.def( pybind11::init( [](){ return new bdsg::HashGraph(); }, [](){ return new PyCallBack_bdsg_HashGraph(); } ) );
 		cl.def( pybind11::init<class std::basic_istream<char> &>(), pybind11::arg("in") );
 
 		cl.def( pybind11::init( [](PyCallBack_bdsg_HashGraph const &o){ return new PyCallBack_bdsg_HashGraph(o); } ) );
 		cl.def( pybind11::init( [](bdsg::HashGraph const &o){ return new bdsg::HashGraph(o); } ) );
-		cl.def("serialize", (void (bdsg::HashGraph::*)(std::ostream &) const) &bdsg::HashGraph::serialize, "Write the graph to an out stream.\n\nC++: bdsg::HashGraph::serialize(std::ostream &) const --> void", pybind11::arg("out"));
-		cl.def("deserialize", (void (bdsg::HashGraph::*)(class std::basic_istream<char> &)) &bdsg::HashGraph::deserialize, "Read the graph (in the format written by serialize()) from an in stream.\n\nC++: bdsg::HashGraph::deserialize(class std::basic_istream<char> &) --> void", pybind11::arg("in"));
 		cl.def("has_node", (bool (bdsg::HashGraph::*)(long) const) &bdsg::HashGraph::has_node, "Method to check if a node exists by ID\n\nC++: bdsg::HashGraph::has_node(long) const --> bool", pybind11::arg("node_id"));
 		cl.def("get_handle", [](bdsg::HashGraph const &o, const long & a0) -> handlegraph::handle_t { return o.get_handle(a0); }, "", pybind11::arg("node_id"));
 		cl.def("get_handle", (struct handlegraph::handle_t (bdsg::HashGraph::*)(const long &, bool) const) &bdsg::HashGraph::get_handle, "Look up the handle for the node with the given ID in the given orientation\n\nC++: bdsg::HashGraph::get_handle(const long &, bool) const --> struct handlegraph::handle_t", pybind11::arg("node_id"), pybind11::arg("is_reverse"));
@@ -800,6 +863,7 @@ void bind_bdsg_utility(std::function< pybind11::module &(std::string const &name
 		cl.def("set_id_increment", (void (bdsg::HashGraph::*)(const long &)) &bdsg::HashGraph::set_id_increment, "Set a minimum id to increment the id space by, used as a hint during construction.\n May have no effect on a backing implementation.\n\nC++: bdsg::HashGraph::set_id_increment(const long &) --> void", pybind11::arg("min_id"));
 		cl.def("increment_node_ids", (void (bdsg::HashGraph::*)(long)) &bdsg::HashGraph::increment_node_ids, "Add the given value to all node IDs\n\nC++: bdsg::HashGraph::increment_node_ids(long) --> void", pybind11::arg("increment"));
 		cl.def("reassign_node_ids", (void (bdsg::HashGraph::*)(const class std::function<long (const long &)> &)) &bdsg::HashGraph::reassign_node_ids, "Reassign all node IDs as specified by the old->new mapping function.\n\nC++: bdsg::HashGraph::reassign_node_ids(const class std::function<long (const long &)> &) --> void", pybind11::arg("get_new_id"));
+		cl.def("get_magic_number", (unsigned int (bdsg::HashGraph::*)() const) &bdsg::HashGraph::get_magic_number, "Returns a static high-entropy number to indicate the class\n\nC++: bdsg::HashGraph::get_magic_number() const --> unsigned int");
 		cl.def("assign", (class bdsg::HashGraph & (bdsg::HashGraph::*)(const class bdsg::HashGraph &)) &bdsg::HashGraph::operator=, "C++: bdsg::HashGraph::operator=(const class bdsg::HashGraph &) --> class bdsg::HashGraph &", pybind11::return_value_policy::automatic, pybind11::arg(""));
 	}
 }

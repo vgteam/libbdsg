@@ -194,6 +194,32 @@ struct PyCallBack_handlegraph_ExpandingOverlayGraph : public handlegraph::Expand
 		}
 		return HandleGraph::has_edge(a0, a1);
 	}
+	unsigned long get_edge_count() const override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::ExpandingOverlayGraph *>(this), "get_edge_count");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>();
+			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
+				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+		}
+		return HandleGraph::get_edge_count();
+	}
+	unsigned long get_total_length() const override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::ExpandingOverlayGraph *>(this), "get_total_length");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>();
+			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
+				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+		}
+		return HandleGraph::get_total_length();
+	}
 	char get_base(const struct handlegraph::handle_t & a0, unsigned long a1) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::ExpandingOverlayGraph *>(this), "get_base");
@@ -251,10 +277,10 @@ struct PyCallBack_handlegraph_ExpandingOverlayGraph : public handlegraph::Expand
 void bind_handlegraph_expanding_overlay_graph(std::function< pybind11::module &(std::string const &namespace_) > &M)
 {
 	{ // handlegraph::ExpandingOverlayGraph file:handlegraph/expanding_overlay_graph.hpp line:17
-		pybind11::class_<handlegraph::ExpandingOverlayGraph, std::shared_ptr<handlegraph::ExpandingOverlayGraph>, PyCallBack_handlegraph_ExpandingOverlayGraph, handlegraph::HandleGraph> cl(M("handlegraph"), "ExpandingOverlayGraph", "");
+		pybind11::class_<handlegraph::ExpandingOverlayGraph, std::shared_ptr<handlegraph::ExpandingOverlayGraph>, PyCallBack_handlegraph_ExpandingOverlayGraph, handlegraph::HandleGraph> cl(M("handlegraph"), "ExpandingOverlayGraph", "This is the interface for a graph that represents a transformation of some underlying\n HandleGraph where every node in the overlay corresponds to a node in the underlying\n graph, but where more than one node in the overlay can map to the same underlying node.");
 		cl.def(pybind11::init<PyCallBack_handlegraph_ExpandingOverlayGraph const &>());
 		cl.def( pybind11::init( [](){ return new PyCallBack_handlegraph_ExpandingOverlayGraph(); } ) );
-		cl.def("get_underlying_handle", (struct handlegraph::handle_t (handlegraph::ExpandingOverlayGraph::*)(const struct handlegraph::handle_t &) const) &handlegraph::ExpandingOverlayGraph::get_underlying_handle, "C++: handlegraph::ExpandingOverlayGraph::get_underlying_handle(const struct handlegraph::handle_t &) const --> struct handlegraph::handle_t", pybind11::arg("handle"));
+		cl.def("get_underlying_handle", (struct handlegraph::handle_t (handlegraph::ExpandingOverlayGraph::*)(const struct handlegraph::handle_t &) const) &handlegraph::ExpandingOverlayGraph::get_underlying_handle, "Returns the handle in the underlying graph that corresponds to a handle in the\n overlay\n\nC++: handlegraph::ExpandingOverlayGraph::get_underlying_handle(const struct handlegraph::handle_t &) const --> struct handlegraph::handle_t", pybind11::arg("handle"));
 		cl.def("assign", (class handlegraph::ExpandingOverlayGraph & (handlegraph::ExpandingOverlayGraph::*)(const class handlegraph::ExpandingOverlayGraph &)) &handlegraph::ExpandingOverlayGraph::operator=, "C++: handlegraph::ExpandingOverlayGraph::operator=(const class handlegraph::ExpandingOverlayGraph &) --> class handlegraph::ExpandingOverlayGraph &", pybind11::return_value_policy::automatic, pybind11::arg(""));
 	}
 }

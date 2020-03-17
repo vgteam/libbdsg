@@ -1,4 +1,3 @@
-#include <bits/types/__mbstate_t.h>
 #include <chrono>
 #include <deque>
 #include <internal/gap_bitvector.hpp>
@@ -15,6 +14,7 @@
 #include <ratio>
 #include <sparsepp/spp.h>
 #include <sstream> // __str__
+#include <stdexcept>
 #include <streambuf>
 #include <string>
 #include <system_error>

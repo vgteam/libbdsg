@@ -1,12 +1,13 @@
 #include <bdsg/node.hpp>
 #include <bdsg/odgi.hpp>
-#include <cwchar>
 #include <functional>
 #include <handlegraph/handle_graph.hpp>
+#include <handlegraph/serializable_handle_graph.hpp>
 #include <handlegraph/types.hpp>
 #include <ios>
 #include <istream>
 #include <iterator>
+#include <locale>
 #include <map>
 #include <memory>
 #include <ostream>
@@ -30,10 +31,23 @@
 	PYBIND11_MAKE_OPAQUE(std::shared_ptr<void>);
 #endif
 
-// bdsg::ODGI file:bdsg/odgi.hpp line:39
+// bdsg::ODGI file:bdsg/odgi.hpp line:40
 struct PyCallBack_bdsg_ODGI : public bdsg::ODGI {
 	using bdsg::ODGI::ODGI;
 
+	unsigned int get_magic_number() const override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::ODGI *>(this), "get_magic_number");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>();
+			if (pybind11::detail::cast_is_temporary_value_reference<unsigned int>::value) {
+				static pybind11::detail::overload_caster_t<unsigned int> caster;
+				return pybind11::detail::cast_ref<unsigned int>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<unsigned int>(std::move(o));
+		}
+		return ODGI::get_magic_number();
+	}
 	bool has_node(long a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::ODGI *>(this), "has_node");
@@ -202,6 +216,32 @@ struct PyCallBack_bdsg_ODGI : public bdsg::ODGI {
 			else return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return ODGI::set_id_increment(a0);
+	}
+	void increment_node_ids(long a0) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::ODGI *>(this), "increment_node_ids");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
+				static pybind11::detail::overload_caster_t<void> caster;
+				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<void>(std::move(o));
+		}
+		return ODGI::increment_node_ids(a0);
+	}
+	void reassign_node_ids(const class std::function<long (const long &)> & a0) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::ODGI *>(this), "reassign_node_ids");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
+				static pybind11::detail::overload_caster_t<void> caster;
+				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<void>(std::move(o));
+		}
+		return ODGI::reassign_node_ids(a0);
 	}
 	unsigned long get_degree(const struct handlegraph::handle_t & a0, bool a1) const override { 
 		pybind11::gil_scoped_acquire gil;
@@ -645,6 +685,32 @@ struct PyCallBack_bdsg_ODGI : public bdsg::ODGI {
 		}
 		return ODGI::append_step(a0, a1);
 	}
+	unsigned long get_edge_count() const override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::ODGI *>(this), "get_edge_count");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>();
+			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
+				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+		}
+		return HandleGraph::get_edge_count();
+	}
+	unsigned long get_total_length() const override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::ODGI *>(this), "get_total_length");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>();
+			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
+				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+		}
+		return HandleGraph::get_total_length();
+	}
 	char get_base(const struct handlegraph::handle_t & a0, unsigned long a1) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::ODGI *>(this), "get_base");
@@ -670,6 +736,32 @@ struct PyCallBack_bdsg_ODGI : public bdsg::ODGI {
 			else return pybind11::detail::cast_safe<class std::__cxx11::basic_string<char>>(std::move(o));
 		}
 		return HandleGraph::get_subsequence(a0, a1, a2);
+	}
+	void serialize_members(class std::basic_ostream<char> & a0) const override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::ODGI *>(this), "serialize_members");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
+				static pybind11::detail::overload_caster_t<void> caster;
+				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<void>(std::move(o));
+		}
+		pybind11::pybind11_fail("Tried to call pure virtual function \"SerializableHandleGraph::serialize_members\"");
+	}
+	void deserialize_members(class std::basic_istream<char> & a0) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::ODGI *>(this), "deserialize_members");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
+				static pybind11::detail::overload_caster_t<void> caster;
+				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<void>(std::move(o));
+		}
+		pybind11::pybind11_fail("Tried to call pure virtual function \"SerializableHandleGraph::deserialize_members\"");
 	}
 };
 
@@ -716,7 +808,6 @@ void bind_bdsg_node(std::function< pybind11::module &(std::string const &namespa
 		cl.def("remove_edge", (void (bdsg::node_t::*)(const unsigned long &)) &bdsg::node_t::remove_edge, "C++: bdsg::node_t::remove_edge(const unsigned long &) --> void", pybind11::arg("rank"));
 		cl.def("add_path_step", (void (bdsg::node_t::*)(const unsigned long &, const bool &, const unsigned long &, const unsigned long &, const unsigned long &, const unsigned long &)) &bdsg::node_t::add_path_step, "C++: bdsg::node_t::add_path_step(const unsigned long &, const bool &, const unsigned long &, const unsigned long &, const unsigned long &, const unsigned long &) --> void", pybind11::arg("path_id"), pybind11::arg("is_rev"), pybind11::arg("prev_id"), pybind11::arg("prev_rank"), pybind11::arg("next_id"), pybind11::arg("next_rank"));
 		cl.def("add_path_step", (void (bdsg::node_t::*)(const struct bdsg::node_t::step_t &)) &bdsg::node_t::add_path_step, "C++: bdsg::node_t::add_path_step(const struct bdsg::node_t::step_t &) --> void", pybind11::arg("step"));
-		cl.def("set_path_step", (void (bdsg::node_t::*)(const unsigned long &, const unsigned long &, const bool &, const unsigned long &, const unsigned long &, const unsigned long &, const unsigned long &)) &bdsg::node_t::set_path_step, "C++: bdsg::node_t::set_path_step(const unsigned long &, const unsigned long &, const bool &, const unsigned long &, const unsigned long &, const unsigned long &, const unsigned long &) --> void", pybind11::arg("rank"), pybind11::arg("path_id"), pybind11::arg("is_rev"), pybind11::arg("prev_id"), pybind11::arg("prev_rank"), pybind11::arg("next_id"), pybind11::arg("next_rank"));
 		cl.def("set_path_step", (void (bdsg::node_t::*)(const unsigned long &, const struct bdsg::node_t::step_t &)) &bdsg::node_t::set_path_step, "C++: bdsg::node_t::set_path_step(const unsigned long &, const struct bdsg::node_t::step_t &) --> void", pybind11::arg("rank"), pybind11::arg("step"));
 		cl.def("flip_paths", (struct std::pair<class std::map<unsigned long, struct std::pair<unsigned long, bool>, struct std::less<unsigned long>, class std::allocator<struct std::pair<const unsigned long, struct std::pair<unsigned long, bool> > > >, class std::map<unsigned long, struct std::pair<unsigned long, bool>, struct std::less<unsigned long>, class std::allocator<struct std::pair<const unsigned long, struct std::pair<unsigned long, bool> > > > > (bdsg::node_t::*)(const unsigned long &, const unsigned long &)) &bdsg::node_t::flip_paths, "C++: bdsg::node_t::flip_paths(const unsigned long &, const unsigned long &) --> struct std::pair<class std::map<unsigned long, struct std::pair<unsigned long, bool>, struct std::less<unsigned long>, class std::allocator<struct std::pair<const unsigned long, struct std::pair<unsigned long, bool> > > >, class std::map<unsigned long, struct std::pair<unsigned long, bool>, struct std::less<unsigned long>, class std::allocator<struct std::pair<const unsigned long, struct std::pair<unsigned long, bool> > > > >", pybind11::arg("start_marker"), pybind11::arg("end_marker"));
 		cl.def("get_path_step", (const struct bdsg::node_t::step_t (bdsg::node_t::*)(const unsigned long &) const) &bdsg::node_t::get_path_step, "C++: bdsg::node_t::get_path_step(const unsigned long &) const --> const struct bdsg::node_t::step_t", pybind11::arg("rank"));
@@ -730,11 +821,12 @@ void bind_bdsg_node(std::function< pybind11::module &(std::string const &namespa
 		cl.def_static("step_path_id", (unsigned long (*)(const unsigned long &)) &bdsg::node_t::step_path_id, "C++: bdsg::node_t::step_path_id(const unsigned long &) --> unsigned long", pybind11::arg("step"));
 		cl.def_static("step_is_rev", (bool (*)(const unsigned long &)) &bdsg::node_t::step_is_rev, "C++: bdsg::node_t::step_is_rev(const unsigned long &) --> bool", pybind11::arg("step"));
 	}
-	{ // bdsg::ODGI file:bdsg/odgi.hpp line:39
-		pybind11::class_<bdsg::ODGI, std::shared_ptr<bdsg::ODGI>, PyCallBack_bdsg_ODGI, handlegraph::MutablePathDeletableHandleGraph> cl(M("bdsg"), "ODGI", "");
+	{ // bdsg::ODGI file:bdsg/odgi.hpp line:40
+		pybind11::class_<bdsg::ODGI, std::shared_ptr<bdsg::ODGI>, PyCallBack_bdsg_ODGI, handlegraph::MutablePathDeletableHandleGraph, handlegraph::SerializableHandleGraph> cl(M("bdsg"), "ODGI", "");
 		cl.def( pybind11::init( [](){ return new bdsg::ODGI(); }, [](){ return new PyCallBack_bdsg_ODGI(); } ) );
 		cl.def( pybind11::init( [](PyCallBack_bdsg_ODGI const &o){ return new PyCallBack_bdsg_ODGI(o); } ) );
 		cl.def( pybind11::init( [](bdsg::ODGI const &o){ return new bdsg::ODGI(o); } ) );
+		cl.def("get_magic_number", (unsigned int (bdsg::ODGI::*)() const) &bdsg::ODGI::get_magic_number, "Return a high-entropy number to indicate which handle graph implementation this is\n\nC++: bdsg::ODGI::get_magic_number() const --> unsigned int");
 		cl.def("has_node", (bool (bdsg::ODGI::*)(long) const) &bdsg::ODGI::has_node, "Method to check if a node exists by ID\n\nC++: bdsg::ODGI::has_node(long) const --> bool", pybind11::arg("node_id"));
 		cl.def("get_handle", [](bdsg::ODGI const &o, const long & a0) -> handlegraph::handle_t { return o.get_handle(a0); }, "", pybind11::arg("node_id"));
 		cl.def("get_handle", (struct handlegraph::handle_t (bdsg::ODGI::*)(const long &, bool) const) &bdsg::ODGI::get_handle, "Look up the handle for the node with the given ID in the given orientation\n\nC++: bdsg::ODGI::get_handle(const long &, bool) const --> struct handlegraph::handle_t", pybind11::arg("node_id"), pybind11::arg("is_reverse"));
@@ -797,7 +889,7 @@ void bind_bdsg_node(std::function< pybind11::module &(std::string const &namespa
 		cl.def("set_step", (struct handlegraph::step_handle_t (bdsg::ODGI::*)(const struct handlegraph::step_handle_t &, const struct handlegraph::handle_t &)) &bdsg::ODGI::set_step, "Set the step to the given handle, possibly re-linking and cleaning up if needed\n\nC++: bdsg::ODGI::set_step(const struct handlegraph::step_handle_t &, const struct handlegraph::handle_t &) --> struct handlegraph::step_handle_t", pybind11::arg("step_handle"), pybind11::arg("handle"));
 		cl.def("display", (void (bdsg::ODGI::*)() const) &bdsg::ODGI::display, "A helper function to visualize the state of the graph\n\nC++: bdsg::ODGI::display() const --> void");
 		cl.def("to_gfa", (void (bdsg::ODGI::*)(std::ostream &) const) &bdsg::ODGI::to_gfa, "Convert to GFA (for debugging)\n\nC++: bdsg::ODGI::to_gfa(std::ostream &) const --> void", pybind11::arg("out"));
-		cl.def("serialize", (unsigned long (bdsg::ODGI::*)(std::ostream &)) &bdsg::ODGI::serialize, "Serialize\n\nC++: bdsg::ODGI::serialize(std::ostream &) --> unsigned long", pybind11::arg("out"));
+		cl.def("serialize_and_measure", (unsigned long (bdsg::ODGI::*)(std::ostream &) const) &bdsg::ODGI::serialize_and_measure, "Serialize\n\nC++: bdsg::ODGI::serialize_and_measure(std::ostream &) const --> unsigned long", pybind11::arg("out"));
 		cl.def("load", (void (bdsg::ODGI::*)(class std::basic_istream<char> &)) &bdsg::ODGI::load, "Load\n\nC++: bdsg::ODGI::load(class std::basic_istream<char> &) --> void", pybind11::arg("in"));
 		cl.def("assign", (class bdsg::ODGI & (bdsg::ODGI::*)(const class bdsg::ODGI &)) &bdsg::ODGI::operator=, "C++: bdsg::ODGI::operator=(const class bdsg::ODGI &) --> class bdsg::ODGI &", pybind11::return_value_policy::automatic, pybind11::arg(""));
 	}

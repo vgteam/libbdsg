@@ -9,13 +9,13 @@
 typedef std::function< pybind11::module & (std::string const &) > ModuleGetter;
 
 void bind_std_postypes(std::function< pybind11::module &(std::string const &namespace_) > &M);
-void bind_handlegraph_types(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_std_locale_classes(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_std_ostream_tcc(std::function< pybind11::module &(std::string const &namespace_) > &M);
+void bind_handlegraph_types(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_handlegraph_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_is_single_stranded(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_handlegraph_path_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
-void bind_handlegraph_deletable_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
+void bind_handlegraph_mutable_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_wang_hash(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_packed_structs(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_utility(std::function< pybind11::module &(std::string const &namespace_) > &M);
@@ -28,7 +28,6 @@ void bind_handlegraph_path_position_handle_graph(std::function< pybind11::module
 void bind_bdsg_packed_path_position_overlays(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_path_position_overlays(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_vectorizable_overlays(std::function< pybind11::module &(std::string const &namespace_) > &M);
-void bind_bdsg_vectorizable_overlays_1(std::function< pybind11::module &(std::string const &namespace_) > &M);
 
 
 PYBIND11_MODULE(bdsg, root_module) {
@@ -56,13 +55,13 @@ PYBIND11_MODULE(bdsg, root_module) {
 	//pybind11::class_<std::shared_ptr<void>>(M(""), "_encapsulated_data_");
 
 	bind_std_postypes(M);
-	bind_handlegraph_types(M);
 	bind_std_locale_classes(M);
 	bind_std_ostream_tcc(M);
+	bind_handlegraph_types(M);
 	bind_handlegraph_handle_graph(M);
 	bind_bdsg_is_single_stranded(M);
 	bind_handlegraph_path_handle_graph(M);
-	bind_handlegraph_deletable_handle_graph(M);
+	bind_handlegraph_mutable_handle_graph(M);
 	bind_bdsg_wang_hash(M);
 	bind_bdsg_packed_structs(M);
 	bind_bdsg_utility(M);
@@ -75,6 +74,5 @@ PYBIND11_MODULE(bdsg, root_module) {
 	bind_bdsg_packed_path_position_overlays(M);
 	bind_bdsg_path_position_overlays(M);
 	bind_bdsg_vectorizable_overlays(M);
-	bind_bdsg_vectorizable_overlays_1(M);
 
 }

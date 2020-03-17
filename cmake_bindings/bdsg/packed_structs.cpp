@@ -1,5 +1,4 @@
 #include <bdsg/packed_structs.hpp>
-#include <bits/types/__mbstate_t.h>
 #include <ios>
 #include <istream>
 #include <ostream>

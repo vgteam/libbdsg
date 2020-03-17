@@ -1,7 +1,6 @@
-#include <bits/types/__mbstate_t.h>
+#include <exception>
 #include <ios>
 #include <sstream> // __str__
-#include <string>
 
 #include <pybind11/pybind11.h>
 #include <functional>

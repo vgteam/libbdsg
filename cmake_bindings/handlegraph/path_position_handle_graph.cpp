@@ -481,6 +481,32 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 		}
 		return HandleGraph::has_edge(a0, a1);
 	}
+	unsigned long get_edge_count() const override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "get_edge_count");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>();
+			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
+				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+		}
+		return HandleGraph::get_edge_count();
+	}
+	unsigned long get_total_length() const override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "get_total_length");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>();
+			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
+				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+		}
+		return HandleGraph::get_total_length();
+	}
 	char get_base(const struct handlegraph::handle_t & a0, unsigned long a1) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "get_base");
@@ -538,13 +564,13 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 void bind_handlegraph_path_position_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M)
 {
 	{ // handlegraph::PathPositionHandleGraph file:handlegraph/path_position_handle_graph.hpp line:16
-		pybind11::class_<handlegraph::PathPositionHandleGraph, std::shared_ptr<handlegraph::PathPositionHandleGraph>, PyCallBack_handlegraph_PathPositionHandleGraph, handlegraph::PathHandleGraph> cl(M("handlegraph"), "PathPositionHandleGraph", "");
+		pybind11::class_<handlegraph::PathPositionHandleGraph, std::shared_ptr<handlegraph::PathPositionHandleGraph>, PyCallBack_handlegraph_PathPositionHandleGraph, handlegraph::PathHandleGraph> cl(M("handlegraph"), "PathPositionHandleGraph", "This is the interface for a path handle graph with path positions");
 		cl.def( pybind11::init( [](){ return new PyCallBack_handlegraph_PathPositionHandleGraph(); } ) );
 		cl.def(pybind11::init<PyCallBack_handlegraph_PathPositionHandleGraph const &>());
-		cl.def("get_path_length", (unsigned long (handlegraph::PathPositionHandleGraph::*)(const struct handlegraph::path_handle_t &) const) &handlegraph::PathPositionHandleGraph::get_path_length, "C++: handlegraph::PathPositionHandleGraph::get_path_length(const struct handlegraph::path_handle_t &) const --> unsigned long", pybind11::arg("path_handle"));
-		cl.def("get_position_of_step", (unsigned long (handlegraph::PathPositionHandleGraph::*)(const struct handlegraph::step_handle_t &) const) &handlegraph::PathPositionHandleGraph::get_position_of_step, "C++: handlegraph::PathPositionHandleGraph::get_position_of_step(const struct handlegraph::step_handle_t &) const --> unsigned long", pybind11::arg("step"));
-		cl.def("get_step_at_position", (struct handlegraph::step_handle_t (handlegraph::PathPositionHandleGraph::*)(const struct handlegraph::path_handle_t &, const unsigned long &) const) &handlegraph::PathPositionHandleGraph::get_step_at_position, "C++: handlegraph::PathPositionHandleGraph::get_step_at_position(const struct handlegraph::path_handle_t &, const unsigned long &) const --> struct handlegraph::step_handle_t", pybind11::arg("path"), pybind11::arg("position"));
-		cl.def("for_each_step_position_on_handle", (bool (handlegraph::PathPositionHandleGraph::*)(const struct handlegraph::handle_t &, const class std::function<bool (const struct handlegraph::step_handle_t &, const bool &, const unsigned long &)> &) const) &handlegraph::PathPositionHandleGraph::for_each_step_position_on_handle, "C++: handlegraph::PathPositionHandleGraph::for_each_step_position_on_handle(const struct handlegraph::handle_t &, const class std::function<bool (const struct handlegraph::step_handle_t &, const bool &, const unsigned long &)> &) const --> bool", pybind11::arg("handle"), pybind11::arg("iteratee"));
+		cl.def("get_path_length", (unsigned long (handlegraph::PathPositionHandleGraph::*)(const struct handlegraph::path_handle_t &) const) &handlegraph::PathPositionHandleGraph::get_path_length, "Returns the length of a path measured in bases of sequence.\n\nC++: handlegraph::PathPositionHandleGraph::get_path_length(const struct handlegraph::path_handle_t &) const --> unsigned long", pybind11::arg("path_handle"));
+		cl.def("get_position_of_step", (unsigned long (handlegraph::PathPositionHandleGraph::*)(const struct handlegraph::step_handle_t &) const) &handlegraph::PathPositionHandleGraph::get_position_of_step, "Returns the position along the path of the beginning of this step measured in\n bases of sequence. In a circular path, positions start at the step returned by\n path_begin().\n\nC++: handlegraph::PathPositionHandleGraph::get_position_of_step(const struct handlegraph::step_handle_t &) const --> unsigned long", pybind11::arg("step"));
+		cl.def("get_step_at_position", (struct handlegraph::step_handle_t (handlegraph::PathPositionHandleGraph::*)(const struct handlegraph::path_handle_t &, const unsigned long &) const) &handlegraph::PathPositionHandleGraph::get_step_at_position, "Returns the step at this position, measured in bases of sequence starting at\n the step returned by path_begin(). If the position is past the end of the\n path, returns path_end().\n\nC++: handlegraph::PathPositionHandleGraph::get_step_at_position(const struct handlegraph::path_handle_t &, const unsigned long &) const --> struct handlegraph::step_handle_t", pybind11::arg("path"), pybind11::arg("position"));
+		cl.def("for_each_step_position_on_handle", (bool (handlegraph::PathPositionHandleGraph::*)(const struct handlegraph::handle_t &, const class std::function<bool (const struct handlegraph::step_handle_t &, const bool &, const unsigned long &)> &) const) &handlegraph::PathPositionHandleGraph::for_each_step_position_on_handle, "Execute an iteratee on each step on a path, along with its orientation relative to\n the path (true if it is reverse the orientation of the handle on the path), and its\n position measured in bases of sequence along the path. Positions are always measured\n on the forward strand.\n\n Iteration will stop early if the iteratee returns false. This method returns false if\n iteration was stopped early, else true\n\nC++: handlegraph::PathPositionHandleGraph::for_each_step_position_on_handle(const struct handlegraph::handle_t &, const class std::function<bool (const struct handlegraph::step_handle_t &, const bool &, const unsigned long &)> &) const --> bool", pybind11::arg("handle"), pybind11::arg("iteratee"));
 		cl.def("assign", (class handlegraph::PathPositionHandleGraph & (handlegraph::PathPositionHandleGraph::*)(const class handlegraph::PathPositionHandleGraph &)) &handlegraph::PathPositionHandleGraph::operator=, "C++: handlegraph::PathPositionHandleGraph::operator=(const class handlegraph::PathPositionHandleGraph &) --> class handlegraph::PathPositionHandleGraph &", pybind11::return_value_policy::automatic, pybind11::arg(""));
 	}
 }
