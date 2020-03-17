@@ -6,13 +6,6 @@
 #include <iomanip>
 #include <functional>
 
-// Binder can't always find OpenMP's headers.
-// So we hackily declare the one OppenMP function we use, to avoid including omp.h.
-// TODO: Make get_thread_count not inline instead?
-extern "C" {
-    int omp_get_num_threads(void);
-}
-
 namespace bdsg {
 
 using namespace std;
@@ -65,15 +58,7 @@ string format_memory(size_t s);
 
 /// Return the number of threads that OMP will produce for a parallel section.
 /// TODO: Assumes that this is the same for every parallel section.
-inline int get_thread_count(void) {
-    int thread_count = 1;
-#pragma omp parallel
-    {
-#pragma omp master
-        thread_count = omp_get_num_threads();
-    }
-    return thread_count;
-}
+int get_thread_count(void);
 
 }
 
