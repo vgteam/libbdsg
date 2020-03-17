@@ -325,7 +325,7 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 		}
 		return PathHandleGraph::is_empty(a0);
 	}
-	bool has_node(long a0) const override { 
+	bool has_node(long long a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "has_node");
 		if (overload) {
@@ -338,7 +338,7 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::has_node\"");
 	}
-	struct handlegraph::handle_t get_handle(const long & a0, bool a1) const override { 
+	struct handlegraph::handle_t get_handle(const long long & a0, bool a1) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "get_handle");
 		if (overload) {
@@ -351,16 +351,16 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::get_handle\"");
 	}
-	long get_id(const struct handlegraph::handle_t & a0) const override { 
+	long long get_id(const struct handlegraph::handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "get_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<long>::value) {
-				static pybind11::detail::overload_caster_t<long> caster;
-				return pybind11::detail::cast_ref<long>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
+				static pybind11::detail::overload_caster_t<long long> caster;
+				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long>(std::move(o));
+			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::get_id\"");
 	}
@@ -429,29 +429,29 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::get_node_count\"");
 	}
-	long min_node_id() const override { 
+	long long min_node_id() const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "min_node_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
-			if (pybind11::detail::cast_is_temporary_value_reference<long>::value) {
-				static pybind11::detail::overload_caster_t<long> caster;
-				return pybind11::detail::cast_ref<long>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
+				static pybind11::detail::overload_caster_t<long long> caster;
+				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long>(std::move(o));
+			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::min_node_id\"");
 	}
-	long max_node_id() const override { 
+	long long max_node_id() const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "max_node_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
-			if (pybind11::detail::cast_is_temporary_value_reference<long>::value) {
-				static pybind11::detail::overload_caster_t<long> caster;
-				return pybind11::detail::cast_ref<long>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
+				static pybind11::detail::overload_caster_t<long long> caster;
+				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long>(std::move(o));
+			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::max_node_id\"");
 	}

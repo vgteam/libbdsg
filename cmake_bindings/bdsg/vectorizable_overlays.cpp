@@ -28,7 +28,7 @@
 struct PyCallBack_bdsg_VectorizableOverlay : public bdsg::VectorizableOverlay {
 	using bdsg::VectorizableOverlay::VectorizableOverlay;
 
-	bool has_node(long a0) const override { 
+	bool has_node(long long a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::VectorizableOverlay *>(this), "has_node");
 		if (overload) {
@@ -41,7 +41,7 @@ struct PyCallBack_bdsg_VectorizableOverlay : public bdsg::VectorizableOverlay {
 		}
 		return VectorizableOverlay::has_node(a0);
 	}
-	struct handlegraph::handle_t get_handle(const long & a0, bool a1) const override { 
+	struct handlegraph::handle_t get_handle(const long long & a0, bool a1) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::VectorizableOverlay *>(this), "get_handle");
 		if (overload) {
@@ -54,16 +54,16 @@ struct PyCallBack_bdsg_VectorizableOverlay : public bdsg::VectorizableOverlay {
 		}
 		return VectorizableOverlay::get_handle(a0, a1);
 	}
-	long get_id(const struct handlegraph::handle_t & a0) const override { 
+	long long get_id(const struct handlegraph::handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::VectorizableOverlay *>(this), "get_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<long>::value) {
-				static pybind11::detail::overload_caster_t<long> caster;
-				return pybind11::detail::cast_ref<long>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
+				static pybind11::detail::overload_caster_t<long long> caster;
+				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long>(std::move(o));
+			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return VectorizableOverlay::get_id(a0);
 	}
@@ -184,33 +184,33 @@ struct PyCallBack_bdsg_VectorizableOverlay : public bdsg::VectorizableOverlay {
 		}
 		return VectorizableOverlay::get_node_count();
 	}
-	long min_node_id() const override { 
+	long long min_node_id() const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::VectorizableOverlay *>(this), "min_node_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
-			if (pybind11::detail::cast_is_temporary_value_reference<long>::value) {
-				static pybind11::detail::overload_caster_t<long> caster;
-				return pybind11::detail::cast_ref<long>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
+				static pybind11::detail::overload_caster_t<long long> caster;
+				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long>(std::move(o));
+			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return VectorizableOverlay::min_node_id();
 	}
-	long max_node_id() const override { 
+	long long max_node_id() const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::VectorizableOverlay *>(this), "max_node_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
-			if (pybind11::detail::cast_is_temporary_value_reference<long>::value) {
-				static pybind11::detail::overload_caster_t<long> caster;
-				return pybind11::detail::cast_ref<long>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
+				static pybind11::detail::overload_caster_t<long long> caster;
+				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long>(std::move(o));
+			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return VectorizableOverlay::max_node_id();
 	}
-	unsigned long node_vector_offset(const long & a0) const override { 
+	unsigned long node_vector_offset(const long long & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::VectorizableOverlay *>(this), "node_vector_offset");
 		if (overload) {
@@ -223,16 +223,16 @@ struct PyCallBack_bdsg_VectorizableOverlay : public bdsg::VectorizableOverlay {
 		}
 		return VectorizableOverlay::node_vector_offset(a0);
 	}
-	long node_at_vector_offset(const unsigned long & a0) const override { 
+	long long node_at_vector_offset(const unsigned long & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::VectorizableOverlay *>(this), "node_at_vector_offset");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<long>::value) {
-				static pybind11::detail::overload_caster_t<long> caster;
-				return pybind11::detail::cast_ref<long>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
+				static pybind11::detail::overload_caster_t<long long> caster;
+				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long>(std::move(o));
+			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return VectorizableOverlay::node_at_vector_offset(a0);
 	}
@@ -567,7 +567,7 @@ struct PyCallBack_bdsg_PathVectorizableOverlay : public bdsg::PathVectorizableOv
 		}
 		return PathVectorizableOverlay::for_each_step_on_handle_impl(a0, a1);
 	}
-	bool has_node(long a0) const override { 
+	bool has_node(long long a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PathVectorizableOverlay *>(this), "has_node");
 		if (overload) {
@@ -580,7 +580,7 @@ struct PyCallBack_bdsg_PathVectorizableOverlay : public bdsg::PathVectorizableOv
 		}
 		return VectorizableOverlay::has_node(a0);
 	}
-	struct handlegraph::handle_t get_handle(const long & a0, bool a1) const override { 
+	struct handlegraph::handle_t get_handle(const long long & a0, bool a1) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PathVectorizableOverlay *>(this), "get_handle");
 		if (overload) {
@@ -593,16 +593,16 @@ struct PyCallBack_bdsg_PathVectorizableOverlay : public bdsg::PathVectorizableOv
 		}
 		return VectorizableOverlay::get_handle(a0, a1);
 	}
-	long get_id(const struct handlegraph::handle_t & a0) const override { 
+	long long get_id(const struct handlegraph::handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PathVectorizableOverlay *>(this), "get_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<long>::value) {
-				static pybind11::detail::overload_caster_t<long> caster;
-				return pybind11::detail::cast_ref<long>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
+				static pybind11::detail::overload_caster_t<long long> caster;
+				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long>(std::move(o));
+			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return VectorizableOverlay::get_id(a0);
 	}
@@ -723,33 +723,33 @@ struct PyCallBack_bdsg_PathVectorizableOverlay : public bdsg::PathVectorizableOv
 		}
 		return VectorizableOverlay::get_node_count();
 	}
-	long min_node_id() const override { 
+	long long min_node_id() const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PathVectorizableOverlay *>(this), "min_node_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
-			if (pybind11::detail::cast_is_temporary_value_reference<long>::value) {
-				static pybind11::detail::overload_caster_t<long> caster;
-				return pybind11::detail::cast_ref<long>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
+				static pybind11::detail::overload_caster_t<long long> caster;
+				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long>(std::move(o));
+			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return VectorizableOverlay::min_node_id();
 	}
-	long max_node_id() const override { 
+	long long max_node_id() const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PathVectorizableOverlay *>(this), "max_node_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
-			if (pybind11::detail::cast_is_temporary_value_reference<long>::value) {
-				static pybind11::detail::overload_caster_t<long> caster;
-				return pybind11::detail::cast_ref<long>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
+				static pybind11::detail::overload_caster_t<long long> caster;
+				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long>(std::move(o));
+			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return VectorizableOverlay::max_node_id();
 	}
-	unsigned long node_vector_offset(const long & a0) const override { 
+	unsigned long node_vector_offset(const long long & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PathVectorizableOverlay *>(this), "node_vector_offset");
 		if (overload) {
@@ -762,16 +762,16 @@ struct PyCallBack_bdsg_PathVectorizableOverlay : public bdsg::PathVectorizableOv
 		}
 		return VectorizableOverlay::node_vector_offset(a0);
 	}
-	long node_at_vector_offset(const unsigned long & a0) const override { 
+	long long node_at_vector_offset(const unsigned long & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PathVectorizableOverlay *>(this), "node_at_vector_offset");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<long>::value) {
-				static pybind11::detail::overload_caster_t<long> caster;
-				return pybind11::detail::cast_ref<long>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
+				static pybind11::detail::overload_caster_t<long long> caster;
+				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long>(std::move(o));
+			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return VectorizableOverlay::node_at_vector_offset(a0);
 	}
@@ -1158,7 +1158,7 @@ struct PyCallBack_bdsg_PathPositionVectorizableOverlay : public bdsg::PathPositi
 		}
 		return PathVectorizableOverlay::for_each_step_on_handle_impl(a0, a1);
 	}
-	bool has_node(long a0) const override { 
+	bool has_node(long long a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PathPositionVectorizableOverlay *>(this), "has_node");
 		if (overload) {
@@ -1171,7 +1171,7 @@ struct PyCallBack_bdsg_PathPositionVectorizableOverlay : public bdsg::PathPositi
 		}
 		return VectorizableOverlay::has_node(a0);
 	}
-	struct handlegraph::handle_t get_handle(const long & a0, bool a1) const override { 
+	struct handlegraph::handle_t get_handle(const long long & a0, bool a1) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PathPositionVectorizableOverlay *>(this), "get_handle");
 		if (overload) {
@@ -1184,16 +1184,16 @@ struct PyCallBack_bdsg_PathPositionVectorizableOverlay : public bdsg::PathPositi
 		}
 		return VectorizableOverlay::get_handle(a0, a1);
 	}
-	long get_id(const struct handlegraph::handle_t & a0) const override { 
+	long long get_id(const struct handlegraph::handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PathPositionVectorizableOverlay *>(this), "get_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<long>::value) {
-				static pybind11::detail::overload_caster_t<long> caster;
-				return pybind11::detail::cast_ref<long>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
+				static pybind11::detail::overload_caster_t<long long> caster;
+				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long>(std::move(o));
+			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return VectorizableOverlay::get_id(a0);
 	}
@@ -1314,33 +1314,33 @@ struct PyCallBack_bdsg_PathPositionVectorizableOverlay : public bdsg::PathPositi
 		}
 		return VectorizableOverlay::get_node_count();
 	}
-	long min_node_id() const override { 
+	long long min_node_id() const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PathPositionVectorizableOverlay *>(this), "min_node_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
-			if (pybind11::detail::cast_is_temporary_value_reference<long>::value) {
-				static pybind11::detail::overload_caster_t<long> caster;
-				return pybind11::detail::cast_ref<long>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
+				static pybind11::detail::overload_caster_t<long long> caster;
+				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long>(std::move(o));
+			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return VectorizableOverlay::min_node_id();
 	}
-	long max_node_id() const override { 
+	long long max_node_id() const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PathPositionVectorizableOverlay *>(this), "max_node_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
-			if (pybind11::detail::cast_is_temporary_value_reference<long>::value) {
-				static pybind11::detail::overload_caster_t<long> caster;
-				return pybind11::detail::cast_ref<long>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
+				static pybind11::detail::overload_caster_t<long long> caster;
+				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long>(std::move(o));
+			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return VectorizableOverlay::max_node_id();
 	}
-	unsigned long node_vector_offset(const long & a0) const override { 
+	unsigned long node_vector_offset(const long long & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PathPositionVectorizableOverlay *>(this), "node_vector_offset");
 		if (overload) {
@@ -1353,16 +1353,16 @@ struct PyCallBack_bdsg_PathPositionVectorizableOverlay : public bdsg::PathPositi
 		}
 		return VectorizableOverlay::node_vector_offset(a0);
 	}
-	long node_at_vector_offset(const unsigned long & a0) const override { 
+	long long node_at_vector_offset(const unsigned long & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PathPositionVectorizableOverlay *>(this), "node_at_vector_offset");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<long>::value) {
-				static pybind11::detail::overload_caster_t<long> caster;
-				return pybind11::detail::cast_ref<long>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
+				static pybind11::detail::overload_caster_t<long long> caster;
+				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long>(std::move(o));
+			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return VectorizableOverlay::node_at_vector_offset(a0);
 	}
@@ -1492,10 +1492,10 @@ void bind_bdsg_vectorizable_overlays(std::function< pybind11::module &(std::stri
 		cl.def( pybind11::init<const class handlegraph::HandleGraph *>(), pybind11::arg("graph") );
 
 		cl.def( pybind11::init( [](){ return new bdsg::VectorizableOverlay(); }, [](){ return new PyCallBack_bdsg_VectorizableOverlay(); } ) );
-		cl.def("has_node", (bool (bdsg::VectorizableOverlay::*)(long) const) &bdsg::VectorizableOverlay::has_node, "Method to check if a node exists by ID\n\nC++: bdsg::VectorizableOverlay::has_node(long) const --> bool", pybind11::arg("node_id"));
-		cl.def("get_handle", [](bdsg::VectorizableOverlay const &o, const long & a0) -> handlegraph::handle_t { return o.get_handle(a0); }, "", pybind11::arg("node_id"));
-		cl.def("get_handle", (struct handlegraph::handle_t (bdsg::VectorizableOverlay::*)(const long &, bool) const) &bdsg::VectorizableOverlay::get_handle, "Look up the handle for the node with the given ID in the given orientation\n\nC++: bdsg::VectorizableOverlay::get_handle(const long &, bool) const --> struct handlegraph::handle_t", pybind11::arg("node_id"), pybind11::arg("is_reverse"));
-		cl.def("get_id", (long (bdsg::VectorizableOverlay::*)(const struct handlegraph::handle_t &) const) &bdsg::VectorizableOverlay::get_id, "Get the ID from a handle\n\nC++: bdsg::VectorizableOverlay::get_id(const struct handlegraph::handle_t &) const --> long", pybind11::arg("handle"));
+		cl.def("has_node", (bool (bdsg::VectorizableOverlay::*)(long long) const) &bdsg::VectorizableOverlay::has_node, "Method to check if a node exists by ID\n\nC++: bdsg::VectorizableOverlay::has_node(long long) const --> bool", pybind11::arg("node_id"));
+		cl.def("get_handle", [](bdsg::VectorizableOverlay const &o, const long long & a0) -> handlegraph::handle_t { return o.get_handle(a0); }, "", pybind11::arg("node_id"));
+		cl.def("get_handle", (struct handlegraph::handle_t (bdsg::VectorizableOverlay::*)(const long long &, bool) const) &bdsg::VectorizableOverlay::get_handle, "Look up the handle for the node with the given ID in the given orientation\n\nC++: bdsg::VectorizableOverlay::get_handle(const long long &, bool) const --> struct handlegraph::handle_t", pybind11::arg("node_id"), pybind11::arg("is_reverse"));
+		cl.def("get_id", (long long (bdsg::VectorizableOverlay::*)(const struct handlegraph::handle_t &) const) &bdsg::VectorizableOverlay::get_id, "Get the ID from a handle\n\nC++: bdsg::VectorizableOverlay::get_id(const struct handlegraph::handle_t &) const --> long long", pybind11::arg("handle"));
 		cl.def("get_is_reverse", (bool (bdsg::VectorizableOverlay::*)(const struct handlegraph::handle_t &) const) &bdsg::VectorizableOverlay::get_is_reverse, "Get the orientation of a handle\n\nC++: bdsg::VectorizableOverlay::get_is_reverse(const struct handlegraph::handle_t &) const --> bool", pybind11::arg("handle"));
 		cl.def("flip", (struct handlegraph::handle_t (bdsg::VectorizableOverlay::*)(const struct handlegraph::handle_t &) const) &bdsg::VectorizableOverlay::flip, "Invert the orientation of a handle (potentially without getting its ID)\n\nC++: bdsg::VectorizableOverlay::flip(const struct handlegraph::handle_t &) const --> struct handlegraph::handle_t", pybind11::arg("handle"));
 		cl.def("get_length", (unsigned long (bdsg::VectorizableOverlay::*)(const struct handlegraph::handle_t &) const) &bdsg::VectorizableOverlay::get_length, "Get the length of a node\n\nC++: bdsg::VectorizableOverlay::get_length(const struct handlegraph::handle_t &) const --> unsigned long", pybind11::arg("handle"));
@@ -1505,10 +1505,10 @@ void bind_bdsg_vectorizable_overlays(std::function< pybind11::module &(std::stri
 		cl.def("get_base", (char (bdsg::VectorizableOverlay::*)(const struct handlegraph::handle_t &, unsigned long) const) &bdsg::VectorizableOverlay::get_base, "Returns one base of a handle's sequence, in the orientation of the\n handle.\n\nC++: bdsg::VectorizableOverlay::get_base(const struct handlegraph::handle_t &, unsigned long) const --> char", pybind11::arg("handle"), pybind11::arg("index"));
 		cl.def("get_subsequence", (std::string (bdsg::VectorizableOverlay::*)(const struct handlegraph::handle_t &, unsigned long, unsigned long) const) &bdsg::VectorizableOverlay::get_subsequence, "Returns a substring of a handle's sequence, in the orientation of the\n handle. If the indicated substring would extend beyond the end of the\n handle's sequence, the return value is truncated to the sequence's end.\n\nC++: bdsg::VectorizableOverlay::get_subsequence(const struct handlegraph::handle_t &, unsigned long, unsigned long) const --> std::string", pybind11::arg("handle"), pybind11::arg("index"), pybind11::arg("size"));
 		cl.def("get_node_count", (unsigned long (bdsg::VectorizableOverlay::*)() const) &bdsg::VectorizableOverlay::get_node_count, "Return the number of nodes in the graph\n\nC++: bdsg::VectorizableOverlay::get_node_count() const --> unsigned long");
-		cl.def("min_node_id", (long (bdsg::VectorizableOverlay::*)() const) &bdsg::VectorizableOverlay::min_node_id, "Return the smallest ID in the graph, or some smaller number if the\n smallest ID is unavailable. Return value is unspecified if the graph is empty.\n\nC++: bdsg::VectorizableOverlay::min_node_id() const --> long");
-		cl.def("max_node_id", (long (bdsg::VectorizableOverlay::*)() const) &bdsg::VectorizableOverlay::max_node_id, "Return the largest ID in the graph, or some larger number if the\n largest ID is unavailable. Return value is unspecified if the graph is empty.\n\nC++: bdsg::VectorizableOverlay::max_node_id() const --> long");
-		cl.def("node_vector_offset", (unsigned long (bdsg::VectorizableOverlay::*)(const long &) const) &bdsg::VectorizableOverlay::node_vector_offset, "Return the start position of the node in a (possibly implict) sorted array\n constructed from the concatenation of the node sequences\n\nC++: bdsg::VectorizableOverlay::node_vector_offset(const long &) const --> unsigned long", pybind11::arg("node_id"));
-		cl.def("node_at_vector_offset", (long (bdsg::VectorizableOverlay::*)(const unsigned long &) const) &bdsg::VectorizableOverlay::node_at_vector_offset, "Return the node overlapping the given offset in the implicit node vector\n\nC++: bdsg::VectorizableOverlay::node_at_vector_offset(const unsigned long &) const --> long", pybind11::arg("offset"));
+		cl.def("min_node_id", (long long (bdsg::VectorizableOverlay::*)() const) &bdsg::VectorizableOverlay::min_node_id, "Return the smallest ID in the graph, or some smaller number if the\n smallest ID is unavailable. Return value is unspecified if the graph is empty.\n\nC++: bdsg::VectorizableOverlay::min_node_id() const --> long long");
+		cl.def("max_node_id", (long long (bdsg::VectorizableOverlay::*)() const) &bdsg::VectorizableOverlay::max_node_id, "Return the largest ID in the graph, or some larger number if the\n largest ID is unavailable. Return value is unspecified if the graph is empty.\n\nC++: bdsg::VectorizableOverlay::max_node_id() const --> long long");
+		cl.def("node_vector_offset", (unsigned long (bdsg::VectorizableOverlay::*)(const long long &) const) &bdsg::VectorizableOverlay::node_vector_offset, "Return the start position of the node in a (possibly implict) sorted array\n constructed from the concatenation of the node sequences\n\nC++: bdsg::VectorizableOverlay::node_vector_offset(const long long &) const --> unsigned long", pybind11::arg("node_id"));
+		cl.def("node_at_vector_offset", (long long (bdsg::VectorizableOverlay::*)(const unsigned long &) const) &bdsg::VectorizableOverlay::node_at_vector_offset, "Return the node overlapping the given offset in the implicit node vector\n\nC++: bdsg::VectorizableOverlay::node_at_vector_offset(const unsigned long &) const --> long long", pybind11::arg("offset"));
 		cl.def("edge_index", (unsigned long (bdsg::VectorizableOverlay::*)(const struct std::pair<struct handlegraph::handle_t, struct handlegraph::handle_t> &) const) &bdsg::VectorizableOverlay::edge_index, "Return a unique index among edges in the graph\n\nC++: bdsg::VectorizableOverlay::edge_index(const struct std::pair<struct handlegraph::handle_t, struct handlegraph::handle_t> &) const --> unsigned long", pybind11::arg("edge"));
 		cl.def("get_underlying_handle", (struct handlegraph::handle_t (bdsg::VectorizableOverlay::*)(const struct handlegraph::handle_t &) const) &bdsg::VectorizableOverlay::get_underlying_handle, "Returns the handle in the underlying graph that corresponds to a handle in the\n overlay\n\nC++: bdsg::VectorizableOverlay::get_underlying_handle(const struct handlegraph::handle_t &) const --> struct handlegraph::handle_t", pybind11::arg("handle"));
 	}

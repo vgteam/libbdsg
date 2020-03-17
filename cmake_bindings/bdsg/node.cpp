@@ -48,7 +48,7 @@ struct PyCallBack_bdsg_ODGI : public bdsg::ODGI {
 		}
 		return ODGI::get_magic_number();
 	}
-	bool has_node(long a0) const override { 
+	bool has_node(long long a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::ODGI *>(this), "has_node");
 		if (overload) {
@@ -61,7 +61,7 @@ struct PyCallBack_bdsg_ODGI : public bdsg::ODGI {
 		}
 		return ODGI::has_node(a0);
 	}
-	struct handlegraph::handle_t get_handle(const long & a0, bool a1) const override { 
+	struct handlegraph::handle_t get_handle(const long long & a0, bool a1) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::ODGI *>(this), "get_handle");
 		if (overload) {
@@ -74,16 +74,16 @@ struct PyCallBack_bdsg_ODGI : public bdsg::ODGI {
 		}
 		return ODGI::get_handle(a0, a1);
 	}
-	long get_id(const struct handlegraph::handle_t & a0) const override { 
+	long long get_id(const struct handlegraph::handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::ODGI *>(this), "get_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<long>::value) {
-				static pybind11::detail::overload_caster_t<long> caster;
-				return pybind11::detail::cast_ref<long>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
+				static pybind11::detail::overload_caster_t<long long> caster;
+				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long>(std::move(o));
+			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return ODGI::get_id(a0);
 	}
@@ -178,33 +178,33 @@ struct PyCallBack_bdsg_ODGI : public bdsg::ODGI {
 		}
 		return ODGI::get_node_count();
 	}
-	long min_node_id() const override { 
+	long long min_node_id() const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::ODGI *>(this), "min_node_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
-			if (pybind11::detail::cast_is_temporary_value_reference<long>::value) {
-				static pybind11::detail::overload_caster_t<long> caster;
-				return pybind11::detail::cast_ref<long>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
+				static pybind11::detail::overload_caster_t<long long> caster;
+				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long>(std::move(o));
+			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return ODGI::min_node_id();
 	}
-	long max_node_id() const override { 
+	long long max_node_id() const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::ODGI *>(this), "max_node_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
-			if (pybind11::detail::cast_is_temporary_value_reference<long>::value) {
-				static pybind11::detail::overload_caster_t<long> caster;
-				return pybind11::detail::cast_ref<long>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
+				static pybind11::detail::overload_caster_t<long long> caster;
+				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long>(std::move(o));
+			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return ODGI::max_node_id();
 	}
-	void set_id_increment(const long & a0) override { 
+	void set_id_increment(const long long & a0) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::ODGI *>(this), "set_id_increment");
 		if (overload) {
@@ -217,7 +217,7 @@ struct PyCallBack_bdsg_ODGI : public bdsg::ODGI {
 		}
 		return ODGI::set_id_increment(a0);
 	}
-	void increment_node_ids(long a0) override { 
+	void increment_node_ids(long long a0) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::ODGI *>(this), "increment_node_ids");
 		if (overload) {
@@ -230,7 +230,7 @@ struct PyCallBack_bdsg_ODGI : public bdsg::ODGI {
 		}
 		return ODGI::increment_node_ids(a0);
 	}
-	void reassign_node_ids(const class std::function<long (const long &)> & a0) override { 
+	void reassign_node_ids(const class std::function<long long (const long long &)> & a0) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::ODGI *>(this), "reassign_node_ids");
 		if (overload) {
@@ -529,7 +529,7 @@ struct PyCallBack_bdsg_ODGI : public bdsg::ODGI {
 		}
 		return ODGI::create_handle(a0);
 	}
-	struct handlegraph::handle_t create_handle(const std::string & a0, const long & a1) override { 
+	struct handlegraph::handle_t create_handle(const std::string & a0, const long long & a1) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::ODGI *>(this), "create_handle");
 		if (overload) {
@@ -827,20 +827,20 @@ void bind_bdsg_node(std::function< pybind11::module &(std::string const &namespa
 		cl.def( pybind11::init( [](PyCallBack_bdsg_ODGI const &o){ return new PyCallBack_bdsg_ODGI(o); } ) );
 		cl.def( pybind11::init( [](bdsg::ODGI const &o){ return new bdsg::ODGI(o); } ) );
 		cl.def("get_magic_number", (unsigned int (bdsg::ODGI::*)() const) &bdsg::ODGI::get_magic_number, "Return a high-entropy number to indicate which handle graph implementation this is\n\nC++: bdsg::ODGI::get_magic_number() const --> unsigned int");
-		cl.def("has_node", (bool (bdsg::ODGI::*)(long) const) &bdsg::ODGI::has_node, "Method to check if a node exists by ID\n\nC++: bdsg::ODGI::has_node(long) const --> bool", pybind11::arg("node_id"));
-		cl.def("get_handle", [](bdsg::ODGI const &o, const long & a0) -> handlegraph::handle_t { return o.get_handle(a0); }, "", pybind11::arg("node_id"));
-		cl.def("get_handle", (struct handlegraph::handle_t (bdsg::ODGI::*)(const long &, bool) const) &bdsg::ODGI::get_handle, "Look up the handle for the node with the given ID in the given orientation\n\nC++: bdsg::ODGI::get_handle(const long &, bool) const --> struct handlegraph::handle_t", pybind11::arg("node_id"), pybind11::arg("is_reverse"));
-		cl.def("get_id", (long (bdsg::ODGI::*)(const struct handlegraph::handle_t &) const) &bdsg::ODGI::get_id, "Get the ID from a handle\n\nC++: bdsg::ODGI::get_id(const struct handlegraph::handle_t &) const --> long", pybind11::arg("handle"));
+		cl.def("has_node", (bool (bdsg::ODGI::*)(long long) const) &bdsg::ODGI::has_node, "Method to check if a node exists by ID\n\nC++: bdsg::ODGI::has_node(long long) const --> bool", pybind11::arg("node_id"));
+		cl.def("get_handle", [](bdsg::ODGI const &o, const long long & a0) -> handlegraph::handle_t { return o.get_handle(a0); }, "", pybind11::arg("node_id"));
+		cl.def("get_handle", (struct handlegraph::handle_t (bdsg::ODGI::*)(const long long &, bool) const) &bdsg::ODGI::get_handle, "Look up the handle for the node with the given ID in the given orientation\n\nC++: bdsg::ODGI::get_handle(const long long &, bool) const --> struct handlegraph::handle_t", pybind11::arg("node_id"), pybind11::arg("is_reverse"));
+		cl.def("get_id", (long long (bdsg::ODGI::*)(const struct handlegraph::handle_t &) const) &bdsg::ODGI::get_id, "Get the ID from a handle\n\nC++: bdsg::ODGI::get_id(const struct handlegraph::handle_t &) const --> long long", pybind11::arg("handle"));
 		cl.def("get_is_reverse", (bool (bdsg::ODGI::*)(const struct handlegraph::handle_t &) const) &bdsg::ODGI::get_is_reverse, "Get the orientation of a handle\n\nC++: bdsg::ODGI::get_is_reverse(const struct handlegraph::handle_t &) const --> bool", pybind11::arg("handle"));
 		cl.def("flip", (struct handlegraph::handle_t (bdsg::ODGI::*)(const struct handlegraph::handle_t &) const) &bdsg::ODGI::flip, "Invert the orientation of a handle (potentially without getting its ID)\n\nC++: bdsg::ODGI::flip(const struct handlegraph::handle_t &) const --> struct handlegraph::handle_t", pybind11::arg("handle"));
 		cl.def("get_length", (unsigned long (bdsg::ODGI::*)(const struct handlegraph::handle_t &) const) &bdsg::ODGI::get_length, "Get the length of a node\n\nC++: bdsg::ODGI::get_length(const struct handlegraph::handle_t &) const --> unsigned long", pybind11::arg("handle"));
 		cl.def("get_sequence", (std::string (bdsg::ODGI::*)(const struct handlegraph::handle_t &) const) &bdsg::ODGI::get_sequence, "Get the sequence of a node, presented in the handle's local forward orientation.\n\nC++: bdsg::ODGI::get_sequence(const struct handlegraph::handle_t &) const --> std::string", pybind11::arg("handle"));
 		cl.def("get_node_count", (unsigned long (bdsg::ODGI::*)() const) &bdsg::ODGI::get_node_count, "Return the number of nodes in the graph\n TODO: can't be node_count because XG has a field named node_count.\n\nC++: bdsg::ODGI::get_node_count() const --> unsigned long");
-		cl.def("min_node_id", (long (bdsg::ODGI::*)() const) &bdsg::ODGI::min_node_id, "Return the smallest ID in the graph, or some smaller number if the\n smallest ID is unavailable. Return value is unspecified if the graph is empty.\n\nC++: bdsg::ODGI::min_node_id() const --> long");
-		cl.def("max_node_id", (long (bdsg::ODGI::*)() const) &bdsg::ODGI::max_node_id, "Return the largest ID in the graph, or some larger number if the\n largest ID is unavailable. Return value is unspecified if the graph is empty.\n\nC++: bdsg::ODGI::max_node_id() const --> long");
-		cl.def("set_id_increment", (void (bdsg::ODGI::*)(const long &)) &bdsg::ODGI::set_id_increment, "Set a minimum id to increment the id space by, used as a hint during construction.\n May have no effect on a backing implementation.\n\nC++: bdsg::ODGI::set_id_increment(const long &) --> void", pybind11::arg("min_id"));
-		cl.def("increment_node_ids", (void (bdsg::ODGI::*)(long)) &bdsg::ODGI::increment_node_ids, "Add the given value to all node IDs\n\nC++: bdsg::ODGI::increment_node_ids(long) --> void", pybind11::arg("increment"));
-		cl.def("reassign_node_ids", (void (bdsg::ODGI::*)(const class std::function<long (const long &)> &)) &bdsg::ODGI::reassign_node_ids, "Reassign all node IDs as specified by the old->new mapping function.\n\nC++: bdsg::ODGI::reassign_node_ids(const class std::function<long (const long &)> &) --> void", pybind11::arg("get_new_id"));
+		cl.def("min_node_id", (long long (bdsg::ODGI::*)() const) &bdsg::ODGI::min_node_id, "Return the smallest ID in the graph, or some smaller number if the\n smallest ID is unavailable. Return value is unspecified if the graph is empty.\n\nC++: bdsg::ODGI::min_node_id() const --> long long");
+		cl.def("max_node_id", (long long (bdsg::ODGI::*)() const) &bdsg::ODGI::max_node_id, "Return the largest ID in the graph, or some larger number if the\n largest ID is unavailable. Return value is unspecified if the graph is empty.\n\nC++: bdsg::ODGI::max_node_id() const --> long long");
+		cl.def("set_id_increment", (void (bdsg::ODGI::*)(const long long &)) &bdsg::ODGI::set_id_increment, "Set a minimum id to increment the id space by, used as a hint during construction.\n May have no effect on a backing implementation.\n\nC++: bdsg::ODGI::set_id_increment(const long long &) --> void", pybind11::arg("min_id"));
+		cl.def("increment_node_ids", (void (bdsg::ODGI::*)(long long)) &bdsg::ODGI::increment_node_ids, "Add the given value to all node IDs\n\nC++: bdsg::ODGI::increment_node_ids(long long) --> void", pybind11::arg("increment"));
+		cl.def("reassign_node_ids", (void (bdsg::ODGI::*)(const class std::function<long long (const long long &)> &)) &bdsg::ODGI::reassign_node_ids, "Reassign all node IDs as specified by the old->new mapping function.\n\nC++: bdsg::ODGI::reassign_node_ids(const class std::function<long long (const long long &)> &) --> void", pybind11::arg("get_new_id"));
 		cl.def("get_degree", (unsigned long (bdsg::ODGI::*)(const struct handlegraph::handle_t &, bool) const) &bdsg::ODGI::get_degree, "Get the number of edges on the right (go_left = false) or left (go_left\n = true) side of the given handle. The default implementation is O(n) in\n the number of edges returned, but graph implementations that track this\n information more efficiently can override this method.\n\nC++: bdsg::ODGI::get_degree(const struct handlegraph::handle_t &, bool) const --> unsigned long", pybind11::arg("handle"), pybind11::arg("go_left"));
 		cl.def("has_path", (bool (bdsg::ODGI::*)(const std::string &) const) &bdsg::ODGI::has_path, "Determine if a path name exists and is legal to get a path handle for.\n\nC++: bdsg::ODGI::has_path(const std::string &) const --> bool", pybind11::arg("path_name"));
 		cl.def("get_path_handle", (struct handlegraph::path_handle_t (bdsg::ODGI::*)(const std::string &) const) &bdsg::ODGI::get_path_handle, "Look up the path handle for the given path name.\n The path with that name must exist.\n\nC++: bdsg::ODGI::get_path_handle(const std::string &) const --> struct handlegraph::path_handle_t", pybind11::arg("path_name"));
@@ -866,7 +866,7 @@ void bind_bdsg_node(std::function< pybind11::module &(std::string const &namespa
 		cl.def("get_is_circular", (bool (bdsg::ODGI::*)(const struct handlegraph::path_handle_t &) const) &bdsg::ODGI::get_is_circular, "Returns true if the path is circular\n\nC++: bdsg::ODGI::get_is_circular(const struct handlegraph::path_handle_t &) const --> bool", pybind11::arg("path_handle"));
 		cl.def("set_circularity", (void (bdsg::ODGI::*)(const struct handlegraph::path_handle_t &, bool)) &bdsg::ODGI::set_circularity, "Set if the path is circular or not\n\nC++: bdsg::ODGI::set_circularity(const struct handlegraph::path_handle_t &, bool) --> void", pybind11::arg("path_handle"), pybind11::arg("circular"));
 		cl.def("create_handle", (struct handlegraph::handle_t (bdsg::ODGI::*)(const std::string &)) &bdsg::ODGI::create_handle, "Create a new node with the given sequence and return the handle.\n\nC++: bdsg::ODGI::create_handle(const std::string &) --> struct handlegraph::handle_t", pybind11::arg("sequence"));
-		cl.def("create_handle", (struct handlegraph::handle_t (bdsg::ODGI::*)(const std::string &, const long &)) &bdsg::ODGI::create_handle, "Create a new node with the given id and sequence, then return the handle.\n\nC++: bdsg::ODGI::create_handle(const std::string &, const long &) --> struct handlegraph::handle_t", pybind11::arg("sequence"), pybind11::arg("id"));
+		cl.def("create_handle", (struct handlegraph::handle_t (bdsg::ODGI::*)(const std::string &, const long long &)) &bdsg::ODGI::create_handle, "Create a new node with the given id and sequence, then return the handle.\n\nC++: bdsg::ODGI::create_handle(const std::string &, const long long &) --> struct handlegraph::handle_t", pybind11::arg("sequence"), pybind11::arg("id"));
 		cl.def("create_hidden_handle", (struct handlegraph::handle_t (bdsg::ODGI::*)(const std::string &)) &bdsg::ODGI::create_hidden_handle, "Create a \"hidden\" node which might carry parts of paths that traversed deleted portions of the graph\n\nC++: bdsg::ODGI::create_hidden_handle(const std::string &) --> struct handlegraph::handle_t", pybind11::arg("sequence"));
 		cl.def("destroy_handle", (void (bdsg::ODGI::*)(const struct handlegraph::handle_t &)) &bdsg::ODGI::destroy_handle, "Remove the node belonging to the given handle and all of its edges.\n Does not update any stored paths.\n Invalidates the destroyed handle.\n May be called during serial for_each_handle iteration **ONLY** on the node being iterated.\n May **NOT** be called during parallel for_each_handle iteration.\n May **NOT** be called on the node from which edges are being followed during follow_edges.\n\nC++: bdsg::ODGI::destroy_handle(const struct handlegraph::handle_t &) --> void", pybind11::arg("handle"));
 		cl.def("create_edge", (void (bdsg::ODGI::*)(const struct handlegraph::handle_t &, const struct handlegraph::handle_t &)) &bdsg::ODGI::create_edge, "Create an edge connecting the given handles in the given order and orientations.\n Ignores existing edges.\n\nC++: bdsg::ODGI::create_edge(const struct handlegraph::handle_t &, const struct handlegraph::handle_t &) --> void", pybind11::arg("left"), pybind11::arg("right"));
