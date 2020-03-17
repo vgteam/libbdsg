@@ -186,7 +186,7 @@ def postprocess_bindings():
                 full_path = os.path.join(directory, filename)
                 for transformation in transformations:
                     # Apply all the transformations
-                    subprocess.check_call(['sed', "-i''", transformation, full_path])
+                    subprocess.check_call(['sed', "-i.bak", transformation, full_path])
 
 
 def make_bindings_code(all_includes_fn, binder_executable):

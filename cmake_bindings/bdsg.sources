@@ -1,7 +1,4 @@
 bdsg.cpp
-std/postypes.cpp
-std/locale_classes.cpp
-std/ostream_tcc.cpp
 handlegraph/types.cpp
 handlegraph/handle_graph.cpp
 bdsg/is_single_stranded.cpp

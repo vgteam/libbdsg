@@ -8,7 +8,6 @@
 #include <ios>
 #include <istream>
 #include <iterator>
-#include <locale>
 #include <memory>
 #include <ostream>
 #include <sstream> // __str__
@@ -30,51 +29,6 @@
 	PYBIND11_DECLARE_HOLDER_TYPE(T, T*);
 	PYBIND11_MAKE_OPAQUE(std::shared_ptr<void>);
 #endif
-
-// handlegraph::SerializableHandleGraph file:handlegraph/serializable_handle_graph.hpp line:17
-struct PyCallBack_handlegraph_SerializableHandleGraph : public handlegraph::SerializableHandleGraph {
-	using handlegraph::SerializableHandleGraph::SerializableHandleGraph;
-
-	unsigned int get_magic_number() const override { 
-		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::SerializableHandleGraph *>(this), "get_magic_number");
-		if (overload) {
-			auto o = overload.operator()<pybind11::return_value_policy::reference>();
-			if (pybind11::detail::cast_is_temporary_value_reference<unsigned int>::value) {
-				static pybind11::detail::overload_caster_t<unsigned int> caster;
-				return pybind11::detail::cast_ref<unsigned int>(std::move(o), caster);
-			}
-			else return pybind11::detail::cast_safe<unsigned int>(std::move(o));
-		}
-		pybind11::pybind11_fail("Tried to call pure virtual function \"SerializableHandleGraph::get_magic_number\"");
-	}
-	void serialize_members(class std::basic_ostream<char> & a0) const override { 
-		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::SerializableHandleGraph *>(this), "serialize_members");
-		if (overload) {
-			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
-				static pybind11::detail::overload_caster_t<void> caster;
-				return pybind11::detail::cast_ref<void>(std::move(o), caster);
-			}
-			else return pybind11::detail::cast_safe<void>(std::move(o));
-		}
-		pybind11::pybind11_fail("Tried to call pure virtual function \"SerializableHandleGraph::serialize_members\"");
-	}
-	void deserialize_members(class std::basic_istream<char> & a0) override { 
-		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::SerializableHandleGraph *>(this), "deserialize_members");
-		if (overload) {
-			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
-				static pybind11::detail::overload_caster_t<void> caster;
-				return pybind11::detail::cast_ref<void>(std::move(o), caster);
-			}
-			else return pybind11::detail::cast_safe<void>(std::move(o));
-		}
-		pybind11::pybind11_fail("Tried to call pure virtual function \"SerializableHandleGraph::deserialize_members\"");
-	}
-};
 
 void bind_handlegraph_mutable_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M)
 {
@@ -110,12 +64,8 @@ void bind_handlegraph_mutable_handle_graph(std::function< pybind11::module &(std
 		cl.def("assign", (class handlegraph::MutablePathDeletableHandleGraph & (handlegraph::MutablePathDeletableHandleGraph::*)(const class handlegraph::MutablePathDeletableHandleGraph &)) &handlegraph::MutablePathDeletableHandleGraph::operator=, "C++: handlegraph::MutablePathDeletableHandleGraph::operator=(const class handlegraph::MutablePathDeletableHandleGraph &) --> class handlegraph::MutablePathDeletableHandleGraph &", pybind11::return_value_policy::automatic, pybind11::arg(""));
 	}
 	{ // handlegraph::SerializableHandleGraph file:handlegraph/serializable_handle_graph.hpp line:17
-		pybind11::class_<handlegraph::SerializableHandleGraph, std::shared_ptr<handlegraph::SerializableHandleGraph>, PyCallBack_handlegraph_SerializableHandleGraph> cl(M("handlegraph"), "SerializableHandleGraph", "");
-		cl.def(pybind11::init<PyCallBack_handlegraph_SerializableHandleGraph const &>());
-		cl.def( pybind11::init( [](){ return new PyCallBack_handlegraph_SerializableHandleGraph(); } ) );
+		pybind11::class_<handlegraph::SerializableHandleGraph, std::shared_ptr<handlegraph::SerializableHandleGraph>> cl(M("handlegraph"), "SerializableHandleGraph", "");
 		cl.def("get_magic_number", (unsigned int (handlegraph::SerializableHandleGraph::*)() const) &handlegraph::SerializableHandleGraph::get_magic_number, "Returns a number that is specific to the serialized implementation for type\n checking. Does not depend on the contents of any particular instantiation\n (i.e. behaves as if static, but cannot be static and virtual).\n\nC++: handlegraph::SerializableHandleGraph::get_magic_number() const --> unsigned int");
-		cl.def("serialize", (void (handlegraph::SerializableHandleGraph::*)(std::ostream &) const) &handlegraph::SerializableHandleGraph::serialize, "Write the contents of this graph to an ostream. Makes sure to include a\n leading magic number.\n\nC++: handlegraph::SerializableHandleGraph::serialize(std::ostream &) const --> void", pybind11::arg("out"));
-		cl.def("deserialize", (void (handlegraph::SerializableHandleGraph::*)(class std::basic_istream<char> &)) &handlegraph::SerializableHandleGraph::deserialize, "Sets the contents of this graph to the contents of a serialized graph from\n an istream. The serialized graph must be from the same implementation of the\n HandleGraph interface as is calling deserialize(). Can only be called on an\n empty graph.\n\nC++: handlegraph::SerializableHandleGraph::deserialize(class std::basic_istream<char> &) --> void", pybind11::arg("in"));
 		cl.def("assign", (class handlegraph::SerializableHandleGraph & (handlegraph::SerializableHandleGraph::*)(const class handlegraph::SerializableHandleGraph &)) &handlegraph::SerializableHandleGraph::operator=, "C++: handlegraph::SerializableHandleGraph::operator=(const class handlegraph::SerializableHandleGraph &) --> class handlegraph::SerializableHandleGraph &", pybind11::return_value_policy::automatic, pybind11::arg(""));
 	}
 }

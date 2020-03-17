@@ -3,14 +3,11 @@
 #include <functional>
 #include <handlegraph/handle_graph.hpp>
 #include <handlegraph/path_handle_graph.hpp>
-#include <handlegraph/serializable_handle_graph.hpp>
 #include <handlegraph/types.hpp>
 #include <ios>
 #include <istream>
 #include <iterator>
-#include <locale>
 #include <memory>
-#include <ostream>
 #include <sstream> // __str__
 #include <streambuf>
 #include <string>
@@ -737,32 +734,6 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 		}
 		return HandleGraph::get_total_length();
 	}
-	void serialize_members(class std::basic_ostream<char> & a0) const override { 
-		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "serialize_members");
-		if (overload) {
-			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
-				static pybind11::detail::overload_caster_t<void> caster;
-				return pybind11::detail::cast_ref<void>(std::move(o), caster);
-			}
-			else return pybind11::detail::cast_safe<void>(std::move(o));
-		}
-		pybind11::pybind11_fail("Tried to call pure virtual function \"SerializableHandleGraph::serialize_members\"");
-	}
-	void deserialize_members(class std::basic_istream<char> & a0) override { 
-		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "deserialize_members");
-		if (overload) {
-			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
-				static pybind11::detail::overload_caster_t<void> caster;
-				return pybind11::detail::cast_ref<void>(std::move(o), caster);
-			}
-			else return pybind11::detail::cast_safe<void>(std::move(o));
-		}
-		pybind11::pybind11_fail("Tried to call pure virtual function \"SerializableHandleGraph::deserialize_members\"");
-	}
 };
 
 void bind_bdsg_utility(std::function< pybind11::module &(std::string const &namespace_) > &M)
@@ -806,8 +777,6 @@ void bind_bdsg_utility(std::function< pybind11::module &(std::string const &name
 	{ // bdsg::HashGraph file:bdsg/hash_graph.hpp line:23
 		pybind11::class_<bdsg::HashGraph, std::shared_ptr<bdsg::HashGraph>, PyCallBack_bdsg_HashGraph, handlegraph::MutablePathDeletableHandleGraph, handlegraph::SerializableHandleGraph> cl(M("bdsg"), "HashGraph", "");
 		cl.def( pybind11::init( [](){ return new bdsg::HashGraph(); }, [](){ return new PyCallBack_bdsg_HashGraph(); } ) );
-		cl.def( pybind11::init<class std::basic_istream<char> &>(), pybind11::arg("in") );
-
 		cl.def( pybind11::init( [](PyCallBack_bdsg_HashGraph const &o){ return new PyCallBack_bdsg_HashGraph(o); } ) );
 		cl.def( pybind11::init( [](bdsg::HashGraph const &o){ return new bdsg::HashGraph(o); } ) );
 		cl.def("has_node", (bool (bdsg::HashGraph::*)(long long) const) &bdsg::HashGraph::has_node, "Method to check if a node exists by ID\n\nC++: bdsg::HashGraph::has_node(long long) const --> bool", pybind11::arg("node_id"));

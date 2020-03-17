@@ -8,9 +8,6 @@
 
 typedef std::function< pybind11::module & (std::string const &) > ModuleGetter;
 
-void bind_std_postypes(std::function< pybind11::module &(std::string const &namespace_) > &M);
-void bind_std_locale_classes(std::function< pybind11::module &(std::string const &namespace_) > &M);
-void bind_std_ostream_tcc(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_handlegraph_types(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_handlegraph_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_is_single_stranded(std::function< pybind11::module &(std::string const &namespace_) > &M);
@@ -44,15 +41,11 @@ PYBIND11_MODULE(bdsg, root_module) {
 		{"", "bdsg"},
 		{"bdsg", "algorithms"},
 		{"", "handlegraph"},
-		{"", "std"},
 	};
 	for(auto &p : sub_modules ) modules[p.first.size() ? p.first+"::"+p.second : p.second] = modules[p.first].def_submodule(p.second.c_str(), ("Bindings for " + p.first + "::" + p.second + " namespace").c_str() );
 
 	//pybind11::class_<std::shared_ptr<void>>(M(""), "_encapsulated_data_");
 
-	bind_std_postypes(M);
-	bind_std_locale_classes(M);
-	bind_std_ostream_tcc(M);
 	bind_handlegraph_types(M);
 	bind_handlegraph_handle_graph(M);
 	bind_bdsg_is_single_stranded(M);
