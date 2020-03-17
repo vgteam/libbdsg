@@ -220,8 +220,9 @@ def main():
     os.chdir("binder")
     binder_executable = build_binder()
     os.chdir("..")
-    all_includes_fn = make_all_includes()
-    make_bindings_code(all_includes_fn, binder_executable)
+    with clean_includes():
+        all_includes_fn = make_all_includes()
+        make_bindings_code(all_includes_fn, binder_executable)
 
 if __name__ == '__main__':
     main()
