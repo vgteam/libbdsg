@@ -48,18 +48,28 @@ def all_sources_and_headers(include_deps=False):
     Find all source or include files relevant to the project.
     Yields their paths.
     Assumes the CMake build has run in ./build.
+    
+    Note that we count the libhandlegraph sources as part of this project's
+    sources. We include them even if include_deps is false and we aren't
+    including the other dependencies.
     '''
     
     # Define the extensions we are interested in
     extensions = ['hpp', 'cpp', 'h', 'cc', 'c']
-    # And the paths we want to look in
-    paths = [f'{this_project_source}/**/*', f'{this_project_include}/**/*']
+    # And the paths we want to look in.
+    # Always include libhandlegraph.
+    paths = [f'{this_project_source}/**/*', f'{this_project_include}/**/*', f'{this_project_deps}/handlegraph*/**/*']
     if include_deps:
+        # Include all dependencies if asked
         paths.append(f'{this_project_deps}/*/src/*/*')
     # Get an iterable of glob iterables that search all combinations
     all_globs = (glob.glob(f'{f}.{e}', recursive=True) for f, e in itertools.product(paths, extensions))
+    # Deduplicate overlapping globs
+    seen = set()
     for filename in itertools.chain.from_iterable(all_globs):
-        yield filename
+        if filename not in seen:
+            yield filename
+            seen.add(filename)
         
     #    files = list()
     #    searchroot = os.path.abspath(f'{this_project_source}/../')
