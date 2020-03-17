@@ -22,7 +22,9 @@ this_project_namespace_to_bind = 'bdsg'
 python_module_name = 'bdsg'
 
 # We have one global notion of what an include looks like
-include_regex = re.compile('^\s*#include\s+(["<])(.*)([">])')
+INCLUDE_REGEX = re.compile('^\s*#include\s+(["<])(.*)([">])')
+# We have one master list of source code extensions
+SOURCE_EXTENSIONS = ['hpp', 'cpp', 'h', 'cc', 'c']
 
 def clone_repos():
     ''' download the most recent copy of binder from git '''
@@ -57,8 +59,6 @@ def all_sources_and_headers(include_deps=False):
     including the other dependencies.
     '''
     
-    # Define the extensions we are interested in
-    extensions = ['hpp', 'cpp', 'h', 'cc', 'c']
     # And the paths we want to look in.
     # Always include libhandlegraph.
     paths = [f'{this_project_source}/**/*', f'{this_project_include}/**/*', f'{this_project_deps}/handlegraph*/**/*']
@@ -66,7 +66,7 @@ def all_sources_and_headers(include_deps=False):
         # Include all dependencies if asked
         paths.append(f'{this_project_deps}/*/src/*/*')
     # Get an iterable of glob iterables that search all combinations
-    all_globs = (glob.glob(f'{f}.{e}', recursive=True) for f, e in itertools.product(paths, extensions))
+    all_globs = (glob.glob(f'{f}.{e}', recursive=True) for f, e in itertools.product(paths, SOURCE_EXTENSIONS))
     # Deduplicate overlapping globs
     seen = set()
     for filename in itertools.chain.from_iterable(all_globs):
@@ -98,7 +98,7 @@ def clean_includes():
         changes_made[filename] = list()
         with open(filename, 'r') as fh:
             for line in fh:
-                match = include_regex.match(line)
+                match = INCLUDE_REGEX.match(line)
                 if match:
                     replacement = f'#include <{match.group(2)}>\n'
                     changes_made[filename].append((line, replacement))
@@ -147,7 +147,7 @@ def make_all_includes():
         with open(filename, 'r') as fh:
             for line in fh:
                 # Look at each line
-                match = include_regex.match(line)
+                match = INCLUDE_REGEX.match(line)
                 if match:
                     # This is an include directive. Parse it
                     is_relative = match.group(1) == '"'
@@ -167,6 +167,26 @@ def make_all_includes():
         for include in all_includes:
             fh.write(f'{include}\n')
     return all_include_filename
+    
+    
+def postprocess_bindings():
+    '''
+    Modify generated bindings files to correct Binder's STL-version-dependent code to portable code.
+    '''
+    
+    # We apply each of these to all source files with sed.
+    transformations = ['s/class std::__cxx11::basic_string<char>/std::string/g', # We can't leave "class" in front of a non-template
+        's/std::__cxx11::basic_string<char>/std::string/g']
+    # TODO: Add transformations to catch problems from libc++ STL
+    
+    for (directory, subdirectories, files) in os.walk(bindings_dir):
+        for filename in files:
+            if os.path.splitext(filename)[1].lstrip('.') in SOURCE_EXTENSIONS:
+                # For each source file, get its full path from where our process is
+                full_path = os.path.join(directory, filename)
+                for transformation in transformations:
+                    # Apply all the transformations
+                    subprocess.check_call(['sed', "-i''", transformation, full_path])
 
 
 def make_bindings_code(all_includes_fn, binder_executable):
@@ -214,7 +234,12 @@ def make_bindings_code(all_includes_fn, binder_executable):
     shutil.rmtree(bindings_dir, ignore_errors=True)
     os.mkdir(bindings_dir)
     subprocess.check_call(command)
+    
+    # Do some post-processing on the bindings
+    postprocess_bindings()
+    
 
+                
 def main():
     clone_repos()
     os.chdir("binder")
