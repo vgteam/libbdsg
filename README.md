@@ -54,22 +54,16 @@ Or to install in an alternate location:
 INSTALL_PREFIX=/other/path/ make install
 ```
 
-#### With `cmake` (library and Python binding)
+#### With `cmake` (library and Python bindings)
 
-**If running on Ubuntu 18.04**, or other platforms with **CMake 3.10**, CMake cannot automatically install pybind11 and use it as part of the build process. You will have to install it manually. From the project root:
+With CMake, we are able to build Python bindings that use `pybind11`. However, we only support out-of-source builds from a directory named `build`, and we still put the built artefacts in `lib` in the main project directory.
 
-```
-git clone https://github.com/RosettaCommons/pybind11.git
-cd pybind11
-git checkout 35045eeef8969b7b446c64b192502ac1cbf7c451
-cd ..
-```
-
-Once you have done that, or if you have **CMake 3.11 or newer**, run:
-
+To run a CMake-based build:
 ```
 mkdir build
 cd build
 cmake ..
-make
+make -j8
 ```
+
+If the build fails, the Python bindings may be out of date with respect to the source files. See [PYBIND_README.md](PYBIND_README.md) for instructions on updating them.

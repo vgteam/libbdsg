@@ -1,14 +1,15 @@
 # Specify the minimum version for CMake
-
 cmake_minimum_required(VERSION 3.10)
 # We can't use CMake 3.11 until we no longer have to run on Ubuntu 18.04.
 
 # Project's name
 project(bdsg)
+
+# TODO: We can only do out-of-source builds!
+# TODO: How do we error out meaningfully on in-source builds?
+
 # We build using c++14
 set(CMAKE_CXX_STANDARD 14)
-
-# needed so the pybidnings don't freak out
 
 # Use all standard-compliant optimizations
 set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -g")
@@ -151,10 +152,16 @@ set(sparsepp_LIB "${INSTALL_DIR}/src/sparsepp/")
 # pybind11
 if (CMAKE_MAJOR_VERSION EQUAL "3" AND CMAKE_MINOR_VERSION EQUAL "10")
     # We need pybind11 installed in ./pybind11 *before* CMake can finish processing this file.
-    # On CMake 3.11+ we can do that automatically.
-    # But on CMake 3.10, available on Ubuntu 18.04, it needs to happen manually:
-    message(WARNING "Running on CMake without FetchContent_Declare; make sure pybind11 has been manually installed")
-    message(WARNING "Run in project root:\ngit clone https://github.com/RosettaCommons/pybind11.git\ncd pybind11\ngit checkout 35045eeef8969b7b446c64b192502ac1cbf7c451\ncd ..")
+    # On CMake 3.11+ we can do that with FetchContent
+    # But on CMake 3.10, available on Ubuntu 18.04, we have to just call git ourselves.
+    if (NOT EXISTS "${PROJECT_SOURCE_DIR}/pybind11")
+        message(WARNING "Running on CMake without FetchContent_Declare; attempting to download pybind11 manually")
+        execute_process(COMMAND git clone https://github.com/RosettaCommons/pybind11.git "${PROJECT_SOURCE_DIR}/pybind11")
+        execute_process(COMMAND git checkout 35045eeef8969b7b446c64b192502ac1cbf7c451
+                        WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/pybind11")
+    endif()
+    
+    # Whether we cloned it this time or not, include it.
     add_subdirectory(pybind11)
 else()
     # This FetchContent_Declare logic works only on CMake 3.11+.
