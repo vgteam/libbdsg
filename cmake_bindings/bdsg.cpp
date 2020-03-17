@@ -21,7 +21,7 @@ void bind_bdsg_packed_structs(std::function< pybind11::module &(std::string cons
 void bind_bdsg_utility(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_varint(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_varint_1(std::function< pybind11::module &(std::string const &namespace_) > &M);
-void bind_bdsg_node(std::function< pybind11::module &(std::string const &namespace_) > &M);
+void bind_bdsg_odgi(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_handlegraph_expanding_overlay_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_split_strand_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_handlegraph_path_position_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
@@ -67,7 +67,7 @@ PYBIND11_MODULE(bdsg, root_module) {
 	bind_bdsg_utility(M);
 	bind_bdsg_varint(M);
 	bind_bdsg_varint_1(M);
-	bind_bdsg_node(M);
+	bind_bdsg_odgi(M);
 	bind_handlegraph_expanding_overlay_graph(M);
 	bind_bdsg_split_strand_graph(M);
 	bind_handlegraph_path_position_handle_graph(M);

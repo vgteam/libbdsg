@@ -12,7 +12,7 @@ bdsg/packed_structs.cpp
 bdsg/utility.cpp
 bdsg/varint.cpp
 bdsg/varint_1.cpp
-bdsg/node.cpp
+bdsg/odgi.cpp
 handlegraph/expanding_overlay_graph.cpp
 bdsg/split_strand_graph.cpp
 handlegraph/path_position_handle_graph.cpp

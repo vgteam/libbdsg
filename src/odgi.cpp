@@ -1395,9 +1395,9 @@ void ODGI::to_gfa(std::ostream& out) const {
         });
 }
 
-uint64_t ODGI::serialize_and_measure(std::ostream& out) const {
+long long int ODGI::serialize_and_measure(std::ostream& out) const {
     //rebuild_id_handle_mapping();
-    uint64_t written = 0;
+    long long int written = 0;
     out.write((char*)&_max_node_id,sizeof(_max_node_id));
     written += sizeof(_max_node_id);
     out.write((char*)&_min_node_id,sizeof(_min_node_id));
