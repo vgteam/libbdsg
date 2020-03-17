@@ -140,14 +140,24 @@ def make_all_includes():
     all_includes = []
     all_include_filename = 'all_cmake_includes.hpp'
     
+    include_regex = re.compile('^\s*#include\s+(["<])(.*)([">])')
+    
     for filename in all_sources_and_headers(include_deps=False):
         # Then for each file found by any search
         with open(filename, 'r') as fh:
             for line in fh:
-                # Find all the include directives in it
-                if line.startswith('#include'):
-                    # And collect them
-                    all_includes.append(line.strip())
+                # Look at each line
+                match = include_regex.match(line)
+                if match:
+                    # This is an include directive. Parse it
+                    is_relative = match.group(1) == '"'
+                    included_path = match.group(2)
+                    assert (match.group(1) == '"') == (match.group(3) == '"'), "Mismatched include delimiters in " + filename + " for " + included_path
+                    
+                    # Relative includes arent really relative paths so we can't really resolve them.
+                    
+                    # Just collect all the includes as <>
+                    all_includes.append(f'#include <{included_path}>')
     all_includes = list(set(all_includes))
     # This is to ensure that the list is always the same and doesn't
     # depend on the filesystem state.  Not technically necessary, but
@@ -210,9 +220,8 @@ def main():
     os.chdir("binder")
     binder_executable = build_binder()
     os.chdir("..")
-    with clean_includes():
-        all_includes_fn = make_all_includes()
-        make_bindings_code(all_includes_fn, binder_executable)
+    all_includes_fn = make_all_includes()
+    make_bindings_code(all_includes_fn, binder_executable)
 
 if __name__ == '__main__':
     main()
