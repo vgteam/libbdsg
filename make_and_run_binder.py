@@ -21,6 +21,9 @@ this_project_deps = f'{os.getcwd()}/build' # This is the CMake build directory w
 this_project_namespace_to_bind = 'bdsg'
 python_module_name = 'bdsg'
 
+# We have one global notion of what an include looks like
+include_regex = re.compile('^\s*#include\s+(["<])(.*)([">])')
+
 def clone_repos():
     ''' download the most recent copy of binder from git '''
     if not glob.glob("binder"):
@@ -90,15 +93,14 @@ def clean_includes():
     Reverts changes on exit.
     '''
     changes_made = dict()
-    matcher = re.compile('^\s*#include "')
     # find instances of includes we need to change
     for filename in all_sources_and_headers():
         changes_made[filename] = list()
         with open(filename, 'r') as fh:
             for line in fh:
-                if matcher.match(line):
-                    spl = line.split('"')
-                    replacement = f'{spl[0]}<{spl[1]}>\n'
+                match = include_regex.match(line)
+                if match:
+                    replacement = f'#include <{match.group(2)}>\n'
                     changes_made[filename].append((line, replacement))
         if not changes_made[filename]:
             del changes_made[filename]
@@ -139,8 +141,6 @@ def make_all_includes():
     '''
     all_includes = []
     all_include_filename = 'all_cmake_includes.hpp'
-    
-    include_regex = re.compile('^\s*#include\s+(["<])(.*)([">])')
     
     for filename in all_sources_and_headers(include_deps=False):
         # Then for each file found by any search
