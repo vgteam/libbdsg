@@ -8,6 +8,7 @@ import shutil
 import subprocess
 import re
 import multiprocessing
+import itertools
 from contextlib import contextmanager
 
 
@@ -15,7 +16,8 @@ from contextlib import contextmanager
 # Overall script settings
 bindings_dir = 'cmake_bindings'
 this_project_source = f'{os.getcwd()}/src'
-this_project_include = f'{os.getcwd()}/include' 
+this_project_include = f'{os.getcwd()}/include'
+this_project_deps = f'{os.getcwd()}/build' # This is the CMake build directory where depoendencies must have already been fetched by cmake.
 this_project_namespace_to_bind = 'bdsg'
 python_module_name = 'bdsg'
 
@@ -41,6 +43,32 @@ def build_binder():
         subprocess.check_call([sys.executable, 'build.py', '--jobs', str(multiprocessing.cpu_count())])
     return "binder/" + glob.glob('./build/*/*/bin/')[0] + "binder"
 
+def all_sources_and_headers():
+    '''
+    Find all source or include files relevant to the project.
+    Yields their paths.
+    Assumes the CMake build has run in ./build.
+    '''
+    
+    # Define the extensions we are interested in
+    extensions = ['hpp', 'cpp', 'h', 'cc', 'c']
+    # And the paths we want to look in
+    paths = [f'{this_project_source}/**/*', f'{this_project_include}/**/*',  f'{this_project_deps}/*/src/*/*']
+    # Get an iterable of glob iterables that search all combinations
+    all_globs = (glob.glob(f'{f}.{e}', recursive=True) for f, e in itertools.product(paths, extensions))
+    for filename in itertools.chain.from_iterable(all_globs):
+        yield filename
+        
+    #    files = list()
+    #    searchroot = os.path.abspath(f'{this_project_source}/../')
+    #    for (root,dirs,fils) in os.walk(searchroot):
+    #        for fl in fils:
+    #            if(fl.endswith(("hpp","cpp","h","cc","c")) and ("src" in root or "include" in root)):
+    #                files.append(root+"/"+fl)
+    #    print(f'found source files {files}')
+    #    for filename in files:
+    
+    
 
 @contextmanager
 def clean_includes():
@@ -52,29 +80,7 @@ def clean_includes():
     changes_made = dict()
     matcher = re.compile('^\s*#include "')
     # find instances of includes we need to change
-#    files = list()
-#    searchroot = os.path.abspath(f'{this_project_source}/../')
-#    for (root,dirs,fils) in os.walk(searchroot):
-#        for fl in fils:
-#            if(fl.endswith(("hpp","cpp","h","cc","c")) and ("src" in root or "include" in root)):
-#                files.append(root+"/"+fl)
-#    print(f'found source files {files}')
-#    for filename in files:
-    for filename in (glob.glob(f'{this_project_source}/**/*.hpp', recursive=True) + 
-                     glob.glob(f'{this_project_source}/**/*.cpp', recursive=True) +
-                     glob.glob(f'{this_project_source}/**/*.h', recursive=True) +
-                     glob.glob(f'{this_project_source}/**/*.cc', recursive=True) + 
-                     glob.glob(f'{this_project_source}/**/*.c', recursive=True) + 
-                     glob.glob(f'{this_project_source}/../include/**/*.hpp', recursive=True) + # this format needed to reach headers
-                     glob.glob(f'{this_project_source}/../include/**/*.cpp', recursive=True) +
-                     glob.glob(f'{this_project_source}/../include/**/*.h', recursive=True) +
-                     glob.glob(f'{this_project_source}/../include/**/*.cc', recursive=True) +
-                     glob.glob(f'{this_project_source}/../include/**/*.c', recursive=True) +
-                     glob.glob(f'{this_project_source}/../build/*/src/*/*.hpp', recursive=True) + 
-                     glob.glob(f'{this_project_source}/../build/*/src/*/*.cpp', recursive=True) + 
-                     glob.glob(f'{this_project_source}/../build/*/src/*/*.h', recursive=True) + 
-                     glob.glob(f'{this_project_source}/../build/*/src/*/*.cc', recursive=True) + 
-                     glob.glob(f'{this_project_source}/../build/*/src/*/*.c', recursive=True)):
+    for filename in all_sources_and_headers():
         changes_made[filename] = list()
         with open(filename, 'r') as fh:
             for line in fh:
@@ -118,19 +124,14 @@ def make_all_includes():
     ''' generates an .hpp file with all includes in this project that need to be bound '''
     all_includes = []
     all_include_filename = 'all_cmake_includes.hpp'
-    for filename in (glob.glob(f'{this_project_source}/**/*.hpp', recursive=True) +
-                     glob.glob(f'{this_project_source}/**/*.cpp', recursive=True) +
-                     glob.glob(f'{this_project_source}/**/*.h', recursive=True) +
-                     glob.glob(f'{this_project_source}/**/*.cc', recursive=True) +
-                     glob.glob(f'{this_project_source}/**/*.c', recursive=True)):
-#                     glob.glob(f'{this_project_source}/../build/*/src/*/*.hpp', recursive=True) +  
-#                     glob.glob(f'{this_project_source}/../build/*/src/*/*.cpp', recursive=True) +  
-#                     glob.glob(f'{this_project_source}/../build/*/src/*/*.h', recursive=True) +
-#                     glob.glob(f'{this_project_source}/../build/*/src/*/*.cc', recursive=True) + 
-#                     glob.glob(f'{this_project_source}/../build/*/src/*/*.c', recursive=True)):
+    
+    for filename in all_sources_and_headers():
+        # Then for each file found by any search
         with open(filename, 'r') as fh:
             for line in fh:
+                # Find all the include directives in it
                 if line.startswith('#include'):
+                    # And collect them
                     all_includes.append(line.strip())
     all_includes = list(set(all_includes))
     # This is to ensure that the list is always the same and doesn't
@@ -145,8 +146,6 @@ def make_all_includes():
 
 def make_bindings_code(all_includes_fn, binder_executable):
     ''' runs the binder executable with required parameters '''
-    shutil.rmtree(bindings_dir, ignore_errors=True)
-    os.mkdir(bindings_dir)
     # Find all the include directories for dependencies.
     # Some dependency repos have an include and some have an src/include.
     # TODO: This (and a lot of this script) relies on a cmake build having been done out of "build" beforehand!
@@ -157,7 +156,16 @@ def make_bindings_code(all_includes_fn, binder_executable):
                      "build/bbhash-prefix/src/bbhash"])
     # proj_include = " -I".join(proj_include)
     proj_include = [f'-I{i}' for i in proj_include]
-    command = [binder_executable, "--root-module", python_module_name, "--prefix", f'{os.getcwd()}/{bindings_dir}/', '--bind', this_project_namespace_to_bind, "--config", "config.cfg", all_includes_fn, "--", "-std=c++14", f'-I{this_project_include}']
+    
+    command = [binder_executable,
+        "--root-module", python_module_name,
+        "--prefix", f'{os.getcwd()}/{bindings_dir}/',
+        '--bind', this_project_namespace_to_bind,
+        "--config", "config.cfg",
+        all_includes_fn,
+        "--",
+        "-std=c++14",
+        f'-I{this_project_include}']
     if platform.system() == 'Darwin':
         # On (newer) Macs, Binder can't find the C++ STL because it is not in
         # /usr/include but under a weird path returned by xcode-select -p and
@@ -176,13 +184,10 @@ def make_bindings_code(all_includes_fn, binder_executable):
     command = command + proj_include
     command.append("-DNDEBUG")
     command.append("-v")
-    #command = (f'{binder_executable} --root-module {python_module_name} '
-    #           f'--prefix {os.getcwd()}/{bindings_dir}/ '
-    #           f'--bind {this_project_namespace_to_bind} '
-    #           + ('--config config.cfg ') +
-    #           f' {all_includes_fn} -- -std=c++14 '
-    #           f'-I{this_project_include} {proj_include} -DNDEBUG -v').split()
     print('BINDER COMMAND:', ' '.join(command))
+    
+    shutil.rmtree(bindings_dir, ignore_errors=True)
+    os.mkdir(bindings_dir)
     subprocess.check_call(command)
 
 def main():
