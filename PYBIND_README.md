@@ -38,6 +38,11 @@ cd ..
 ./make_and_run_binder.py
 ```
 
+4. **Make sure to add new files** that Binder may have created to source control:
+```
+git add cmake_bindings
+```
+
 Note that binder requires that includes be of the format `#include <*>` and not `#include "*"`. This script will automatically change includes in the source files before running binder and will revert them when completed. If a fatal error occurs while binding, these changes may not be reverted properly. It is advised to ensure that all changes have been committed so that it is possible to revert with `git checkout -- src include`.
 
 Specific functions/classes/enums can be manually included or excluded from binding by modifying the included `config.cfg`, as specified in the [binder documentation](https://cppbinder.readthedocs.io/en/latest/config.html#config-file-options).
