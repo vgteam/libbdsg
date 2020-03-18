@@ -25,7 +25,7 @@ The included script `make_and_run_binder.py` will automatically download and bui
 sudo apt-get install git ninja-build
 ```
 
-2. The binging generator needs to see the source code for libbdsg's dependencies. If you haven't already done so, you need to run CMake in a directory named `build` under the project root. **It does not need to succeed, and in fact will not succeed if the bindings are out of date.** It just needs to start running, in order to download dependencies. To do this:
+2. The binding generator needs to see the source code for libbdsg's dependencies. If you haven't already done so, you need to run CMake in a directory named `build` under the project root. **It does not need to succeed, and in fact will not succeed if the bindings are out of date.** It just needs to start running, in order to download dependencies. To do this:
 ```
 mkdir build
 cd build
