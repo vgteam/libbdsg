@@ -116,7 +116,7 @@ set(hopscotch_map_INCLUDE "${INSTALL_DIR}/src/hopscotch_map/include")
 # libhandlegraph (full build using its cmake config)
 ExternalProject_Add(handlegraph
   GIT_REPOSITORY "https://github.com/vgteam/libhandlegraph.git"
-  GIT_TAG "48aeef88984f6e905bef2f8654e09d190e151bab"
+  GIT_TAG "57b1fdddfc83f5683c1bd8f1374807129fb61384"
   CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_DIR}
   UPDATE_COMMAND ""
   INSTALL_COMMAND "")
