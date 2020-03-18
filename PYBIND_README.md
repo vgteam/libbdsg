@@ -33,7 +33,7 @@ cmake .. || true
 cd ..
 ```
 
-3. Now you can run the actual binding-generating script. **Note that the first time you run it, it downloads and builds an entire C++ compiler**, so it may take a long time. Also note that it can't yet detect the core limit of a container; it tries to use all the cores of the hoist machine for its compiler build. To run it:
+3. Now you can run the actual binding-generating script. **Note that the first time you run it, it downloads and builds an entire C++ compiler**, so it may take a long time. Also note that it can't yet detect the core limit of a container; it tries to use all the cores of the host machine for its compiler build. To run it:
 ```
 ./make_and_run_binder.py
 ```
