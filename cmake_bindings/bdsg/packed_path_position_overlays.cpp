@@ -27,7 +27,7 @@
 struct PyCallBack_bdsg_PackedPositionOverlay : public bdsg::PackedPositionOverlay {
 	using bdsg::PackedPositionOverlay::PackedPositionOverlay;
 
-	bool has_node(long a0) const override { 
+	bool has_node(long long a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedPositionOverlay *>(this), "has_node");
 		if (overload) {
@@ -40,7 +40,7 @@ struct PyCallBack_bdsg_PackedPositionOverlay : public bdsg::PackedPositionOverla
 		}
 		return PackedPositionOverlay::has_node(a0);
 	}
-	struct handlegraph::handle_t get_handle(const long & a0, bool a1) const override { 
+	struct handlegraph::handle_t get_handle(const long long & a0, bool a1) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedPositionOverlay *>(this), "get_handle");
 		if (overload) {
@@ -53,16 +53,16 @@ struct PyCallBack_bdsg_PackedPositionOverlay : public bdsg::PackedPositionOverla
 		}
 		return PackedPositionOverlay::get_handle(a0, a1);
 	}
-	long get_id(const struct handlegraph::handle_t & a0) const override { 
+	long long get_id(const struct handlegraph::handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedPositionOverlay *>(this), "get_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<long>::value) {
-				static pybind11::detail::overload_caster_t<long> caster;
-				return pybind11::detail::cast_ref<long>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
+				static pybind11::detail::overload_caster_t<long long> caster;
+				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long>(std::move(o));
+			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return PackedPositionOverlay::get_id(a0);
 	}
@@ -105,16 +105,16 @@ struct PyCallBack_bdsg_PackedPositionOverlay : public bdsg::PackedPositionOverla
 		}
 		return PackedPositionOverlay::get_length(a0);
 	}
-	class std::__cxx11::basic_string<char> get_sequence(const struct handlegraph::handle_t & a0) const override { 
+	std::string get_sequence(const struct handlegraph::handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedPositionOverlay *>(this), "get_sequence");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<class std::__cxx11::basic_string<char>>::value) {
-				static pybind11::detail::overload_caster_t<class std::__cxx11::basic_string<char>> caster;
-				return pybind11::detail::cast_ref<class std::__cxx11::basic_string<char>>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<std::string>::value) {
+				static pybind11::detail::overload_caster_t<std::string> caster;
+				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<class std::__cxx11::basic_string<char>>(std::move(o));
+			else return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		return PackedPositionOverlay::get_sequence(a0);
 	}
@@ -157,16 +157,16 @@ struct PyCallBack_bdsg_PackedPositionOverlay : public bdsg::PackedPositionOverla
 		}
 		return PackedPositionOverlay::get_base(a0, a1);
 	}
-	class std::__cxx11::basic_string<char> get_subsequence(const struct handlegraph::handle_t & a0, unsigned long a1, unsigned long a2) const override { 
+	std::string get_subsequence(const struct handlegraph::handle_t & a0, unsigned long a1, unsigned long a2) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedPositionOverlay *>(this), "get_subsequence");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1, a2);
-			if (pybind11::detail::cast_is_temporary_value_reference<class std::__cxx11::basic_string<char>>::value) {
-				static pybind11::detail::overload_caster_t<class std::__cxx11::basic_string<char>> caster;
-				return pybind11::detail::cast_ref<class std::__cxx11::basic_string<char>>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<std::string>::value) {
+				static pybind11::detail::overload_caster_t<std::string> caster;
+				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<class std::__cxx11::basic_string<char>>(std::move(o));
+			else return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		return PackedPositionOverlay::get_subsequence(a0, a1, a2);
 	}
@@ -183,29 +183,29 @@ struct PyCallBack_bdsg_PackedPositionOverlay : public bdsg::PackedPositionOverla
 		}
 		return PackedPositionOverlay::get_node_count();
 	}
-	long min_node_id() const override { 
+	long long min_node_id() const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedPositionOverlay *>(this), "min_node_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
-			if (pybind11::detail::cast_is_temporary_value_reference<long>::value) {
-				static pybind11::detail::overload_caster_t<long> caster;
-				return pybind11::detail::cast_ref<long>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
+				static pybind11::detail::overload_caster_t<long long> caster;
+				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long>(std::move(o));
+			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return PackedPositionOverlay::min_node_id();
 	}
-	long max_node_id() const override { 
+	long long max_node_id() const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedPositionOverlay *>(this), "max_node_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
-			if (pybind11::detail::cast_is_temporary_value_reference<long>::value) {
-				static pybind11::detail::overload_caster_t<long> caster;
-				return pybind11::detail::cast_ref<long>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
+				static pybind11::detail::overload_caster_t<long long> caster;
+				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long>(std::move(o));
+			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return PackedPositionOverlay::max_node_id();
 	}
@@ -222,7 +222,7 @@ struct PyCallBack_bdsg_PackedPositionOverlay : public bdsg::PackedPositionOverla
 		}
 		return PackedPositionOverlay::get_path_count();
 	}
-	bool has_path(const class std::__cxx11::basic_string<char> & a0) const override { 
+	bool has_path(const std::string & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedPositionOverlay *>(this), "has_path");
 		if (overload) {
@@ -235,7 +235,7 @@ struct PyCallBack_bdsg_PackedPositionOverlay : public bdsg::PackedPositionOverla
 		}
 		return PackedPositionOverlay::has_path(a0);
 	}
-	struct handlegraph::path_handle_t get_path_handle(const class std::__cxx11::basic_string<char> & a0) const override { 
+	struct handlegraph::path_handle_t get_path_handle(const std::string & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedPositionOverlay *>(this), "get_path_handle");
 		if (overload) {
@@ -248,16 +248,16 @@ struct PyCallBack_bdsg_PackedPositionOverlay : public bdsg::PackedPositionOverla
 		}
 		return PackedPositionOverlay::get_path_handle(a0);
 	}
-	class std::__cxx11::basic_string<char> get_path_name(const struct handlegraph::path_handle_t & a0) const override { 
+	std::string get_path_name(const struct handlegraph::path_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedPositionOverlay *>(this), "get_path_name");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<class std::__cxx11::basic_string<char>>::value) {
-				static pybind11::detail::overload_caster_t<class std::__cxx11::basic_string<char>> caster;
-				return pybind11::detail::cast_ref<class std::__cxx11::basic_string<char>>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<std::string>::value) {
+				static pybind11::detail::overload_caster_t<std::string> caster;
+				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<class std::__cxx11::basic_string<char>>(std::move(o));
+			else return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		return PackedPositionOverlay::get_path_name(a0);
 	}
@@ -521,6 +521,32 @@ struct PyCallBack_bdsg_PackedPositionOverlay : public bdsg::PackedPositionOverla
 		}
 		return PathHandleGraph::is_empty(a0);
 	}
+	unsigned long get_edge_count() const override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedPositionOverlay *>(this), "get_edge_count");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>();
+			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
+				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+		}
+		return HandleGraph::get_edge_count();
+	}
+	unsigned long get_total_length() const override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedPositionOverlay *>(this), "get_total_length");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>();
+			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
+				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+		}
+		return HandleGraph::get_total_length();
+	}
 	bool follow_edges_impl(const struct handlegraph::handle_t & a0, bool a1, const class std::function<bool (const struct handlegraph::handle_t &)> & a2) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedPositionOverlay *>(this), "follow_edges_impl");
@@ -556,10 +582,10 @@ void bind_bdsg_packed_path_position_overlays(std::function< pybind11::module &(s
 		cl.def( pybind11::init<const class handlegraph::PathHandleGraph *>(), pybind11::arg("graph") );
 
 		cl.def( pybind11::init( [](){ return new bdsg::PackedPositionOverlay(); }, [](){ return new PyCallBack_bdsg_PackedPositionOverlay(); } ) );
-		cl.def("has_node", (bool (bdsg::PackedPositionOverlay::*)(long) const) &bdsg::PackedPositionOverlay::has_node, "Method to check if a node exists by ID\n\nC++: bdsg::PackedPositionOverlay::has_node(long) const --> bool", pybind11::arg("node_id"));
-		cl.def("get_handle", [](bdsg::PackedPositionOverlay const &o, const long & a0) -> handlegraph::handle_t { return o.get_handle(a0); }, "", pybind11::arg("node_id"));
-		cl.def("get_handle", (struct handlegraph::handle_t (bdsg::PackedPositionOverlay::*)(const long &, bool) const) &bdsg::PackedPositionOverlay::get_handle, "Look up the handle for the node with the given ID in the given orientation\n\nC++: bdsg::PackedPositionOverlay::get_handle(const long &, bool) const --> struct handlegraph::handle_t", pybind11::arg("node_id"), pybind11::arg("is_reverse"));
-		cl.def("get_id", (long (bdsg::PackedPositionOverlay::*)(const struct handlegraph::handle_t &) const) &bdsg::PackedPositionOverlay::get_id, "Get the ID from a handle\n\nC++: bdsg::PackedPositionOverlay::get_id(const struct handlegraph::handle_t &) const --> long", pybind11::arg("handle"));
+		cl.def("has_node", (bool (bdsg::PackedPositionOverlay::*)(long long) const) &bdsg::PackedPositionOverlay::has_node, "Method to check if a node exists by ID\n\nC++: bdsg::PackedPositionOverlay::has_node(long long) const --> bool", pybind11::arg("node_id"));
+		cl.def("get_handle", [](bdsg::PackedPositionOverlay const &o, const long long & a0) -> handlegraph::handle_t { return o.get_handle(a0); }, "", pybind11::arg("node_id"));
+		cl.def("get_handle", (struct handlegraph::handle_t (bdsg::PackedPositionOverlay::*)(const long long &, bool) const) &bdsg::PackedPositionOverlay::get_handle, "Look up the handle for the node with the given ID in the given orientation\n\nC++: bdsg::PackedPositionOverlay::get_handle(const long long &, bool) const --> struct handlegraph::handle_t", pybind11::arg("node_id"), pybind11::arg("is_reverse"));
+		cl.def("get_id", (long long (bdsg::PackedPositionOverlay::*)(const struct handlegraph::handle_t &) const) &bdsg::PackedPositionOverlay::get_id, "Get the ID from a handle\n\nC++: bdsg::PackedPositionOverlay::get_id(const struct handlegraph::handle_t &) const --> long long", pybind11::arg("handle"));
 		cl.def("get_is_reverse", (bool (bdsg::PackedPositionOverlay::*)(const struct handlegraph::handle_t &) const) &bdsg::PackedPositionOverlay::get_is_reverse, "Get the orientation of a handle\n\nC++: bdsg::PackedPositionOverlay::get_is_reverse(const struct handlegraph::handle_t &) const --> bool", pybind11::arg("handle"));
 		cl.def("flip", (struct handlegraph::handle_t (bdsg::PackedPositionOverlay::*)(const struct handlegraph::handle_t &) const) &bdsg::PackedPositionOverlay::flip, "Invert the orientation of a handle (potentially without getting its ID)\n\nC++: bdsg::PackedPositionOverlay::flip(const struct handlegraph::handle_t &) const --> struct handlegraph::handle_t", pybind11::arg("handle"));
 		cl.def("get_length", (unsigned long (bdsg::PackedPositionOverlay::*)(const struct handlegraph::handle_t &) const) &bdsg::PackedPositionOverlay::get_length, "Get the length of a node\n\nC++: bdsg::PackedPositionOverlay::get_length(const struct handlegraph::handle_t &) const --> unsigned long", pybind11::arg("handle"));
@@ -569,8 +595,8 @@ void bind_bdsg_packed_path_position_overlays(std::function< pybind11::module &(s
 		cl.def("get_base", (char (bdsg::PackedPositionOverlay::*)(const struct handlegraph::handle_t &, unsigned long) const) &bdsg::PackedPositionOverlay::get_base, "Returns one base of a handle's sequence, in the orientation of the\n handle.\n\nC++: bdsg::PackedPositionOverlay::get_base(const struct handlegraph::handle_t &, unsigned long) const --> char", pybind11::arg("handle"), pybind11::arg("index"));
 		cl.def("get_subsequence", (std::string (bdsg::PackedPositionOverlay::*)(const struct handlegraph::handle_t &, unsigned long, unsigned long) const) &bdsg::PackedPositionOverlay::get_subsequence, "Returns a substring of a handle's sequence, in the orientation of the\n handle. If the indicated substring would extend beyond the end of the\n handle's sequence, the return value is truncated to the sequence's end.\n\nC++: bdsg::PackedPositionOverlay::get_subsequence(const struct handlegraph::handle_t &, unsigned long, unsigned long) const --> std::string", pybind11::arg("handle"), pybind11::arg("index"), pybind11::arg("size"));
 		cl.def("get_node_count", (unsigned long (bdsg::PackedPositionOverlay::*)() const) &bdsg::PackedPositionOverlay::get_node_count, "Return the number of nodes in the graph\n\nC++: bdsg::PackedPositionOverlay::get_node_count() const --> unsigned long");
-		cl.def("min_node_id", (long (bdsg::PackedPositionOverlay::*)() const) &bdsg::PackedPositionOverlay::min_node_id, "Return the smallest ID in the graph, or some smaller number if the\n smallest ID is unavailable. Return value is unspecified if the graph is empty.\n\nC++: bdsg::PackedPositionOverlay::min_node_id() const --> long");
-		cl.def("max_node_id", (long (bdsg::PackedPositionOverlay::*)() const) &bdsg::PackedPositionOverlay::max_node_id, "Return the largest ID in the graph, or some larger number if the\n largest ID is unavailable. Return value is unspecified if the graph is empty.\n\nC++: bdsg::PackedPositionOverlay::max_node_id() const --> long");
+		cl.def("min_node_id", (long long (bdsg::PackedPositionOverlay::*)() const) &bdsg::PackedPositionOverlay::min_node_id, "Return the smallest ID in the graph, or some smaller number if the\n smallest ID is unavailable. Return value is unspecified if the graph is empty.\n\nC++: bdsg::PackedPositionOverlay::min_node_id() const --> long long");
+		cl.def("max_node_id", (long long (bdsg::PackedPositionOverlay::*)() const) &bdsg::PackedPositionOverlay::max_node_id, "Return the largest ID in the graph, or some larger number if the\n largest ID is unavailable. Return value is unspecified if the graph is empty.\n\nC++: bdsg::PackedPositionOverlay::max_node_id() const --> long long");
 		cl.def("get_path_count", (unsigned long (bdsg::PackedPositionOverlay::*)() const) &bdsg::PackedPositionOverlay::get_path_count, "Returns the number of paths stored in the graph\n\nC++: bdsg::PackedPositionOverlay::get_path_count() const --> unsigned long");
 		cl.def("has_path", (bool (bdsg::PackedPositionOverlay::*)(const std::string &) const) &bdsg::PackedPositionOverlay::has_path, "Determine if a path name exists and is legal to get a path handle for.\n\nC++: bdsg::PackedPositionOverlay::has_path(const std::string &) const --> bool", pybind11::arg("path_name"));
 		cl.def("get_path_handle", (struct handlegraph::path_handle_t (bdsg::PackedPositionOverlay::*)(const std::string &) const) &bdsg::PackedPositionOverlay::get_path_handle, "Look up the path handle for the given path name.\n The path with that name must exist.\n\nC++: bdsg::PackedPositionOverlay::get_path_handle(const std::string &) const --> struct handlegraph::path_handle_t", pybind11::arg("path_name"));

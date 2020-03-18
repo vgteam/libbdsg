@@ -8,17 +8,12 @@
 #include "bdsg/wang_hash.hpp"
 #include "bdsg/packed_structs.hpp"
 
-// Comment out to use sparse_hash_map and sparse_hash_set instead of
-// dense_hash_map and dense_hash_set.
+// Uncomment these to use dense hash tables:
 //#define USE_DENSE_HASH
-
-#ifdef USE_DENSE_HASH
-#include <sparsehash/dense_hash_map>
-#include <sparsehash/dense_hash_set>
-#else
+//#include <sparsehash/dense_hash_map>
+//#include <sparsehash/dense_hash_set>
+// Or these to use sparse hash tables:
 #include <sparsepp/spp.h>
-#endif
-
 
 // http://stackoverflow.com/questions/4870437/pairint-int-pair-as-key-of-unordered-map-issue#comment5439557_4870467
 // https://github.com/Revolutionary-Games/Thrive/blob/fd8ab943dd4ced59a8e7d1e4a7b725468b7c2557/src/util/pair_hash.h
