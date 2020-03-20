@@ -1,7 +1,10 @@
 bdsg.cpp
+std/stl_vector.cpp
+std/stl_vector_1.cpp
 handlegraph/types.cpp
 handlegraph/handle_graph.cpp
 bdsg/is_single_stranded.cpp
+bdsg/eades_algorithm.cpp
 handlegraph/path_handle_graph.cpp
 handlegraph/mutable_handle_graph.cpp
 bdsg/wang_hash.cpp
