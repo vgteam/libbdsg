@@ -33,8 +33,9 @@ if not os.path.exists('../lib/bdsg.module'):
         if not os.path.exists('cmake-3.17.0-Linux-x86_64'):
             subprocess.check_call(['wget', 'https://github.com/Kitware/CMake/releases/download/v3.17.0/cmake-3.17.0-Linux-x86_64.tar.gz'])
             subprocess.check_call(['tar', '-xf', 'cmake-3.17.0-Linux-x86_64.tar.gz'])
+            os.rename('cmake-3.17.0-Linux-x86_64', 'cmake')
         # Make sure subprocess can find it
-        os.environ['PATH'] += ':' + os.path.join(os.getcwd(), 'cmake-3.17.0-Linux-x86_64', 'bin')
+        os.environ['PATH'] += ':' + os.path.join(os.getcwd(), 'cmake', 'bin')
     
     # Use Make to call out to cmake and build the project so we can import and
     # document it.
@@ -85,7 +86,7 @@ language = None
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ['venv/*', '_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = ['venv/*', 'cmake/*', '_build', 'Thumbs.db', '.DS_Store']
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = None
