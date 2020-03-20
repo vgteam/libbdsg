@@ -377,8 +377,9 @@ public:
     /// Convert to GFA (for debugging)
     void to_gfa(std::ostream& out) const;
 
-    /// Serialize
-    uint64_t serialize_and_measure(std::ostream& out) const;
+    /// Serialize. Return the number of bytes written.
+    /// We use a long long int here to keep varying types like uint64_t away from the Python bindings.
+    long long int serialize_and_measure(std::ostream& out) const;
 
     /// Load
     void load(std::istream& in);

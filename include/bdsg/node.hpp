@@ -19,7 +19,8 @@ using nid_t = handlegraph::nid_t;
 const uint8_t EDGE_RECORD_LENGTH = 2;
 const uint8_t PATH_RECORD_LENGTH = 5;
 
-/// A node object with the sequence, its edge lists, and paths
+/// A node object with the sequence, its edge lists, and paths.
+/// Part of ODGI.
 class node_t {
     std::vector<uint8_t> bytes;
     dyn::hacked_vector path_steps;
@@ -75,9 +76,6 @@ public:
                        const uint64_t& prev_id, const uint64_t& prev_rank,
                        const uint64_t& next_id, const uint64_t& next_rank);
     void add_path_step(const step_t& step);
-    void set_path_step(const uint64_t& rank, const uint64_t& path_id, const bool& is_rev,
-                       const uint64_t& prev_id, const uint64_t& prev_rank,
-                       const uint64_t& next_id, const uint64_t& next_rank);
     void set_path_step(const uint64_t& rank, const step_t& step);
     std::pair<std::map<uint64_t, std::pair<uint64_t, bool>>, // path fronts
               std::map<uint64_t, std::pair<uint64_t, bool>>> // path backs

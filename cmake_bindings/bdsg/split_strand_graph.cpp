@@ -1,6 +1,5 @@
 #include <bdsg/packed_graph.hpp>
 #include <bdsg/split_strand_graph.hpp>
-#include <bits/types/__mbstate_t.h>
 #include <functional>
 #include <handlegraph/handle_graph.hpp>
 #include <handlegraph/path_handle_graph.hpp>
@@ -8,7 +7,6 @@
 #include <ios>
 #include <istream>
 #include <iterator>
-#include <locale>
 #include <memory>
 #include <ostream>
 #include <sstream> // __str__
@@ -35,7 +33,7 @@
 struct PyCallBack_bdsg_StrandSplitGraph : public bdsg::StrandSplitGraph {
 	using bdsg::StrandSplitGraph::StrandSplitGraph;
 
-	bool has_node(long a0) const override { 
+	bool has_node(long long a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::StrandSplitGraph *>(this), "has_node");
 		if (overload) {
@@ -48,7 +46,7 @@ struct PyCallBack_bdsg_StrandSplitGraph : public bdsg::StrandSplitGraph {
 		}
 		return StrandSplitGraph::has_node(a0);
 	}
-	struct handlegraph::handle_t get_handle(const long & a0, bool a1) const override { 
+	struct handlegraph::handle_t get_handle(const long long & a0, bool a1) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::StrandSplitGraph *>(this), "get_handle");
 		if (overload) {
@@ -61,16 +59,16 @@ struct PyCallBack_bdsg_StrandSplitGraph : public bdsg::StrandSplitGraph {
 		}
 		return StrandSplitGraph::get_handle(a0, a1);
 	}
-	long get_id(const struct handlegraph::handle_t & a0) const override { 
+	long long get_id(const struct handlegraph::handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::StrandSplitGraph *>(this), "get_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<long>::value) {
-				static pybind11::detail::overload_caster_t<long> caster;
-				return pybind11::detail::cast_ref<long>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
+				static pybind11::detail::overload_caster_t<long long> caster;
+				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long>(std::move(o));
+			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return StrandSplitGraph::get_id(a0);
 	}
@@ -113,16 +111,16 @@ struct PyCallBack_bdsg_StrandSplitGraph : public bdsg::StrandSplitGraph {
 		}
 		return StrandSplitGraph::get_length(a0);
 	}
-	class std::__cxx11::basic_string<char> get_sequence(const struct handlegraph::handle_t & a0) const override { 
+	std::string get_sequence(const struct handlegraph::handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::StrandSplitGraph *>(this), "get_sequence");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<class std::__cxx11::basic_string<char>>::value) {
-				static pybind11::detail::overload_caster_t<class std::__cxx11::basic_string<char>> caster;
-				return pybind11::detail::cast_ref<class std::__cxx11::basic_string<char>>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<std::string>::value) {
+				static pybind11::detail::overload_caster_t<std::string> caster;
+				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<class std::__cxx11::basic_string<char>>(std::move(o));
+			else return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		return StrandSplitGraph::get_sequence(a0);
 	}
@@ -165,29 +163,29 @@ struct PyCallBack_bdsg_StrandSplitGraph : public bdsg::StrandSplitGraph {
 		}
 		return StrandSplitGraph::get_node_count();
 	}
-	long min_node_id() const override { 
+	long long min_node_id() const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::StrandSplitGraph *>(this), "min_node_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
-			if (pybind11::detail::cast_is_temporary_value_reference<long>::value) {
-				static pybind11::detail::overload_caster_t<long> caster;
-				return pybind11::detail::cast_ref<long>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
+				static pybind11::detail::overload_caster_t<long long> caster;
+				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long>(std::move(o));
+			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return StrandSplitGraph::min_node_id();
 	}
-	long max_node_id() const override { 
+	long long max_node_id() const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::StrandSplitGraph *>(this), "max_node_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
-			if (pybind11::detail::cast_is_temporary_value_reference<long>::value) {
-				static pybind11::detail::overload_caster_t<long> caster;
-				return pybind11::detail::cast_ref<long>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
+				static pybind11::detail::overload_caster_t<long long> caster;
+				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long>(std::move(o));
+			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return StrandSplitGraph::max_node_id();
 	}
@@ -230,6 +228,32 @@ struct PyCallBack_bdsg_StrandSplitGraph : public bdsg::StrandSplitGraph {
 		}
 		return HandleGraph::has_edge(a0, a1);
 	}
+	unsigned long get_edge_count() const override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::StrandSplitGraph *>(this), "get_edge_count");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>();
+			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
+				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+		}
+		return HandleGraph::get_edge_count();
+	}
+	unsigned long get_total_length() const override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::StrandSplitGraph *>(this), "get_total_length");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>();
+			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
+				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+		}
+		return HandleGraph::get_total_length();
+	}
 	char get_base(const struct handlegraph::handle_t & a0, unsigned long a1) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::StrandSplitGraph *>(this), "get_base");
@@ -243,52 +267,26 @@ struct PyCallBack_bdsg_StrandSplitGraph : public bdsg::StrandSplitGraph {
 		}
 		return HandleGraph::get_base(a0, a1);
 	}
-	class std::__cxx11::basic_string<char> get_subsequence(const struct handlegraph::handle_t & a0, unsigned long a1, unsigned long a2) const override { 
+	std::string get_subsequence(const struct handlegraph::handle_t & a0, unsigned long a1, unsigned long a2) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::StrandSplitGraph *>(this), "get_subsequence");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1, a2);
-			if (pybind11::detail::cast_is_temporary_value_reference<class std::__cxx11::basic_string<char>>::value) {
-				static pybind11::detail::overload_caster_t<class std::__cxx11::basic_string<char>> caster;
-				return pybind11::detail::cast_ref<class std::__cxx11::basic_string<char>>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<std::string>::value) {
+				static pybind11::detail::overload_caster_t<std::string> caster;
+				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<class std::__cxx11::basic_string<char>>(std::move(o));
+			else return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		return HandleGraph::get_subsequence(a0, a1, a2);
 	}
 };
 
-// bdsg::PackedGraph file:bdsg/packed_graph.hpp line:29
+// bdsg::PackedGraph file:bdsg/packed_graph.hpp line:30
 struct PyCallBack_bdsg_PackedGraph : public bdsg::PackedGraph {
 	using bdsg::PackedGraph::PackedGraph;
 
-	void serialize(class std::basic_ostream<char> & a0) const override { 
-		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedGraph *>(this), "serialize");
-		if (overload) {
-			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
-				static pybind11::detail::overload_caster_t<void> caster;
-				return pybind11::detail::cast_ref<void>(std::move(o), caster);
-			}
-			else return pybind11::detail::cast_safe<void>(std::move(o));
-		}
-		return PackedGraph::serialize(a0);
-	}
-	void deserialize(class std::basic_istream<char> & a0) override { 
-		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedGraph *>(this), "deserialize");
-		if (overload) {
-			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
-				static pybind11::detail::overload_caster_t<void> caster;
-				return pybind11::detail::cast_ref<void>(std::move(o), caster);
-			}
-			else return pybind11::detail::cast_safe<void>(std::move(o));
-		}
-		return PackedGraph::deserialize(a0);
-	}
-	bool has_node(long a0) const override { 
+	bool has_node(long long a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedGraph *>(this), "has_node");
 		if (overload) {
@@ -301,7 +299,7 @@ struct PyCallBack_bdsg_PackedGraph : public bdsg::PackedGraph {
 		}
 		return PackedGraph::has_node(a0);
 	}
-	struct handlegraph::handle_t get_handle(const long & a0, bool a1) const override { 
+	struct handlegraph::handle_t get_handle(const long long & a0, bool a1) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedGraph *>(this), "get_handle");
 		if (overload) {
@@ -314,16 +312,16 @@ struct PyCallBack_bdsg_PackedGraph : public bdsg::PackedGraph {
 		}
 		return PackedGraph::get_handle(a0, a1);
 	}
-	long get_id(const struct handlegraph::handle_t & a0) const override { 
+	long long get_id(const struct handlegraph::handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedGraph *>(this), "get_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<long>::value) {
-				static pybind11::detail::overload_caster_t<long> caster;
-				return pybind11::detail::cast_ref<long>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
+				static pybind11::detail::overload_caster_t<long long> caster;
+				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long>(std::move(o));
+			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return PackedGraph::get_id(a0);
 	}
@@ -366,16 +364,16 @@ struct PyCallBack_bdsg_PackedGraph : public bdsg::PackedGraph {
 		}
 		return PackedGraph::get_length(a0);
 	}
-	class std::__cxx11::basic_string<char> get_sequence(const struct handlegraph::handle_t & a0) const override { 
+	std::string get_sequence(const struct handlegraph::handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedGraph *>(this), "get_sequence");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<class std::__cxx11::basic_string<char>>::value) {
-				static pybind11::detail::overload_caster_t<class std::__cxx11::basic_string<char>> caster;
-				return pybind11::detail::cast_ref<class std::__cxx11::basic_string<char>>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<std::string>::value) {
+				static pybind11::detail::overload_caster_t<std::string> caster;
+				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<class std::__cxx11::basic_string<char>>(std::move(o));
+			else return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		return PackedGraph::get_sequence(a0);
 	}
@@ -405,6 +403,32 @@ struct PyCallBack_bdsg_PackedGraph : public bdsg::PackedGraph {
 		}
 		return PackedGraph::for_each_handle_impl(a0, a1);
 	}
+	unsigned long get_edge_count() const override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedGraph *>(this), "get_edge_count");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>();
+			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
+				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+		}
+		return PackedGraph::get_edge_count();
+	}
+	unsigned long get_total_length() const override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedGraph *>(this), "get_total_length");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>();
+			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
+				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+		}
+		return PackedGraph::get_total_length();
+	}
 	char get_base(const struct handlegraph::handle_t & a0, unsigned long a1) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedGraph *>(this), "get_base");
@@ -418,16 +442,16 @@ struct PyCallBack_bdsg_PackedGraph : public bdsg::PackedGraph {
 		}
 		return PackedGraph::get_base(a0, a1);
 	}
-	class std::__cxx11::basic_string<char> get_subsequence(const struct handlegraph::handle_t & a0, unsigned long a1, unsigned long a2) const override { 
+	std::string get_subsequence(const struct handlegraph::handle_t & a0, unsigned long a1, unsigned long a2) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedGraph *>(this), "get_subsequence");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1, a2);
-			if (pybind11::detail::cast_is_temporary_value_reference<class std::__cxx11::basic_string<char>>::value) {
-				static pybind11::detail::overload_caster_t<class std::__cxx11::basic_string<char>> caster;
-				return pybind11::detail::cast_ref<class std::__cxx11::basic_string<char>>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<std::string>::value) {
+				static pybind11::detail::overload_caster_t<std::string> caster;
+				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<class std::__cxx11::basic_string<char>>(std::move(o));
+			else return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		return PackedGraph::get_subsequence(a0, a1, a2);
 	}
@@ -444,33 +468,33 @@ struct PyCallBack_bdsg_PackedGraph : public bdsg::PackedGraph {
 		}
 		return PackedGraph::get_node_count();
 	}
-	long min_node_id() const override { 
+	long long min_node_id() const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedGraph *>(this), "min_node_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
-			if (pybind11::detail::cast_is_temporary_value_reference<long>::value) {
-				static pybind11::detail::overload_caster_t<long> caster;
-				return pybind11::detail::cast_ref<long>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
+				static pybind11::detail::overload_caster_t<long long> caster;
+				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long>(std::move(o));
+			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return PackedGraph::min_node_id();
 	}
-	long max_node_id() const override { 
+	long long max_node_id() const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedGraph *>(this), "max_node_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
-			if (pybind11::detail::cast_is_temporary_value_reference<long>::value) {
-				static pybind11::detail::overload_caster_t<long> caster;
-				return pybind11::detail::cast_ref<long>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
+				static pybind11::detail::overload_caster_t<long long> caster;
+				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long>(std::move(o));
+			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return PackedGraph::max_node_id();
 	}
-	struct handlegraph::handle_t create_handle(const class std::__cxx11::basic_string<char> & a0) override { 
+	struct handlegraph::handle_t create_handle(const std::string & a0) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedGraph *>(this), "create_handle");
 		if (overload) {
@@ -483,7 +507,7 @@ struct PyCallBack_bdsg_PackedGraph : public bdsg::PackedGraph {
 		}
 		return PackedGraph::create_handle(a0);
 	}
-	struct handlegraph::handle_t create_handle(const class std::__cxx11::basic_string<char> & a0, const long & a1) override { 
+	struct handlegraph::handle_t create_handle(const std::string & a0, const long long & a1) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedGraph *>(this), "create_handle");
 		if (overload) {
@@ -587,7 +611,7 @@ struct PyCallBack_bdsg_PackedGraph : public bdsg::PackedGraph {
 		}
 		return PackedGraph::get_path_count();
 	}
-	bool has_path(const class std::__cxx11::basic_string<char> & a0) const override { 
+	bool has_path(const std::string & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedGraph *>(this), "has_path");
 		if (overload) {
@@ -600,7 +624,7 @@ struct PyCallBack_bdsg_PackedGraph : public bdsg::PackedGraph {
 		}
 		return PackedGraph::has_path(a0);
 	}
-	struct handlegraph::path_handle_t get_path_handle(const class std::__cxx11::basic_string<char> & a0) const override { 
+	struct handlegraph::path_handle_t get_path_handle(const std::string & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedGraph *>(this), "get_path_handle");
 		if (overload) {
@@ -613,16 +637,16 @@ struct PyCallBack_bdsg_PackedGraph : public bdsg::PackedGraph {
 		}
 		return PackedGraph::get_path_handle(a0);
 	}
-	class std::__cxx11::basic_string<char> get_path_name(const struct handlegraph::path_handle_t & a0) const override { 
+	std::string get_path_name(const struct handlegraph::path_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedGraph *>(this), "get_path_name");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<class std::__cxx11::basic_string<char>>::value) {
-				static pybind11::detail::overload_caster_t<class std::__cxx11::basic_string<char>> caster;
-				return pybind11::detail::cast_ref<class std::__cxx11::basic_string<char>>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<std::string>::value) {
+				static pybind11::detail::overload_caster_t<std::string> caster;
+				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<class std::__cxx11::basic_string<char>>(std::move(o));
+			else return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		return PackedGraph::get_path_name(a0);
 	}
@@ -821,7 +845,7 @@ struct PyCallBack_bdsg_PackedGraph : public bdsg::PackedGraph {
 		}
 		return PackedGraph::destroy_path(a0);
 	}
-	struct handlegraph::path_handle_t create_path_handle(const class std::__cxx11::basic_string<char> & a0, bool a1) override { 
+	struct handlegraph::path_handle_t create_path_handle(const std::string & a0, bool a1) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedGraph *>(this), "create_path_handle");
 		if (overload) {
@@ -873,7 +897,7 @@ struct PyCallBack_bdsg_PackedGraph : public bdsg::PackedGraph {
 		}
 		return PackedGraph::set_circularity(a0, a1);
 	}
-	void set_id_increment(const long & a0) override { 
+	void set_id_increment(const long long & a0) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedGraph *>(this), "set_id_increment");
 		if (overload) {
@@ -885,6 +909,45 @@ struct PyCallBack_bdsg_PackedGraph : public bdsg::PackedGraph {
 			else return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return PackedGraph::set_id_increment(a0);
+	}
+	void increment_node_ids(long long a0) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedGraph *>(this), "increment_node_ids");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
+				static pybind11::detail::overload_caster_t<void> caster;
+				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<void>(std::move(o));
+		}
+		return PackedGraph::increment_node_ids(a0);
+	}
+	void reassign_node_ids(const class std::function<long long (const long long &)> & a0) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedGraph *>(this), "reassign_node_ids");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
+				static pybind11::detail::overload_caster_t<void> caster;
+				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<void>(std::move(o));
+		}
+		return PackedGraph::reassign_node_ids(a0);
+	}
+	unsigned int get_magic_number() const override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedGraph *>(this), "get_magic_number");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>();
+			if (pybind11::detail::cast_is_temporary_value_reference<unsigned int>::value) {
+				static pybind11::detail::overload_caster_t<unsigned int> caster;
+				return pybind11::detail::cast_ref<unsigned int>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<unsigned int>(std::move(o));
+		}
+		return PackedGraph::get_magic_number();
 	}
 	bool is_empty(const struct handlegraph::path_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
@@ -936,10 +999,10 @@ void bind_bdsg_split_strand_graph(std::function< pybind11::module &(std::string 
 		cl.def( pybind11::init( [](){ return new bdsg::StrandSplitGraph(); }, [](){ return new PyCallBack_bdsg_StrandSplitGraph(); } ) );
 		cl.def( pybind11::init( [](PyCallBack_bdsg_StrandSplitGraph const &o){ return new PyCallBack_bdsg_StrandSplitGraph(o); } ) );
 		cl.def( pybind11::init( [](bdsg::StrandSplitGraph const &o){ return new bdsg::StrandSplitGraph(o); } ) );
-		cl.def("has_node", (bool (bdsg::StrandSplitGraph::*)(long) const) &bdsg::StrandSplitGraph::has_node, "///////////////////////\n HandleGraph interface\n///////////////////////\n\nC++: bdsg::StrandSplitGraph::has_node(long) const --> bool", pybind11::arg("node_id"));
-		cl.def("get_handle", [](bdsg::StrandSplitGraph const &o, const long & a0) -> handlegraph::handle_t { return o.get_handle(a0); }, "", pybind11::arg("node_id"));
-		cl.def("get_handle", (struct handlegraph::handle_t (bdsg::StrandSplitGraph::*)(const long &, bool) const) &bdsg::StrandSplitGraph::get_handle, "Look up the handle for the node with the given ID in the given orientation\n\nC++: bdsg::StrandSplitGraph::get_handle(const long &, bool) const --> struct handlegraph::handle_t", pybind11::arg("node_id"), pybind11::arg("is_reverse"));
-		cl.def("get_id", (long (bdsg::StrandSplitGraph::*)(const struct handlegraph::handle_t &) const) &bdsg::StrandSplitGraph::get_id, "Get the ID from a handle\n\nC++: bdsg::StrandSplitGraph::get_id(const struct handlegraph::handle_t &) const --> long", pybind11::arg("handle"));
+		cl.def("has_node", (bool (bdsg::StrandSplitGraph::*)(long long) const) &bdsg::StrandSplitGraph::has_node, "///////////////////////\n HandleGraph interface\n///////////////////////\n\nC++: bdsg::StrandSplitGraph::has_node(long long) const --> bool", pybind11::arg("node_id"));
+		cl.def("get_handle", [](bdsg::StrandSplitGraph const &o, const long long & a0) -> handlegraph::handle_t { return o.get_handle(a0); }, "", pybind11::arg("node_id"));
+		cl.def("get_handle", (struct handlegraph::handle_t (bdsg::StrandSplitGraph::*)(const long long &, bool) const) &bdsg::StrandSplitGraph::get_handle, "Look up the handle for the node with the given ID in the given orientation\n\nC++: bdsg::StrandSplitGraph::get_handle(const long long &, bool) const --> struct handlegraph::handle_t", pybind11::arg("node_id"), pybind11::arg("is_reverse"));
+		cl.def("get_id", (long long (bdsg::StrandSplitGraph::*)(const struct handlegraph::handle_t &) const) &bdsg::StrandSplitGraph::get_id, "Get the ID from a handle\n\nC++: bdsg::StrandSplitGraph::get_id(const struct handlegraph::handle_t &) const --> long long", pybind11::arg("handle"));
 		cl.def("get_is_reverse", (bool (bdsg::StrandSplitGraph::*)(const struct handlegraph::handle_t &) const) &bdsg::StrandSplitGraph::get_is_reverse, "Get the orientation of a handle\n\nC++: bdsg::StrandSplitGraph::get_is_reverse(const struct handlegraph::handle_t &) const --> bool", pybind11::arg("handle"));
 		cl.def("flip", (struct handlegraph::handle_t (bdsg::StrandSplitGraph::*)(const struct handlegraph::handle_t &) const) &bdsg::StrandSplitGraph::flip, "Invert the orientation of a handle (potentially without getting its ID)\n\nC++: bdsg::StrandSplitGraph::flip(const struct handlegraph::handle_t &) const --> struct handlegraph::handle_t", pybind11::arg("handle"));
 		cl.def("get_length", (unsigned long (bdsg::StrandSplitGraph::*)(const struct handlegraph::handle_t &) const) &bdsg::StrandSplitGraph::get_length, "Get the length of a node\n\nC++: bdsg::StrandSplitGraph::get_length(const struct handlegraph::handle_t &) const --> unsigned long", pybind11::arg("handle"));
@@ -948,22 +1011,18 @@ void bind_bdsg_split_strand_graph(std::function< pybind11::module &(std::string 
 		cl.def("for_each_handle_impl", [](bdsg::StrandSplitGraph const &o, const class std::function<bool (const struct handlegraph::handle_t &)> & a0) -> bool { return o.for_each_handle_impl(a0); }, "", pybind11::arg("iteratee"));
 		cl.def("for_each_handle_impl", (bool (bdsg::StrandSplitGraph::*)(const class std::function<bool (const struct handlegraph::handle_t &)> &, bool) const) &bdsg::StrandSplitGraph::for_each_handle_impl, "Loop over all the nodes in the graph in their local forward\n orientations, in their internal stored order. Stop if the iteratee\n returns false. Can be told to run in parallel, in which case stopping\n after a false return value is on a best-effort basis and iteration\n order is not defined.\n\nC++: bdsg::StrandSplitGraph::for_each_handle_impl(const class std::function<bool (const struct handlegraph::handle_t &)> &, bool) const --> bool", pybind11::arg("iteratee"), pybind11::arg("parallel"));
 		cl.def("get_node_count", (unsigned long (bdsg::StrandSplitGraph::*)() const) &bdsg::StrandSplitGraph::get_node_count, "Return the number of nodes in the graph\n TODO: can't be node_count because XG has a field named node_count.\n\nC++: bdsg::StrandSplitGraph::get_node_count() const --> unsigned long");
-		cl.def("min_node_id", (long (bdsg::StrandSplitGraph::*)() const) &bdsg::StrandSplitGraph::min_node_id, "Return the smallest ID in the graph, or some smaller number if the\n smallest ID is unavailable. Return value is unspecified if the graph is empty.\n\nC++: bdsg::StrandSplitGraph::min_node_id() const --> long");
-		cl.def("max_node_id", (long (bdsg::StrandSplitGraph::*)() const) &bdsg::StrandSplitGraph::max_node_id, "Return the largest ID in the graph, or some larger number if the\n largest ID is unavailable. Return value is unspecified if the graph is empty.\n\nC++: bdsg::StrandSplitGraph::max_node_id() const --> long");
+		cl.def("min_node_id", (long long (bdsg::StrandSplitGraph::*)() const) &bdsg::StrandSplitGraph::min_node_id, "Return the smallest ID in the graph, or some smaller number if the\n smallest ID is unavailable. Return value is unspecified if the graph is empty.\n\nC++: bdsg::StrandSplitGraph::min_node_id() const --> long long");
+		cl.def("max_node_id", (long long (bdsg::StrandSplitGraph::*)() const) &bdsg::StrandSplitGraph::max_node_id, "Return the largest ID in the graph, or some larger number if the\n largest ID is unavailable. Return value is unspecified if the graph is empty.\n\nC++: bdsg::StrandSplitGraph::max_node_id() const --> long long");
 		cl.def("get_underlying_handle", (struct handlegraph::handle_t (bdsg::StrandSplitGraph::*)(const struct handlegraph::handle_t &) const) &bdsg::StrandSplitGraph::get_underlying_handle, "Returns the handle in the underlying graph that corresponds to a handle in the\n overlay\n\nC++: bdsg::StrandSplitGraph::get_underlying_handle(const struct handlegraph::handle_t &) const --> struct handlegraph::handle_t", pybind11::arg("handle"));
 		cl.def("assign", (class bdsg::StrandSplitGraph & (bdsg::StrandSplitGraph::*)(const class bdsg::StrandSplitGraph &)) &bdsg::StrandSplitGraph::operator=, "C++: bdsg::StrandSplitGraph::operator=(const class bdsg::StrandSplitGraph &) --> class bdsg::StrandSplitGraph &", pybind11::return_value_policy::automatic, pybind11::arg(""));
 	}
-	{ // bdsg::PackedGraph file:bdsg/packed_graph.hpp line:29
+	{ // bdsg::PackedGraph file:bdsg/packed_graph.hpp line:30
 		pybind11::class_<bdsg::PackedGraph, std::shared_ptr<bdsg::PackedGraph>, PyCallBack_bdsg_PackedGraph, handlegraph::MutablePathDeletableHandleGraph, handlegraph::SerializableHandleGraph> cl(M("bdsg"), "PackedGraph", "");
 		cl.def( pybind11::init( [](){ return new bdsg::PackedGraph(); }, [](){ return new PyCallBack_bdsg_PackedGraph(); } ) );
-		cl.def( pybind11::init<class std::basic_istream<char> &>(), pybind11::arg("in") );
-
-		cl.def("serialize", (void (bdsg::PackedGraph::*)(std::ostream &) const) &bdsg::PackedGraph::serialize, "Output to a stream\n\nC++: bdsg::PackedGraph::serialize(std::ostream &) const --> void", pybind11::arg("out"));
-		cl.def("deserialize", (void (bdsg::PackedGraph::*)(class std::basic_istream<char> &)) &bdsg::PackedGraph::deserialize, "Load contents from a stream and replace current contents\n\nC++: bdsg::PackedGraph::deserialize(class std::basic_istream<char> &) --> void", pybind11::arg("in"));
-		cl.def("has_node", (bool (bdsg::PackedGraph::*)(long) const) &bdsg::PackedGraph::has_node, "Method to check if a node exists by ID\n\nC++: bdsg::PackedGraph::has_node(long) const --> bool", pybind11::arg("node_id"));
-		cl.def("get_handle", [](bdsg::PackedGraph const &o, const long & a0) -> handlegraph::handle_t { return o.get_handle(a0); }, "", pybind11::arg("node_id"));
-		cl.def("get_handle", (struct handlegraph::handle_t (bdsg::PackedGraph::*)(const long &, bool) const) &bdsg::PackedGraph::get_handle, "Look up the handle for the node with the given ID in the given orientation\n\nC++: bdsg::PackedGraph::get_handle(const long &, bool) const --> struct handlegraph::handle_t", pybind11::arg("node_id"), pybind11::arg("is_reverse"));
-		cl.def("get_id", (long (bdsg::PackedGraph::*)(const struct handlegraph::handle_t &) const) &bdsg::PackedGraph::get_id, "Get the ID from a handle\n\nC++: bdsg::PackedGraph::get_id(const struct handlegraph::handle_t &) const --> long", pybind11::arg("handle"));
+		cl.def("has_node", (bool (bdsg::PackedGraph::*)(long long) const) &bdsg::PackedGraph::has_node, "Method to check if a node exists by ID\n\nC++: bdsg::PackedGraph::has_node(long long) const --> bool", pybind11::arg("node_id"));
+		cl.def("get_handle", [](bdsg::PackedGraph const &o, const long long & a0) -> handlegraph::handle_t { return o.get_handle(a0); }, "", pybind11::arg("node_id"));
+		cl.def("get_handle", (struct handlegraph::handle_t (bdsg::PackedGraph::*)(const long long &, bool) const) &bdsg::PackedGraph::get_handle, "Look up the handle for the node with the given ID in the given orientation\n\nC++: bdsg::PackedGraph::get_handle(const long long &, bool) const --> struct handlegraph::handle_t", pybind11::arg("node_id"), pybind11::arg("is_reverse"));
+		cl.def("get_id", (long long (bdsg::PackedGraph::*)(const struct handlegraph::handle_t &) const) &bdsg::PackedGraph::get_id, "Get the ID from a handle\n\nC++: bdsg::PackedGraph::get_id(const struct handlegraph::handle_t &) const --> long long", pybind11::arg("handle"));
 		cl.def("get_is_reverse", (bool (bdsg::PackedGraph::*)(const struct handlegraph::handle_t &) const) &bdsg::PackedGraph::get_is_reverse, "Get the orientation of a handle\n\nC++: bdsg::PackedGraph::get_is_reverse(const struct handlegraph::handle_t &) const --> bool", pybind11::arg("handle"));
 		cl.def("flip", (struct handlegraph::handle_t (bdsg::PackedGraph::*)(const struct handlegraph::handle_t &) const) &bdsg::PackedGraph::flip, "Invert the orientation of a handle (potentially without getting its ID)\n\nC++: bdsg::PackedGraph::flip(const struct handlegraph::handle_t &) const --> struct handlegraph::handle_t", pybind11::arg("handle"));
 		cl.def("get_length", (unsigned long (bdsg::PackedGraph::*)(const struct handlegraph::handle_t &) const) &bdsg::PackedGraph::get_length, "Get the length of a node\n\nC++: bdsg::PackedGraph::get_length(const struct handlegraph::handle_t &) const --> unsigned long", pybind11::arg("handle"));
@@ -976,10 +1035,10 @@ void bind_bdsg_split_strand_graph(std::function< pybind11::module &(std::string 
 		cl.def("get_base", (char (bdsg::PackedGraph::*)(const struct handlegraph::handle_t &, unsigned long) const) &bdsg::PackedGraph::get_base, "Returns one base of a handle's sequence, in the orientation of the\n handle.\n\nC++: bdsg::PackedGraph::get_base(const struct handlegraph::handle_t &, unsigned long) const --> char", pybind11::arg("handle"), pybind11::arg("index"));
 		cl.def("get_subsequence", (std::string (bdsg::PackedGraph::*)(const struct handlegraph::handle_t &, unsigned long, unsigned long) const) &bdsg::PackedGraph::get_subsequence, "Returns a substring of a handle's sequence, in the orientation of the\n handle. If the indicated substring would extend beyond the end of the\n handle's sequence, the return value is truncated to the sequence's end.\n\nC++: bdsg::PackedGraph::get_subsequence(const struct handlegraph::handle_t &, unsigned long, unsigned long) const --> std::string", pybind11::arg("handle"), pybind11::arg("index"), pybind11::arg("size"));
 		cl.def("get_node_count", (unsigned long (bdsg::PackedGraph::*)() const) &bdsg::PackedGraph::get_node_count, "Return the number of nodes in the graph\n\nC++: bdsg::PackedGraph::get_node_count() const --> unsigned long");
-		cl.def("min_node_id", (long (bdsg::PackedGraph::*)() const) &bdsg::PackedGraph::min_node_id, "Return the smallest ID in the graph, or some smaller number if the\n smallest ID is unavailable. Return value is unspecified if the graph is empty.\n\nC++: bdsg::PackedGraph::min_node_id() const --> long");
-		cl.def("max_node_id", (long (bdsg::PackedGraph::*)() const) &bdsg::PackedGraph::max_node_id, "Return the largest ID in the graph, or some larger number if the\n largest ID is unavailable. Return value is unspecified if the graph is empty.\n\nC++: bdsg::PackedGraph::max_node_id() const --> long");
+		cl.def("min_node_id", (long long (bdsg::PackedGraph::*)() const) &bdsg::PackedGraph::min_node_id, "Return the smallest ID in the graph, or some smaller number if the\n smallest ID is unavailable. Return value is unspecified if the graph is empty.\n\nC++: bdsg::PackedGraph::min_node_id() const --> long long");
+		cl.def("max_node_id", (long long (bdsg::PackedGraph::*)() const) &bdsg::PackedGraph::max_node_id, "Return the largest ID in the graph, or some larger number if the\n largest ID is unavailable. Return value is unspecified if the graph is empty.\n\nC++: bdsg::PackedGraph::max_node_id() const --> long long");
 		cl.def("create_handle", (struct handlegraph::handle_t (bdsg::PackedGraph::*)(const std::string &)) &bdsg::PackedGraph::create_handle, "Create a new node with the given sequence and return the handle.\n\nC++: bdsg::PackedGraph::create_handle(const std::string &) --> struct handlegraph::handle_t", pybind11::arg("sequence"));
-		cl.def("create_handle", (struct handlegraph::handle_t (bdsg::PackedGraph::*)(const std::string &, const long &)) &bdsg::PackedGraph::create_handle, "Create a new node with the given id and sequence, then return the handle.\n\nC++: bdsg::PackedGraph::create_handle(const std::string &, const long &) --> struct handlegraph::handle_t", pybind11::arg("sequence"), pybind11::arg("id"));
+		cl.def("create_handle", (struct handlegraph::handle_t (bdsg::PackedGraph::*)(const std::string &, const long long &)) &bdsg::PackedGraph::create_handle, "Create a new node with the given id and sequence, then return the handle.\n\nC++: bdsg::PackedGraph::create_handle(const std::string &, const long long &) --> struct handlegraph::handle_t", pybind11::arg("sequence"), pybind11::arg("id"));
 		cl.def("destroy_handle", (void (bdsg::PackedGraph::*)(const struct handlegraph::handle_t &)) &bdsg::PackedGraph::destroy_handle, "Remove the node belonging to the given handle and all of its edges.\n Does not update any stored paths.\n Invalidates the destroyed handle.\n May be called during serial for_each_handle iteration **ONLY** on the node being iterated.\n May **NOT** be called during parallel for_each_handle iteration.\n May **NOT** be called on the node from which edges are being followed during follow_edges.\n\nC++: bdsg::PackedGraph::destroy_handle(const struct handlegraph::handle_t &) --> void", pybind11::arg("handle"));
 		cl.def("create_edge", (void (bdsg::PackedGraph::*)(const struct handlegraph::handle_t &, const struct handlegraph::handle_t &)) &bdsg::PackedGraph::create_edge, "Create an edge connecting the given handles in the given order and orientations.\n Ignores existing edges.\n\nC++: bdsg::PackedGraph::create_edge(const struct handlegraph::handle_t &, const struct handlegraph::handle_t &) --> void", pybind11::arg("left"), pybind11::arg("right"));
 		cl.def("destroy_edge", (void (bdsg::PackedGraph::*)(const struct handlegraph::handle_t &, const struct handlegraph::handle_t &)) &bdsg::PackedGraph::destroy_edge, "Remove the edge connecting the given handles in the given order and orientations.\n Ignores nonexistent edges.\n Does not update any stored paths.\n\nC++: bdsg::PackedGraph::destroy_edge(const struct handlegraph::handle_t &, const struct handlegraph::handle_t &) --> void", pybind11::arg("left"), pybind11::arg("right"));
@@ -1006,15 +1065,14 @@ void bind_bdsg_split_strand_graph(std::function< pybind11::module &(std::string 
 		cl.def("for_each_path_handle_impl", (bool (bdsg::PackedGraph::*)(const class std::function<bool (const struct handlegraph::path_handle_t &)> &) const) &bdsg::PackedGraph::for_each_path_handle_impl, "Execute a function on each path in the graph\n\nC++: bdsg::PackedGraph::for_each_path_handle_impl(const class std::function<bool (const struct handlegraph::path_handle_t &)> &) const --> bool", pybind11::arg("iteratee"));
 		cl.def("for_each_step_on_handle_impl", (bool (bdsg::PackedGraph::*)(const struct handlegraph::handle_t &, const class std::function<bool (const struct handlegraph::step_handle_t &)> &) const) &bdsg::PackedGraph::for_each_step_on_handle_impl, "Calls the given function for each step of the given handle on a path.\n\nC++: bdsg::PackedGraph::for_each_step_on_handle_impl(const struct handlegraph::handle_t &, const class std::function<bool (const struct handlegraph::step_handle_t &)> &) const --> bool", pybind11::arg("handle"), pybind11::arg("iteratee"));
 		cl.def("destroy_path", (void (bdsg::PackedGraph::*)(const struct handlegraph::path_handle_t &)) &bdsg::PackedGraph::destroy_path, "Destroy the given path. Invalidates handles to the path and its node steps.\n\nC++: bdsg::PackedGraph::destroy_path(const struct handlegraph::path_handle_t &) --> void", pybind11::arg("path"));
-		cl.def("create_path_handle", [](bdsg::PackedGraph &o, const class std::__cxx11::basic_string<char> & a0) -> handlegraph::path_handle_t { return o.create_path_handle(a0); }, "", pybind11::arg("name"));
+		cl.def("create_path_handle", [](bdsg::PackedGraph &o, const std::string & a0) -> handlegraph::path_handle_t { return o.create_path_handle(a0); }, "", pybind11::arg("name"));
 		cl.def("create_path_handle", (struct handlegraph::path_handle_t (bdsg::PackedGraph::*)(const std::string &, bool)) &bdsg::PackedGraph::create_path_handle, "Create a path with the given name. The caller must ensure that no path\n with the given name exists already, or the behavior is undefined.\n Returns a handle to the created empty path. Handles to other paths must\n remain valid.\n\nC++: bdsg::PackedGraph::create_path_handle(const std::string &, bool) --> struct handlegraph::path_handle_t", pybind11::arg("name"), pybind11::arg("is_circular"));
 		cl.def("append_step", (struct handlegraph::step_handle_t (bdsg::PackedGraph::*)(const struct handlegraph::path_handle_t &, const struct handlegraph::handle_t &)) &bdsg::PackedGraph::append_step, "Append a visit to a node to the given path. Returns a handle to the new\n final step on the path which is appended. Handles to prior\n steps on the path, and to other paths, must remain valid.\n\nC++: bdsg::PackedGraph::append_step(const struct handlegraph::path_handle_t &, const struct handlegraph::handle_t &) --> struct handlegraph::step_handle_t", pybind11::arg("path"), pybind11::arg("to_append"));
 		cl.def("prepend_step", (struct handlegraph::step_handle_t (bdsg::PackedGraph::*)(const struct handlegraph::path_handle_t &, const struct handlegraph::handle_t &)) &bdsg::PackedGraph::prepend_step, "Prepend a visit to a node to the given path. Returns a handle to the new\n first step on the path which is appended. If the path is cirular, the new\n step is placed between the steps considered \"last\" and \"first\" by the\n method path_begin. Handles to later steps on the path, and to other paths,\n must remain valid.\n\nC++: bdsg::PackedGraph::prepend_step(const struct handlegraph::path_handle_t &, const struct handlegraph::handle_t &) --> struct handlegraph::step_handle_t", pybind11::arg("path"), pybind11::arg("to_prepend"));
 		cl.def("set_circularity", (void (bdsg::PackedGraph::*)(const struct handlegraph::path_handle_t &, bool)) &bdsg::PackedGraph::set_circularity, "Make a path circular or non-circular. If the path is becoming circular, the\n last step is joined to the first step. If the path is becoming linear, the\n step considered \"last\" is unjoined from the step considered \"first\" according\n to the method path_begin.\n\nC++: bdsg::PackedGraph::set_circularity(const struct handlegraph::path_handle_t &, bool) --> void", pybind11::arg("path"), pybind11::arg("circular"));
-		cl.def("set_id_increment", (void (bdsg::PackedGraph::*)(const long &)) &bdsg::PackedGraph::set_id_increment, "Set a minimum id to increment the id space by, used as a hint during construction.\n May have no effect on a backing implementation.\n\nC++: bdsg::PackedGraph::set_id_increment(const long &) --> void", pybind11::arg("min_id"));
-		cl.def("increment_node_ids", (void (bdsg::PackedGraph::*)(long)) &bdsg::PackedGraph::increment_node_ids, "Add the given value to all node IDs\n\nC++: bdsg::PackedGraph::increment_node_ids(long) --> void", pybind11::arg("increment"));
-		cl.def("reassign_node_ids", (void (bdsg::PackedGraph::*)(const class std::function<long (const long &)> &)) &bdsg::PackedGraph::reassign_node_ids, "Reassign all node IDs as specified by the old->new mapping function.\n\nC++: bdsg::PackedGraph::reassign_node_ids(const class std::function<long (const long &)> &) --> void", pybind11::arg("get_new_id"));
-		cl.def("report_memory", [](bdsg::PackedGraph const &o, class std::basic_ostream<char> & a0) -> void { return o.report_memory(a0); }, "", pybind11::arg("out"));
-		cl.def("report_memory", (void (bdsg::PackedGraph::*)(std::ostream &, bool) const) &bdsg::PackedGraph::report_memory, "Debugging function, measures memory and prints a report to an ostream.\n Optionally reports memory usage for every path individually.\n\nC++: bdsg::PackedGraph::report_memory(std::ostream &, bool) const --> void", pybind11::arg("out"), pybind11::arg("individual_paths"));
+		cl.def("set_id_increment", (void (bdsg::PackedGraph::*)(const long long &)) &bdsg::PackedGraph::set_id_increment, "Set a minimum id to increment the id space by, used as a hint during construction.\n May have no effect on a backing implementation.\n\nC++: bdsg::PackedGraph::set_id_increment(const long long &) --> void", pybind11::arg("min_id"));
+		cl.def("increment_node_ids", (void (bdsg::PackedGraph::*)(long long)) &bdsg::PackedGraph::increment_node_ids, "Add the given value to all node IDs\n\nC++: bdsg::PackedGraph::increment_node_ids(long long) --> void", pybind11::arg("increment"));
+		cl.def("reassign_node_ids", (void (bdsg::PackedGraph::*)(const class std::function<long long (const long long &)> &)) &bdsg::PackedGraph::reassign_node_ids, "Reassign all node IDs as specified by the old->new mapping function.\n\nC++: bdsg::PackedGraph::reassign_node_ids(const class std::function<long long (const long long &)> &) --> void", pybind11::arg("get_new_id"));
+		cl.def("get_magic_number", (unsigned int (bdsg::PackedGraph::*)() const) &bdsg::PackedGraph::get_magic_number, "Returns a static high-entropy number to indicate the class\n\nC++: bdsg::PackedGraph::get_magic_number() const --> unsigned int");
 	}
 }

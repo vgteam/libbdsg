@@ -32,6 +32,8 @@ The build process assumes that these libraries and their headers have been insta
 
 ### Building
 
+#### With `make` (library only)
+
 The following commands will create the `libbdsg.a` library in the `lib` directory. 
 
 ```
@@ -52,3 +54,16 @@ Or to install in an alternate location:
 INSTALL_PREFIX=/other/path/ make install
 ```
 
+#### With `cmake` (library and Python bindings)
+
+With CMake, we are able to build Python bindings that use `pybind11`. However, we only support out-of-source builds from a directory named `build`, and we still put the built artefacts in `lib` in the main project directory.
+
+To run a CMake-based build:
+```
+mkdir build
+cd build
+cmake ..
+make -j8
+```
+
+If the build fails, the Python bindings may be out of date with respect to the source files. See [PYBIND_README.md](PYBIND_README.md) for instructions on updating them.

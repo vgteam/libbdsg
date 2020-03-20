@@ -1,5 +1,4 @@
 #include <bdsg/packed_structs.hpp>
-#include <bits/types/__mbstate_t.h>
 #include <ios>
 #include <istream>
 #include <ostream>
@@ -26,12 +25,8 @@ void bind_bdsg_packed_structs(std::function< pybind11::module &(std::string cons
 	{ // bdsg::PackedVector file:bdsg/packed_structs.hpp line:26
 		pybind11::class_<bdsg::PackedVector, std::shared_ptr<bdsg::PackedVector>> cl(M("bdsg"), "PackedVector", "");
 		cl.def( pybind11::init( [](){ return new bdsg::PackedVector(); } ) );
-		cl.def( pybind11::init<class std::basic_istream<char> &>(), pybind11::arg("in") );
-
 		cl.def( pybind11::init( [](bdsg::PackedVector const &o){ return new bdsg::PackedVector(o); } ) );
 		cl.def("assign", (class bdsg::PackedVector & (bdsg::PackedVector::*)(const class bdsg::PackedVector &)) &bdsg::PackedVector::operator=, "Copy assignment operator\n\nC++: bdsg::PackedVector::operator=(const class bdsg::PackedVector &) --> class bdsg::PackedVector &", pybind11::return_value_policy::automatic, pybind11::arg("other"));
-		cl.def("deserialize", (void (bdsg::PackedVector::*)(class std::basic_istream<char> &)) &bdsg::PackedVector::deserialize, "Clear current contents and load from contents in a stream\n\nC++: bdsg::PackedVector::deserialize(class std::basic_istream<char> &) --> void", pybind11::arg("in"));
-		cl.def("serialize", (void (bdsg::PackedVector::*)(std::ostream &) const) &bdsg::PackedVector::serialize, "Output contents to a stream\n\nC++: bdsg::PackedVector::serialize(std::ostream &) const --> void", pybind11::arg("out"));
 		cl.def("set", (void (bdsg::PackedVector::*)(const unsigned long &, const unsigned long &)) &bdsg::PackedVector::set, "Set the i-th value\n\nC++: bdsg::PackedVector::set(const unsigned long &, const unsigned long &) --> void", pybind11::arg("i"), pybind11::arg("value"));
 		cl.def("get", (unsigned long (bdsg::PackedVector::*)(const unsigned long &) const) &bdsg::PackedVector::get, "Returns the i-th value\n\nC++: bdsg::PackedVector::get(const unsigned long &) const --> unsigned long", pybind11::arg("i"));
 		cl.def("append", (void (bdsg::PackedVector::*)(const unsigned long &)) &bdsg::PackedVector::append, "Add a value to the end\n\nC++: bdsg::PackedVector::append(const unsigned long &) --> void", pybind11::arg("value"));
@@ -48,10 +43,6 @@ void bind_bdsg_packed_structs(std::function< pybind11::module &(std::string cons
 		pybind11::class_<bdsg::PagedVector, std::shared_ptr<bdsg::PagedVector>> cl(M("bdsg"), "PagedVector", "");
 		cl.def( pybind11::init<unsigned long>(), pybind11::arg("page_size") );
 
-		cl.def( pybind11::init<class std::basic_istream<char> &>(), pybind11::arg("in") );
-
-		cl.def("deserialize", (void (bdsg::PagedVector::*)(class std::basic_istream<char> &)) &bdsg::PagedVector::deserialize, "Clear current contents and load from contents in a stream\n\nC++: bdsg::PagedVector::deserialize(class std::basic_istream<char> &) --> void", pybind11::arg("in"));
-		cl.def("serialize", (void (bdsg::PagedVector::*)(std::ostream &) const) &bdsg::PagedVector::serialize, "Output contents to a stream\n\nC++: bdsg::PagedVector::serialize(std::ostream &) const --> void", pybind11::arg("out"));
 		cl.def("set", (void (bdsg::PagedVector::*)(const unsigned long &, const unsigned long &)) &bdsg::PagedVector::set, "Set the i-th value\n\nC++: bdsg::PagedVector::set(const unsigned long &, const unsigned long &) --> void", pybind11::arg("i"), pybind11::arg("value"));
 		cl.def("get", (unsigned long (bdsg::PagedVector::*)(const unsigned long &) const) &bdsg::PagedVector::get, "Returns the i-th value\n\nC++: bdsg::PagedVector::get(const unsigned long &) const --> unsigned long", pybind11::arg("i"));
 		cl.def("append", (void (bdsg::PagedVector::*)(const unsigned long &)) &bdsg::PagedVector::append, "Add a value to the end\n\nC++: bdsg::PagedVector::append(const unsigned long &) --> void", pybind11::arg("value"));
@@ -68,10 +59,6 @@ void bind_bdsg_packed_structs(std::function< pybind11::module &(std::string cons
 		pybind11::class_<bdsg::RobustPagedVector, std::shared_ptr<bdsg::RobustPagedVector>> cl(M("bdsg"), "RobustPagedVector", "");
 		cl.def( pybind11::init<unsigned long>(), pybind11::arg("page_size") );
 
-		cl.def( pybind11::init<class std::basic_istream<char> &>(), pybind11::arg("in") );
-
-		cl.def("deserialize", (void (bdsg::RobustPagedVector::*)(class std::basic_istream<char> &)) &bdsg::RobustPagedVector::deserialize, "Clear current contents and load from contents in a stream\n\nC++: bdsg::RobustPagedVector::deserialize(class std::basic_istream<char> &) --> void", pybind11::arg("in"));
-		cl.def("serialize", (void (bdsg::RobustPagedVector::*)(std::ostream &) const) &bdsg::RobustPagedVector::serialize, "Output contents to a stream\n\nC++: bdsg::RobustPagedVector::serialize(std::ostream &) const --> void", pybind11::arg("out"));
 		cl.def("set", (void (bdsg::RobustPagedVector::*)(const unsigned long &, const unsigned long &)) &bdsg::RobustPagedVector::set, "Set the i-th value\n\nC++: bdsg::RobustPagedVector::set(const unsigned long &, const unsigned long &) --> void", pybind11::arg("i"), pybind11::arg("value"));
 		cl.def("get", (unsigned long (bdsg::RobustPagedVector::*)(const unsigned long &) const) &bdsg::RobustPagedVector::get, "Returns the i-th value\n\nC++: bdsg::RobustPagedVector::get(const unsigned long &) const --> unsigned long", pybind11::arg("i"));
 		cl.def("append", (void (bdsg::RobustPagedVector::*)(const unsigned long &)) &bdsg::RobustPagedVector::append, "Add a value to the end\n\nC++: bdsg::RobustPagedVector::append(const unsigned long &) --> void", pybind11::arg("value"));
@@ -87,10 +74,6 @@ void bind_bdsg_packed_structs(std::function< pybind11::module &(std::string cons
 	{ // bdsg::PackedDeque file:bdsg/packed_structs.hpp line:259
 		pybind11::class_<bdsg::PackedDeque, std::shared_ptr<bdsg::PackedDeque>> cl(M("bdsg"), "PackedDeque", "");
 		cl.def( pybind11::init( [](){ return new bdsg::PackedDeque(); } ) );
-		cl.def( pybind11::init<class std::basic_istream<char> &>(), pybind11::arg("in") );
-
-		cl.def("deserialize", (void (bdsg::PackedDeque::*)(class std::basic_istream<char> &)) &bdsg::PackedDeque::deserialize, "Clear current contents and load from contents in a stream\n\nC++: bdsg::PackedDeque::deserialize(class std::basic_istream<char> &) --> void", pybind11::arg("in"));
-		cl.def("serialize", (void (bdsg::PackedDeque::*)(std::ostream &) const) &bdsg::PackedDeque::serialize, "Output contents to a stream\n\nC++: bdsg::PackedDeque::serialize(std::ostream &) const --> void", pybind11::arg("out"));
 		cl.def("set", (void (bdsg::PackedDeque::*)(const unsigned long &, const unsigned long &)) &bdsg::PackedDeque::set, "Set the i-th value\n\nC++: bdsg::PackedDeque::set(const unsigned long &, const unsigned long &) --> void", pybind11::arg("i"), pybind11::arg("value"));
 		cl.def("get", (unsigned long (bdsg::PackedDeque::*)(const unsigned long &) const) &bdsg::PackedDeque::get, "Returns the i-th value\n\nC++: bdsg::PackedDeque::get(const unsigned long &) const --> unsigned long", pybind11::arg("i"));
 		cl.def("append_front", (void (bdsg::PackedDeque::*)(const unsigned long &)) &bdsg::PackedDeque::append_front, "Add a value to the front\n\nC++: bdsg::PackedDeque::append_front(const unsigned long &) --> void", pybind11::arg("value"));

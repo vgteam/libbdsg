@@ -1,5 +1,11 @@
 #include "bdsg/utility.hpp"
 
+// Binder can't always find OpenMP's headers.
+// So we hackily declare the one OppenMP function we use, to avoid including omp.h.
+extern "C" {
+    int omp_get_num_threads(void) throw();
+}
+
 namespace bdsg {
 
 static const char complement[256] = {'N', 'N', 'N', 'N', 'N', 'N', 'N', 'N', // 8
@@ -134,4 +140,15 @@ string format_memory(size_t s) {
         return to_string(s) + string(" B");
     }
 }
+
+int get_thread_count(void) {
+    int thread_count = 1;
+#pragma omp parallel
+    {
+#pragma omp master
+        thread_count = omp_get_num_threads();
+    }
+    return thread_count;
+}
+
 }

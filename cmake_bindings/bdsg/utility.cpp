@@ -1,6 +1,5 @@
 #include <bdsg/hash_graph.hpp>
 #include <bdsg/utility.hpp>
-#include <bits/types/__mbstate_t.h>
 #include <functional>
 #include <handlegraph/handle_graph.hpp>
 #include <handlegraph/path_handle_graph.hpp>
@@ -8,9 +7,7 @@
 #include <ios>
 #include <istream>
 #include <iterator>
-#include <locale>
 #include <memory>
-#include <ostream>
 #include <sstream> // __str__
 #include <streambuf>
 #include <string>
@@ -31,37 +28,11 @@
 	PYBIND11_MAKE_OPAQUE(std::shared_ptr<void>);
 #endif
 
-// bdsg::HashGraph file:bdsg/hash_graph.hpp line:22
+// bdsg::HashGraph file:bdsg/hash_graph.hpp line:23
 struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 	using bdsg::HashGraph::HashGraph;
 
-	void serialize(class std::basic_ostream<char> & a0) const override { 
-		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "serialize");
-		if (overload) {
-			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
-				static pybind11::detail::overload_caster_t<void> caster;
-				return pybind11::detail::cast_ref<void>(std::move(o), caster);
-			}
-			else return pybind11::detail::cast_safe<void>(std::move(o));
-		}
-		return HashGraph::serialize(a0);
-	}
-	void deserialize(class std::basic_istream<char> & a0) override { 
-		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "deserialize");
-		if (overload) {
-			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
-				static pybind11::detail::overload_caster_t<void> caster;
-				return pybind11::detail::cast_ref<void>(std::move(o), caster);
-			}
-			else return pybind11::detail::cast_safe<void>(std::move(o));
-		}
-		return HashGraph::deserialize(a0);
-	}
-	bool has_node(long a0) const override { 
+	bool has_node(long long a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "has_node");
 		if (overload) {
@@ -74,7 +45,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 		}
 		return HashGraph::has_node(a0);
 	}
-	struct handlegraph::handle_t get_handle(const long & a0, bool a1) const override { 
+	struct handlegraph::handle_t get_handle(const long long & a0, bool a1) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_handle");
 		if (overload) {
@@ -87,16 +58,16 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 		}
 		return HashGraph::get_handle(a0, a1);
 	}
-	long get_id(const struct handlegraph::handle_t & a0) const override { 
+	long long get_id(const struct handlegraph::handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<long>::value) {
-				static pybind11::detail::overload_caster_t<long> caster;
-				return pybind11::detail::cast_ref<long>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
+				static pybind11::detail::overload_caster_t<long long> caster;
+				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long>(std::move(o));
+			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return HashGraph::get_id(a0);
 	}
@@ -139,16 +110,16 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 		}
 		return HashGraph::get_length(a0);
 	}
-	class std::__cxx11::basic_string<char> get_sequence(const struct handlegraph::handle_t & a0) const override { 
+	std::string get_sequence(const struct handlegraph::handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_sequence");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<class std::__cxx11::basic_string<char>>::value) {
-				static pybind11::detail::overload_caster_t<class std::__cxx11::basic_string<char>> caster;
-				return pybind11::detail::cast_ref<class std::__cxx11::basic_string<char>>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<std::string>::value) {
+				static pybind11::detail::overload_caster_t<std::string> caster;
+				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<class std::__cxx11::basic_string<char>>(std::move(o));
+			else return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		return HashGraph::get_sequence(a0);
 	}
@@ -191,29 +162,29 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 		}
 		return HashGraph::get_node_count();
 	}
-	long min_node_id() const override { 
+	long long min_node_id() const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "min_node_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
-			if (pybind11::detail::cast_is_temporary_value_reference<long>::value) {
-				static pybind11::detail::overload_caster_t<long> caster;
-				return pybind11::detail::cast_ref<long>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
+				static pybind11::detail::overload_caster_t<long long> caster;
+				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long>(std::move(o));
+			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return HashGraph::min_node_id();
 	}
-	long max_node_id() const override { 
+	long long max_node_id() const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "max_node_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
-			if (pybind11::detail::cast_is_temporary_value_reference<long>::value) {
-				static pybind11::detail::overload_caster_t<long> caster;
-				return pybind11::detail::cast_ref<long>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
+				static pybind11::detail::overload_caster_t<long long> caster;
+				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long>(std::move(o));
+			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return HashGraph::max_node_id();
 	}
@@ -243,20 +214,20 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 		}
 		return HashGraph::get_base(a0, a1);
 	}
-	class std::__cxx11::basic_string<char> get_subsequence(const struct handlegraph::handle_t & a0, unsigned long a1, unsigned long a2) const override { 
+	std::string get_subsequence(const struct handlegraph::handle_t & a0, unsigned long a1, unsigned long a2) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_subsequence");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1, a2);
-			if (pybind11::detail::cast_is_temporary_value_reference<class std::__cxx11::basic_string<char>>::value) {
-				static pybind11::detail::overload_caster_t<class std::__cxx11::basic_string<char>> caster;
-				return pybind11::detail::cast_ref<class std::__cxx11::basic_string<char>>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<std::string>::value) {
+				static pybind11::detail::overload_caster_t<std::string> caster;
+				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<class std::__cxx11::basic_string<char>>(std::move(o));
+			else return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		return HashGraph::get_subsequence(a0, a1, a2);
 	}
-	struct handlegraph::handle_t create_handle(const class std::__cxx11::basic_string<char> & a0) override { 
+	struct handlegraph::handle_t create_handle(const std::string & a0) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "create_handle");
 		if (overload) {
@@ -269,7 +240,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 		}
 		return HashGraph::create_handle(a0);
 	}
-	struct handlegraph::handle_t create_handle(const class std::__cxx11::basic_string<char> & a0, const long & a1) override { 
+	struct handlegraph::handle_t create_handle(const std::string & a0, const long long & a1) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "create_handle");
 		if (overload) {
@@ -373,7 +344,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 		}
 		return HashGraph::get_path_count();
 	}
-	bool has_path(const class std::__cxx11::basic_string<char> & a0) const override { 
+	bool has_path(const std::string & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "has_path");
 		if (overload) {
@@ -386,7 +357,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 		}
 		return HashGraph::has_path(a0);
 	}
-	struct handlegraph::path_handle_t get_path_handle(const class std::__cxx11::basic_string<char> & a0) const override { 
+	struct handlegraph::path_handle_t get_path_handle(const std::string & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_path_handle");
 		if (overload) {
@@ -399,16 +370,16 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 		}
 		return HashGraph::get_path_handle(a0);
 	}
-	class std::__cxx11::basic_string<char> get_path_name(const struct handlegraph::path_handle_t & a0) const override { 
+	std::string get_path_name(const struct handlegraph::path_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_path_name");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<class std::__cxx11::basic_string<char>>::value) {
-				static pybind11::detail::overload_caster_t<class std::__cxx11::basic_string<char>> caster;
-				return pybind11::detail::cast_ref<class std::__cxx11::basic_string<char>>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<std::string>::value) {
+				static pybind11::detail::overload_caster_t<std::string> caster;
+				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<class std::__cxx11::basic_string<char>>(std::move(o));
+			else return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		return HashGraph::get_path_name(a0);
 	}
@@ -607,7 +578,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 		}
 		return HashGraph::destroy_path(a0);
 	}
-	struct handlegraph::path_handle_t create_path_handle(const class std::__cxx11::basic_string<char> & a0, bool a1) override { 
+	struct handlegraph::path_handle_t create_path_handle(const std::string & a0, bool a1) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "create_path_handle");
 		if (overload) {
@@ -659,7 +630,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 		}
 		return HashGraph::set_circularity(a0, a1);
 	}
-	void set_id_increment(const long & a0) override { 
+	void set_id_increment(const long long & a0) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "set_id_increment");
 		if (overload) {
@@ -671,6 +642,45 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 			else return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return HashGraph::set_id_increment(a0);
+	}
+	void increment_node_ids(long long a0) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "increment_node_ids");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
+				static pybind11::detail::overload_caster_t<void> caster;
+				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<void>(std::move(o));
+		}
+		return HashGraph::increment_node_ids(a0);
+	}
+	void reassign_node_ids(const class std::function<long long (const long long &)> & a0) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "reassign_node_ids");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
+				static pybind11::detail::overload_caster_t<void> caster;
+				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<void>(std::move(o));
+		}
+		return HashGraph::reassign_node_ids(a0);
+	}
+	unsigned int get_magic_number() const override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_magic_number");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>();
+			if (pybind11::detail::cast_is_temporary_value_reference<unsigned int>::value) {
+				static pybind11::detail::overload_caster_t<unsigned int> caster;
+				return pybind11::detail::cast_ref<unsigned int>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<unsigned int>(std::move(o));
+		}
+		return HashGraph::get_magic_number();
 	}
 	bool is_empty(const struct handlegraph::path_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
@@ -698,59 +708,81 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 		}
 		return HandleGraph::has_edge(a0, a1);
 	}
+	unsigned long get_edge_count() const override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_edge_count");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>();
+			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
+				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+		}
+		return HandleGraph::get_edge_count();
+	}
+	unsigned long get_total_length() const override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_total_length");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>();
+			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
+				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+		}
+		return HandleGraph::get_total_length();
+	}
 };
 
 void bind_bdsg_utility(std::function< pybind11::module &(std::string const &namespace_) > &M)
 {
-	// bdsg::reverse_complement(const char &) file:bdsg/utility.hpp line:14
+	// bdsg::reverse_complement(const char &) file:bdsg/utility.hpp line:13
 	M("bdsg").def("reverse_complement", (char (*)(const char &)) &bdsg::reverse_complement, "C++: bdsg::reverse_complement(const char &) --> char", pybind11::arg("c"));
 
-	// bdsg::reverse_complement(const std::string &) file:bdsg/utility.hpp line:15
+	// bdsg::reverse_complement(const std::string &) file:bdsg/utility.hpp line:14
 	M("bdsg").def("reverse_complement", (std::string (*)(const std::string &)) &bdsg::reverse_complement, "C++: bdsg::reverse_complement(const std::string &) --> std::string", pybind11::arg("seq"));
 
-	// bdsg::reverse_complement_in_place(std::string &) file:bdsg/utility.hpp line:16
+	// bdsg::reverse_complement_in_place(std::string &) file:bdsg/utility.hpp line:15
 	M("bdsg").def("reverse_complement_in_place", (void (*)(std::string &)) &bdsg::reverse_complement_in_place, "C++: bdsg::reverse_complement_in_place(std::string &) --> void", pybind11::arg("seq"));
 
-	// bdsg::is_all_n(const std::string &) file:bdsg/utility.hpp line:19
+	// bdsg::is_all_n(const std::string &) file:bdsg/utility.hpp line:18
 	M("bdsg").def("is_all_n", (bool (*)(const std::string &)) &bdsg::is_all_n, "Return True if the given string is entirely Ns of either case, and false\n otherwise.\n\nC++: bdsg::is_all_n(const std::string &) --> bool", pybind11::arg("seq"));
 
-	// bdsg::allATGC(const std::string &) file:bdsg/utility.hpp line:21
+	// bdsg::allATGC(const std::string &) file:bdsg/utility.hpp line:20
 	M("bdsg").def("allATGC", (bool (*)(const std::string &)) &bdsg::allATGC, "C++: bdsg::allATGC(const std::string &) --> bool", pybind11::arg("s"));
 
-	// bdsg::allATGCN(const std::string &) file:bdsg/utility.hpp line:22
+	// bdsg::allATGCN(const std::string &) file:bdsg/utility.hpp line:21
 	M("bdsg").def("allATGCN", (bool (*)(const std::string &)) &bdsg::allATGCN, "C++: bdsg::allATGCN(const std::string &) --> bool", pybind11::arg("s"));
 
-	// bdsg::nonATGCNtoN(const std::string &) file:bdsg/utility.hpp line:23
+	// bdsg::nonATGCNtoN(const std::string &) file:bdsg/utility.hpp line:22
 	M("bdsg").def("nonATGCNtoN", (std::string (*)(const std::string &)) &bdsg::nonATGCNtoN, "C++: bdsg::nonATGCNtoN(const std::string &) --> std::string", pybind11::arg("s"));
 
-	// bdsg::toUppercase(const std::string &) file:bdsg/utility.hpp line:25
+	// bdsg::toUppercase(const std::string &) file:bdsg/utility.hpp line:24
 	M("bdsg").def("toUppercase", (std::string (*)(const std::string &)) &bdsg::toUppercase, "C++: bdsg::toUppercase(const std::string &) --> std::string", pybind11::arg("s"));
 
-	// bdsg::dna_as_int(char) file:bdsg/utility.hpp line:27
+	// bdsg::dna_as_int(char) file:bdsg/utility.hpp line:26
 	M("bdsg").def("dna_as_int", (int (*)(char)) &bdsg::dna_as_int, "C++: bdsg::dna_as_int(char) --> int", pybind11::arg("c"));
 
-	// bdsg::int_as_dna(int) file:bdsg/utility.hpp line:42
+	// bdsg::int_as_dna(int) file:bdsg/utility.hpp line:41
 	M("bdsg").def("int_as_dna", (char (*)(int)) &bdsg::int_as_dna, "C++: bdsg::int_as_dna(int) --> char", pybind11::arg("i"));
 
-	// bdsg::format_memory(unsigned long) file:bdsg/utility.hpp line:58
+	// bdsg::format_memory(unsigned long) file:bdsg/utility.hpp line:57
 	M("bdsg").def("format_memory", (std::string (*)(unsigned long)) &bdsg::format_memory, "C++: bdsg::format_memory(unsigned long) --> std::string", pybind11::arg("s"));
 
-	// bdsg::get_thread_count() file:bdsg/utility.hpp line:62
+	// bdsg::get_thread_count() file:bdsg/utility.hpp line:61
 	M("bdsg").def("get_thread_count", (int (*)()) &bdsg::get_thread_count, "Return the number of threads that OMP will produce for a parallel section.\n TODO: Assumes that this is the same for every parallel section.\n\nC++: bdsg::get_thread_count() --> int");
 
-	{ // bdsg::HashGraph file:bdsg/hash_graph.hpp line:22
+	{ // bdsg::HashGraph file:bdsg/hash_graph.hpp line:23
 		pybind11::class_<bdsg::HashGraph, std::shared_ptr<bdsg::HashGraph>, PyCallBack_bdsg_HashGraph, handlegraph::MutablePathDeletableHandleGraph, handlegraph::SerializableHandleGraph> cl(M("bdsg"), "HashGraph", "");
 		cl.def( pybind11::init( [](){ return new bdsg::HashGraph(); }, [](){ return new PyCallBack_bdsg_HashGraph(); } ) );
-		cl.def( pybind11::init<class std::basic_istream<char> &>(), pybind11::arg("in") );
-
 		cl.def( pybind11::init( [](PyCallBack_bdsg_HashGraph const &o){ return new PyCallBack_bdsg_HashGraph(o); } ) );
 		cl.def( pybind11::init( [](bdsg::HashGraph const &o){ return new bdsg::HashGraph(o); } ) );
-		cl.def("serialize", (void (bdsg::HashGraph::*)(std::ostream &) const) &bdsg::HashGraph::serialize, "Write the graph to an out stream.\n\nC++: bdsg::HashGraph::serialize(std::ostream &) const --> void", pybind11::arg("out"));
-		cl.def("deserialize", (void (bdsg::HashGraph::*)(class std::basic_istream<char> &)) &bdsg::HashGraph::deserialize, "Read the graph (in the format written by serialize()) from an in stream.\n\nC++: bdsg::HashGraph::deserialize(class std::basic_istream<char> &) --> void", pybind11::arg("in"));
-		cl.def("has_node", (bool (bdsg::HashGraph::*)(long) const) &bdsg::HashGraph::has_node, "Method to check if a node exists by ID\n\nC++: bdsg::HashGraph::has_node(long) const --> bool", pybind11::arg("node_id"));
-		cl.def("get_handle", [](bdsg::HashGraph const &o, const long & a0) -> handlegraph::handle_t { return o.get_handle(a0); }, "", pybind11::arg("node_id"));
-		cl.def("get_handle", (struct handlegraph::handle_t (bdsg::HashGraph::*)(const long &, bool) const) &bdsg::HashGraph::get_handle, "Look up the handle for the node with the given ID in the given orientation\n\nC++: bdsg::HashGraph::get_handle(const long &, bool) const --> struct handlegraph::handle_t", pybind11::arg("node_id"), pybind11::arg("is_reverse"));
-		cl.def("get_id", (long (bdsg::HashGraph::*)(const struct handlegraph::handle_t &) const) &bdsg::HashGraph::get_id, "Get the ID from a handle\n\nC++: bdsg::HashGraph::get_id(const struct handlegraph::handle_t &) const --> long", pybind11::arg("handle"));
+		cl.def("has_node", (bool (bdsg::HashGraph::*)(long long) const) &bdsg::HashGraph::has_node, "Method to check if a node exists by ID\n\nC++: bdsg::HashGraph::has_node(long long) const --> bool", pybind11::arg("node_id"));
+		cl.def("get_handle", [](bdsg::HashGraph const &o, const long long & a0) -> handlegraph::handle_t { return o.get_handle(a0); }, "", pybind11::arg("node_id"));
+		cl.def("get_handle", (struct handlegraph::handle_t (bdsg::HashGraph::*)(const long long &, bool) const) &bdsg::HashGraph::get_handle, "Look up the handle for the node with the given ID in the given orientation\n\nC++: bdsg::HashGraph::get_handle(const long long &, bool) const --> struct handlegraph::handle_t", pybind11::arg("node_id"), pybind11::arg("is_reverse"));
+		cl.def("get_id", (long long (bdsg::HashGraph::*)(const struct handlegraph::handle_t &) const) &bdsg::HashGraph::get_id, "Get the ID from a handle\n\nC++: bdsg::HashGraph::get_id(const struct handlegraph::handle_t &) const --> long long", pybind11::arg("handle"));
 		cl.def("get_is_reverse", (bool (bdsg::HashGraph::*)(const struct handlegraph::handle_t &) const) &bdsg::HashGraph::get_is_reverse, "Get the orientation of a handle\n\nC++: bdsg::HashGraph::get_is_reverse(const struct handlegraph::handle_t &) const --> bool", pybind11::arg("handle"));
 		cl.def("flip", (struct handlegraph::handle_t (bdsg::HashGraph::*)(const struct handlegraph::handle_t &) const) &bdsg::HashGraph::flip, "Invert the orientation of a handle (potentially without getting its ID)\n\nC++: bdsg::HashGraph::flip(const struct handlegraph::handle_t &) const --> struct handlegraph::handle_t", pybind11::arg("handle"));
 		cl.def("get_length", (unsigned long (bdsg::HashGraph::*)(const struct handlegraph::handle_t &) const) &bdsg::HashGraph::get_length, "Get the length of a node\n\nC++: bdsg::HashGraph::get_length(const struct handlegraph::handle_t &) const --> unsigned long", pybind11::arg("handle"));
@@ -759,13 +791,13 @@ void bind_bdsg_utility(std::function< pybind11::module &(std::string const &name
 		cl.def("for_each_handle_impl", [](bdsg::HashGraph const &o, const class std::function<bool (const struct handlegraph::handle_t &)> & a0) -> bool { return o.for_each_handle_impl(a0); }, "", pybind11::arg("iteratee"));
 		cl.def("for_each_handle_impl", (bool (bdsg::HashGraph::*)(const class std::function<bool (const struct handlegraph::handle_t &)> &, bool) const) &bdsg::HashGraph::for_each_handle_impl, "Loop over all the nodes in the graph in their local forward\n orientations, in their internal stored order. Stop if the iteratee\n returns false. Can be told to run in parallel, in which case stopping\n after a false return value is on a best-effort basis and iteration\n order is not defined.\n\nC++: bdsg::HashGraph::for_each_handle_impl(const class std::function<bool (const struct handlegraph::handle_t &)> &, bool) const --> bool", pybind11::arg("iteratee"), pybind11::arg("parallel"));
 		cl.def("get_node_count", (unsigned long (bdsg::HashGraph::*)() const) &bdsg::HashGraph::get_node_count, "Return the number of nodes in the graph\n TODO: can't be node_count because XG has a field named node_count.\n\nC++: bdsg::HashGraph::get_node_count() const --> unsigned long");
-		cl.def("min_node_id", (long (bdsg::HashGraph::*)() const) &bdsg::HashGraph::min_node_id, "Return the smallest ID in the graph, or some smaller number if the\n smallest ID is unavailable. Return value is unspecified if the graph is empty.\n\nC++: bdsg::HashGraph::min_node_id() const --> long");
-		cl.def("max_node_id", (long (bdsg::HashGraph::*)() const) &bdsg::HashGraph::max_node_id, "Return the largest ID in the graph, or some larger number if the\n largest ID is unavailable. Return value is unspecified if the graph is empty.\n\nC++: bdsg::HashGraph::max_node_id() const --> long");
+		cl.def("min_node_id", (long long (bdsg::HashGraph::*)() const) &bdsg::HashGraph::min_node_id, "Return the smallest ID in the graph, or some smaller number if the\n smallest ID is unavailable. Return value is unspecified if the graph is empty.\n\nC++: bdsg::HashGraph::min_node_id() const --> long long");
+		cl.def("max_node_id", (long long (bdsg::HashGraph::*)() const) &bdsg::HashGraph::max_node_id, "Return the largest ID in the graph, or some larger number if the\n largest ID is unavailable. Return value is unspecified if the graph is empty.\n\nC++: bdsg::HashGraph::max_node_id() const --> long long");
 		cl.def("get_degree", (unsigned long (bdsg::HashGraph::*)(const struct handlegraph::handle_t &, bool) const) &bdsg::HashGraph::get_degree, "Efficiently get the number of edges attached to one side of a handle.\n\nC++: bdsg::HashGraph::get_degree(const struct handlegraph::handle_t &, bool) const --> unsigned long", pybind11::arg("handle"), pybind11::arg("go_left"));
 		cl.def("get_base", (char (bdsg::HashGraph::*)(const struct handlegraph::handle_t &, unsigned long) const) &bdsg::HashGraph::get_base, "Returns one base of a handle's sequence, in the orientation of the\n handle.\n\nC++: bdsg::HashGraph::get_base(const struct handlegraph::handle_t &, unsigned long) const --> char", pybind11::arg("handle"), pybind11::arg("index"));
 		cl.def("get_subsequence", (std::string (bdsg::HashGraph::*)(const struct handlegraph::handle_t &, unsigned long, unsigned long) const) &bdsg::HashGraph::get_subsequence, "Returns a substring of a handle's sequence, in the orientation of the\n handle. If the indicated substring would extend beyond the end of the\n handle's sequence, the return value is truncated to the sequence's end.\n\nC++: bdsg::HashGraph::get_subsequence(const struct handlegraph::handle_t &, unsigned long, unsigned long) const --> std::string", pybind11::arg("handle"), pybind11::arg("index"), pybind11::arg("size"));
 		cl.def("create_handle", (struct handlegraph::handle_t (bdsg::HashGraph::*)(const std::string &)) &bdsg::HashGraph::create_handle, "Create a new node with the given sequence and return the handle.\n\nC++: bdsg::HashGraph::create_handle(const std::string &) --> struct handlegraph::handle_t", pybind11::arg("sequence"));
-		cl.def("create_handle", (struct handlegraph::handle_t (bdsg::HashGraph::*)(const std::string &, const long &)) &bdsg::HashGraph::create_handle, "Create a new node with the given id and sequence, then return the handle.\n\nC++: bdsg::HashGraph::create_handle(const std::string &, const long &) --> struct handlegraph::handle_t", pybind11::arg("sequence"), pybind11::arg("id"));
+		cl.def("create_handle", (struct handlegraph::handle_t (bdsg::HashGraph::*)(const std::string &, const long long &)) &bdsg::HashGraph::create_handle, "Create a new node with the given id and sequence, then return the handle.\n\nC++: bdsg::HashGraph::create_handle(const std::string &, const long long &) --> struct handlegraph::handle_t", pybind11::arg("sequence"), pybind11::arg("id"));
 		cl.def("destroy_handle", (void (bdsg::HashGraph::*)(const struct handlegraph::handle_t &)) &bdsg::HashGraph::destroy_handle, "Remove the node belonging to the given handle and all of its edges.\n Does not update any stored paths.\n Invalidates the destroyed handle.\n May be called during serial for_each_handle iteration **ONLY** on the node being iterated.\n May **NOT** be called during parallel for_each_handle iteration.\n May **NOT** be called on the node from which edges are being followed during follow_edges.\n\nC++: bdsg::HashGraph::destroy_handle(const struct handlegraph::handle_t &) --> void", pybind11::arg("handle"));
 		cl.def("create_edge", (void (bdsg::HashGraph::*)(const struct handlegraph::handle_t &, const struct handlegraph::handle_t &)) &bdsg::HashGraph::create_edge, "Create an edge connecting the given handles in the given order and orientations.\n Ignores existing edges.\n\nC++: bdsg::HashGraph::create_edge(const struct handlegraph::handle_t &, const struct handlegraph::handle_t &) --> void", pybind11::arg("left"), pybind11::arg("right"));
 		cl.def("destroy_edge", (void (bdsg::HashGraph::*)(const struct handlegraph::handle_t &, const struct handlegraph::handle_t &)) &bdsg::HashGraph::destroy_edge, "Remove the edge connecting the given handles in the given order and orientations.\n Ignores nonexistent edges.\n Does not update any stored paths.\n\nC++: bdsg::HashGraph::destroy_edge(const struct handlegraph::handle_t &, const struct handlegraph::handle_t &) --> void", pybind11::arg("left"), pybind11::arg("right"));
@@ -792,14 +824,15 @@ void bind_bdsg_utility(std::function< pybind11::module &(std::string const &name
 		cl.def("for_each_path_handle_impl", (bool (bdsg::HashGraph::*)(const class std::function<bool (const struct handlegraph::path_handle_t &)> &) const) &bdsg::HashGraph::for_each_path_handle_impl, "Execute a function on each path in the graph\n\nC++: bdsg::HashGraph::for_each_path_handle_impl(const class std::function<bool (const struct handlegraph::path_handle_t &)> &) const --> bool", pybind11::arg("iteratee"));
 		cl.def("for_each_step_on_handle_impl", (bool (bdsg::HashGraph::*)(const struct handlegraph::handle_t &, const class std::function<bool (const struct handlegraph::step_handle_t &)> &) const) &bdsg::HashGraph::for_each_step_on_handle_impl, "Calls a function with all steps of a node on paths.\n\nC++: bdsg::HashGraph::for_each_step_on_handle_impl(const struct handlegraph::handle_t &, const class std::function<bool (const struct handlegraph::step_handle_t &)> &) const --> bool", pybind11::arg("handle"), pybind11::arg("iteratee"));
 		cl.def("destroy_path", (void (bdsg::HashGraph::*)(const struct handlegraph::path_handle_t &)) &bdsg::HashGraph::destroy_path, "Destroy the given path. Invalidates handles to the path and its node steps.\n\nC++: bdsg::HashGraph::destroy_path(const struct handlegraph::path_handle_t &) --> void", pybind11::arg("path"));
-		cl.def("create_path_handle", [](bdsg::HashGraph &o, const class std::__cxx11::basic_string<char> & a0) -> handlegraph::path_handle_t { return o.create_path_handle(a0); }, "", pybind11::arg("name"));
+		cl.def("create_path_handle", [](bdsg::HashGraph &o, const std::string & a0) -> handlegraph::path_handle_t { return o.create_path_handle(a0); }, "", pybind11::arg("name"));
 		cl.def("create_path_handle", (struct handlegraph::path_handle_t (bdsg::HashGraph::*)(const std::string &, bool)) &bdsg::HashGraph::create_path_handle, "Create a path with the given name. The caller must ensure that no path\n with the given name exists already, or the behavior is undefined.\n Returns a handle to the created empty path. Handles to other paths must\n remain valid.\n\nC++: bdsg::HashGraph::create_path_handle(const std::string &, bool) --> struct handlegraph::path_handle_t", pybind11::arg("name"), pybind11::arg("is_circular"));
 		cl.def("append_step", (struct handlegraph::step_handle_t (bdsg::HashGraph::*)(const struct handlegraph::path_handle_t &, const struct handlegraph::handle_t &)) &bdsg::HashGraph::append_step, "Append a visit to a node to the given path. Returns a handle to the new\n final step on the path which is appended. If the path is cirular, the new\n step is placed between the steps considered \"last\" and \"first\" by the\n method path_begin. Handles to prior steps on the path, and to other paths,\n must remain valid.\n\nC++: bdsg::HashGraph::append_step(const struct handlegraph::path_handle_t &, const struct handlegraph::handle_t &) --> struct handlegraph::step_handle_t", pybind11::arg("path"), pybind11::arg("to_append"));
 		cl.def("prepend_step", (struct handlegraph::step_handle_t (bdsg::HashGraph::*)(const struct handlegraph::path_handle_t &, const struct handlegraph::handle_t &)) &bdsg::HashGraph::prepend_step, "Prepend a visit to a node to the given path. Returns a handle to the new\n first step on the path which is appended. If the path is cirular, the new\n step is placed between the steps considered \"last\" and \"first\" by the\n method path_begin. Handles to later steps on the path, and to other paths,\n must remain valid.\n\nC++: bdsg::HashGraph::prepend_step(const struct handlegraph::path_handle_t &, const struct handlegraph::handle_t &) --> struct handlegraph::step_handle_t", pybind11::arg("path"), pybind11::arg("to_prepend"));
 		cl.def("set_circularity", (void (bdsg::HashGraph::*)(const struct handlegraph::path_handle_t &, bool)) &bdsg::HashGraph::set_circularity, "Make a path circular or non-circular. If the path is becoming circular, the\n last step is joined to the first step. If the path is becoming linear, the\n step considered \"last\" is unjoined from the step considered \"first\" according\n to the method path_begin.\n\nC++: bdsg::HashGraph::set_circularity(const struct handlegraph::path_handle_t &, bool) --> void", pybind11::arg("path"), pybind11::arg("circular"));
-		cl.def("set_id_increment", (void (bdsg::HashGraph::*)(const long &)) &bdsg::HashGraph::set_id_increment, "Set a minimum id to increment the id space by, used as a hint during construction.\n May have no effect on a backing implementation.\n\nC++: bdsg::HashGraph::set_id_increment(const long &) --> void", pybind11::arg("min_id"));
-		cl.def("increment_node_ids", (void (bdsg::HashGraph::*)(long)) &bdsg::HashGraph::increment_node_ids, "Add the given value to all node IDs\n\nC++: bdsg::HashGraph::increment_node_ids(long) --> void", pybind11::arg("increment"));
-		cl.def("reassign_node_ids", (void (bdsg::HashGraph::*)(const class std::function<long (const long &)> &)) &bdsg::HashGraph::reassign_node_ids, "Reassign all node IDs as specified by the old->new mapping function.\n\nC++: bdsg::HashGraph::reassign_node_ids(const class std::function<long (const long &)> &) --> void", pybind11::arg("get_new_id"));
+		cl.def("set_id_increment", (void (bdsg::HashGraph::*)(const long long &)) &bdsg::HashGraph::set_id_increment, "Set a minimum id to increment the id space by, used as a hint during construction.\n May have no effect on a backing implementation.\n\nC++: bdsg::HashGraph::set_id_increment(const long long &) --> void", pybind11::arg("min_id"));
+		cl.def("increment_node_ids", (void (bdsg::HashGraph::*)(long long)) &bdsg::HashGraph::increment_node_ids, "Add the given value to all node IDs\n\nC++: bdsg::HashGraph::increment_node_ids(long long) --> void", pybind11::arg("increment"));
+		cl.def("reassign_node_ids", (void (bdsg::HashGraph::*)(const class std::function<long long (const long long &)> &)) &bdsg::HashGraph::reassign_node_ids, "Reassign all node IDs as specified by the old->new mapping function.\n\nC++: bdsg::HashGraph::reassign_node_ids(const class std::function<long long (const long long &)> &) --> void", pybind11::arg("get_new_id"));
+		cl.def("get_magic_number", (unsigned int (bdsg::HashGraph::*)() const) &bdsg::HashGraph::get_magic_number, "Returns a static high-entropy number to indicate the class\n\nC++: bdsg::HashGraph::get_magic_number() const --> unsigned int");
 		cl.def("assign", (class bdsg::HashGraph & (bdsg::HashGraph::*)(const class bdsg::HashGraph &)) &bdsg::HashGraph::operator=, "C++: bdsg::HashGraph::operator=(const class bdsg::HashGraph &) --> class bdsg::HashGraph &", pybind11::return_value_policy::automatic, pybind11::arg(""));
 	}
 }
