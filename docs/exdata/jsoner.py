@@ -1,14 +1,14 @@
 import sys
 import json
 sys.path.append("../lib")
-import odgi
+import bdsg
 
 # invoke with $python3 jsoner.py [file name without suffix]
 file_name = sys.argv[1]
 
 json_file = open(file_name + ".json")
 dat = json.load(json_file)
-gr = odgi.graph()
+gr = bdsg.bdsg.ODGI()
 handles = dict()
 
 for node in dat['node']:
@@ -32,8 +32,8 @@ gr.serialize(file_name + ".odgi")
 
 # sanity check to make sure saved file is same after reading in
 
-# gr2 = odgi.graph()
-# gr2.load(file_name + ".odgi")
+# gr2 = bdsg.bdsg.ODGI()
+# gr2.deserialize(file_name + ".odgi")
 
 #sequence = []
 #gr.for_each_path_handle(lambda x: gr.for_each_step_in_path(x, lambda y: sequence.append(gr.get_sequence(gr.get_handle_of_step(y)))))

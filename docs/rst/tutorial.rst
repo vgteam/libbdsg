@@ -5,36 +5,37 @@ Tutorial
 ****************
 Creating Graphs
 ****************
-Let's say that you wanted to create the following graph with ODGI:
+Let's say that you wanted to create the following graph:
 
 .. image:: /img/exampleGraph.png
 
 This graph is a combination of nodes (labelled as `n0`, `n1`, ..., `n9`) and directed edges (arrows).
 
-ODGI Objects
+Graph Objects
 =============
 
-*Edges* and *nodes* are accessed through a :class:`odgi.graph` object.  Individual nodes in the graph are pointed at by :class:`odgi.handle`.
+*Edges* and *nodes* are accessed through an implementation of the :class:`bdsg.handlegraph.HandleGraph` interface. Individual nodes in the graph are pointed at by :class:`bdsg.handlegraph.handle_t` objects.
 
-Paths in the graph and accessed through :class:`odgi.path_handle`, which is a series of :class:`odgi.step_handle` linked together.  Each :class:`odgi.step_handle` is points to the node in that step, and also contains directional information regarding the nodes preceeding and following it.
+Paths exist in graphs that implement the :class:`bdsg.handlegraph.PathHandleGraph`. Paths are accessed through :class:`bdsg.handlegraph.path_handle_t`, which is a series of :class:`bdsg.handlegraph.step_handle_t` linked together. Each :class:`bdsg.handlegraph.step_handle_t` points to the node in that step, and also contains directional information regarding the nodes preceeding and following it.
 
-Handles are pointers to specific pieces of the graph, and it is not possible to operate on them directly, aside from comparing whether the objects are equal.  To get information regarding the object that each handle is pointing to, it is necessary to use the corresponding `get` accessor method in :class:`odgi.graph`.
+Handles are pointers to specific pieces of the graph, and it is not possible to operate on them directly, aside from comparing whether the objects are equal. To get information regarding the object that each handle is pointing to, it is necessary to use the corresponding `get` accessor method on the graph that issued the handle.
 
 Reference materials for these methods can be found at the :ref:`api`, as well as the :ref:`glossary`, which contains lists sorted by object type for :ref:`accessor`, :ref:`mutator`, and :ref:`iterator`.
 
 Making a Graph
 ===============
-First, we must create the graph, then make each node and keep track of their handles.
+First, we must create the graph, then make each node and keep track of their handles. We're going to be using the **Optimized Dynamic Graph Implementation**, :class:`bdsg.bdsg.ODGI`, which is a good all-around graph that implements :class:`bdsg.handlegraph.MutablePathDeletableHandleGraph`.
 
 .. code-block:: python
 
-        gr = odgi.graph()
+        from bdsg.bdsg import ODGI
+        gr = ODGI()
         seq = ["CGA", "TTGG", "CCGT", "C", "GT", "GATAA", "CGG", "ACA", "GCCG", "ATATAAC"]
         n = []
         for s in seq:
                 n.append(gr.create_handle(s))
 
-Now we link together these nodes using their handles. Note that each of these handles is directional, so in order to create the bidirectional edge between `n5` and `n8` we use ``create_edge`` twice.
+Now we link together these nodes using their handles. Note that each of these handles is directional, and we create each edge from the first handle to the second. In order to create both of the edges between `n5` and `n8` (since each can follow the other) we use ``create_edge`` twice.
 
 .. code-block:: python
 
@@ -44,16 +45,18 @@ Now we link together these nodes using their handles. Note that each of these ha
         gr.create_edge(n[2], n[4])
         gr.create_edge(n[3], n[5])
         gr.create_edge(n[5], n[6])
+        # Connect the end of n5 to the start of n8
         gr.create_edge(n[5], n[8])
         gr.create_edge(n[6], n[7])
         gr.create_edge(n[6], n[8])
         gr.create_edge(n[7], n[9])
         gr.create_edge(n[8], n[9])
+        # Connect the end of n8 back around to the start of n5
         gr.create_edge(n[8], n[5])
 
 Traversing Edges
 ================
-If we wanted to traverse these edges, we could do it using the iterator method :func:`odgi.graph.follow_edges`.
+If we wanted to traverse these edges, we could do it using the iterator method :func:`bdsg.handlegraph.HandleGraph.follow_edges`.
 
 .. code-block:: python
 
@@ -76,7 +79,7 @@ Which will output the following:
         n1: TTGG
         n2: CCGT
 
-A map of the data can be generated using :func:`odgi.graph.to_gfa`.
+Since we are using :class:`bdsg.bdsg.ODGI`, a text representation of the data can be generated using :func:`bdsg.bdsg.ODGI.to_gfa`.
 
 .. code-block:: python
 
@@ -85,11 +88,11 @@ A map of the data can be generated using :func:`odgi.graph.to_gfa`.
 Creating a Path
 ===============
 
-Generating a linear sequence from this graph could be done in infinitely many ways, due to the interal loop between `n5`, `n6`, and `n8`.  If we wanted to define a single consensus sequence, we would do this by defining a path.
+Generating a linear sequence from this graph could be done in infinitely many ways, due to the interal loop between `n5`, `n6`, and `n8`. If we wanted to define a single consensus sequence, we would do this by defining a path.
 
 .. image:: /img/exampleGraphPath.png
 
-To create the hilighted path, we would need to create a :class:`odgi.path_handle` in the graph, and then append each :class:`odgi.handle` to the end of the path.
+To create the hilighted path, we would need to create a :class:`bdsg.handlegraph.path_handle_t` in the graph, and then append each :class:`bdsg.handlegraph.handle_t` to the end of the path.
 
 .. code-block:: python
 
@@ -105,7 +108,7 @@ To create the hilighted path, we would need to create a :class:`odgi.path_handle
 
 .. warning::
 
-        :func:`odgi.graph.append_step` will not stop you from appending nodes that are not connected to the preceeding node.
+        :func:`bdsg.handlegraph.MutablePathHandleGraph.append_step` will not stop you from appending nodes that are not connected to the preceeding node.
 
 .. code-block:: python
         
@@ -117,7 +120,7 @@ To create the hilighted path, we would need to create a :class:`odgi.path_handle
 Traversing a path
 =================
 
-To traverse a path, we need to fetch a series of :class:`odgi.step_handle` from the graph. Note that although we are effectively asking the path for these items in it, all accessor methods are a part of the :class:`odgi.graph` object.
+To traverse a path, we need to fetch a series of :class:`bdsg.handlegraph.step_handle_t` from the graph. Note that although we are effectively asking the path for these items in it, all accessor methods are a part of the :class:`bdsg.handlegraph.PathHandleGraph` object.
 
 .. code-block:: python
 
@@ -145,50 +148,11 @@ Which will output the following:
         ACA
         ATATAAC
 
-..
-        commenting out this section because path manipulation doesn't seem to work right now
-        Manipulating a path
-        ===================
-        .. DANGER::
-                Right now none of this works, because insert_step seems to cause a memory leak. 
-        
-        Say you wanted to edit this path to add the following edges in blue:
-        .. image:: /img/exampleGraphPath2.png
-        
-        First, you need to get the step handles corresponding to `n6` and `n7`, and then insert the new nodes to the path with :func:`odgi.graph.insert_step`. *Note that if you had saved the step handles during path creation, it would not be necessary to traverse the path at this step. Decide which objects to save in memory depending on your application*
-        .. code-block:: python
-                step = gr.path_begin(path)
-                while(gr.get_handle_of_step(step) != n[6]):
-                        step = gr.get_next_step(step)
-                # now step corresponds to the step handle preceeding our insertion
-                next_step = gr.get_next_step(step)
-                step = gr.insert_step(step, next_step, n[8]) #1
-                step = gr.insert_step(step, next_step, n[5]) #2
-                step = gr.insert_step(step, next_step, n[6]) #3
-        Each call to :func:`odgi.graph.insert_step` returns the step handle pointing to the inserted node.  
-        During the process of amending the path, the graph looks as follows:
-        .. figure:: /img/exampleGraphPath.png
-                :align: center
-                
-                Path before additions
-        .. figure:: /img/exampleGraphPath3.png
-                :align: center
-                
-                Path after line #1
-        .. figure:: /img/exampleGraphPath4.png
-                :align: center
-                
-                Path after line #2
-        .. figure:: /img/exampleGraphPath2.png
-                :align: center
-        
-                Path after line #3
+*************************
+Saving and Loading Graphs
+*************************
 
-*******************************
-Saving and Loading ODGI Graphs
-*******************************
-
-Graphs can be saved and loaded through the :func:`odgi.graph.serialize` and :func:`odgi.graph.load` methods.  
+Graphs that implement :class:`bdsg.handlegraph.SerializableHandleGraph`, such as :class:`bdsg.bdsg.ODGI`, can be saved and loaded through the :func:`bdsg.handlegraph.SerializableHandleGraph.serialize` and :func:`bdsg.handlegraph.SerializableHandleGraph.deserialize` methods. 
 
 Graph File Example
 ==================
@@ -203,17 +167,19 @@ This can be loaded into a new python session by using:
 
 .. code-block:: python
         
-        gr = odgi.graph()
-        gr.load("example_graph.odgi")
+        from bdsg.bdsg import ODGI
+        gr = ODGI()
+        gr.deserialize("example_graph.odgi")
 
 Loading in Pre-Existing Data
 ============================
 
-Provided that data has been serialized in ODGI format, it is possible to read it directly from a file.  Download a `*.odgi file` and load it into python with:
+Provided that data has been serialized in ODGI format, it is possible to read it directly from a file. Download a `*.odgi file` and load it into python with:
 
 .. code-block:: python
         
-        brca2 = odgi.graph()
+        from bdsg.bdsg import ODGI
+        brca2 = ODGI()
         brca2.load("cactus-brca2.odgi")
 
 We can poke around this data and get the sequence of the path with:
@@ -233,4 +199,4 @@ We can poke around this data and get the sequence of the path with:
 Reading in a Graph from a Different Format
 ==========================================
 
-Graph assembies can be created with `VG <https://github.com/vgteam/vg>`_.  Currently the method to convert to odgi format is broken, but graphs can be converted to .json format and subsequently converted to odgi with :download:`this script <../exdata/jsoner.py>`.
+Graph assembies can be created with `VG <https://github.com/vgteam/vg>`_. Currently the method to convert to odgi format is broken, but graphs can be converted to .json format and subsequently converted to odgi with :download:`this script <../exdata/jsoner.py>`.

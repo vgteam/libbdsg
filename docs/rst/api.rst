@@ -12,7 +12,7 @@ The `bdsg.handlegraph` module defines the handle graph interface.
 
 .. automodule:: bdsg.handlegraph
    :show-inheritance:
-   :members: HandleGraph, MutableHandleGraph, PathHandleGraph, MutablePathHandleGraph, MutablePathMutableHandleGraph, DeletableHandleGraph, MutablePathDeletableHandleGraph
+   :members: handle_t, path_handle_t, step_handle_t, HandleGraph, MutableHandleGraph, PathHandleGraph, MutablePathHandleGraph, MutablePathMutableHandleGraph, DeletableHandleGraph, MutablePathDeletableHandleGraph
    
 ====================================
 libbdsg Handle Graph Implementations
