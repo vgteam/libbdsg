@@ -23,6 +23,21 @@ if not os.path.exists('../lib/bdsg.module'):
     # libbdsg isn't built yet. See if we can build it.
     # Hack to try and get the build to run on RtD which doesn't give us command-running hooks.
     import subprocess
+    
+    # Building will need CMake; is it installed?
+    try:
+        subprocess.check_call(['cmake', '--version'])
+    except subprocess.CalledProcessError:
+        # Nope, no cmake. Try getting it.
+        # On RtD we don't have root so we need to grab CMake ourselves.
+        if not os.path.exists('cmake-3.17.0-Linux-x86_64'):
+            subprocess.check_call(['wget', 'https://github.com/Kitware/CMake/releases/download/v3.17.0/cmake-3.17.0-Linux-x86_64.tar.gz'])
+            subprocess.check_call(['tar', '-xf', 'cmake-3.17.0-Linux-x86_64.tar.gz'])
+        # Make sure subprocess can find it
+        os.environ['PATH'] += ':' + os.path.join(os.getcwd(), 'cmake-3.17.0-Linux-x86_64', 'bin')
+    
+    # Use Make to call out to cmake and build the project so we can import and
+    # document it.
     subprocess.check_call(['make', 'sphinxprep'])
 
 # -- Project information -----------------------------------------------------
