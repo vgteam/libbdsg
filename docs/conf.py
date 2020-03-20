@@ -27,7 +27,7 @@ if not os.path.exists('../lib/bdsg.module'):
     # Building will need CMake; is it installed?
     try:
         subprocess.check_call(['cmake', '--version'])
-    except subprocess.CalledProcessError:
+    except FileNotFoundError:
         # Nope, no cmake. Try getting it.
         # On RtD we don't have root so we need to grab CMake ourselves.
         if not os.path.exists('cmake-3.17.0-Linux-x86_64'):
