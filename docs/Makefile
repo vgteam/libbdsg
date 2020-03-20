@@ -7,19 +7,24 @@ SPHINXBUILD   = sphinx-build
 SOURCEDIR     = .
 BUILDDIR      = _build
 
-all: html
-
-rst/glossary.rst: rst/glossary_source.rst ../lib/*
-	python3 generate_autodoc_rst.py rst/glossary_source.rst rst/glossary.rst
-
-# Put it first so that "make" without argument is like "make help".
+# Put help first so that "make" without argument is like "make help".
 help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
-.PHONY: help sphinxprep
+.PHONY: help sphinxprep clean
+
+# We need to make sure the Python module is built before we can document it
+# But the exact name of it depends on the Python we are using, and the platform.
+# So we link it to something predictable
+../lib/bdsg.module:
+	cd .. && mkdir -p build && cd build && cmake .. && $(MAKE)
+	cd .. && ln lib/bdsg.cpython-*.* lib/bdsg.module
 
 # Make sure we are ready to run Sphinx
-sphinxprep: rst/glossary.rst
+sphinxprep: ../lib/bdsg.module
+
+clean:
+	rm -Rf $(BUILDDIR)
 
 # Spkinx targets: route specific targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).

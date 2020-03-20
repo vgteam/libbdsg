@@ -1,18 +1,74 @@
+.. _glossary:
 
-.. py:function:: create_handle(*args, **kwargs)
-   :module: bdsg.handlegraph.MutableHandleGraph
+##########################
+Sorted Glossary of Methods
+##########################
 
-Overloaded function.
+.. _mutator:
 
-1. create_handle(self: bdsg.handlegraph.MutableHandleGraph, sequence: str) -> bdsg.handlegraph.handle_t
+===============
+Mutator Methods
+===============
 
-Create a new node with the given sequence and return the handle.
+The following lists sorts methods in :class:odgi.graph by what types of objects they modify.
 
-C++: handlegraph::MutableHandleGraph::create_handle(const std::string &) --> struct handlegraph::handle_t
+:class:`bdsg.handlegraph.MutableHandleGraph`
+--------------------------------------------
 
-2. create_handle(self: bdsg.handlegraph.MutableHandleGraph, sequence: str, id: int) -> bdsg.handlegraph.handle_t
+.. autofunction:: bdsg.handlegraph.MutableHandleGraph.create_handle
+   :noindex:
+   
+.. autofunction:: bdsg.handlegraph.MutableHandleGraph.create_edge
+   :noindex:
+   
+   
+:class:`bdsg.handlegraph.DeletableHandleGraph`
+----------------------------------------------
 
-Create a new node with the given id and sequence, then return the handle.
+.. autofunction:: bdsg.handlegraph.DeletableHandleGraph.destroy_handle
+   :noindex:
+   
+.. autofunction:: bdsg.handlegraph.DeletableHandleGraph.destroy_edge
+   :noindex:
+   
+:class:`bdsg.handlegraph.MutablePathHandleGraph`
+------------------------------------------------
 
-C++: handlegraph::MutableHandleGraph::create_handle(const std::string &, const long long &) --> struct handlegraph::handle_t
+.. autofunction:: bdsg.handlegraph.MutablePathHandleGraph.create_path_handle
+   :noindex:
+   
+.. autofunction:: bdsg.handlegraph.MutablePathHandleGraph.append_step
+   :noindex:
+   
+.. autofunction:: bdsg.handlegraph.MutablePathHandleGraph.prepend_step
+   :noindex:
+   
+..
+   TODO: This isn't being bound because of the vector argument.
+   
+.. autofunction:: bdsg.handlegraph.MutablePathHandleGraph.rewrite_segment
+   :noindex:
+   
+.. autofunction:: bdsg.handlegraph.MutablePathHandleGraph.set_circularity
+   :noindex:
+   
+.. autofunction:: bdsg.handlegraph.MutablePathHandleGraph.destroy_path
+   :noindex:
+   
+.. _accessor:
+
+================
+Accessor Methods
+================
+
+The following list sorts methods in :class:odgi.graph by what object they return information about.
+
+.. _iterator:
+  
+==================
+Iteratator Methods
+==================
+
+The following list sorts methods in :class:odgi.graph by what kind of iteratee they operate on. 
+
 
