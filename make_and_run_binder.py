@@ -33,7 +33,10 @@ def clone_repos():
         # TODO: Change back to https://github.com/RosettaCommons/binder.git
         # master when https://github.com/RosettaCommons/binder/pull/99 is
         # fixed.
-        subprocess.check_call(['git', 'clone', '--branch', 'patch-1', 'https://github.com/adamnovak/binder.git', 'binder'])
+        subprocess.check_call(['git', 'clone', 'https://github.com/RosettaCommons/binder.git', 'binder'])
+        os.chdir('binder')
+        subprocess.check_call(['git', 'checkout', '788ab422f9e919478944d79d5890441a964dd1db'])
+        os.chdir('..')
 
 def build_binder():
     '''
