@@ -16,6 +16,7 @@
 #include <functional>
 #include <string>
 #include <pybind11/stl.h>
+#include <pybind11/stl_bind.h>
 #include <pybind11/functional.h>
 #include <fstream>
 
@@ -674,20 +675,6 @@ struct PyCallBack_bdsg_MutablePositionOverlay : public bdsg::MutablePositionOver
 		}
 		return MutablePositionOverlay::apply_orientation(a0);
 	}
-	using _binder_ret_0 = class std::vector<struct handlegraph::handle_t, class std::allocator<struct handlegraph::handle_t> >;
-	_binder_ret_0 divide_handle(const struct handlegraph::handle_t & a0, const class std::vector<unsigned long, class std::allocator<unsigned long> > & a1) override { 
-		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::MutablePositionOverlay *>(this), "divide_handle");
-		if (overload) {
-			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
-			if (pybind11::detail::cast_is_temporary_value_reference<_binder_ret_0>::value) {
-				static pybind11::detail::overload_caster_t<_binder_ret_0> caster;
-				return pybind11::detail::cast_ref<_binder_ret_0>(std::move(o), caster);
-			}
-			else return pybind11::detail::cast_safe<_binder_ret_0>(std::move(o));
-		}
-		return MutablePositionOverlay::divide_handle(a0, a1);
-	}
 	void optimize(bool a0) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::MutablePositionOverlay *>(this), "optimize");
@@ -700,19 +687,6 @@ struct PyCallBack_bdsg_MutablePositionOverlay : public bdsg::MutablePositionOver
 			else return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return MutablePositionOverlay::optimize(a0);
-	}
-	void apply_ordering(const class std::vector<struct handlegraph::handle_t, class std::allocator<struct handlegraph::handle_t> > & a0, bool a1) override { 
-		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::MutablePositionOverlay *>(this), "apply_ordering");
-		if (overload) {
-			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
-			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
-				static pybind11::detail::overload_caster_t<void> caster;
-				return pybind11::detail::cast_ref<void>(std::move(o), caster);
-			}
-			else return pybind11::detail::cast_safe<void>(std::move(o));
-		}
-		return MutablePositionOverlay::apply_ordering(a0, a1);
 	}
 	void set_id_increment(const long long & a0) override { 
 		pybind11::gil_scoped_acquire gil;
@@ -804,20 +778,6 @@ struct PyCallBack_bdsg_MutablePositionOverlay : public bdsg::MutablePositionOver
 			else return pybind11::detail::cast_safe<struct handlegraph::step_handle_t>(std::move(o));
 		}
 		return MutablePositionOverlay::prepend_step(a0, a1);
-	}
-	using _binder_ret_1 = struct std::pair<struct handlegraph::step_handle_t, struct handlegraph::step_handle_t>;
-	_binder_ret_1 rewrite_segment(const struct handlegraph::step_handle_t & a0, const struct handlegraph::step_handle_t & a1, const class std::vector<struct handlegraph::handle_t, class std::allocator<struct handlegraph::handle_t> > & a2) override { 
-		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::MutablePositionOverlay *>(this), "rewrite_segment");
-		if (overload) {
-			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1, a2);
-			if (pybind11::detail::cast_is_temporary_value_reference<_binder_ret_1>::value) {
-				static pybind11::detail::overload_caster_t<_binder_ret_1> caster;
-				return pybind11::detail::cast_ref<_binder_ret_1>(std::move(o), caster);
-			}
-			else return pybind11::detail::cast_safe<_binder_ret_1>(std::move(o));
-		}
-		return MutablePositionOverlay::rewrite_segment(a0, a1, a2);
 	}
 	void set_circularity(const struct handlegraph::path_handle_t & a0, bool a1) override { 
 		pybind11::gil_scoped_acquire gil;
@@ -1440,11 +1400,8 @@ void bind_bdsg_path_position_overlays(std::function< pybind11::module &(std::str
 		cl.def("destroy_edge", (void (bdsg::MutablePositionOverlay::*)(const struct handlegraph::handle_t &, const struct handlegraph::handle_t &)) &bdsg::MutablePositionOverlay::destroy_edge, "Remove the edge connecting the given handles in the given order and orientations.\n Ignores nonexistent edges.\n Does not update any stored paths.\n\nC++: bdsg::MutablePositionOverlay::destroy_edge(const struct handlegraph::handle_t &, const struct handlegraph::handle_t &) --> void", pybind11::arg("left"), pybind11::arg("right"));
 		cl.def("clear", (void (bdsg::MutablePositionOverlay::*)()) &bdsg::MutablePositionOverlay::clear, "Remove all nodes and edges. Does not update any stored paths.\n\nC++: bdsg::MutablePositionOverlay::clear() --> void");
 		cl.def("apply_orientation", (struct handlegraph::handle_t (bdsg::MutablePositionOverlay::*)(const struct handlegraph::handle_t &)) &bdsg::MutablePositionOverlay::apply_orientation, "Alter the node that the given handle corresponds to so the orientation\n indicated by the handle becomes the node's local forward orientation.\n Rewrites all edges pointing to the node and the node's sequence to\n reflect this. Invalidates all handles to the node (including the one\n passed). Returns a new, valid handle to the node in its new forward\n orientation. Note that it is possible for the node's ID to change.\n Does not update any stored paths. May change the ordering of the underlying\n graph.\n\nC++: bdsg::MutablePositionOverlay::apply_orientation(const struct handlegraph::handle_t &) --> struct handlegraph::handle_t", pybind11::arg("handle"));
-		cl.def("divide_handle", (class std::vector<struct handlegraph::handle_t, class std::allocator<struct handlegraph::handle_t> > (bdsg::MutablePositionOverlay::*)(const struct handlegraph::handle_t &, const class std::vector<unsigned long, class std::allocator<unsigned long> > &)) &bdsg::MutablePositionOverlay::divide_handle, "Split a handle's underlying node at the given offsets in the handle's\n orientation. Returns all of the handles to the parts. Other handles to\n the node being split may be invalidated. The split pieces stay in the\n same local forward orientation as the original node, but the returned\n handles come in the order and orientation appropriate for the handle\n passed in.\n Updates stored paths.\n\nC++: bdsg::MutablePositionOverlay::divide_handle(const struct handlegraph::handle_t &, const class std::vector<unsigned long, class std::allocator<unsigned long> > &) --> class std::vector<struct handlegraph::handle_t, class std::allocator<struct handlegraph::handle_t> >", pybind11::arg("handle"), pybind11::arg("offsets"));
 		cl.def("optimize", [](bdsg::MutablePositionOverlay &o) -> void { return o.optimize(); }, "");
 		cl.def("optimize", (void (bdsg::MutablePositionOverlay::*)(bool)) &bdsg::MutablePositionOverlay::optimize, "Adjust the representation of the graph in memory to improve performance.\n Optionally, allow the node IDs to be reassigned to further improve\n performance.\n Note: Ideally, this method is called one time once there is expected to be\n few graph modifications in the future.\n\nC++: bdsg::MutablePositionOverlay::optimize(bool) --> void", pybind11::arg("allow_id_reassignment"));
-		cl.def("apply_ordering", [](bdsg::MutablePositionOverlay &o, const class std::vector<struct handlegraph::handle_t, class std::allocator<struct handlegraph::handle_t> > & a0) -> void { return o.apply_ordering(a0); }, "", pybind11::arg("order"));
-		cl.def("apply_ordering", (void (bdsg::MutablePositionOverlay::*)(const class std::vector<struct handlegraph::handle_t, class std::allocator<struct handlegraph::handle_t> > &, bool)) &bdsg::MutablePositionOverlay::apply_ordering, "Reorder the graph's internal structure to match that given.\n This sets the order that is used for iteration in functions like for_each_handle.\n Optionally compact the id space of the graph to match the ordering, from 1->|ordering|.\n This may be a no-op in the case of graph implementations that do not have any mechanism to maintain an ordering.\n\nC++: bdsg::MutablePositionOverlay::apply_ordering(const class std::vector<struct handlegraph::handle_t, class std::allocator<struct handlegraph::handle_t> > &, bool) --> void", pybind11::arg("order"), pybind11::arg("compact_ids"));
 		cl.def("set_id_increment", (void (bdsg::MutablePositionOverlay::*)(const long long &)) &bdsg::MutablePositionOverlay::set_id_increment, "No-op function (required by MutableHandleGraph interface)\n\nC++: bdsg::MutablePositionOverlay::set_id_increment(const long long &) --> void", pybind11::arg("min_id"));
 		cl.def("increment_node_ids", (void (bdsg::MutablePositionOverlay::*)(long long)) &bdsg::MutablePositionOverlay::increment_node_ids, "Add the given value to all node IDs.\n Has a default implementation in terms of reassign_node_ids, but can be\n implemented more efficiently in some graphs.\n\nC++: bdsg::MutablePositionOverlay::increment_node_ids(long long) --> void", pybind11::arg("increment"));
 		cl.def("reassign_node_ids", (void (bdsg::MutablePositionOverlay::*)(const class std::function<long long (const long long &)> &)) &bdsg::MutablePositionOverlay::reassign_node_ids, "Renumber all node IDs using the given function, which, given an old ID, returns the new ID.\n Modifies the graph in place. Invalidates all outstanding handles.\n If the graph supports paths, they also must be updated.\n The mapping function may return 0. In this case, the input ID will\n remain unchanged. The mapping function should not return any ID for\n which it would return 0.\n\nC++: bdsg::MutablePositionOverlay::reassign_node_ids(const class std::function<long long (const long long &)> &) --> void", pybind11::arg("get_new_id"));
@@ -1453,7 +1410,6 @@ void bind_bdsg_path_position_overlays(std::function< pybind11::module &(std::str
 		cl.def("create_path_handle", (struct handlegraph::path_handle_t (bdsg::MutablePositionOverlay::*)(const std::string &, bool)) &bdsg::MutablePositionOverlay::create_path_handle, "Create a path with the given name. The caller must ensure that no path\n with the given name exists already, or the behavior is undefined.\n Returns a handle to the created empty path. Handles to other paths must\n remain valid.\n\nC++: bdsg::MutablePositionOverlay::create_path_handle(const std::string &, bool) --> struct handlegraph::path_handle_t", pybind11::arg("name"), pybind11::arg("is_circular"));
 		cl.def("append_step", (struct handlegraph::step_handle_t (bdsg::MutablePositionOverlay::*)(const struct handlegraph::path_handle_t &, const struct handlegraph::handle_t &)) &bdsg::MutablePositionOverlay::append_step, "Append a visit to a node to the given path. Returns a handle to the new\n final step on the path which is appended. Handles to prior\n steps on the path, and to other paths, must remain valid.\n\nC++: bdsg::MutablePositionOverlay::append_step(const struct handlegraph::path_handle_t &, const struct handlegraph::handle_t &) --> struct handlegraph::step_handle_t", pybind11::arg("path"), pybind11::arg("to_append"));
 		cl.def("prepend_step", (struct handlegraph::step_handle_t (bdsg::MutablePositionOverlay::*)(const struct handlegraph::path_handle_t &, const struct handlegraph::handle_t &)) &bdsg::MutablePositionOverlay::prepend_step, "Prepend a visit to a node to the given path. Returns a handle to the new\n first step on the path which is appended. If the path is cirular, the new\n step is placed between the steps considered \"last\" and \"first\" by the\n method path_begin. Handles to later steps on the path, and to other paths,\n must remain valid.\n\nC++: bdsg::MutablePositionOverlay::prepend_step(const struct handlegraph::path_handle_t &, const struct handlegraph::handle_t &) --> struct handlegraph::step_handle_t", pybind11::arg("path"), pybind11::arg("to_prepend"));
-		cl.def("rewrite_segment", (struct std::pair<struct handlegraph::step_handle_t, struct handlegraph::step_handle_t> (bdsg::MutablePositionOverlay::*)(const struct handlegraph::step_handle_t &, const struct handlegraph::step_handle_t &, const class std::vector<struct handlegraph::handle_t, class std::allocator<struct handlegraph::handle_t> > &)) &bdsg::MutablePositionOverlay::rewrite_segment, "WARNING: online path position indexing is inefficient for this method.\n\n Delete a segment of a path and rewrite it as some other sequence of steps. Returns a pair\n of step_handle_t's that indicate the range of the new segment in the path. The segment to\n delete should be designated by the first and the past-the-last step handle.  If the step\n that is returned by path_begin is deleted, path_begin will now return the first step from\n the new segment or, in the case that the new segment is empty, segment_end.\n\nC++: bdsg::MutablePositionOverlay::rewrite_segment(const struct handlegraph::step_handle_t &, const struct handlegraph::step_handle_t &, const class std::vector<struct handlegraph::handle_t, class std::allocator<struct handlegraph::handle_t> > &) --> struct std::pair<struct handlegraph::step_handle_t, struct handlegraph::step_handle_t>", pybind11::arg("segment_begin"), pybind11::arg("segment_end"), pybind11::arg("new_segment"));
 		cl.def("set_circularity", (void (bdsg::MutablePositionOverlay::*)(const struct handlegraph::path_handle_t &, bool)) &bdsg::MutablePositionOverlay::set_circularity, "Make a path circular or non-circular. If the path is becoming circular, the\n last step is joined to the first step. If the path is becoming linear, the\n step considered \"last\" is unjoined from the step considered \"first\" according\n to the method path_begin.\n\nC++: bdsg::MutablePositionOverlay::set_circularity(const struct handlegraph::path_handle_t &, bool) --> void", pybind11::arg("path"), pybind11::arg("circular"));
 		cl.def("assign", (class bdsg::MutablePositionOverlay & (bdsg::MutablePositionOverlay::*)(const class bdsg::MutablePositionOverlay &)) &bdsg::MutablePositionOverlay::operator=, "C++: bdsg::MutablePositionOverlay::operator=(const class bdsg::MutablePositionOverlay &) --> class bdsg::MutablePositionOverlay &", pybind11::return_value_policy::automatic, pybind11::arg(""));
 	}
