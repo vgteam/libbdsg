@@ -144,6 +144,7 @@ def make_all_includes():
     '''
     all_includes = []
     all_include_filename = 'all_cmake_includes.hpp'
+    exclude_patterns = [re.compile('^pybind11/')]
     
     for filename in all_sources_and_headers(include_deps=False):
         # Then for each file found by any search
@@ -159,8 +160,16 @@ def make_all_includes():
                     
                     # Relative includes arent really relative paths so we can't really resolve them.
                     
-                    # Just collect all the includes as <>
-                    all_includes.append(f'#include <{included_path}>')
+                    wanted = True
+                    for exclude in exclude_patterns:
+                        if exclude.match(included_path):
+                            # Don't use this header.
+                            wanted = False
+                            break
+                    
+                    if wanted:
+                        # Collect all the wanted includes, as <>
+                        all_includes.append(f'#include <{included_path}>')
     all_includes = list(set(all_includes))
     # This is to ensure that the list is always the same and doesn't
     # depend on the filesystem state.  Not technically necessary, but
