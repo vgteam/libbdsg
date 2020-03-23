@@ -1,10 +1,10 @@
 #include <BooPHF.h>
-#include <bdsg/bindings.hpp>
 #include <bdsg/hash_graph.hpp>
 #include <bdsg/node.hpp>
 #include <bdsg/odgi.hpp>
 #include <bdsg/packed_graph.hpp>
 #include <bdsg/packed_structs.hpp>
+#include <binder/source/stl_binders.hpp>
 #include <chrono>
 #include <functional>
 #include <handlegraph/types.hpp>
@@ -29,6 +29,7 @@
 #include <pybind11/stl_bind.h>
 #include <pybind11/functional.h>
 #include <fstream>
+#include <bdsg/bindings.hpp>
 
 
 #ifndef BINDER_PYBIND11_TYPE_CASTER
@@ -41,12 +42,12 @@
 void bind_std_stl_vector(std::function< pybind11::module &(std::string const &namespace_) > &M)
 {
 	// std::vector file:bits/stl_vector.h line:216
-	bdsg::bind_vector<unsigned long,std::allocator<unsigned long>>(M("std"), "unsigned_long", "std_allocator_unsigned_long_t");
+	binder::vector_binder<unsigned long,std::allocator<unsigned long>>(M("std"), "unsigned_long", "std_allocator_unsigned_long_t");
 
 	// std::vector file:bits/stl_vector.h line:216
-	bdsg::bind_vector<handlegraph::handle_t,std::allocator<handlegraph::handle_t>>(M("std"), "handlegraph_handle_t", "std_allocator_handlegraph_handle_t_t");
+	binder::vector_binder<handlegraph::handle_t,std::allocator<handlegraph::handle_t>>(M("std"), "handlegraph_handle_t", "std_allocator_handlegraph_handle_t_t");
 
 	// std::vector file:bits/stl_vector.h line:216
-	bdsg::bind_vector<handlegraph::path_handle_t,std::allocator<handlegraph::path_handle_t>>(M("std"), "handlegraph_path_handle_t", "std_allocator_handlegraph_path_handle_t_t");
+	binder::vector_binder<handlegraph::path_handle_t,std::allocator<handlegraph::path_handle_t>>(M("std"), "handlegraph_path_handle_t", "std_allocator_handlegraph_path_handle_t_t");
 
 }

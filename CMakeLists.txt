@@ -149,6 +149,19 @@ ExternalProject_Get_property(sparsepp INSTALL_DIR)
 set(sparsepp_INCLUDE "${INSTALL_DIR}/src/sparsepp/")
 set(sparsepp_LIB "${INSTALL_DIR}/src/sparsepp/")
 
+# Binder (because some generated bindings depend on headers packaged with Binder)
+ExternalProject_Add(binder
+  GIT_REPOSITORY "https://github.com/RosettaCommons/binder.git"
+  GIT_TAG "788ab422f9e919478944d79d5890441a964dd1db"
+  # we don't actually install Binder because we just need its headers
+  #CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_DIR}
+  UPDATE_COMMAND ""
+  INSTALL_COMMAND ""
+  BUILD_COMMAND ""
+  CONFIGURE_COMMAND "")
+ExternalProject_Get_property(binder INSTALL_DIR)
+set(binder_INCLUDE "${INSTALL_DIR}/src")
+
 # pybind11
 if (CMAKE_MAJOR_VERSION EQUAL "3" AND CMAKE_MINOR_VERSION EQUAL "10")
     # We need pybind11 installed in ./pybind11 *before* CMake can finish processing this file.
@@ -210,6 +223,7 @@ set(bdsg_DEPS
     handlegraph
     bbhash
     sparsepp
+    binder
 )
 add_dependencies(bdsg_objs ${bdsg_DEPS})
 
@@ -222,6 +236,7 @@ set(bdsg_INCLUDES
   "${handlegraph_INCLUDE}"
   "${sparsepp_INCLUDE}"
   "${bbhash_INCLUDE}"
+  "${binder_INCLUDE}"
 )
 
 set(bdsg_LIBS

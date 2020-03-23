@@ -6,16 +6,22 @@
 #include <vector>
 #include <string>
 
-// This include is specifically banned from showing up in all_cmake_includes.hpp
-#include <pybind11/stl_bind.h>
+// We need all the handle graph types that ever get used in vectors.
+#include <handlegraph/types.hpp>
 
-namespace bdsg {
-
-template <typename Item, typename Allocator>
-pybind11::class_<std::vector<Item, Allocator>, std::unique_ptr<std::vector<Item, Allocator>>> bind_vector(pybind11::handle& scope, const std::string& item_name, const std::string& allocator_name) {
-    return pybind11::bind_vector<std::vector<Item, Allocator>, std::unique_ptr<std::vector<Item, Allocator>>>(scope, "Vector" + item_name);
-}
-
-}
+// We need to declare the vectors we bind with binder's binder::vector_binder
+// from its stl_binders.hpp to be opaque. Otherwise pybind11 gets upset and
+// throws out "static assertion failed: Holder classes are only supported for
+// custom types" errors, because the Binder bindings use pybind11's "holder"
+// system to wrap the vectors in smart pointers, and pybind11 worries that we
+// can't guarantee that that wrapping is always applied to vectors. See:
+// <https://github.com/RosettaCommons/pybind11/commit/501135fa769ca5ad73ca81315da509bffa5adeb9>,
+// <https://github.com/RosettaCommons/binder/issues/100>,
+// <https://pybind11.readthedocs.io/en/stable/advanced/smart_ptrs.html#>
+// These need to be in every compilation unit that uses the vectors in
+// bindings, and if we make any more vector types we need to add them here.
+PYBIND11_MAKE_OPAQUE(std::vector<long unsigned int>);
+PYBIND11_MAKE_OPAQUE(std::vector<handlegraph::handle_t>);
+PYBIND11_MAKE_OPAQUE(std::vector<handlegraph::path_handle_t>);
 
 #endif
