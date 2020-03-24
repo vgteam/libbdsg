@@ -4,7 +4,6 @@
 // Components needed to make pybind11/Binder work for the library.
 
 #include <vector>
-#include <string>
 
 // We need all the handle graph types that ever get used in vectors.
 #include <handlegraph/types.hpp>
