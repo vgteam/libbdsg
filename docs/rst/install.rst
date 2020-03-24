@@ -5,13 +5,13 @@ Setup
 Build directions
 =================
 
-It is straightforward to build ODGI on a unix-based machine.
-First, obtain a copy of the repository and its submodules:
+It is straightforward to build libbdsg on a unix-based machine.
+First, obtain a copy of the repository:
 
 .. code-block:: bash 
 
-   git clone --recursive https://github.com/vgteam/odgi.git
-   cd odgi
+   git clone https://github.com/vgteam/libbdsg.git
+   cd libbdsg
 
 Then build through cmake:
 
@@ -27,19 +27,26 @@ To make a local copy of the documentation:
 .. code-block:: bash
 
    cd docs
+   pip3 install -r requirements.txt
    make html
 
 ================
 Python Usage
 ================
 
-To import ODGI in python, make sure that the compiled ``lib/odgi.cpython*.so`` file is on your `PYTHONPATH` or added to your python path through `sys.path.append` and run ``import odgi``.
+To import the `bdsg` module in python, make sure that the compiled ``lib/bdsg.cpython*.so`` file is on your Python import path. There are three ways to do this:
 
-For example, assuming that your current working directory is the root of the odgi project:
+1. Add `lib` to your `PYTHONPATH` environment variable.
+2. Added `lib` your `sys.path` from within Python.
+3. Just be in the `lib` directory.
+
+Once the module is on your Python import path, you can run ``import bdsg``.
+
+For example, assuming that your current working directory is the root of the libbdsg project:
 
 .. code-block:: python
 
    import sys
    sys.path.append("./lib")
-   import odgi
+   import bdsg
 

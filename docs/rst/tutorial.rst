@@ -174,7 +174,9 @@ This can be loaded into a new python session by using:
 Loading in Pre-Existing Data
 ============================
 
-Provided that data has been serialized in ODGI format, it is possible to read it directly from a file. Download a `*.odgi file` and load it into python with:
+Each graph implementation knows how to read files in its respective file format.
+
+For example, provided that data has been serialized in ODGI format, it is possible to read it directly from a file with :class:`bdsg.bdsg.ODGI`. Download a `*.odgi file` and load it into python with:
 
 .. code-block:: python
         
@@ -196,7 +198,23 @@ We can poke around this data and get the sequence of the path with:
                 sequence += brca2.get_sequence(handle)
         print(sequence)
 
-Reading in a Graph from a Different Format
-==========================================
+Reading in a Graph from vg
+==========================
 
-Graph assembies can be created with `VG <https://github.com/vgteam/vg>`_. Currently the method to convert to odgi format is broken, but graphs can be converted to .json format and subsequently converted to odgi with :download:`this script <../exdata/jsoner.py>`.
+Graph assembies can be created with `vg <https://github.com/vgteam/vg>`_. However, graph files output by current versions of vg are generally not directly readable with the :mod:`bdsg` module, because vg uses a framing format that libbdsg does not understand by itself.
+
+To export a graph from vg, you can use the following command:
+
+.. code-block:: bash
+
+        vg convert --packed-out graph.vg | vg view --extract-tag PackedGraph > graph.pg
+    
+The resulting file can be loaded with :func:`bdsg.bdsg.PackedGraph.deserialize`.
+
+.. code-block:: python
+        
+        from bdsg.bdsg import PackedGraph
+        graph = PackedGraph()
+        graph.load("graph.pg")
+
+To use :class:`bdsg.bdsg.HashGraph` instead, substitute `--hash-out` and `HashGraph` for `--packed-out` and `PackedGraph`.
