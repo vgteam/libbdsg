@@ -149,6 +149,19 @@ ExternalProject_Get_property(sparsepp INSTALL_DIR)
 set(sparsepp_INCLUDE "${INSTALL_DIR}/src/sparsepp/")
 set(sparsepp_LIB "${INSTALL_DIR}/src/sparsepp/")
 
+# Binder (because some generated bindings depend on headers packaged with Binder)
+ExternalProject_Add(binder
+  GIT_REPOSITORY "https://github.com/RosettaCommons/binder.git"
+  GIT_TAG "788ab422f9e919478944d79d5890441a964dd1db"
+  # we don't actually install Binder because we just need its headers
+  #CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_DIR}
+  UPDATE_COMMAND ""
+  INSTALL_COMMAND ""
+  BUILD_COMMAND ""
+  CONFIGURE_COMMAND "")
+ExternalProject_Get_property(binder INSTALL_DIR)
+set(binder_INCLUDE "${INSTALL_DIR}/src")
+
 # pybind11
 if (CMAKE_MAJOR_VERSION EQUAL "3" AND CMAKE_MINOR_VERSION EQUAL "10")
     # We need pybind11 installed in ./pybind11 *before* CMake can finish processing this file.
@@ -157,7 +170,7 @@ if (CMAKE_MAJOR_VERSION EQUAL "3" AND CMAKE_MINOR_VERSION EQUAL "10")
     if (NOT EXISTS "${PROJECT_SOURCE_DIR}/pybind11")
         message(WARNING "Running on CMake without FetchContent_Declare; attempting to download pybind11 manually")
         execute_process(COMMAND git clone https://github.com/RosettaCommons/pybind11.git "${PROJECT_SOURCE_DIR}/pybind11")
-        execute_process(COMMAND git checkout 35045eeef8969b7b446c64b192502ac1cbf7c451
+        execute_process(COMMAND git checkout 4f72ef846fe8453596230ac285eeaa0ce3278bb4
                         WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/pybind11")
     endif()
     
@@ -173,7 +186,7 @@ else()
     FetchContent_Declare(
         pybind11
         GIT_REPOSITORY https://github.com/RosettaCommons/pybind11.git
-        GIT_TAG 35045eeef8969b7b446c64b192502ac1cbf7c451
+        GIT_TAG 4f72ef846fe8453596230ac285eeaa0ce3278bb4
     )
     FetchContent_GetProperties(pybind11)
     if (NOT pybind11_POPULATED)
@@ -182,20 +195,6 @@ else()
     
     add_subdirectory(${pybind11_SOURCE_DIR} ${pybind11_BINARY_DIR})
 endif()
-
-# This ExternalProject logic works on CMake 3.10, available on Ubuntu 18.04.
-# We don't actually install pybind11; it's header only
-ExternalProject_Add(pybind
-    GIT_REPOSITORY "https://github.com/RosettaCommons/pybind11.git" 
-    UPDATE_COMMAND ""
-    GIT_TAG "35045eeef8969b7b446c64b192502ac1cbf7c451" 
-    UPDATE_COMMAND ""
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND ""
-    INSTALL_COMMAND ""
-)
-ExternalProject_Get_Property(pybind INSTALL_DIR)
-
 
 
 #set(CMAKE_BUILD_TYPE Release)
@@ -224,6 +223,7 @@ set(bdsg_DEPS
     handlegraph
     bbhash
     sparsepp
+    binder
 )
 add_dependencies(bdsg_objs ${bdsg_DEPS})
 
@@ -236,6 +236,7 @@ set(bdsg_INCLUDES
   "${handlegraph_INCLUDE}"
   "${sparsepp_INCLUDE}"
   "${bbhash_INCLUDE}"
+  "${binder_INCLUDE}"
 )
 
 set(bdsg_LIBS
