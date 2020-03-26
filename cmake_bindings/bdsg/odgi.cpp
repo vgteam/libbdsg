@@ -20,7 +20,7 @@
 #include <pybind11/stl_bind.h>
 #include <pybind11/functional.h>
 #include <fstream>
-#include <bdsg/bindings.hpp>
+#include <bdsg/binder_hook_compile.hpp>
 
 
 #ifndef BINDER_PYBIND11_TYPE_CASTER
@@ -319,6 +319,20 @@ struct PyCallBack_bdsg_ODGI : public bdsg::ODGI {
 			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return ODGI::get_path_count();
+	}
+	using _binder_ret_0 = class std::vector<struct handlegraph::step_handle_t, class std::allocator<struct handlegraph::step_handle_t> >;
+	_binder_ret_0 steps_of_handle(const struct handlegraph::handle_t & a0, bool a1) const override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::ODGI *>(this), "steps_of_handle");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
+			if (pybind11::detail::cast_is_temporary_value_reference<_binder_ret_0>::value) {
+				static pybind11::detail::overload_caster_t<_binder_ret_0> caster;
+				return pybind11::detail::cast_ref<_binder_ret_0>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<_binder_ret_0>(std::move(o));
+		}
+		return ODGI::steps_of_handle(a0, a1);
 	}
 	bool for_each_path_handle_impl(const class std::function<bool (const struct handlegraph::path_handle_t &)> & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
@@ -645,17 +659,17 @@ struct PyCallBack_bdsg_ODGI : public bdsg::ODGI {
 		}
 		return ODGI::apply_orientation(a0);
 	}
-	using _binder_ret_0 = class std::vector<struct handlegraph::handle_t, class std::allocator<struct handlegraph::handle_t> >;
-	_binder_ret_0 divide_handle(const struct handlegraph::handle_t & a0, const class std::vector<unsigned long, class std::allocator<unsigned long> > & a1) override { 
+	using _binder_ret_1 = class std::vector<struct handlegraph::handle_t, class std::allocator<struct handlegraph::handle_t> >;
+	_binder_ret_1 divide_handle(const struct handlegraph::handle_t & a0, const class std::vector<unsigned long, class std::allocator<unsigned long> > & a1) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::ODGI *>(this), "divide_handle");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
-			if (pybind11::detail::cast_is_temporary_value_reference<_binder_ret_0>::value) {
-				static pybind11::detail::overload_caster_t<_binder_ret_0> caster;
-				return pybind11::detail::cast_ref<_binder_ret_0>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<_binder_ret_1>::value) {
+				static pybind11::detail::overload_caster_t<_binder_ret_1> caster;
+				return pybind11::detail::cast_ref<_binder_ret_1>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<_binder_ret_0>(std::move(o));
+			else return pybind11::detail::cast_safe<_binder_ret_1>(std::move(o));
 		}
 		return ODGI::divide_handle(a0, a1);
 	}
@@ -711,17 +725,17 @@ struct PyCallBack_bdsg_ODGI : public bdsg::ODGI {
 		}
 		return ODGI::append_step(a0, a1);
 	}
-	using _binder_ret_1 = struct std::pair<struct handlegraph::step_handle_t, struct handlegraph::step_handle_t>;
-	_binder_ret_1 rewrite_segment(const struct handlegraph::step_handle_t & a0, const struct handlegraph::step_handle_t & a1, const class std::vector<struct handlegraph::handle_t, class std::allocator<struct handlegraph::handle_t> > & a2) override { 
+	using _binder_ret_2 = struct std::pair<struct handlegraph::step_handle_t, struct handlegraph::step_handle_t>;
+	_binder_ret_2 rewrite_segment(const struct handlegraph::step_handle_t & a0, const struct handlegraph::step_handle_t & a1, const class std::vector<struct handlegraph::handle_t, class std::allocator<struct handlegraph::handle_t> > & a2) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::ODGI *>(this), "rewrite_segment");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1, a2);
-			if (pybind11::detail::cast_is_temporary_value_reference<_binder_ret_1>::value) {
-				static pybind11::detail::overload_caster_t<_binder_ret_1> caster;
-				return pybind11::detail::cast_ref<_binder_ret_1>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<_binder_ret_2>::value) {
+				static pybind11::detail::overload_caster_t<_binder_ret_2> caster;
+				return pybind11::detail::cast_ref<_binder_ret_2>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<_binder_ret_1>(std::move(o));
+			else return pybind11::detail::cast_safe<_binder_ret_2>(std::move(o));
 		}
 		return ODGI::rewrite_segment(a0, a1, a2);
 	}
@@ -807,6 +821,8 @@ void bind_bdsg_odgi(std::function< pybind11::module &(std::string const &namespa
 		cl.def("get_path_name", (std::string (bdsg::ODGI::*)(const struct handlegraph::path_handle_t &) const) &bdsg::ODGI::get_path_name, "Look up the name of a path from a handle to it\n\nC++: bdsg::ODGI::get_path_name(const struct handlegraph::path_handle_t &) const --> std::string", pybind11::arg("path_handle"));
 		cl.def("get_step_count", (unsigned long (bdsg::ODGI::*)(const struct handlegraph::path_handle_t &) const) &bdsg::ODGI::get_step_count, "Returns the number of node steps in the path\n\nC++: bdsg::ODGI::get_step_count(const struct handlegraph::path_handle_t &) const --> unsigned long", pybind11::arg("path_handle"));
 		cl.def("get_path_count", (unsigned long (bdsg::ODGI::*)() const) &bdsg::ODGI::get_path_count, "Returns the number of paths stored in the graph\n\nC++: bdsg::ODGI::get_path_count() const --> unsigned long");
+		cl.def("steps_of_handle", [](bdsg::ODGI const &o, const struct handlegraph::handle_t & a0) -> std::vector<struct handlegraph::step_handle_t, class std::allocator<struct handlegraph::step_handle_t> > { return o.steps_of_handle(a0); }, "", pybind11::arg("handle"));
+		cl.def("steps_of_handle", (class std::vector<struct handlegraph::step_handle_t, class std::allocator<struct handlegraph::step_handle_t> > (bdsg::ODGI::*)(const struct handlegraph::handle_t &, bool) const) &bdsg::ODGI::steps_of_handle, "Returns a vector of all steps of a node on paths. Optionally restricts to\n steps that match the handle in orientation.\n\nC++: bdsg::ODGI::steps_of_handle(const struct handlegraph::handle_t &, bool) const --> class std::vector<struct handlegraph::step_handle_t, class std::allocator<struct handlegraph::step_handle_t> >", pybind11::arg("handle"), pybind11::arg("match_orientation"));
 		cl.def("get_step_count", (unsigned long (bdsg::ODGI::*)(const struct handlegraph::handle_t &) const) &bdsg::ODGI::get_step_count, "Returns the number of node steps on the handle\n\nC++: bdsg::ODGI::get_step_count(const struct handlegraph::handle_t &) const --> unsigned long", pybind11::arg("handle"));
 		cl.def("get_handle_of_step", (struct handlegraph::handle_t (bdsg::ODGI::*)(const struct handlegraph::step_handle_t &) const) &bdsg::ODGI::get_handle_of_step, "Get a node handle (node ID and orientation) from a handle to an step on a path\n\nC++: bdsg::ODGI::get_handle_of_step(const struct handlegraph::step_handle_t &) const --> struct handlegraph::handle_t", pybind11::arg("step_handle"));
 		cl.def("get_path", (struct handlegraph::path_handle_t (bdsg::ODGI::*)(const struct handlegraph::step_handle_t &) const) &bdsg::ODGI::get_path, "Get a path handle (path ID) from a handle to an step on a path\n\nC++: bdsg::ODGI::get_path(const struct handlegraph::step_handle_t &) const --> struct handlegraph::path_handle_t", pybind11::arg("step_handle"));

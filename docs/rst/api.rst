@@ -178,6 +178,9 @@ Here is an example of how to use these typed collections:
 .. autoclass:: vector_handlegraph_path_handle_t
     :members:
     
+.. autoclass:: vector_handlegraph_step_handle_t
+    :members:
+    
 .. autoclass:: vector_unsigned_long
     :members:
 

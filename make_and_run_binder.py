@@ -142,7 +142,10 @@ def make_all_includes():
     Generates an .hpp file with all includes in this project that need to be bound.
     We collect all the include directives from this project's sources.
     '''
-    all_includes = []
+    
+    # Start by always including the binding-generation-time hook file, with
+    # things Binder needs to see to generate good bindings.
+    all_includes = ['#include <bdsg/binder_hook_bind.hpp>']
     all_include_filename = 'all_cmake_includes.hpp'
     
     for filename in all_sources_and_headers(include_deps=False):
