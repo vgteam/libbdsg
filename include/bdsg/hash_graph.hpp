@@ -346,7 +346,7 @@ private:
         
         /// Write the node to an out stream, applying the given ID offset to
         /// nodes referenced by edges.
-        void serialize(ostream& out, nid_t id_offset = 0) const;
+        void serialize(ostream& out) const;
         /// Read the node (in the format written by serialize()) from an in stream.
         void deserialize(istream& in);
     };
@@ -389,7 +389,7 @@ private:
         
         /// Write the path to an out stream, applying the given offset to all
         /// node IDs referenced by the path.
-        void serialize(ostream& out, nid_t id_offset = 0) const;
+        void serialize(ostream& out) const;
         
         /// Read the path (in the format written by serialize()) from an in stream.
         void deserialize(istream& in);
@@ -407,10 +407,6 @@ private:
     /// The minimum ID in the graph
     nid_t min_id = numeric_limits<nid_t>::max();
     
-    /// The node ID offset accumulated from increment_node_ids. Applied
-    /// dynamically when looking at handles, and permanently on serialization.
-    nid_t id_offset = 0;
-    
     /// Encodes the graph topology
     hash_map<nid_t, node_t> graph;
     
@@ -422,13 +418,6 @@ private:
     
     /// The next path ID we will assign to a new path
     int64_t next_path_id = 1;
-    
-    /// Get ther internal ID of a handle which is its index into internal data structures.
-    /// Does not have id_offset applied.
-    nid_t get_internal_id(const handle_t& handle) const;
-    
-    /// Convert a handle from an internal handle to a real ID space, serializable handle.
-    static handle_t apply_id_offset(const handle_t& internal, nid_t id_offset);
     
     /// Replace the ID in a handle with a different number
     static handle_t set_id(const handle_t& internal, nid_t new_id);
