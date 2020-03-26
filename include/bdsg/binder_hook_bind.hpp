@@ -5,9 +5,14 @@
 // Forced to be used as a source for things to bind, even though nothing includes it.
 
 #include <vector>
+#include <functional>
 
 // We need all the handle graph types that ever get used in vectors.
 #include <handlegraph/types.hpp>
+
+// And also all the classes we instantiate methods on
+#include <handlegraph/handle_graph.hpp>
+#include <handlegraph/path_handle_graph.hpp>
 
 // Binder can only bind functions that deal in templates if those template
 // types are actually instantiated elsewhere. See:
@@ -22,5 +27,14 @@ template class std::vector<long unsigned int>;
 template class std::vector<handlegraph::handle_t>;
 template class std::vector<handlegraph::path_handle_t>;
 template class std::vector<handlegraph::step_handle_t>;
+
+// Similarly, we need to instantiate all the iteration methods for
+// bool-returning std::functions.
+template bool handlegraph::HandleGraph::for_each_handle(const std::function<bool(const handlegraph::handle_t&)>& iteratee, bool parallel) const;
+template bool handlegraph::HandleGraph::for_each_edge(const std::function<bool(const handlegraph::edge_t&)>& iteratee, bool parallel) const;
+template bool handlegraph::PathHandleGraph::for_each_path_handle(const std::function<bool(const handlegraph::path_handle_t&)>& iteratee) const;
+template bool handlegraph::PathHandleGraph::for_each_step_in_path(const path_handle_t& path, const std::function<bool(const handlegraph::step_handle_t&)>& iteratee) const;
+template bool handlegraph::PathHandleGraph::for_each_step_on_handle(const handle_t& handle, const std::function<bool(const handlegraph::step_handle_t&)>& iteratee) const;
+
 
 #endif

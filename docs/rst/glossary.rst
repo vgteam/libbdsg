@@ -158,8 +158,6 @@ Node Accessors
 .. autofunction:: bdsg.handlegraph.PathHandleGraph.get_step_count
    :noindex:
    
-.. TODO: steps_of_handle is not bound on the interface or any implementation but should be!
-   
 .. autofunction:: bdsg.handlegraph.PathHandleGraph.steps_of_handle
    :noindex:
    
@@ -333,7 +331,7 @@ Graph Accessors
 Iteratator Methods
 ==================
 
-The following lists breaks out methods from the various handle graph interfaces by what types of objects they iterate over. Note that iteration is **callback-based** and not via traditional Python iterator semantics. Iteratee functions should return false to stop iteration.
+The following lists breaks out methods from the various handle graph interfaces by what types of objects they iterate over. Note that iteration is **callback-based** and not via traditional Python iterator semantics. Iteratee functions should return ``False`` to stop iteration, and must return ``True`` to continue. Not returning anything (i.e. returning ``None``) will stop iteration early.
 
 --------------
 Node Iterators
@@ -355,6 +353,9 @@ Edge Iterators
 .. autofunction:: bdsg.handlegraph.HandleGraph.follow_edges
    :noindex:
    
+.. autofunction:: bdsg.handlegraph.HandleGraph.for_each_edge
+   :noindex:
+   
 --------------
 Path Iterators
 --------------
@@ -362,7 +363,9 @@ Path Iterators
 :class:`bdsg.handlegraph.PathHandleGraph`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. TODO: for_each_path_handle is not bound on the interface or any implementation but should be! But for_each_path_handle_impl is.
+.. TODO: This docstring doesn't come through, probably because there's several 
+   places it could be looking (template declaration, template definition,
+   template instantiation).
 
 .. autofunction:: bdsg.handlegraph.PathHandleGraph.for_each_path_handle
    :noindex:
@@ -374,12 +377,8 @@ Path Step Iterators
 :class:`bdsg.handlegraph.PathHandleGraph`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. TODO: for_each_step_in_path is not bound on the interface or any implementation except ODGI and some overlays, but should be!
-
 .. autofunction:: bdsg.handlegraph.PathHandleGraph.for_each_step_in_path
    :noindex:
-   
-.. TODO: for_each_step_on_handle is not bound on the interface or any implementation but should be! But for_each_step_on_handle_impl is.
    
 .. autofunction:: bdsg.handlegraph.PathHandleGraph.for_each_step_on_handle
    :noindex:

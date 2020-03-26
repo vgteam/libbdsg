@@ -176,13 +176,13 @@ Loading in Pre-Existing Data
 
 Each graph implementation knows how to read files in its respective file format.
 
-For example, provided that data has been serialized in ODGI format, it is possible to read it directly from a file with :class:`bdsg.bdsg.ODGI`. Download a `*.odgi file` and load it into python with:
+For example, provided that data has been serialized in PackedGraph format, it is possible to read it directly from a file with :class:`bdsg.bdsg.PackedGraph`. Download :download:`this graph <../exdata/cactus-brca2.pg>` and load it into python with:
 
 .. code-block:: python
         
-        from bdsg.bdsg import ODGI
-        brca2 = ODGI()
-        brca2.load("cactus-brca2.odgi")
+        from bdsg.bdsg import PackedGraph
+        brca2 = PackedGraph()
+        brca2.deserialize("cactus-brca2.pg")
 
 We can poke around this data and get the sequence of the path with:
 
@@ -190,13 +190,16 @@ We can poke around this data and get the sequence of the path with:
 
         path_handle = [] 
         handles = []
-        brca2.for_each_path_handle(lambda y: path_handle.append(y))
+        brca2.for_each_path_handle(lambda y: path_handle.append(y) or True)
         brca2.for_each_step_in_path(path_handle[0], 
-                lambda y: handles.append(brca2.get_handle_of_step(y)))
+                lambda y: handles.append(brca2.get_handle_of_step(y)) or True)
         sequence = ""
         for handle in handles:
                 sequence += brca2.get_sequence(handle)
+        
         print(sequence)
+        
+Note how we are using ``or True`` in the iteratee callback lambda functions to make sure they return ``True``. If a callback returns ``False`` or ``None`` (which is what is returned when you don't return anything), iteration will stop early and the ``for_each`` call will return ``False``.
 
 Reading in a Graph from vg
 ==========================
@@ -215,6 +218,6 @@ The resulting file can be loaded with :func:`bdsg.bdsg.PackedGraph.deserialize`.
         
         from bdsg.bdsg import PackedGraph
         graph = PackedGraph()
-        graph.load("graph.pg")
+        graph.deserialize("graph.pg")
 
-To use :class:`bdsg.bdsg.HashGraph` instead, substitute `--hash-out` and `HashGraph` for `--packed-out` and `PackedGraph`.
+To use :class:`bdsg.bdsg.HashGraph` instead, substitute ``--hash-out`` and ``HashGraph`` for ``--packed-out`` and ``PackedGraph``.

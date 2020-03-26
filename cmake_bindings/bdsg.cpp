@@ -9,12 +9,13 @@
 typedef std::function< pybind11::module & (std::string const &) > ModuleGetter;
 
 void bind_handlegraph_types(std::function< pybind11::module &(std::string const &namespace_) > &M);
-void bind_std_bdsg_binder_hook_bind(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_handlegraph_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
+void bind_handlegraph_path_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
+void bind_std_bdsg_binder_hook_bind(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_is_single_stranded(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_eades_algorithm(std::function< pybind11::module &(std::string const &namespace_) > &M);
-void bind_handlegraph_path_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
-void bind_handlegraph_mutable_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
+void bind_handlegraph_mutable_path_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
+void bind_handlegraph_mutable_path_deletable_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_wang_hash(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_packed_structs(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_utility(std::function< pybind11::module &(std::string const &namespace_) > &M);
@@ -50,12 +51,13 @@ PYBIND11_MODULE(bdsg, root_module) {
 	//pybind11::class_<std::shared_ptr<void>>(M(""), "_encapsulated_data_");
 
 	bind_handlegraph_types(M);
-	bind_std_bdsg_binder_hook_bind(M);
 	bind_handlegraph_handle_graph(M);
+	bind_handlegraph_path_handle_graph(M);
+	bind_std_bdsg_binder_hook_bind(M);
 	bind_bdsg_is_single_stranded(M);
 	bind_bdsg_eades_algorithm(M);
-	bind_handlegraph_path_handle_graph(M);
-	bind_handlegraph_mutable_handle_graph(M);
+	bind_handlegraph_mutable_path_handle_graph(M);
+	bind_handlegraph_mutable_path_deletable_handle_graph(M);
 	bind_bdsg_wang_hash(M);
 	bind_bdsg_packed_structs(M);
 	bind_bdsg_utility(M);

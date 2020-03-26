@@ -1,11 +1,12 @@
 bdsg.cpp
 handlegraph/types.cpp
-std/bdsg/binder_hook_bind.cpp
 handlegraph/handle_graph.cpp
+handlegraph/path_handle_graph.cpp
+std/bdsg/binder_hook_bind.cpp
 bdsg/is_single_stranded.cpp
 bdsg/eades_algorithm.cpp
-handlegraph/path_handle_graph.cpp
-handlegraph/mutable_handle_graph.cpp
+handlegraph/mutable_path_handle_graph.cpp
+handlegraph/mutable_path_deletable_handle_graph.cpp
 bdsg/wang_hash.cpp
 bdsg/packed_structs.cpp
 bdsg/utility.cpp
