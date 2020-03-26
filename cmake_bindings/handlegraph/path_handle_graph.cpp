@@ -265,17 +265,16 @@ struct PyCallBack_handlegraph_PathHandleGraph : public handlegraph::PathHandleGr
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"PathHandleGraph::for_each_step_on_handle_impl\"");
 	}
-	using _binder_ret_0 = class std::vector<struct handlegraph::step_handle_t, class std::allocator<struct handlegraph::step_handle_t> >;
-	_binder_ret_0 steps_of_handle(const struct handlegraph::handle_t & a0, bool a1) const override { 
+	class std::vector<handlegraph::step_handle_t> steps_of_handle(const struct handlegraph::handle_t & a0, bool a1) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathHandleGraph *>(this), "steps_of_handle");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
-			if (pybind11::detail::cast_is_temporary_value_reference<_binder_ret_0>::value) {
-				static pybind11::detail::overload_caster_t<_binder_ret_0> caster;
-				return pybind11::detail::cast_ref<_binder_ret_0>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<class std::vector<handlegraph::step_handle_t>>::value) {
+				static pybind11::detail::overload_caster_t<class std::vector<handlegraph::step_handle_t>> caster;
+				return pybind11::detail::cast_ref<class std::vector<handlegraph::step_handle_t>>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<_binder_ret_0>(std::move(o));
+			else return pybind11::detail::cast_safe<class std::vector<handlegraph::step_handle_t>>(std::move(o));
 		}
 		return PathHandleGraph::steps_of_handle(a0, a1);
 	}
@@ -585,7 +584,7 @@ struct PyCallBack_handlegraph_MutablePathHandleGraph : public handlegraph::Mutab
 		pybind11::pybind11_fail("Tried to call pure virtual function \"MutablePathHandleGraph::prepend_step\"");
 	}
 	using _binder_ret_0 = struct std::pair<struct handlegraph::step_handle_t, struct handlegraph::step_handle_t>;
-	_binder_ret_0 rewrite_segment(const struct handlegraph::step_handle_t & a0, const struct handlegraph::step_handle_t & a1, const class std::vector<struct handlegraph::handle_t, class std::allocator<struct handlegraph::handle_t> > & a2) override { 
+	_binder_ret_0 rewrite_segment(const struct handlegraph::step_handle_t & a0, const struct handlegraph::step_handle_t & a1, const class std::vector<handlegraph::handle_t> & a2) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathHandleGraph *>(this), "rewrite_segment");
 		if (overload) {
@@ -845,17 +844,16 @@ struct PyCallBack_handlegraph_MutablePathHandleGraph : public handlegraph::Mutab
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"PathHandleGraph::for_each_step_on_handle_impl\"");
 	}
-	using _binder_ret_1 = class std::vector<struct handlegraph::step_handle_t, class std::allocator<struct handlegraph::step_handle_t> >;
-	_binder_ret_1 steps_of_handle(const struct handlegraph::handle_t & a0, bool a1) const override { 
+	class std::vector<handlegraph::step_handle_t> steps_of_handle(const struct handlegraph::handle_t & a0, bool a1) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathHandleGraph *>(this), "steps_of_handle");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
-			if (pybind11::detail::cast_is_temporary_value_reference<_binder_ret_1>::value) {
-				static pybind11::detail::overload_caster_t<_binder_ret_1> caster;
-				return pybind11::detail::cast_ref<_binder_ret_1>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<class std::vector<handlegraph::step_handle_t>>::value) {
+				static pybind11::detail::overload_caster_t<class std::vector<handlegraph::step_handle_t>> caster;
+				return pybind11::detail::cast_ref<class std::vector<handlegraph::step_handle_t>>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<_binder_ret_1>(std::move(o));
+			else return pybind11::detail::cast_safe<class std::vector<handlegraph::step_handle_t>>(std::move(o));
 		}
 		return PathHandleGraph::steps_of_handle(a0, a1);
 	}
@@ -1130,8 +1128,8 @@ void bind_handlegraph_path_handle_graph(std::function< pybind11::module &(std::s
 		cl.def("has_previous_step", (bool (handlegraph::PathHandleGraph::*)(const struct handlegraph::step_handle_t &) const) &handlegraph::PathHandleGraph::has_previous_step, "Returns true if the step is not the first step in a non-circular path.\n\nC++: handlegraph::PathHandleGraph::has_previous_step(const struct handlegraph::step_handle_t &) const --> bool", pybind11::arg("step_handle"));
 		cl.def("get_next_step", (struct handlegraph::step_handle_t (handlegraph::PathHandleGraph::*)(const struct handlegraph::step_handle_t &) const) &handlegraph::PathHandleGraph::get_next_step, "Returns a handle to the next step on the path. If the given step is the final step\n of a non-circular path, this method has undefined behavior. In a circular path,\n the \"last\" step will loop around to the \"first\" step.\n\nC++: handlegraph::PathHandleGraph::get_next_step(const struct handlegraph::step_handle_t &) const --> struct handlegraph::step_handle_t", pybind11::arg("step_handle"));
 		cl.def("get_previous_step", (struct handlegraph::step_handle_t (handlegraph::PathHandleGraph::*)(const struct handlegraph::step_handle_t &) const) &handlegraph::PathHandleGraph::get_previous_step, "Returns a handle to the previous step on the path. If the given step is the first\n step of a non-circular path, this method has undefined behavior. In a circular path,\n it will loop around from the \"first\" step (i.e. the one returned by path_begin) to\n the \"last\" step.\n\nC++: handlegraph::PathHandleGraph::get_previous_step(const struct handlegraph::step_handle_t &) const --> struct handlegraph::step_handle_t", pybind11::arg("step_handle"));
-		cl.def("steps_of_handle", [](handlegraph::PathHandleGraph const &o, const struct handlegraph::handle_t & a0) -> std::vector<struct handlegraph::step_handle_t, class std::allocator<struct handlegraph::step_handle_t> > { return o.steps_of_handle(a0); }, "", pybind11::arg("handle"));
-		cl.def("steps_of_handle", (class std::vector<struct handlegraph::step_handle_t, class std::allocator<struct handlegraph::step_handle_t> > (handlegraph::PathHandleGraph::*)(const struct handlegraph::handle_t &, bool) const) &handlegraph::PathHandleGraph::steps_of_handle, "Returns a vector of all steps of a node on paths. Optionally restricts to\n steps that match the handle in orientation.\n\nC++: handlegraph::PathHandleGraph::steps_of_handle(const struct handlegraph::handle_t &, bool) const --> class std::vector<struct handlegraph::step_handle_t, class std::allocator<struct handlegraph::step_handle_t> >", pybind11::arg("handle"), pybind11::arg("match_orientation"));
+		cl.def("steps_of_handle", [](handlegraph::PathHandleGraph const &o, const struct handlegraph::handle_t & a0) -> std::vector<handlegraph::step_handle_t> { return o.steps_of_handle(a0); }, "", pybind11::arg("handle"));
+		cl.def("steps_of_handle", (class std::vector<handlegraph::step_handle_t> (handlegraph::PathHandleGraph::*)(const struct handlegraph::handle_t &, bool) const) &handlegraph::PathHandleGraph::steps_of_handle, "Returns a vector of all steps of a node on paths. Optionally restricts to\n steps that match the handle in orientation.\n\nC++: handlegraph::PathHandleGraph::steps_of_handle(const struct handlegraph::handle_t &, bool) const --> class std::vector<handlegraph::step_handle_t>", pybind11::arg("handle"), pybind11::arg("match_orientation"));
 		cl.def("is_empty", (bool (handlegraph::PathHandleGraph::*)(const struct handlegraph::path_handle_t &) const) &handlegraph::PathHandleGraph::is_empty, "Returns true if the given path is empty, and false otherwise\n\nC++: handlegraph::PathHandleGraph::is_empty(const struct handlegraph::path_handle_t &) const --> bool", pybind11::arg("path_handle"));
 		cl.def("scan_path", (class handlegraph::PathForEachSocket (handlegraph::PathHandleGraph::*)(const struct handlegraph::path_handle_t &) const) &handlegraph::PathHandleGraph::scan_path, "Returns a class with an STL-style iterator interface that can be used directly\n in a for each loop like:\n for (handle_t handle : graph->scan_path(path)) { }\n\nC++: handlegraph::PathHandleGraph::scan_path(const struct handlegraph::path_handle_t &) const --> class handlegraph::PathForEachSocket", pybind11::arg("path"));
 		cl.def("assign", (class handlegraph::PathHandleGraph & (handlegraph::PathHandleGraph::*)(const class handlegraph::PathHandleGraph &)) &handlegraph::PathHandleGraph::operator=, "C++: handlegraph::PathHandleGraph::operator=(const class handlegraph::PathHandleGraph &) --> class handlegraph::PathHandleGraph &", pybind11::return_value_policy::automatic, pybind11::arg(""));
@@ -1162,7 +1160,7 @@ void bind_handlegraph_path_handle_graph(std::function< pybind11::module &(std::s
 		cl.def("create_path_handle", (struct handlegraph::path_handle_t (handlegraph::MutablePathHandleGraph::*)(const std::string &, bool)) &handlegraph::MutablePathHandleGraph::create_path_handle, "Create a path with the given name. The caller must ensure that no path\n with the given name exists already, or the behavior is undefined.\n Returns a handle to the created empty path. Handles to other paths must\n remain valid.\n\nC++: handlegraph::MutablePathHandleGraph::create_path_handle(const std::string &, bool) --> struct handlegraph::path_handle_t", pybind11::arg("name"), pybind11::arg("is_circular"));
 		cl.def("append_step", (struct handlegraph::step_handle_t (handlegraph::MutablePathHandleGraph::*)(const struct handlegraph::path_handle_t &, const struct handlegraph::handle_t &)) &handlegraph::MutablePathHandleGraph::append_step, "Append a visit to a node to the given path. Returns a handle to the new\n final step on the path which is appended. If the path is cirular, the new\n step is placed between the steps considered \"last\" and \"first\" by the\n method path_begin. Handles to prior steps on the path, and to other paths,\n must remain valid.\n\nC++: handlegraph::MutablePathHandleGraph::append_step(const struct handlegraph::path_handle_t &, const struct handlegraph::handle_t &) --> struct handlegraph::step_handle_t", pybind11::arg("path"), pybind11::arg("to_append"));
 		cl.def("prepend_step", (struct handlegraph::step_handle_t (handlegraph::MutablePathHandleGraph::*)(const struct handlegraph::path_handle_t &, const struct handlegraph::handle_t &)) &handlegraph::MutablePathHandleGraph::prepend_step, "Prepend a visit to a node to the given path. Returns a handle to the new\n first step on the path which is appended. If the path is cirular, the new\n step is placed between the steps considered \"last\" and \"first\" by the\n method path_begin. Handles to later steps on the path, and to other paths,\n must remain valid.\n\nC++: handlegraph::MutablePathHandleGraph::prepend_step(const struct handlegraph::path_handle_t &, const struct handlegraph::handle_t &) --> struct handlegraph::step_handle_t", pybind11::arg("path"), pybind11::arg("to_prepend"));
-		cl.def("rewrite_segment", (struct std::pair<struct handlegraph::step_handle_t, struct handlegraph::step_handle_t> (handlegraph::MutablePathHandleGraph::*)(const struct handlegraph::step_handle_t &, const struct handlegraph::step_handle_t &, const class std::vector<struct handlegraph::handle_t, class std::allocator<struct handlegraph::handle_t> > &)) &handlegraph::MutablePathHandleGraph::rewrite_segment, "Delete a segment of a path and rewrite it as some other sequence of steps. Returns a pair\n of step_handle_t's that indicate the range of the new segment in the path. The segment to\n delete should be designated by the first and last step handle.  If the step\n that is returned by path_begin is deleted, path_begin will now return the first step from\n the new segment or, in the case that the new segment is empty, the step past segment_end.\n\nC++: handlegraph::MutablePathHandleGraph::rewrite_segment(const struct handlegraph::step_handle_t &, const struct handlegraph::step_handle_t &, const class std::vector<struct handlegraph::handle_t, class std::allocator<struct handlegraph::handle_t> > &) --> struct std::pair<struct handlegraph::step_handle_t, struct handlegraph::step_handle_t>", pybind11::arg("segment_begin"), pybind11::arg("segment_end"), pybind11::arg("new_segment"));
+		cl.def("rewrite_segment", (struct std::pair<struct handlegraph::step_handle_t, struct handlegraph::step_handle_t> (handlegraph::MutablePathHandleGraph::*)(const struct handlegraph::step_handle_t &, const struct handlegraph::step_handle_t &, const class std::vector<handlegraph::handle_t> &)) &handlegraph::MutablePathHandleGraph::rewrite_segment, "Delete a segment of a path and rewrite it as some other sequence of steps. Returns a pair\n of step_handle_t's that indicate the range of the new segment in the path. The segment to\n delete should be designated by the first and last step handle.  If the step\n that is returned by path_begin is deleted, path_begin will now return the first step from\n the new segment or, in the case that the new segment is empty, the step past segment_end.\n\nC++: handlegraph::MutablePathHandleGraph::rewrite_segment(const struct handlegraph::step_handle_t &, const struct handlegraph::step_handle_t &, const class std::vector<handlegraph::handle_t> &) --> struct std::pair<struct handlegraph::step_handle_t, struct handlegraph::step_handle_t>", pybind11::arg("segment_begin"), pybind11::arg("segment_end"), pybind11::arg("new_segment"));
 		cl.def("set_circularity", (void (handlegraph::MutablePathHandleGraph::*)(const struct handlegraph::path_handle_t &, bool)) &handlegraph::MutablePathHandleGraph::set_circularity, "Make a path circular or non-circular. If the path is becoming circular, the\n last step is joined to the first step. If the path is becoming linear, the\n step considered \"last\" is unjoined from the step considered \"first\" according\n to the method path_begin.\n\nC++: handlegraph::MutablePathHandleGraph::set_circularity(const struct handlegraph::path_handle_t &, bool) --> void", pybind11::arg("path"), pybind11::arg("circular"));
 		cl.def("assign", (class handlegraph::MutablePathHandleGraph & (handlegraph::MutablePathHandleGraph::*)(const class handlegraph::MutablePathHandleGraph &)) &handlegraph::MutablePathHandleGraph::operator=, "C++: handlegraph::MutablePathHandleGraph::operator=(const class handlegraph::MutablePathHandleGraph &) --> class handlegraph::MutablePathHandleGraph &", pybind11::return_value_policy::automatic, pybind11::arg(""));
 	}

@@ -8,8 +8,8 @@
 
 typedef std::function< pybind11::module & (std::string const &) > ModuleGetter;
 
-void bind_std_stl_vector(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_handlegraph_types(std::function< pybind11::module &(std::string const &namespace_) > &M);
+void bind_std_bdsg_binder_hook_bind(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_handlegraph_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_is_single_stranded(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_eades_algorithm(std::function< pybind11::module &(std::string const &namespace_) > &M);
@@ -49,8 +49,8 @@ PYBIND11_MODULE(bdsg, root_module) {
 
 	//pybind11::class_<std::shared_ptr<void>>(M(""), "_encapsulated_data_");
 
-	bind_std_stl_vector(M);
 	bind_handlegraph_types(M);
+	bind_std_bdsg_binder_hook_bind(M);
 	bind_handlegraph_handle_graph(M);
 	bind_bdsg_is_single_stranded(M);
 	bind_bdsg_eades_algorithm(M);

@@ -9,31 +9,18 @@
 // We need all the handle graph types that ever get used in vectors.
 #include <handlegraph/types.hpp>
 
-// We need to make sure that some object/member exists with each vector type
-// that we need to use as an argument or return type in the library. Having a
-// function use the type isn't enough to get bindings generated for the type.
-// TODO: keep in sync with the PYBIND11_MAKE_OPAQUE invocations in the compile
-// hook.
-namespace bdsg {
+// Binder can only bind functions that deal in templates if those template
+// types are actually instantiated elsewhere. See:
+// https://github.com/RosettaCommons/binder/issues/71#issuecomment-486799361
+//
+// So we instantiate all the templates we use as argument and return types
+// here. (Except pairs which pybind11 magically interconverts with Python
+// tuples.) TODO: keep in sync with the PYBIND11_MAKE_OPAQUE invocations in the
+// compile hook.
 
-/**
- * Class that holds members that need to be declared for Binder to bind their
- * types. Excluded from binding generation itself.
- */
-class BinderHook {
-private:
-
-    // It can't actually be made.
-    BinderHook() = delete;
-    BinderHook(const BinderHook& other) = delete;
-
-    // It would have these members, one for each type of vector that needs binding.
-    std::vector<long unsigned int> v1;
-    std::vector<handlegraph::handle_t> v2;
-    std::vector<handlegraph::path_handle_t> v3;
-    std::vector<handlegraph::step_handle_t> v4;
-};
-
-}
+template class std::vector<long unsigned int>;
+template class std::vector<handlegraph::handle_t>;
+template class std::vector<handlegraph::path_handle_t>;
+template class std::vector<handlegraph::step_handle_t>;
 
 #endif

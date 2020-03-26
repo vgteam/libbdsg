@@ -1,6 +1,6 @@
 bdsg.cpp
-std/stl_vector.cpp
 handlegraph/types.cpp
+std/bdsg/binder_hook_bind.cpp
 handlegraph/handle_graph.cpp
 bdsg/is_single_stranded.cpp
 bdsg/eades_algorithm.cpp

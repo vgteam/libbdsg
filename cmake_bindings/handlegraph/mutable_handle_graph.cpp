@@ -92,17 +92,16 @@ struct PyCallBack_handlegraph_MutableHandleGraph : public handlegraph::MutableHa
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"MutableHandleGraph::apply_orientation\"");
 	}
-	using _binder_ret_0 = class std::vector<struct handlegraph::handle_t, class std::allocator<struct handlegraph::handle_t> >;
-	_binder_ret_0 divide_handle(const struct handlegraph::handle_t & a0, const class std::vector<unsigned long, class std::allocator<unsigned long> > & a1) override { 
+	class std::vector<handlegraph::handle_t> divide_handle(const struct handlegraph::handle_t & a0, const class std::vector<unsigned long> & a1) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutableHandleGraph *>(this), "divide_handle");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
-			if (pybind11::detail::cast_is_temporary_value_reference<_binder_ret_0>::value) {
-				static pybind11::detail::overload_caster_t<_binder_ret_0> caster;
-				return pybind11::detail::cast_ref<_binder_ret_0>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<class std::vector<handlegraph::handle_t>>::value) {
+				static pybind11::detail::overload_caster_t<class std::vector<handlegraph::handle_t>> caster;
+				return pybind11::detail::cast_ref<class std::vector<handlegraph::handle_t>>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<_binder_ret_0>(std::move(o));
+			else return pybind11::detail::cast_safe<class std::vector<handlegraph::handle_t>>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"MutableHandleGraph::divide_handle\"");
 	}
@@ -119,7 +118,7 @@ struct PyCallBack_handlegraph_MutableHandleGraph : public handlegraph::MutableHa
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"MutableHandleGraph::optimize\"");
 	}
-	void apply_ordering(const class std::vector<struct handlegraph::handle_t, class std::allocator<struct handlegraph::handle_t> > & a0, bool a1) override { 
+	void apply_ordering(const class std::vector<handlegraph::handle_t> & a0, bool a1) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutableHandleGraph *>(this), "apply_ordering");
 		if (overload) {
@@ -464,7 +463,7 @@ struct PyCallBack_handlegraph_MutablePathMutableHandleGraph : public handlegraph
 		pybind11::pybind11_fail("Tried to call pure virtual function \"MutablePathHandleGraph::prepend_step\"");
 	}
 	using _binder_ret_0 = struct std::pair<struct handlegraph::step_handle_t, struct handlegraph::step_handle_t>;
-	_binder_ret_0 rewrite_segment(const struct handlegraph::step_handle_t & a0, const struct handlegraph::step_handle_t & a1, const class std::vector<struct handlegraph::handle_t, class std::allocator<struct handlegraph::handle_t> > & a2) override { 
+	_binder_ret_0 rewrite_segment(const struct handlegraph::step_handle_t & a0, const struct handlegraph::step_handle_t & a1, const class std::vector<handlegraph::handle_t> & a2) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathMutableHandleGraph *>(this), "rewrite_segment");
 		if (overload) {
@@ -724,17 +723,16 @@ struct PyCallBack_handlegraph_MutablePathMutableHandleGraph : public handlegraph
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"PathHandleGraph::for_each_step_on_handle_impl\"");
 	}
-	using _binder_ret_1 = class std::vector<struct handlegraph::step_handle_t, class std::allocator<struct handlegraph::step_handle_t> >;
-	_binder_ret_1 steps_of_handle(const struct handlegraph::handle_t & a0, bool a1) const override { 
+	class std::vector<handlegraph::step_handle_t> steps_of_handle(const struct handlegraph::handle_t & a0, bool a1) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathMutableHandleGraph *>(this), "steps_of_handle");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
-			if (pybind11::detail::cast_is_temporary_value_reference<_binder_ret_1>::value) {
-				static pybind11::detail::overload_caster_t<_binder_ret_1> caster;
-				return pybind11::detail::cast_ref<_binder_ret_1>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<class std::vector<handlegraph::step_handle_t>>::value) {
+				static pybind11::detail::overload_caster_t<class std::vector<handlegraph::step_handle_t>> caster;
+				return pybind11::detail::cast_ref<class std::vector<handlegraph::step_handle_t>>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<_binder_ret_1>(std::move(o));
+			else return pybind11::detail::cast_safe<class std::vector<handlegraph::step_handle_t>>(std::move(o));
 		}
 		return PathHandleGraph::steps_of_handle(a0, a1);
 	}
@@ -1037,17 +1035,16 @@ struct PyCallBack_handlegraph_MutablePathMutableHandleGraph : public handlegraph
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"MutableHandleGraph::apply_orientation\"");
 	}
-	using _binder_ret_2 = class std::vector<struct handlegraph::handle_t, class std::allocator<struct handlegraph::handle_t> >;
-	_binder_ret_2 divide_handle(const struct handlegraph::handle_t & a0, const class std::vector<unsigned long, class std::allocator<unsigned long> > & a1) override { 
+	class std::vector<handlegraph::handle_t> divide_handle(const struct handlegraph::handle_t & a0, const class std::vector<unsigned long> & a1) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathMutableHandleGraph *>(this), "divide_handle");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
-			if (pybind11::detail::cast_is_temporary_value_reference<_binder_ret_2>::value) {
-				static pybind11::detail::overload_caster_t<_binder_ret_2> caster;
-				return pybind11::detail::cast_ref<_binder_ret_2>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<class std::vector<handlegraph::handle_t>>::value) {
+				static pybind11::detail::overload_caster_t<class std::vector<handlegraph::handle_t>> caster;
+				return pybind11::detail::cast_ref<class std::vector<handlegraph::handle_t>>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<_binder_ret_2>(std::move(o));
+			else return pybind11::detail::cast_safe<class std::vector<handlegraph::handle_t>>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"MutableHandleGraph::divide_handle\"");
 	}
@@ -1064,7 +1061,7 @@ struct PyCallBack_handlegraph_MutablePathMutableHandleGraph : public handlegraph
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"MutableHandleGraph::optimize\"");
 	}
-	void apply_ordering(const class std::vector<struct handlegraph::handle_t, class std::allocator<struct handlegraph::handle_t> > & a0, bool a1) override { 
+	void apply_ordering(const class std::vector<handlegraph::handle_t> & a0, bool a1) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathMutableHandleGraph *>(this), "apply_ordering");
 		if (overload) {
@@ -1213,17 +1210,16 @@ struct PyCallBack_handlegraph_DeletableHandleGraph : public handlegraph::Deletab
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"MutableHandleGraph::apply_orientation\"");
 	}
-	using _binder_ret_0 = class std::vector<struct handlegraph::handle_t, class std::allocator<struct handlegraph::handle_t> >;
-	_binder_ret_0 divide_handle(const struct handlegraph::handle_t & a0, const class std::vector<unsigned long, class std::allocator<unsigned long> > & a1) override { 
+	class std::vector<handlegraph::handle_t> divide_handle(const struct handlegraph::handle_t & a0, const class std::vector<unsigned long> & a1) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::DeletableHandleGraph *>(this), "divide_handle");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
-			if (pybind11::detail::cast_is_temporary_value_reference<_binder_ret_0>::value) {
-				static pybind11::detail::overload_caster_t<_binder_ret_0> caster;
-				return pybind11::detail::cast_ref<_binder_ret_0>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<class std::vector<handlegraph::handle_t>>::value) {
+				static pybind11::detail::overload_caster_t<class std::vector<handlegraph::handle_t>> caster;
+				return pybind11::detail::cast_ref<class std::vector<handlegraph::handle_t>>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<_binder_ret_0>(std::move(o));
+			else return pybind11::detail::cast_safe<class std::vector<handlegraph::handle_t>>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"MutableHandleGraph::divide_handle\"");
 	}
@@ -1240,7 +1236,7 @@ struct PyCallBack_handlegraph_DeletableHandleGraph : public handlegraph::Deletab
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"MutableHandleGraph::optimize\"");
 	}
-	void apply_ordering(const class std::vector<struct handlegraph::handle_t, class std::allocator<struct handlegraph::handle_t> > & a0, bool a1) override { 
+	void apply_ordering(const class std::vector<handlegraph::handle_t> & a0, bool a1) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::DeletableHandleGraph *>(this), "apply_ordering");
 		if (overload) {
@@ -1585,7 +1581,7 @@ struct PyCallBack_handlegraph_MutablePathDeletableHandleGraph : public handlegra
 		pybind11::pybind11_fail("Tried to call pure virtual function \"MutablePathHandleGraph::prepend_step\"");
 	}
 	using _binder_ret_0 = struct std::pair<struct handlegraph::step_handle_t, struct handlegraph::step_handle_t>;
-	_binder_ret_0 rewrite_segment(const struct handlegraph::step_handle_t & a0, const struct handlegraph::step_handle_t & a1, const class std::vector<struct handlegraph::handle_t, class std::allocator<struct handlegraph::handle_t> > & a2) override { 
+	_binder_ret_0 rewrite_segment(const struct handlegraph::step_handle_t & a0, const struct handlegraph::step_handle_t & a1, const class std::vector<handlegraph::handle_t> & a2) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "rewrite_segment");
 		if (overload) {
@@ -1845,17 +1841,16 @@ struct PyCallBack_handlegraph_MutablePathDeletableHandleGraph : public handlegra
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"PathHandleGraph::for_each_step_on_handle_impl\"");
 	}
-	using _binder_ret_1 = class std::vector<struct handlegraph::step_handle_t, class std::allocator<struct handlegraph::step_handle_t> >;
-	_binder_ret_1 steps_of_handle(const struct handlegraph::handle_t & a0, bool a1) const override { 
+	class std::vector<handlegraph::step_handle_t> steps_of_handle(const struct handlegraph::handle_t & a0, bool a1) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "steps_of_handle");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
-			if (pybind11::detail::cast_is_temporary_value_reference<_binder_ret_1>::value) {
-				static pybind11::detail::overload_caster_t<_binder_ret_1> caster;
-				return pybind11::detail::cast_ref<_binder_ret_1>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<class std::vector<handlegraph::step_handle_t>>::value) {
+				static pybind11::detail::overload_caster_t<class std::vector<handlegraph::step_handle_t>> caster;
+				return pybind11::detail::cast_ref<class std::vector<handlegraph::step_handle_t>>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<_binder_ret_1>(std::move(o));
+			else return pybind11::detail::cast_safe<class std::vector<handlegraph::step_handle_t>>(std::move(o));
 		}
 		return PathHandleGraph::steps_of_handle(a0, a1);
 	}
@@ -2158,17 +2153,16 @@ struct PyCallBack_handlegraph_MutablePathDeletableHandleGraph : public handlegra
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"MutableHandleGraph::apply_orientation\"");
 	}
-	using _binder_ret_2 = class std::vector<struct handlegraph::handle_t, class std::allocator<struct handlegraph::handle_t> >;
-	_binder_ret_2 divide_handle(const struct handlegraph::handle_t & a0, const class std::vector<unsigned long, class std::allocator<unsigned long> > & a1) override { 
+	class std::vector<handlegraph::handle_t> divide_handle(const struct handlegraph::handle_t & a0, const class std::vector<unsigned long> & a1) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "divide_handle");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
-			if (pybind11::detail::cast_is_temporary_value_reference<_binder_ret_2>::value) {
-				static pybind11::detail::overload_caster_t<_binder_ret_2> caster;
-				return pybind11::detail::cast_ref<_binder_ret_2>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<class std::vector<handlegraph::handle_t>>::value) {
+				static pybind11::detail::overload_caster_t<class std::vector<handlegraph::handle_t>> caster;
+				return pybind11::detail::cast_ref<class std::vector<handlegraph::handle_t>>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<_binder_ret_2>(std::move(o));
+			else return pybind11::detail::cast_safe<class std::vector<handlegraph::handle_t>>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"MutableHandleGraph::divide_handle\"");
 	}
@@ -2185,7 +2179,7 @@ struct PyCallBack_handlegraph_MutablePathDeletableHandleGraph : public handlegra
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"MutableHandleGraph::optimize\"");
 	}
-	void apply_ordering(const class std::vector<struct handlegraph::handle_t, class std::allocator<struct handlegraph::handle_t> > & a0, bool a1) override { 
+	void apply_ordering(const class std::vector<handlegraph::handle_t> & a0, bool a1) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "apply_ordering");
 		if (overload) {
@@ -2289,12 +2283,12 @@ void bind_handlegraph_mutable_handle_graph(std::function< pybind11::module &(std
 		cl.def("create_edge", (void (handlegraph::MutableHandleGraph::*)(const struct handlegraph::handle_t &, const struct handlegraph::handle_t &)) &handlegraph::MutableHandleGraph::create_edge, "Create an edge connecting the given handles in the given order and orientations.\n Ignores existing edges.\n\nC++: handlegraph::MutableHandleGraph::create_edge(const struct handlegraph::handle_t &, const struct handlegraph::handle_t &) --> void", pybind11::arg("left"), pybind11::arg("right"));
 		cl.def("create_edge", (void (handlegraph::MutableHandleGraph::*)(const struct std::pair<struct handlegraph::handle_t, struct handlegraph::handle_t> &)) &handlegraph::MutableHandleGraph::create_edge, "Convenient wrapper for create_edge.\n\nC++: handlegraph::MutableHandleGraph::create_edge(const struct std::pair<struct handlegraph::handle_t, struct handlegraph::handle_t> &) --> void", pybind11::arg("edge"));
 		cl.def("apply_orientation", (struct handlegraph::handle_t (handlegraph::MutableHandleGraph::*)(const struct handlegraph::handle_t &)) &handlegraph::MutableHandleGraph::apply_orientation, "Alter the node that the given handle corresponds to so the orientation\n indicated by the handle becomes the node's local forward orientation.\n Rewrites all edges pointing to the node and the node's sequence to\n reflect this. Invalidates all handles to the node (including the one\n passed). Returns a new, valid handle to the node in its new forward\n orientation. Note that it is possible for the node's ID to change.\n Does not update any stored paths. May change the ordering of the underlying\n graph.\n\nC++: handlegraph::MutableHandleGraph::apply_orientation(const struct handlegraph::handle_t &) --> struct handlegraph::handle_t", pybind11::arg("handle"));
-		cl.def("divide_handle", (class std::vector<struct handlegraph::handle_t, class std::allocator<struct handlegraph::handle_t> > (handlegraph::MutableHandleGraph::*)(const struct handlegraph::handle_t &, const class std::vector<unsigned long, class std::allocator<unsigned long> > &)) &handlegraph::MutableHandleGraph::divide_handle, "Split a handle's underlying node at the given offsets in the handle's\n orientation. Returns all of the handles to the parts. Other handles to\n the node being split may be invalidated. The split pieces stay in the\n same local forward orientation as the original node, but the returned\n handles come in the order and orientation appropriate for the handle\n passed in.\n Updates stored paths.\n\nC++: handlegraph::MutableHandleGraph::divide_handle(const struct handlegraph::handle_t &, const class std::vector<unsigned long, class std::allocator<unsigned long> > &) --> class std::vector<struct handlegraph::handle_t, class std::allocator<struct handlegraph::handle_t> >", pybind11::arg("handle"), pybind11::arg("offsets"));
+		cl.def("divide_handle", (class std::vector<handlegraph::handle_t> (handlegraph::MutableHandleGraph::*)(const struct handlegraph::handle_t &, const class std::vector<unsigned long> &)) &handlegraph::MutableHandleGraph::divide_handle, "Split a handle's underlying node at the given offsets in the handle's\n orientation. Returns all of the handles to the parts. Other handles to\n the node being split may be invalidated. The split pieces stay in the\n same local forward orientation as the original node, but the returned\n handles come in the order and orientation appropriate for the handle\n passed in.\n Updates stored paths.\n\nC++: handlegraph::MutableHandleGraph::divide_handle(const struct handlegraph::handle_t &, const class std::vector<unsigned long> &) --> class std::vector<handlegraph::handle_t>", pybind11::arg("handle"), pybind11::arg("offsets"));
 		cl.def("divide_handle", (struct std::pair<struct handlegraph::handle_t, struct handlegraph::handle_t> (handlegraph::MutableHandleGraph::*)(const struct handlegraph::handle_t &, unsigned long)) &handlegraph::MutableHandleGraph::divide_handle, "Specialization of divide_handle for a single division point\n\nC++: handlegraph::MutableHandleGraph::divide_handle(const struct handlegraph::handle_t &, unsigned long) --> struct std::pair<struct handlegraph::handle_t, struct handlegraph::handle_t>", pybind11::arg("handle"), pybind11::arg("offset"));
 		cl.def("optimize", [](handlegraph::MutableHandleGraph &o) -> void { return o.optimize(); }, "");
 		cl.def("optimize", (void (handlegraph::MutableHandleGraph::*)(bool)) &handlegraph::MutableHandleGraph::optimize, "Adjust the representation of the graph in memory to improve performance.\n Optionally, allow the node IDs to be reassigned to further improve\n performance.\n Note: Ideally, this method is called one time once there is expected to be\n few graph modifications in the future.\n\nC++: handlegraph::MutableHandleGraph::optimize(bool) --> void", pybind11::arg("allow_id_reassignment"));
-		cl.def("apply_ordering", [](handlegraph::MutableHandleGraph &o, const class std::vector<struct handlegraph::handle_t, class std::allocator<struct handlegraph::handle_t> > & a0) -> void { return o.apply_ordering(a0); }, "", pybind11::arg("order"));
-		cl.def("apply_ordering", (void (handlegraph::MutableHandleGraph::*)(const class std::vector<struct handlegraph::handle_t, class std::allocator<struct handlegraph::handle_t> > &, bool)) &handlegraph::MutableHandleGraph::apply_ordering, "Reorder the graph's internal structure to match that given.\n This sets the order that is used for iteration in functions like for_each_handle.\n Optionally may compact the id space of the graph to match the ordering, from 1->|ordering|.\n This may be a no-op in the case of graph implementations that do not have any mechanism to maintain an ordering.\n\nC++: handlegraph::MutableHandleGraph::apply_ordering(const class std::vector<struct handlegraph::handle_t, class std::allocator<struct handlegraph::handle_t> > &, bool) --> void", pybind11::arg("order"), pybind11::arg("compact_ids"));
+		cl.def("apply_ordering", [](handlegraph::MutableHandleGraph &o, const class std::vector<handlegraph::handle_t> & a0) -> void { return o.apply_ordering(a0); }, "", pybind11::arg("order"));
+		cl.def("apply_ordering", (void (handlegraph::MutableHandleGraph::*)(const class std::vector<handlegraph::handle_t> &, bool)) &handlegraph::MutableHandleGraph::apply_ordering, "Reorder the graph's internal structure to match that given.\n This sets the order that is used for iteration in functions like for_each_handle.\n Optionally may compact the id space of the graph to match the ordering, from 1->|ordering|.\n This may be a no-op in the case of graph implementations that do not have any mechanism to maintain an ordering.\n\nC++: handlegraph::MutableHandleGraph::apply_ordering(const class std::vector<handlegraph::handle_t> &, bool) --> void", pybind11::arg("order"), pybind11::arg("compact_ids"));
 		cl.def("set_id_increment", (void (handlegraph::MutableHandleGraph::*)(const long long &)) &handlegraph::MutableHandleGraph::set_id_increment, "Set a minimum id to increment the id space by, used as a hint during construction.\n May have no effect on a backing implementation.\n\nC++: handlegraph::MutableHandleGraph::set_id_increment(const long long &) --> void", pybind11::arg("min_id"));
 		cl.def("increment_node_ids", (void (handlegraph::MutableHandleGraph::*)(long long)) &handlegraph::MutableHandleGraph::increment_node_ids, "Add the given value to all node IDs.\n Has a default implementation in terms of reassign_node_ids, but can be\n implemented more efficiently in some graphs.\n\nC++: handlegraph::MutableHandleGraph::increment_node_ids(long long) --> void", pybind11::arg("increment"));
 		cl.def("reassign_node_ids", (void (handlegraph::MutableHandleGraph::*)(const class std::function<long long (const long long &)> &)) &handlegraph::MutableHandleGraph::reassign_node_ids, "Renumber all node IDs using the given function, which, given an old ID, returns the new ID.\n Modifies the graph in place. Invalidates all outstanding handles.\n If the graph supports paths, they also must be updated.\n The mapping function may return 0. In this case, the input ID will\n remain unchanged. The mapping function should not return any ID for\n which it would return 0.\n\nC++: handlegraph::MutableHandleGraph::reassign_node_ids(const class std::function<long long (const long long &)> &) --> void", pybind11::arg("get_new_id"));
