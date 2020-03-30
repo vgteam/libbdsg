@@ -41,6 +41,9 @@ uint64_t ODGI::get_node_rank(const nid_t& node_id) const {
 
 /// set the id increment, used when the graph starts at a high id to reduce loading costs
 void ODGI::set_id_increment(const nid_t& min_id) {
+    if (get_node_count() > 0) {
+        increment_node_ids(min_id - _id_increment);
+    }
     _id_increment = min_id;
 }
 
@@ -449,11 +452,14 @@ handle_t ODGI::create_hidden_handle(const std::string& sequence) {
 handle_t ODGI::create_handle(const std::string& sequence, const nid_t& id) {
     assert(sequence.size());
     assert(id > 0);
-    if (id > node_v.size()) {
-        uint64_t to_add = id - node_v.size();
+    
+    nid_t internal_id = id - _id_increment;
+    
+    if (internal_id > node_v.size()) {
+        uint64_t to_add = internal_id - node_v.size();
         uint64_t old_size = node_v.size();
         // realloc
-        node_v.resize((uint64_t)id);
+        node_v.resize((uint64_t)internal_id);
         _node_count = node_v.size();
         // mark empty nodes
         for (uint64_t i = 0; i < to_add; ++i) {
@@ -463,14 +469,14 @@ handle_t ODGI::create_handle(const std::string& sequence, const nid_t& id) {
         }
     }
     // update min/max node ids
-    _max_node_id = max(id, _max_node_id);
+    _max_node_id = max(internal_id, _max_node_id);
     if (_min_node_id) {
-        _min_node_id = (uint64_t)min(id, _min_node_id);
+        _min_node_id = (uint64_t)min(internal_id, _min_node_id);
     } else {
-        _min_node_id = id;
+        _min_node_id = internal_id;
     }
     // add to node vector
-    uint64_t handle_rank = (uint64_t)id-1;
+    uint64_t handle_rank = (uint64_t)internal_id-1;
     // set its values
     auto& node = node_v[handle_rank];
     node.set_sequence(sequence);

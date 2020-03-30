@@ -96,7 +96,7 @@ void test_deletable_handle_graphs() {
         implementations.push_back(&hg);
 
         ODGI og;
-        //implementations.push_back(&og);
+        implementations.push_back(&og);
         
         // And test them
         
@@ -1157,7 +1157,7 @@ void test_deletable_handle_graphs() {
         implementations.push_back(&hg);
         
         ODGI og;
-        //implementations.push_back(&og);
+        implementations.push_back(&og);
         
         for (DeletableHandleGraph* implementation : implementations) {
             
@@ -2608,11 +2608,12 @@ void test_vectorizable_overlays() {
     
     bdsg::PackedGraph pg;
     bdsg::HashGraph hg;
+    bdsg::ODGI og;
     
     vector<MutablePathDeletableHandleGraph*> implementations;
     implementations.push_back(&pg);
     implementations.push_back(&hg);
-    //implementations.push_back(&og);
+    implementations.push_back(&og);
     
     for (MutablePathDeletableHandleGraph* implementation : implementations) {
         
