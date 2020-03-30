@@ -1,12 +1,21 @@
 #include <functional>
+#include <handlegraph/deletable_handle_graph.hpp>
 #include <handlegraph/handle_graph.hpp>
+#include <handlegraph/mutable_handle_graph.hpp>
+#include <handlegraph/mutable_path_deletable_handle_graph.hpp>
+#include <handlegraph/mutable_path_handle_graph.hpp>
 #include <handlegraph/path_handle_graph.hpp>
-#include <handlegraph/path_position_handle_graph.hpp>
+#include <handlegraph/serializable_handle_graph.hpp>
 #include <handlegraph/types.hpp>
+#include <ios>
+#include <istream>
 #include <iterator>
 #include <memory>
+#include <ostream>
 #include <sstream> // __str__
+#include <streambuf>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <pybind11/pybind11.h>
@@ -26,39 +35,39 @@
 	PYBIND11_MAKE_OPAQUE(std::shared_ptr<void>);
 #endif
 
-// handlegraph::PathPositionHandleGraph file:handlegraph/path_position_handle_graph.hpp line:16
-struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::PathPositionHandleGraph {
-	using handlegraph::PathPositionHandleGraph::PathPositionHandleGraph;
+// handlegraph::MutablePathDeletableHandleGraph file:handlegraph/mutable_path_deletable_handle_graph.hpp line:17
+struct PyCallBack_handlegraph_MutablePathDeletableHandleGraph : public handlegraph::MutablePathDeletableHandleGraph {
+	using handlegraph::MutablePathDeletableHandleGraph::MutablePathDeletableHandleGraph;
 
-	unsigned long get_path_length(const struct handlegraph::path_handle_t & a0) const override { 
+	void destroy_path(const struct handlegraph::path_handle_t & a0) override { 
 		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "get_path_length");
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "destroy_path");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
-				static pybind11::detail::overload_caster_t<unsigned long> caster;
-				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
+				static pybind11::detail::overload_caster_t<void> caster;
+				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			else return pybind11::detail::cast_safe<void>(std::move(o));
 		}
-		pybind11::pybind11_fail("Tried to call pure virtual function \"PathPositionHandleGraph::get_path_length\"");
+		pybind11::pybind11_fail("Tried to call pure virtual function \"MutablePathHandleGraph::destroy_path\"");
 	}
-	unsigned long get_position_of_step(const struct handlegraph::step_handle_t & a0) const override { 
+	struct handlegraph::path_handle_t create_path_handle(const std::string & a0, bool a1) override { 
 		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "get_position_of_step");
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "create_path_handle");
 		if (overload) {
-			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
-				static pybind11::detail::overload_caster_t<unsigned long> caster;
-				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
+			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::path_handle_t>::value) {
+				static pybind11::detail::overload_caster_t<struct handlegraph::path_handle_t> caster;
+				return pybind11::detail::cast_ref<struct handlegraph::path_handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			else return pybind11::detail::cast_safe<struct handlegraph::path_handle_t>(std::move(o));
 		}
-		pybind11::pybind11_fail("Tried to call pure virtual function \"PathPositionHandleGraph::get_position_of_step\"");
+		pybind11::pybind11_fail("Tried to call pure virtual function \"MutablePathHandleGraph::create_path_handle\"");
 	}
-	struct handlegraph::step_handle_t get_step_at_position(const struct handlegraph::path_handle_t & a0, const unsigned long & a1) const override { 
+	struct handlegraph::step_handle_t append_step(const struct handlegraph::path_handle_t & a0, const struct handlegraph::handle_t & a1) override { 
 		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "get_step_at_position");
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "append_step");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::step_handle_t>::value) {
@@ -67,24 +76,51 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 			}
 			else return pybind11::detail::cast_safe<struct handlegraph::step_handle_t>(std::move(o));
 		}
-		pybind11::pybind11_fail("Tried to call pure virtual function \"PathPositionHandleGraph::get_step_at_position\"");
+		pybind11::pybind11_fail("Tried to call pure virtual function \"MutablePathHandleGraph::append_step\"");
 	}
-	bool for_each_step_position_on_handle(const struct handlegraph::handle_t & a0, const class std::function<bool (const struct handlegraph::step_handle_t &, const bool &, const unsigned long &)> & a1) const override { 
+	struct handlegraph::step_handle_t prepend_step(const struct handlegraph::path_handle_t & a0, const struct handlegraph::handle_t & a1) override { 
 		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "for_each_step_position_on_handle");
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "prepend_step");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
-			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::overload_caster_t<bool> caster;
-				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::step_handle_t>::value) {
+				static pybind11::detail::overload_caster_t<struct handlegraph::step_handle_t> caster;
+				return pybind11::detail::cast_ref<struct handlegraph::step_handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			else return pybind11::detail::cast_safe<struct handlegraph::step_handle_t>(std::move(o));
 		}
-		return PathPositionHandleGraph::for_each_step_position_on_handle(a0, a1);
+		pybind11::pybind11_fail("Tried to call pure virtual function \"MutablePathHandleGraph::prepend_step\"");
+	}
+	using _binder_ret_0 = struct std::pair<struct handlegraph::step_handle_t, struct handlegraph::step_handle_t>;
+	_binder_ret_0 rewrite_segment(const struct handlegraph::step_handle_t & a0, const struct handlegraph::step_handle_t & a1, const class std::vector<handlegraph::handle_t> & a2) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "rewrite_segment");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1, a2);
+			if (pybind11::detail::cast_is_temporary_value_reference<_binder_ret_0>::value) {
+				static pybind11::detail::overload_caster_t<_binder_ret_0> caster;
+				return pybind11::detail::cast_ref<_binder_ret_0>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<_binder_ret_0>(std::move(o));
+		}
+		pybind11::pybind11_fail("Tried to call pure virtual function \"MutablePathHandleGraph::rewrite_segment\"");
+	}
+	void set_circularity(const struct handlegraph::path_handle_t & a0, bool a1) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "set_circularity");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
+			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
+				static pybind11::detail::overload_caster_t<void> caster;
+				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<void>(std::move(o));
+		}
+		pybind11::pybind11_fail("Tried to call pure virtual function \"MutablePathHandleGraph::set_circularity\"");
 	}
 	unsigned long get_path_count() const override { 
 		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "get_path_count");
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "get_path_count");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
 			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
@@ -97,7 +133,7 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 	}
 	bool has_path(const std::string & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "has_path");
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "has_path");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
@@ -110,7 +146,7 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 	}
 	struct handlegraph::path_handle_t get_path_handle(const std::string & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "get_path_handle");
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "get_path_handle");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::path_handle_t>::value) {
@@ -123,7 +159,7 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 	}
 	std::string get_path_name(const struct handlegraph::path_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "get_path_name");
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "get_path_name");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<std::string>::value) {
@@ -136,7 +172,7 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 	}
 	bool get_is_circular(const struct handlegraph::path_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "get_is_circular");
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "get_is_circular");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
@@ -149,7 +185,7 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 	}
 	unsigned long get_step_count(const struct handlegraph::path_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "get_step_count");
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "get_step_count");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
@@ -162,7 +198,7 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 	}
 	struct handlegraph::handle_t get_handle_of_step(const struct handlegraph::step_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "get_handle_of_step");
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "get_handle_of_step");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::handle_t>::value) {
@@ -175,7 +211,7 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 	}
 	struct handlegraph::path_handle_t get_path_handle_of_step(const struct handlegraph::step_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "get_path_handle_of_step");
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "get_path_handle_of_step");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::path_handle_t>::value) {
@@ -188,7 +224,7 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 	}
 	struct handlegraph::step_handle_t path_begin(const struct handlegraph::path_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "path_begin");
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "path_begin");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::step_handle_t>::value) {
@@ -201,7 +237,7 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 	}
 	struct handlegraph::step_handle_t path_end(const struct handlegraph::path_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "path_end");
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "path_end");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::step_handle_t>::value) {
@@ -214,7 +250,7 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 	}
 	struct handlegraph::step_handle_t path_back(const struct handlegraph::path_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "path_back");
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "path_back");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::step_handle_t>::value) {
@@ -227,7 +263,7 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 	}
 	struct handlegraph::step_handle_t path_front_end(const struct handlegraph::path_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "path_front_end");
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "path_front_end");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::step_handle_t>::value) {
@@ -240,7 +276,7 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 	}
 	bool has_next_step(const struct handlegraph::step_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "has_next_step");
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "has_next_step");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
@@ -253,7 +289,7 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 	}
 	bool has_previous_step(const struct handlegraph::step_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "has_previous_step");
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "has_previous_step");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
@@ -266,7 +302,7 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 	}
 	struct handlegraph::step_handle_t get_next_step(const struct handlegraph::step_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "get_next_step");
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "get_next_step");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::step_handle_t>::value) {
@@ -279,7 +315,7 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 	}
 	struct handlegraph::step_handle_t get_previous_step(const struct handlegraph::step_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "get_previous_step");
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "get_previous_step");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::step_handle_t>::value) {
@@ -292,7 +328,7 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 	}
 	bool for_each_path_handle_impl(const class std::function<bool (const struct handlegraph::path_handle_t &)> & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "for_each_path_handle_impl");
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "for_each_path_handle_impl");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
@@ -305,7 +341,7 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 	}
 	bool for_each_step_on_handle_impl(const struct handlegraph::handle_t & a0, const class std::function<bool (const struct handlegraph::step_handle_t &)> & a1) const override { 
 		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "for_each_step_on_handle_impl");
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "for_each_step_on_handle_impl");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
@@ -318,7 +354,7 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 	}
 	class std::vector<handlegraph::step_handle_t> steps_of_handle(const struct handlegraph::handle_t & a0, bool a1) const override { 
 		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "steps_of_handle");
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "steps_of_handle");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<class std::vector<handlegraph::step_handle_t>>::value) {
@@ -331,7 +367,7 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 	}
 	bool is_empty(const struct handlegraph::path_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "is_empty");
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "is_empty");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
@@ -344,7 +380,7 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 	}
 	bool has_node(long long a0) const override { 
 		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "has_node");
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "has_node");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
@@ -357,7 +393,7 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 	}
 	struct handlegraph::handle_t get_handle(const long long & a0, bool a1) const override { 
 		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "get_handle");
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "get_handle");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::handle_t>::value) {
@@ -370,7 +406,7 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 	}
 	long long get_id(const struct handlegraph::handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "get_id");
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "get_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
@@ -383,7 +419,7 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 	}
 	bool get_is_reverse(const struct handlegraph::handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "get_is_reverse");
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "get_is_reverse");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
@@ -396,7 +432,7 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 	}
 	struct handlegraph::handle_t flip(const struct handlegraph::handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "flip");
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "flip");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::handle_t>::value) {
@@ -409,7 +445,7 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 	}
 	unsigned long get_length(const struct handlegraph::handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "get_length");
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "get_length");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
@@ -422,7 +458,7 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 	}
 	std::string get_sequence(const struct handlegraph::handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "get_sequence");
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "get_sequence");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<std::string>::value) {
@@ -435,7 +471,7 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 	}
 	unsigned long get_node_count() const override { 
 		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "get_node_count");
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "get_node_count");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
 			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
@@ -448,7 +484,7 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 	}
 	long long min_node_id() const override { 
 		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "min_node_id");
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "min_node_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
 			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
@@ -461,7 +497,7 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 	}
 	long long max_node_id() const override { 
 		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "max_node_id");
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "max_node_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
 			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
@@ -474,7 +510,7 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 	}
 	unsigned long get_degree(const struct handlegraph::handle_t & a0, bool a1) const override { 
 		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "get_degree");
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "get_degree");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
@@ -487,7 +523,7 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 	}
 	bool has_edge(const struct handlegraph::handle_t & a0, const struct handlegraph::handle_t & a1) const override { 
 		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "has_edge");
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "has_edge");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
@@ -500,7 +536,7 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 	}
 	unsigned long get_edge_count() const override { 
 		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "get_edge_count");
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "get_edge_count");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
 			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
@@ -513,7 +549,7 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 	}
 	unsigned long get_total_length() const override { 
 		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "get_total_length");
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "get_total_length");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
 			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
@@ -526,7 +562,7 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 	}
 	char get_base(const struct handlegraph::handle_t & a0, unsigned long a1) const override { 
 		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "get_base");
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "get_base");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<char>::value) {
@@ -539,7 +575,7 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 	}
 	std::string get_subsequence(const struct handlegraph::handle_t & a0, unsigned long a1, unsigned long a2) const override { 
 		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "get_subsequence");
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "get_subsequence");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1, a2);
 			if (pybind11::detail::cast_is_temporary_value_reference<std::string>::value) {
@@ -552,7 +588,7 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 	}
 	bool follow_edges_impl(const struct handlegraph::handle_t & a0, bool a1, const class std::function<bool (const struct handlegraph::handle_t &)> & a2) const override { 
 		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "follow_edges_impl");
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "follow_edges_impl");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1, a2);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
@@ -565,7 +601,7 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 	}
 	bool for_each_handle_impl(const class std::function<bool (const struct handlegraph::handle_t &)> & a0, bool a1) const override { 
 		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathPositionHandleGraph *>(this), "for_each_handle_impl");
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "for_each_handle_impl");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
@@ -576,18 +612,190 @@ struct PyCallBack_handlegraph_PathPositionHandleGraph : public handlegraph::Path
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::for_each_handle_impl\"");
 	}
+	struct handlegraph::handle_t create_handle(const std::string & a0) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "create_handle");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::handle_t>::value) {
+				static pybind11::detail::overload_caster_t<struct handlegraph::handle_t> caster;
+				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
+		}
+		pybind11::pybind11_fail("Tried to call pure virtual function \"MutableHandleGraph::create_handle\"");
+	}
+	struct handlegraph::handle_t create_handle(const std::string & a0, const long long & a1) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "create_handle");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
+			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::handle_t>::value) {
+				static pybind11::detail::overload_caster_t<struct handlegraph::handle_t> caster;
+				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
+		}
+		pybind11::pybind11_fail("Tried to call pure virtual function \"MutableHandleGraph::create_handle\"");
+	}
+	void create_edge(const struct handlegraph::handle_t & a0, const struct handlegraph::handle_t & a1) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "create_edge");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
+			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
+				static pybind11::detail::overload_caster_t<void> caster;
+				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<void>(std::move(o));
+		}
+		pybind11::pybind11_fail("Tried to call pure virtual function \"MutableHandleGraph::create_edge\"");
+	}
+	struct handlegraph::handle_t apply_orientation(const struct handlegraph::handle_t & a0) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "apply_orientation");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::handle_t>::value) {
+				static pybind11::detail::overload_caster_t<struct handlegraph::handle_t> caster;
+				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
+		}
+		pybind11::pybind11_fail("Tried to call pure virtual function \"MutableHandleGraph::apply_orientation\"");
+	}
+	class std::vector<handlegraph::handle_t> divide_handle(const struct handlegraph::handle_t & a0, const class std::vector<unsigned long> & a1) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "divide_handle");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
+			if (pybind11::detail::cast_is_temporary_value_reference<class std::vector<handlegraph::handle_t>>::value) {
+				static pybind11::detail::overload_caster_t<class std::vector<handlegraph::handle_t>> caster;
+				return pybind11::detail::cast_ref<class std::vector<handlegraph::handle_t>>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<class std::vector<handlegraph::handle_t>>(std::move(o));
+		}
+		pybind11::pybind11_fail("Tried to call pure virtual function \"MutableHandleGraph::divide_handle\"");
+	}
+	void optimize(bool a0) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "optimize");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
+				static pybind11::detail::overload_caster_t<void> caster;
+				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<void>(std::move(o));
+		}
+		pybind11::pybind11_fail("Tried to call pure virtual function \"MutableHandleGraph::optimize\"");
+	}
+	void apply_ordering(const class std::vector<handlegraph::handle_t> & a0, bool a1) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "apply_ordering");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
+			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
+				static pybind11::detail::overload_caster_t<void> caster;
+				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<void>(std::move(o));
+		}
+		pybind11::pybind11_fail("Tried to call pure virtual function \"MutableHandleGraph::apply_ordering\"");
+	}
+	void set_id_increment(const long long & a0) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "set_id_increment");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
+				static pybind11::detail::overload_caster_t<void> caster;
+				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<void>(std::move(o));
+		}
+		pybind11::pybind11_fail("Tried to call pure virtual function \"MutableHandleGraph::set_id_increment\"");
+	}
+	void increment_node_ids(long long a0) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "increment_node_ids");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
+				static pybind11::detail::overload_caster_t<void> caster;
+				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<void>(std::move(o));
+		}
+		return MutableHandleGraph::increment_node_ids(a0);
+	}
+	void reassign_node_ids(const class std::function<long long (const long long &)> & a0) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "reassign_node_ids");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
+				static pybind11::detail::overload_caster_t<void> caster;
+				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<void>(std::move(o));
+		}
+		pybind11::pybind11_fail("Tried to call pure virtual function \"MutableHandleGraph::reassign_node_ids\"");
+	}
+	void destroy_handle(const struct handlegraph::handle_t & a0) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "destroy_handle");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
+				static pybind11::detail::overload_caster_t<void> caster;
+				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<void>(std::move(o));
+		}
+		pybind11::pybind11_fail("Tried to call pure virtual function \"DeletableHandleGraph::destroy_handle\"");
+	}
+	void destroy_edge(const struct handlegraph::handle_t & a0, const struct handlegraph::handle_t & a1) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "destroy_edge");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
+			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
+				static pybind11::detail::overload_caster_t<void> caster;
+				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<void>(std::move(o));
+		}
+		pybind11::pybind11_fail("Tried to call pure virtual function \"DeletableHandleGraph::destroy_edge\"");
+	}
+	void clear() override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "clear");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>();
+			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
+				static pybind11::detail::overload_caster_t<void> caster;
+				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<void>(std::move(o));
+		}
+		pybind11::pybind11_fail("Tried to call pure virtual function \"DeletableHandleGraph::clear\"");
+	}
 };
 
-void bind_handlegraph_path_position_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M)
+void bind_handlegraph_mutable_path_deletable_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M)
 {
-	{ // handlegraph::PathPositionHandleGraph file:handlegraph/path_position_handle_graph.hpp line:16
-		pybind11::class_<handlegraph::PathPositionHandleGraph, std::shared_ptr<handlegraph::PathPositionHandleGraph>, PyCallBack_handlegraph_PathPositionHandleGraph, handlegraph::PathHandleGraph> cl(M("handlegraph"), "PathPositionHandleGraph", "This is the interface for a path handle graph with path positions");
-		cl.def( pybind11::init( [](){ return new PyCallBack_handlegraph_PathPositionHandleGraph(); } ) );
-		cl.def(pybind11::init<PyCallBack_handlegraph_PathPositionHandleGraph const &>());
-		cl.def("get_path_length", (unsigned long (handlegraph::PathPositionHandleGraph::*)(const struct handlegraph::path_handle_t &) const) &handlegraph::PathPositionHandleGraph::get_path_length, "Returns the length of a path measured in bases of sequence.\n\nC++: handlegraph::PathPositionHandleGraph::get_path_length(const struct handlegraph::path_handle_t &) const --> unsigned long", pybind11::arg("path_handle"));
-		cl.def("get_position_of_step", (unsigned long (handlegraph::PathPositionHandleGraph::*)(const struct handlegraph::step_handle_t &) const) &handlegraph::PathPositionHandleGraph::get_position_of_step, "Returns the position along the path of the beginning of this step measured in\n bases of sequence. In a circular path, positions start at the step returned by\n path_begin().\n\nC++: handlegraph::PathPositionHandleGraph::get_position_of_step(const struct handlegraph::step_handle_t &) const --> unsigned long", pybind11::arg("step"));
-		cl.def("get_step_at_position", (struct handlegraph::step_handle_t (handlegraph::PathPositionHandleGraph::*)(const struct handlegraph::path_handle_t &, const unsigned long &) const) &handlegraph::PathPositionHandleGraph::get_step_at_position, "Returns the step at this position, measured in bases of sequence starting at\n the step returned by path_begin(). If the position is past the end of the\n path, returns path_end().\n\nC++: handlegraph::PathPositionHandleGraph::get_step_at_position(const struct handlegraph::path_handle_t &, const unsigned long &) const --> struct handlegraph::step_handle_t", pybind11::arg("path"), pybind11::arg("position"));
-		cl.def("for_each_step_position_on_handle", (bool (handlegraph::PathPositionHandleGraph::*)(const struct handlegraph::handle_t &, const class std::function<bool (const struct handlegraph::step_handle_t &, const bool &, const unsigned long &)> &) const) &handlegraph::PathPositionHandleGraph::for_each_step_position_on_handle, "Execute an iteratee on each step on a path, along with its orientation relative to\n the path (true if it is reverse the orientation of the handle on the path), and its\n position measured in bases of sequence along the path. Positions are always measured\n on the forward strand.\n\n Iteration will stop early if the iteratee returns false. This method returns false if\n iteration was stopped early, else true\n\nC++: handlegraph::PathPositionHandleGraph::for_each_step_position_on_handle(const struct handlegraph::handle_t &, const class std::function<bool (const struct handlegraph::step_handle_t &, const bool &, const unsigned long &)> &) const --> bool", pybind11::arg("handle"), pybind11::arg("iteratee"));
-		cl.def("assign", (class handlegraph::PathPositionHandleGraph & (handlegraph::PathPositionHandleGraph::*)(const class handlegraph::PathPositionHandleGraph &)) &handlegraph::PathPositionHandleGraph::operator=, "C++: handlegraph::PathPositionHandleGraph::operator=(const class handlegraph::PathPositionHandleGraph &) --> class handlegraph::PathPositionHandleGraph &", pybind11::return_value_policy::automatic, pybind11::arg(""));
+	{ // handlegraph::MutablePathDeletableHandleGraph file:handlegraph/mutable_path_deletable_handle_graph.hpp line:17
+		pybind11::class_<handlegraph::MutablePathDeletableHandleGraph, std::shared_ptr<handlegraph::MutablePathDeletableHandleGraph>, PyCallBack_handlegraph_MutablePathDeletableHandleGraph, handlegraph::MutablePathMutableHandleGraph, handlegraph::DeletableHandleGraph> cl(M("handlegraph"), "MutablePathDeletableHandleGraph", "This is the interface for a graph which is deletable and which has paths which are also mutable.");
+		cl.def(pybind11::init<PyCallBack_handlegraph_MutablePathDeletableHandleGraph const &>());
+		cl.def( pybind11::init( [](){ return new PyCallBack_handlegraph_MutablePathDeletableHandleGraph(); } ) );
+		cl.def("assign", (class handlegraph::MutablePathDeletableHandleGraph & (handlegraph::MutablePathDeletableHandleGraph::*)(const class handlegraph::MutablePathDeletableHandleGraph &)) &handlegraph::MutablePathDeletableHandleGraph::operator=, "C++: handlegraph::MutablePathDeletableHandleGraph::operator=(const class handlegraph::MutablePathDeletableHandleGraph &) --> class handlegraph::MutablePathDeletableHandleGraph &", pybind11::return_value_policy::automatic, pybind11::arg(""));
+	}
+	{ // handlegraph::SerializableHandleGraph file:handlegraph/serializable_handle_graph.hpp line:18
+		pybind11::class_<handlegraph::SerializableHandleGraph, std::shared_ptr<handlegraph::SerializableHandleGraph>> cl(M("handlegraph"), "SerializableHandleGraph", "");
+		cl.def("get_magic_number", (unsigned int (handlegraph::SerializableHandleGraph::*)() const) &handlegraph::SerializableHandleGraph::get_magic_number, "Returns a number that is specific to the serialized implementation for type\n checking. Does not depend on the contents of any particular instantiation\n (i.e. behaves as if static, but cannot be static and virtual).\n\nC++: handlegraph::SerializableHandleGraph::get_magic_number() const --> unsigned int");
+		cl.def("serialize", (void (handlegraph::SerializableHandleGraph::*)(const std::string &) const) &handlegraph::SerializableHandleGraph::serialize, "Write the contents of this graph to a named file. Makes sure to include\n a leading magic number.\n\nC++: handlegraph::SerializableHandleGraph::serialize(const std::string &) const --> void", pybind11::arg("filename"));
+		cl.def("deserialize", (void (handlegraph::SerializableHandleGraph::*)(const std::string &)) &handlegraph::SerializableHandleGraph::deserialize, "Sets the contents of this graph to the contents of a serialized graph from\n a file. The serialized graph must be from the same implementation of the\n HandleGraph interface as is calling deserialize(). Can only be called on an\n empty graph.\n\nC++: handlegraph::SerializableHandleGraph::deserialize(const std::string &) --> void", pybind11::arg("filename"));
+		cl.def("assign", (class handlegraph::SerializableHandleGraph & (handlegraph::SerializableHandleGraph::*)(const class handlegraph::SerializableHandleGraph &)) &handlegraph::SerializableHandleGraph::operator=, "C++: handlegraph::SerializableHandleGraph::operator=(const class handlegraph::SerializableHandleGraph &) --> class handlegraph::SerializableHandleGraph &", pybind11::return_value_policy::automatic, pybind11::arg(""));
 	}
 }

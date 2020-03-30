@@ -20,12 +20,15 @@ else
 	CXXFLAGS := $(CXXFLAGS) -fopenmp
 endif
 
-.PHONY: .pre-build all clean install
+.PHONY: .pre-build all clean install docs
 
 all: $(LIB_DIR)/libbdsg.a
 
 test: all $(BIN_DIR)/test_libbdsg
 	./$(BIN_DIR)/test_libbdsg
+
+docs:
+	cd docs && $(MAKE) html
 
 .pre-build:
 	@if [ ! -d $(LIB_DIR) ]; then mkdir -p $(LIB_DIR); fi

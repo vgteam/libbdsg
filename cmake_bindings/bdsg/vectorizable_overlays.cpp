@@ -9,6 +9,7 @@
 #include <sstream> // __str__
 #include <string>
 #include <utility>
+#include <vector>
 
 #include <pybind11/pybind11.h>
 #include <functional>
@@ -17,7 +18,7 @@
 #include <pybind11/stl_bind.h>
 #include <pybind11/functional.h>
 #include <fstream>
-#include <bdsg/bindings.hpp>
+#include <bdsg/binder_hook_compile.hpp>
 
 
 #ifndef BINDER_PYBIND11_TYPE_CASTER
@@ -869,6 +870,19 @@ struct PyCallBack_bdsg_PathVectorizableOverlay : public bdsg::PathVectorizableOv
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::for_each_handle_impl\"");
 	}
+	class std::vector<handlegraph::step_handle_t> steps_of_handle(const struct handlegraph::handle_t & a0, bool a1) const override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PathVectorizableOverlay *>(this), "steps_of_handle");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
+			if (pybind11::detail::cast_is_temporary_value_reference<class std::vector<handlegraph::step_handle_t>>::value) {
+				static pybind11::detail::overload_caster_t<class std::vector<handlegraph::step_handle_t>> caster;
+				return pybind11::detail::cast_ref<class std::vector<handlegraph::step_handle_t>>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<class std::vector<handlegraph::step_handle_t>>(std::move(o));
+		}
+		return PathHandleGraph::steps_of_handle(a0, a1);
+	}
 	bool is_empty(const struct handlegraph::path_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PathVectorizableOverlay *>(this), "is_empty");
@@ -1459,6 +1473,19 @@ struct PyCallBack_bdsg_PathPositionVectorizableOverlay : public bdsg::PathPositi
 			else return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::for_each_handle_impl\"");
+	}
+	class std::vector<handlegraph::step_handle_t> steps_of_handle(const struct handlegraph::handle_t & a0, bool a1) const override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PathPositionVectorizableOverlay *>(this), "steps_of_handle");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
+			if (pybind11::detail::cast_is_temporary_value_reference<class std::vector<handlegraph::step_handle_t>>::value) {
+				static pybind11::detail::overload_caster_t<class std::vector<handlegraph::step_handle_t>> caster;
+				return pybind11::detail::cast_ref<class std::vector<handlegraph::step_handle_t>>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<class std::vector<handlegraph::step_handle_t>>(std::move(o));
+		}
+		return PathHandleGraph::steps_of_handle(a0, a1);
 	}
 	bool is_empty(const struct handlegraph::path_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;

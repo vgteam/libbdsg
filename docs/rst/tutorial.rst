@@ -174,13 +174,15 @@ This can be loaded into a new python session by using:
 Loading in Pre-Existing Data
 ============================
 
-Provided that data has been serialized in ODGI format, it is possible to read it directly from a file. Download a `*.odgi file` and load it into python with:
+Each graph implementation knows how to read files in its respective file format.
+
+For example, provided that data has been serialized in PackedGraph format, it is possible to read it directly from a file with :class:`bdsg.bdsg.PackedGraph`. Download :download:`this graph <../exdata/cactus-brca2.pg>` and load it into python with:
 
 .. code-block:: python
         
-        from bdsg.bdsg import ODGI
-        brca2 = ODGI()
-        brca2.load("cactus-brca2.odgi")
+        from bdsg.bdsg import PackedGraph
+        brca2 = PackedGraph()
+        brca2.deserialize("cactus-brca2.pg")
 
 We can poke around this data and get the sequence of the path with:
 
@@ -188,15 +190,34 @@ We can poke around this data and get the sequence of the path with:
 
         path_handle = [] 
         handles = []
-        brca2.for_each_path_handle(lambda y: path_handle.append(y))
+        brca2.for_each_path_handle(lambda y: path_handle.append(y) or True)
         brca2.for_each_step_in_path(path_handle[0], 
-                lambda y: handles.append(brca2.get_handle_of_step(y)))
+                lambda y: handles.append(brca2.get_handle_of_step(y)) or True)
         sequence = ""
         for handle in handles:
                 sequence += brca2.get_sequence(handle)
+        
         print(sequence)
+        
+Note how we are using ``or True`` in the iteratee callback lambda functions to make sure they return ``True``. If a callback returns ``False`` or ``None`` (which is what is returned when you don't return anything), iteration will stop early and the ``for_each`` call will return ``False``.
 
-Reading in a Graph from a Different Format
-==========================================
+Reading in a Graph from vg
+==========================
 
-Graph assembies can be created with `VG <https://github.com/vgteam/vg>`_. Currently the method to convert to odgi format is broken, but graphs can be converted to .json format and subsequently converted to odgi with :download:`this script <../exdata/jsoner.py>`.
+Graph assembies can be created with `vg <https://github.com/vgteam/vg>`_. However, graph files output by current versions of vg are generally not directly readable with the :mod:`bdsg` module, because vg uses a framing format that libbdsg does not understand by itself.
+
+To export a graph from vg, you can use the following command:
+
+.. code-block:: bash
+
+        vg convert --packed-out graph.vg | vg view --extract-tag PackedGraph > graph.pg
+    
+The resulting file can be loaded with :func:`bdsg.bdsg.PackedGraph.deserialize`.
+
+.. code-block:: python
+        
+        from bdsg.bdsg import PackedGraph
+        graph = PackedGraph()
+        graph.deserialize("graph.pg")
+
+To use :class:`bdsg.bdsg.HashGraph` instead, substitute ``--hash-out`` and ``HashGraph`` for ``--packed-out`` and ``PackedGraph``.
