@@ -18,7 +18,7 @@ Paths are a series of steps which link a path identifier and a handle.
 Breaking this down (with reference to the C++ types), we have a set of references to graph elements:
 
 - `handle_t`: an oriented traversal of a node (an opaque 64-bit identifier)
-- `id_t`: a node identifier (a 64-bit number)
+- `nid_t`: a node identifier (a 64-bit number)
 - `edge_t`: a pair of `handle_t`s, where the edge is directed from the first member of the pair to the second
 - `path_handle_t`: a reference to a path (an opaque 64-bit identifier)
 - `step_handle_t`: a reference to a single step of a path on one node traversal (an opaque 128-bit identifier)
