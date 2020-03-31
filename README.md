@@ -10,15 +10,32 @@ The main purpose of `libbdsg` is to provide high performance implementations of 
 - ODGI: balances speed and low memory usage
 - PackedGraph: prioritizes low memory usage
 
-All of these graph objects implement a common interface, so they can be used interchangeably and swapped easily.
+All of these graph objects implement a common interface defined by [`libhandlegraph`](https://github.com/vgteam/libhandlegraph), so they can be used interchangeably and swapped easily.
+
+#### Programming languages
+
+`libbdsg` is written in C++. Using the instructions below, it is also possible to generate Python bindings to the underlying C++ library. The Python API is documented [here](https://bdsg.readthedocs.io/). The documentation also includes a tutorial that serves as a useful introduction to `libhandlegraph` and `libbdsg` concepts.
 
 ## Building and Installation
 
-### Easy install
+#### With `cmake` (library and Python bindings)
 
-The easiest way to build `libbdsg` is to use the [easy install repository](https://github.com/vgteam/libbdsg-easy), which coordinates `libbdsg` and its dependencies using Git submodules.
+With CMake, we are able to build Python bindings that use `pybind11`. However, we only support out-of-source builds from a directory named `build`, and we still put the built artefacts in `lib` in the main project directory.
 
-### Dependencies
+To run a CMake-based build:
+```
+mkdir build
+cd build
+cmake ..
+make -j 8
+```
+
+If the build fails, the Python bindings may be out of date with respect to the source files. See [PYBIND_README.md](PYBIND_README.md) for instructions on updating them.
+
+
+### With `make` (library only)
+
+#### Dependencies
 
 `libbdsg` has a few external dependencies:
 
@@ -28,18 +45,16 @@ The easiest way to build `libbdsg` is to use the [easy install repository](https
 - [`DYNAMIC`](https://github.com/xxsds/DYNAMIC)
 - [`BBHash/alltypes`](https://github.com/rizkg/BBHash/tree/alltypes) 
 
-The build process assumes that these libraries and their headers have been installed in a place on the system where the compiler can find them (e.g. in `CPLUS_INCLUDE_PATH`).
+The build process with `make` assumes that these libraries and their headers have been installed in a place on the system where the compiler can find them (e.g. in `CPLUS_INCLUDE_PATH`).
 
-### Building
-
-#### With `make` (library only)
+#### Building
 
 The following commands will create the `libbdsg.a` library in the `lib` directory. 
 
 ```
 git clone https://github.com/vgteam/libbdsg.git
 cd libbdsg
-make -j8
+make -j 8
 ```
 
 To install system-wide (in `/usr/local/`):
@@ -54,16 +69,3 @@ Or to install in an alternate location:
 INSTALL_PREFIX=/other/path/ make install
 ```
 
-#### With `cmake` (library and Python bindings)
-
-With CMake, we are able to build Python bindings that use `pybind11`. However, we only support out-of-source builds from a directory named `build`, and we still put the built artefacts in `lib` in the main project directory.
-
-To run a CMake-based build:
-```
-mkdir build
-cd build
-cmake ..
-make -j8
-```
-
-If the build fails, the Python bindings may be out of date with respect to the source files. See [PYBIND_README.md](PYBIND_README.md) for instructions on updating them.
