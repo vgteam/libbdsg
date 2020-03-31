@@ -18,7 +18,7 @@ All of these graph objects implement a common interface defined by [`libhandlegr
 
 ## Building and Installation
 
-#### With `cmake` (library and Python bindings)
+### With `cmake` (library and Python bindings)
 
 With CMake, we are able to build Python bindings that use `pybind11`. However, we only support out-of-source builds from a directory named `build`, and we still put the built artefacts in `lib` in the main project directory.
 
