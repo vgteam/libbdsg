@@ -41,7 +41,7 @@ By using a generic identifier, we are able to encode the reference in a succinct
 Graph implementations that provide the HandleGraph API can thus have internal identifiers for graph elements that provide good performance for functions that interact with, query, or traverse the graph.
 Defining an abstract handle type allows each implementation to choose the right internal identifier model to use.
 In the HandleGraph API, functions are provided to convert between these internal identifiers and external ones.
-For instance, given a `handle_t`, you can ask the graph to tell you what node `id_t` and orientation (forward or reverse complement) it represents.
+For instance, given a `handle_t`, you can ask the graph to tell you what node `nid_t` and orientation (forward or reverse complement) it represents.
 We can ask the graph to give us the `path_handle_t` corresponding to a given path name, or find which `path_handle_t` and `handle_t` a given `step_handle_t` references.
 
 ## Why should we use a HandleGraph implementation?
