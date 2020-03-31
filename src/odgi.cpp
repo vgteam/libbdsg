@@ -494,12 +494,19 @@ handle_t ODGI::create_handle(const std::string& sequence, const nid_t& id) {
 }
     
 /// Remove the node belonging to the given handle and all of its edges.
-/// Does not update any stored paths.
-/// Invalidates the destroyed handle.
-/// May be called during serial for_each_handle iteration **ONLY** on the node being iterated.
-/// May **NOT** be called during parallel for_each_handle iteration.
-/// May **NOT** be called on the node from which edges are being followed during follow_edges.
 void ODGI::destroy_handle(const handle_t& handle) {
+
+    // Clear out any paths on this handle. 
+    // We need to first compose a list of distinct visiting paths.
+    std::unordered_set<path_handle_t> visiting_paths;
+    for_each_step_on_handle(handle, [&](const step_handle_t& step) {
+        visiting_paths.insert(get_path_handle_of_step(step)); 
+    });
+    for (auto& p : visiting_paths) {
+        // Then we destroy all of them.
+        destroy_path(p);
+    }
+
     handle_t fwd_handle = get_is_reverse(handle) ? flip(handle) : handle;
     uint64_t id = get_id(handle);
     // remove steps in edge lists

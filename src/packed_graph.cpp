@@ -702,6 +702,17 @@ namespace bdsg {
     }
     
     void PackedGraph::destroy_handle(const handle_t& handle) {
+    
+        // Clear out any paths on this handle. 
+        // We need to first compose a list of distinct visiting paths.
+        std::unordered_set<path_handle_t> visiting_paths;
+        for_each_step_on_handle(handle, [&](const step_handle_t& step) {
+            visiting_paths.insert(get_path_handle_of_step(step)); 
+        });
+        for (auto& p : visiting_paths) {
+            // Then we destroy all of them.
+            destroy_path(p);
+        }
         
         deleted_bases += get_length(handle);
         
