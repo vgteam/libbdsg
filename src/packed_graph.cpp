@@ -213,6 +213,14 @@ namespace bdsg {
     
     handle_t PackedGraph::create_handle(const string& sequence, const nid_t& id) {
         
+        if (sequence.empty()) {
+            throw std::runtime_error("error:[PackedGraph] tried to create an empty node with ID " + std::to_string(id));
+        }
+        
+        if (id <= 0) {
+            throw std::runtime_error("error:[PackedGraph] tried to create a node with non-positive ID " + std::to_string(id));
+        }
+        
         if (id >= min_id && id < min_id + nid_to_graph_iv.size()) {
             if (nid_to_graph_iv.get(id - min_id) != 0) {
                 throw std::runtime_error("error:[PackedGraph] tried to create a node with ID " + std::to_string(id) + ", but this ID already belongs to a different node");

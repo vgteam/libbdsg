@@ -116,17 +116,21 @@ public:
     nid_t max_node_id(void) const;
 
     /// Create a new node with the given sequence and return the handle.
+    /// The sequence may not be empty.
     handle_t create_handle(const std::string& sequence);
 
     /// Create a new node with the given id and sequence, then return the handle.
+    /// The sequence may not be empty.
     handle_t create_handle(const std::string& sequence, const nid_t& id);
     
     /// Remove the node belonging to the given handle and all of its edges.
-    /// Does not update any stored paths.
+    /// Destroys any paths in which the node participates.
     /// Invalidates the destroyed handle.
     /// May be called during serial for_each_handle iteration **ONLY** on the node being iterated.
     /// May **NOT** be called during parallel for_each_handle iteration.
     /// May **NOT** be called on the node from which edges are being followed during follow_edges.
+    /// May **NOT** be called during iteration over paths, if it would destroy a path.
+    /// May **NOT** be called during iteration along a path, if it would destroy that path.
     void destroy_handle(const handle_t& handle);
     
     /// Create an edge connecting the given handles in the given order and orientations.

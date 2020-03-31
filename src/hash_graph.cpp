@@ -28,6 +28,15 @@ namespace bdsg {
     }
     
     handle_t HashGraph::create_handle(const string& sequence, const nid_t& id) {
+        
+        if (sequence.empty()) {
+            throw std::runtime_error("error:[HashGraph] tried to create an empty node with ID " + std::to_string(id));
+        }
+        
+        if (id <= 0) {
+            throw std::runtime_error("error:[HashGraph] tried to create a node with non-positive ID " + std::to_string(id));
+        }
+        
         graph[id] = node_t(sequence);
         max_id = max(max_id, id);
         min_id = min(min_id, id);

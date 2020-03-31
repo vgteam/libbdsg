@@ -49,12 +49,12 @@ void ODGI::set_id_increment(const nid_t& min_id) {
 
 /// Add the given value to all node IDs
 void ODGI::increment_node_ids(nid_t increment) {
-    throw runtime_error("Not implemented");
+    throw runtime_error("Node IDs cannot yet be incremented in the ODGI graph implementation.");
 }
 
 /// Reassign all node IDs as specified by the old->new mapping function.
 void ODGI::reassign_node_ids(const std::function<nid_t(const nid_t&)>& get_new_id) {
-    throw runtime_error("Not implemented");
+    throw runtime_error("Node IDs cannot yet be reassigned in the ODGI graph implementation.");
 }
     
 /// Get the orientation of a handle
@@ -450,8 +450,14 @@ handle_t ODGI::create_hidden_handle(const std::string& sequence) {
 
 /// Create a new node with the given id and sequence, then return the handle.
 handle_t ODGI::create_handle(const std::string& sequence, const nid_t& id) {
-    assert(sequence.size());
-    assert(id > 0);
+    
+    if (sequence.empty()) {
+        throw std::runtime_error("error:[ODGI] tried to create an empty node with ID " + std::to_string(id));
+    }
+    
+    if (id <= 0) {
+        throw std::runtime_error("error:[ODGI] tried to create a node with non-positive ID " + std::to_string(id));
+    }
     
     nid_t internal_id = id - _id_increment;
     
