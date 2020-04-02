@@ -10,7 +10,7 @@
 #include <utility>
 #include <cstring>
 #include "dynamic.hpp"
-#include "bdsg/varint.hpp"
+#include "bdsg/internal/varint.hpp"
 
 namespace bdsg {
 

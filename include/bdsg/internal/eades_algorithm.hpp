@@ -9,7 +9,7 @@
  */
 
 #include <handlegraph/handle_graph.hpp>
-#include "bdsg/is_single_stranded.hpp"
+#include "bdsg/internal/is_single_stranded.hpp"
 
 #include <vector>
 #include <list>

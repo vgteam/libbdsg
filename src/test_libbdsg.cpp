@@ -16,10 +16,10 @@
 #include "bdsg/odgi.hpp"
 #include "bdsg/packed_graph.hpp"
 #include "bdsg/hash_graph.hpp"
-#include "bdsg/packed_structs.hpp"
-#include "bdsg/path_position_overlays.hpp"
-#include "bdsg/packed_path_position_overlays.hpp"
-#include "bdsg/vectorizable_overlays.hpp"
+#include "bdsg/internal/packed_structs.hpp"
+#include "bdsg/overlays/path_position_overlays.hpp"
+#include "bdsg/overlays/packed_path_position_overlays.hpp"
+#include "bdsg/overlays/vectorizable_overlays.hpp"
 
 using namespace bdsg;
 using namespace handlegraph;

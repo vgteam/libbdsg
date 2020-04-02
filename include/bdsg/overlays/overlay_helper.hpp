@@ -11,13 +11,31 @@
 #include <unordered_map>
 #include <map>
 
-#include "bdsg/vectorizable_overlays.hpp"
-#include "bdsg/packed_path_position_overlays.hpp"
+#include "bdsg/overlays/vectorizable_overlays.hpp"
+#include "bdsg/overlays/packed_path_position_overlays.hpp"
 
 namespace bdsg {
     
 using namespace std;
 using namespace handlegraph;
+
+// The templates used to generate the overlay helpers
+template<typename T, typename U, typename V> class OverlayHelper;
+template<typename T1, typename U1, typename V1, typename T2, typename U2, typename V2> class PairOverlayHelper;
+
+// Helper to ensure that a PathHandleGraph has the PathPositionHandleGraph interface
+typedef OverlayHelper<PathPositionHandleGraph, PackedPositionOverlay, PathHandleGraph> PathPositionOverlayHelper;
+
+// Helper to ensure that a HandleGraph has the VectorizableHandleGraph interface
+typedef OverlayHelper<VectorizableHandleGraph, VectorizableOverlay, HandleGraph> VectorizableOverlayHelper;
+
+// Helper to ensure that a PathHandleGraph has the PathVectorizableHandleGraph interface
+typedef OverlayHelper<VectorizableHandleGraph, PathVectorizableOverlay, PathHandleGraph> PathVectorizableOverlayHelper;
+
+// Helper to ensure that a PathHandleGraph has the PathPositionVectorizableHandleGraph interface
+typedef PairOverlayHelper<PathPositionHandleGraph, PackedPositionOverlay, PathHandleGraph,
+VectorizableHandleGraph, PathPositionVectorizableOverlay, PathPositionHandleGraph> PathPositionVectorizableOverlayHelper;
+
 
 /// T = desired class
 /// U = overlay class
@@ -62,13 +80,6 @@ protected:
     OverlayHelper<T1, U1, V1> overlay1;
     OverlayHelper<T2, U2, V2> overlay2;
 };
-
-/// Some commonly used overlays / combinations
-typedef OverlayHelper<PathPositionHandleGraph, PackedPositionOverlay, PathHandleGraph> PathPositionOverlayHelper;
-typedef OverlayHelper<VectorizableHandleGraph, VectorizableOverlay, HandleGraph> VectorizableOverlayHelper;
-typedef OverlayHelper<VectorizableHandleGraph, PathVectorizableOverlay, PathHandleGraph> PathVectorizableOverlayHelper;
-typedef PairOverlayHelper<PathPositionHandleGraph, PackedPositionOverlay, PathHandleGraph,
-                          VectorizableHandleGraph, PathPositionVectorizableOverlay, PathPositionHandleGraph> PathPositionVectorizableOverlayHelper;
 
 }
 

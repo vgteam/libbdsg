@@ -1,5 +1,5 @@
-#include "bdsg/node.hpp"
-#include "bdsg/varint.hpp"
+#include "bdsg/internal/node.hpp"
+#include "bdsg/internal/varint.hpp"
 #include <cassert>
 
 namespace bdsg {

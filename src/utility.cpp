@@ -1,4 +1,4 @@
-#include "bdsg/utility.hpp"
+#include "bdsg/internal/utility.hpp"
 
 // Binder can't always find OpenMP's headers.
 // So we hackily declare the one OppenMP function we use, to avoid including omp.h.

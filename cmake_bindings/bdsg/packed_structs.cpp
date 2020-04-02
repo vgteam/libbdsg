@@ -1,4 +1,4 @@
-#include <bdsg/packed_structs.hpp>
+#include <bdsg/internal/packed_structs.hpp>
 #include <ios>
 #include <istream>
 #include <ostream>
@@ -13,7 +13,7 @@
 #include <pybind11/stl_bind.h>
 #include <pybind11/functional.h>
 #include <fstream>
-#include <bdsg/binder_hook_compile.hpp>
+#include <bdsg/internal/binder_hook_compile.hpp>
 
 
 #ifndef BINDER_PYBIND11_TYPE_CASTER

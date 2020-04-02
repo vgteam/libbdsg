@@ -5,8 +5,8 @@
 #include <tuple>
 #include <type_traits>
 
-#include "bdsg/wang_hash.hpp"
-#include "bdsg/packed_structs.hpp"
+#include "bdsg/internal/wang_hash.hpp"
+#include "bdsg/internal/packed_structs.hpp"
 
 // Uncomment these to use dense hash tables:
 //#define USE_DENSE_HASH

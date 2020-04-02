@@ -1,4 +1,4 @@
-#include <bdsg/wang_hash.hpp>
+#include <bdsg/internal/wang_hash.hpp>
 
 #include <pybind11/pybind11.h>
 #include <functional>
@@ -7,7 +7,7 @@
 #include <pybind11/stl_bind.h>
 #include <pybind11/functional.h>
 #include <fstream>
-#include <bdsg/binder_hook_compile.hpp>
+#include <bdsg/internal/binder_hook_compile.hpp>
 
 
 #ifndef BINDER_PYBIND11_TYPE_CASTER
