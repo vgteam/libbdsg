@@ -2,7 +2,7 @@
 
 ## Python Usage
 
-Using libbdsg in python is straightforward. After building libbdsg, make sure that the `bdsg.cpython*.so` file is on your `PYTHONPATH` or added through `sys.path`, and run `import libbdsg`.
+Using libbdsg in python is straightforward. After building libbdsg, make sure that the `bdsg.cpython*.so` file is on your `PYTHONPATH` or added through `sys.path`, and run `import bdsg`.
 
 ## Development Usage
 
