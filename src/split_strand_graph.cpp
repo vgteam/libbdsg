@@ -3,7 +3,7 @@
  */
 
 
-#include "bdsg/split_strand_graph.hpp"
+#include "bdsg/internal/split_strand_graph.hpp"
 
 #include <handlegraph/util.hpp>
 

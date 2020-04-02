@@ -14,7 +14,7 @@
 
 #include "sdsl/bit_vectors.hpp"
 
-#include "bdsg/hash_map.hpp"
+#include "bdsg/internal/hash_map.hpp"
 
 #include <handlegraph/handle_graph.hpp>
 #include <handlegraph/path_position_handle_graph.hpp>

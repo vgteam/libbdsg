@@ -2,7 +2,7 @@
 //  packed_structs.hpp
 //
 
-#include "bdsg/packed_structs.hpp"
+#include "bdsg/internal/packed_structs.hpp"
 
 
 namespace bdsg {

@@ -6,7 +6,7 @@
 
 //#define debug_eades
 
-#include "bdsg/eades_algorithm.hpp"
+#include "bdsg/internal/eades_algorithm.hpp"
 
 namespace bdsg {
 namespace algorithms {

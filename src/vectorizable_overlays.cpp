@@ -1,6 +1,6 @@
-#include "bdsg/vectorizable_overlays.hpp"
+#include "bdsg/overlays/vectorizable_overlays.hpp"
 #include "handlegraph/util.hpp"
-#include "bdsg/utility.hpp"
+#include "bdsg/internal/utility.hpp"
 
 namespace bdsg {
 

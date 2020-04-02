@@ -1,4 +1,4 @@
-#include "bdsg/path_position_overlays.hpp"
+#include "bdsg/overlays/path_position_overlays.hpp"
 
 namespace bdsg {
 

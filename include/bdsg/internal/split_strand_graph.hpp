@@ -8,7 +8,7 @@
  */
 
 #include <handlegraph/expanding_overlay_graph.hpp>
-#include "bdsg/utility.hpp"
+#include "bdsg/internal/utility.hpp"
 
 namespace bdsg {
 

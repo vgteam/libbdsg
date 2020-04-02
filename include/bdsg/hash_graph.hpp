@@ -11,9 +11,9 @@
 #include <handlegraph/mutable_path_deletable_handle_graph.hpp>
 #include <handlegraph/serializable_handle_graph.hpp>
 
-#include "bdsg/hash_map.hpp"
-#include "bdsg/utility.hpp"
-#include "bdsg/endianness.hpp"
+#include "bdsg/internal/hash_map.hpp"
+#include "bdsg/internal/utility.hpp"
+#include "bdsg/internal/endianness.hpp"
 
 namespace bdsg {
     

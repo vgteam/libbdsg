@@ -12,6 +12,8 @@ The main purpose of `libbdsg` is to provide high performance implementations of 
 
 All of these graph objects implement a common interface defined by [`libhandlegraph`](https://github.com/vgteam/libhandlegraph), so they can be used interchangeably and swapped easily.
 
+Additionally, `libbdsg` provides a few "overlays", which are applied to the graph implementations in order to expand their functionality. The expanded functionality is also described generically using `libhandlegraph` interfaces.
+
 #### Programming languages
 
 `libbdsg` is written in C++. Using the instructions below, it is also possible to generate Python bindings to the underlying C++ library. The Python API is documented [here](https://bdsg.readthedocs.io/). The documentation also includes a tutorial that serves as a useful introduction to `libhandlegraph` and `libbdsg` concepts.

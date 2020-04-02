@@ -15,8 +15,8 @@
 #include <handlegraph/util.hpp>
 #include <BooPHF.h>
 
-#include "bdsg/hash_map.hpp"
-#include "bdsg/packed_structs.hpp"
+#include "bdsg/internal/hash_map.hpp"
+#include "bdsg/internal/packed_structs.hpp"
 
 namespace bdsg {
     
