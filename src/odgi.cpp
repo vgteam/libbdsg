@@ -20,13 +20,13 @@ uint32_t ODGI::get_magic_number() const {
 
 /// Method to check if a node exists by ID
 bool ODGI::has_node(nid_t node_id) const {
-    uint64_t rank = get_node_rank(node_id);
+    uint64_t rank = id_to_rank(node_id);
     return (rank >= node_v.size() ? false : !deleted_node_bv.at(rank));
 }
 
 /// Look up the handle for the node with the given ID in the given orientation
 handle_t ODGI::get_handle(const nid_t& node_id, bool is_reverse) const {
-    return number_bool_packing::pack(get_node_rank(node_id), is_reverse);
+    return number_bool_packing::pack(id_to_rank(node_id), is_reverse);
 }
 
 /// Get the ID from a handle
@@ -35,12 +35,12 @@ nid_t ODGI::get_id(const handle_t& handle) const {
 }
 
 /// get the backing node rank for a given node id
-uint64_t ODGI::get_node_rank(const nid_t& node_id) const {
+uint64_t ODGI::id_to_rank(const nid_t& node_id) const {
     return node_id - _id_increment;
 }
 
 /// get the node id for the node with the given backing rank
-nid_t ODGI::get_rank_node(const uint64_t& rank) const {
+nid_t ODGI::rank_to_id(const uint64_t& rank) const {
     return rank + _id_increment;
 }
 
@@ -154,13 +154,13 @@ size_t ODGI::get_node_count(void) const {
 /// Return the smallest ID in the graph, or some smaller number if the
 /// smallest ID is unavailable. Return value is unspecified if the graph is empty.
 nid_t ODGI::min_node_id(void) const {
-    return get_rank_node(_min_node_rank);
+    return rank_to_id(_min_node_rank);
 }
     
 /// Return the largest ID in the graph, or some larger number if the
 /// largest ID is unavailable. Return value is unspecified if the graph is empty.
 nid_t ODGI::max_node_id(void) const {
-    return get_rank_node(_max_node_rank);
+    return rank_to_id(_max_node_rank);
 }
     
 ////////////////////////////////////////////////////////////////////////////
@@ -438,9 +438,9 @@ void ODGI::for_each_step_in_path(const path_handle_t& path, const std::function<
 handle_t ODGI::create_handle(const std::string& sequence) {
     // get first deleted node to recycle
     if (_deleted_node_count) {
-        return create_handle(sequence, get_rank_node(deleted_node_bv.select1(0)));
+        return create_handle(sequence, rank_to_id(deleted_node_bv.select1(0)));
     } else {
-        return create_handle(sequence, get_rank_node(node_v.size()));
+        return create_handle(sequence, rank_to_id(node_v.size()));
     }
 }
 
@@ -467,7 +467,7 @@ handle_t ODGI::create_handle(const std::string& sequence, const nid_t& id) {
     }
     
     // Give the node a rank, which is just how far above _id_increment it is.
-    uint64_t handle_rank = get_rank_node(id);
+    uint64_t handle_rank = id_to_rank(id);
     
     if (handle_rank >= node_v.size()) {
         uint64_t old_size = node_v.size();

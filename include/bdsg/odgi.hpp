@@ -486,10 +486,10 @@ private:
     void set_handle_sequence(const handle_t& handle, const std::string& seq);
 
     /// get the backing node rank for a given node id
-    uint64_t get_node_rank(const nid_t& node_id) const;
+    uint64_t id_to_rank(const nid_t& node_id) const;
     
     /// get the node id for the node with the given backing rank
-    nid_t get_rank_node(const uint64_t& rank) const;
+    nid_t rank_to_id(const uint64_t& rank) const;
 
 };
 
