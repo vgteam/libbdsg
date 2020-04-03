@@ -475,8 +475,9 @@ handle_t ODGI::create_handle(const std::string& sequence, const nid_t& id) {
     } else {
         _min_node_id = internal_id;
     }
+    // Give the node a rank. We can just use the internal ID, since that starts at 0.
+    uint64_t handle_rank = (uint64_t)internal_id;
     // add to node vector
-    uint64_t handle_rank = (uint64_t)internal_id-1;
     // set its values
     auto& node = node_v[handle_rank];
     node.set_sequence(sequence);
