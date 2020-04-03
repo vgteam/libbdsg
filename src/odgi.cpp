@@ -34,9 +34,14 @@ nid_t ODGI::get_id(const handle_t& handle) const {
     return number_bool_packing::unpack_number(handle) + _id_increment;
 }
 
-/// get the backing node for a given node id
+/// get the backing node rank for a given node id
 uint64_t ODGI::get_node_rank(const nid_t& node_id) const {
     return node_id - _id_increment;
+}
+
+/// get the node id for the node with the given backing rank
+nid_t ODGI::get_rank_node(const uint64_t& rank) const {
+    return rank + _id_increment;
 }
 
 /// set the id increment, used when the graph starts at a high id to reduce loading costs
@@ -149,13 +154,13 @@ size_t ODGI::get_node_count(void) const {
 /// Return the smallest ID in the graph, or some smaller number if the
 /// smallest ID is unavailable. Return value is unspecified if the graph is empty.
 nid_t ODGI::min_node_id(void) const {
-    return _min_node_id;
+    return get_rank_node(_min_node_rank);
 }
     
 /// Return the largest ID in the graph, or some larger number if the
 /// largest ID is unavailable. Return value is unspecified if the graph is empty.
 nid_t ODGI::max_node_id(void) const {
-    return _max_node_id;
+    return get_rank_node(_max_node_rank);
 }
     
 ////////////////////////////////////////////////////////////////////////////
@@ -433,9 +438,9 @@ void ODGI::for_each_step_in_path(const path_handle_t& path, const std::function<
 handle_t ODGI::create_handle(const std::string& sequence) {
     // get first deleted node to recycle
     if (_deleted_node_count) {
-        return create_handle(sequence, deleted_node_bv.select1(0)+_id_increment);
+        return create_handle(sequence, get_rank_node(deleted_node_bv.select1(0)));
     } else {
-        return create_handle(sequence, node_v.size()+_id_increment);
+        return create_handle(sequence, get_rank_node(node_v.size()));
     }
 }
 
@@ -453,15 +458,24 @@ handle_t ODGI::create_handle(const std::string& sequence, const nid_t& id) {
     assert(sequence.size());
     assert(id > 0);
     
-    nid_t internal_id = id - _id_increment;
+    if (id < _id_increment) {
+        // We would need to change the ID increment to take this node, and
+        // invalidate existing handles, which create_handle can't do.
+        throw std::runtime_error("ODGI graph cannot accept a new node with ID " +
+            std::to_string(id) + " in a graph with ID increment " + 
+            std::to_string(_id_increment));
+    }
     
-    if (internal_id > node_v.size()) {
-        uint64_t to_add = internal_id - node_v.size();
+    // Give the node a rank, which is just how far above _id_increment it is.
+    uint64_t handle_rank = get_rank_node(id);
+    
+    if (handle_rank > node_v.size()) {
+        uint64_t to_add = handle_rank - node_v.size();
         uint64_t old_size = node_v.size();
         // realloc
-        node_v.resize((uint64_t)internal_id);
+        node_v.resize(handle_rank);
         _node_count = node_v.size();
-        // mark empty nodes
+        // mark empty nodes (treat them as deleted)
         for (uint64_t i = 0; i < to_add; ++i) {
             // insert before final delimiter
             deleted_node_bv.insert(old_size, 1);
@@ -469,14 +483,13 @@ handle_t ODGI::create_handle(const std::string& sequence, const nid_t& id) {
         }
     }
     // update min/max node ids
-    _max_node_id = max(internal_id, _max_node_id);
-    if (_min_node_id) {
-        _min_node_id = (uint64_t)min(internal_id, _min_node_id);
+    _max_node_rank = max(handle_rank, _max_node_rank);
+    if (_min_node_rank) {
+        _min_node_rank = (uint64_t)min(handle_rank, _min_node_rank);
     } else {
-        _min_node_id = internal_id;
+        _min_node_rank = handle_rank;
     }
-    // Give the node a rank. We can just use the internal ID, since that starts at 0.
-    uint64_t handle_rank = (uint64_t)internal_id;
+    
     // add to node vector
     // set its values
     auto& node = node_v[handle_rank];
@@ -665,8 +678,8 @@ void ODGI::destroy_edge(const handle_t& left_h, const handle_t& right_h) {
 /// Remove all nodes and edges. Does not update any stored paths.
 void ODGI::clear(void) {
     suc_bv null_bv;
-    _max_node_id = 0;
-    _min_node_id = 0;
+    _max_node_rank = 0;
+    _min_node_rank = 0;
     _node_count = 0;
     _edge_count = 0;
     _path_count = 0;
@@ -1309,8 +1322,9 @@ std::pair<step_handle_t, step_handle_t> ODGI::rewrite_segment(const step_handle_
 void ODGI::display(void) const {
     std::cerr << "------ graph state ------" << std::endl;
 
-    std::cerr << "_max_node_id = " << _max_node_id << std::endl;
-    std::cerr << "_min_node_id = " << _min_node_id << std::endl;
+    std::cerr << "_id_increment = " << _id_increment << std::endl;
+    std::cerr << "_max_node_rank = " << _max_node_rank << std::endl;
+    std::cerr << "_min_node_rank = " << _min_node_rank << std::endl;
 
     //std::cerr << "graph_id_map" << "\t";
     //for (auto& k : graph_id_map) std::cerr << k.first << "->" << k.second << " "; std::cerr << std::endl;
@@ -1405,10 +1419,10 @@ void ODGI::to_gfa(std::ostream& out) const {
 long long int ODGI::serialize_and_measure(std::ostream& out) const {
     //rebuild_id_handle_mapping();
     long long int written = 0;
-    out.write((char*)&_max_node_id,sizeof(_max_node_id));
-    written += sizeof(_max_node_id);
-    out.write((char*)&_min_node_id,sizeof(_min_node_id));
-    written += sizeof(_min_node_id);
+    out.write((char*)&_max_node_rank,sizeof(_max_node_rank));
+    written += sizeof(_max_node_rank);
+    out.write((char*)&_min_node_rank,sizeof(_min_node_rank));
+    written += sizeof(_min_node_rank);
     out.write((char*)&_node_count,sizeof(_node_count));
     written += sizeof(_node_count);
     out.write((char*)&_edge_count,sizeof(_edge_count));
@@ -1459,8 +1473,8 @@ long long int ODGI::serialize_and_measure(std::ostream& out) const {
 
 void ODGI::load(std::istream& in) {
     //uint64_t written = 0;
-    in.read((char*)&_max_node_id,sizeof(_max_node_id));
-    in.read((char*)&_min_node_id,sizeof(_min_node_id));
+    in.read((char*)&_max_node_rank,sizeof(_max_node_rank));
+    in.read((char*)&_min_node_rank,sizeof(_min_node_rank));
     in.read((char*)&_node_count,sizeof(_node_count));
     in.read((char*)&_edge_count,sizeof(_edge_count));
     in.read((char*)&_path_count,sizeof(_path_count));

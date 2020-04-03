@@ -395,9 +395,11 @@ private:
     /// Mark deleted nodes here for translating graph ids into internal ranks
     suc_bv deleted_node_bv;
     uint64_t _deleted_node_count = 0;
-    /// efficient id to handle/sequence conversion
-    nid_t _max_node_id = 0;
-    nid_t _min_node_id = 0;
+    // efficient id to handle/sequence conversion
+    /// Max rank (distance above _id_increment) of a node in the graph
+    uint64_t _max_node_rank = 0;
+    /// Min rank (distance above _id_increment) of a node in the graph
+    uint64_t _min_node_rank = 0;
     nid_t _id_increment = 0;
     /// records nodes that are hidden, but used to compactly store path sequence that has been removed from the node space
     hash_set<uint64_t> graph_id_hidden_set;
@@ -485,6 +487,9 @@ private:
 
     /// get the backing node rank for a given node id
     uint64_t get_node_rank(const nid_t& node_id) const;
+    
+    /// get the node id for the node with the given backing rank
+    nid_t get_rank_node(const uint64_t& rank) const;
 
 };
 
