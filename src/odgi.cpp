@@ -469,14 +469,15 @@ handle_t ODGI::create_handle(const std::string& sequence, const nid_t& id) {
     // Give the node a rank, which is just how far above _id_increment it is.
     uint64_t handle_rank = get_rank_node(id);
     
-    if (handle_rank > node_v.size()) {
-        uint64_t to_add = handle_rank - node_v.size();
+    if (handle_rank >= node_v.size()) {
         uint64_t old_size = node_v.size();
-        // realloc
-        node_v.resize(handle_rank);
+        // realloc to have a last entry handle_rank
+        node_v.resize(handle_rank + 1);
         _node_count = node_v.size();
+        
         // mark empty nodes (treat them as deleted)
-        for (uint64_t i = 0; i < to_add; ++i) {
+        uint64_t added = _node_count - old_size;
+        for (uint64_t i = 0; i < added; ++i) {
             // insert before final delimiter
             deleted_node_bv.insert(old_size, 1);
             ++_deleted_node_count;
