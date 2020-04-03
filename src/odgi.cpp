@@ -31,12 +31,12 @@ handle_t ODGI::get_handle(const nid_t& node_id, bool is_reverse) const {
 
 /// Get the ID from a handle
 nid_t ODGI::get_id(const handle_t& handle) const {
-    return number_bool_packing::unpack_number(handle) + 1 + _id_increment;
+    return number_bool_packing::unpack_number(handle) + _id_increment;
 }
 
 /// get the backing node for a given node id
 uint64_t ODGI::get_node_rank(const nid_t& node_id) const {
-    return node_id - _id_increment - 1;
+    return node_id - _id_increment;
 }
 
 /// set the id increment, used when the graph starts at a high id to reduce loading costs
@@ -433,9 +433,9 @@ void ODGI::for_each_step_in_path(const path_handle_t& path, const std::function<
 handle_t ODGI::create_handle(const std::string& sequence) {
     // get first deleted node to recycle
     if (_deleted_node_count) {
-        return create_handle(sequence, deleted_node_bv.select1(0)+1);
+        return create_handle(sequence, deleted_node_bv.select1(0)+_id_increment);
     } else {
-        return create_handle(sequence, node_v.size()+1);
+        return create_handle(sequence, node_v.size()+_id_increment);
     }
 }
 
