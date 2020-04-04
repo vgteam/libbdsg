@@ -31,7 +31,7 @@ handle_t ODGI::get_handle(const nid_t& node_id, bool is_reverse) const {
 
 /// Get the ID from a handle
 nid_t ODGI::get_id(const handle_t& handle) const {
-    return number_bool_packing::unpack_number(handle) + _id_increment;
+    return rank_to_id(number_bool_packing::unpack_number(handle));
 }
 
 /// get the backing node rank for a given node id
@@ -154,6 +154,7 @@ size_t ODGI::get_node_count(void) const {
 /// Return the smallest ID in the graph, or some smaller number if the
 /// smallest ID is unavailable. Return value is unspecified if the graph is empty.
 nid_t ODGI::min_node_id(void) const {
+    // May overflow for empty graphs.
     return rank_to_id(_min_node_rank);
 }
     
@@ -289,7 +290,7 @@ step_handle_t ODGI::path_back(const path_handle_t& path_handle) const {
 step_handle_t ODGI::path_front_end(const path_handle_t& path_handle) const {
     step_handle_t step;
     as_integers(step)[0] = as_integer(path_handle);
-    as_integers(step)[0] = std::numeric_limits<uint64_t>::max()-1;
+    as_integers(step)[1] = std::numeric_limits<uint64_t>::max()-1;
     return step;
 }
 
@@ -297,7 +298,7 @@ step_handle_t ODGI::path_front_end(const path_handle_t& path_handle) const {
 step_handle_t ODGI::path_end(const path_handle_t& path_handle) const {
     step_handle_t step;
     as_integers(step)[0] = as_integer(path_handle);
-    as_integers(step)[0] = std::numeric_limits<uint64_t>::max();
+    as_integers(step)[1] = std::numeric_limits<uint64_t>::max();
     return step;
 }
 
@@ -483,13 +484,9 @@ handle_t ODGI::create_handle(const std::string& sequence, const nid_t& id) {
             ++_deleted_node_count;
         }
     }
-    // update min/max node ids
+    // update min/max node internal ranks
     _max_node_rank = max(handle_rank, _max_node_rank);
-    if (_min_node_rank) {
-        _min_node_rank = (uint64_t)min(handle_rank, _min_node_rank);
-    } else {
-        _min_node_rank = handle_rank;
-    }
+    _min_node_rank = min(handle_rank, _min_node_rank);
     
     // add to node vector
     // set its values
@@ -680,7 +677,7 @@ void ODGI::destroy_edge(const handle_t& left_h, const handle_t& right_h) {
 void ODGI::clear(void) {
     suc_bv null_bv;
     _max_node_rank = 0;
-    _min_node_rank = 0;
+    _min_node_rank = std::numeric_limits<decltype(_min_node_rank)>::max();
     _node_count = 0;
     _edge_count = 0;
     _path_count = 0;
@@ -1332,7 +1329,7 @@ void ODGI::display(void) const {
     std::cerr << "node_v" << "\t";
     for (uint64_t i = 0; i < node_v.size(); ++i) {
         auto& node = node_v.at(i);
-        nid_t node_id = i+1;
+        nid_t node_id = rank_to_id(i);
         std::cerr << node_id << ":" << node.sequence() << " ";
         const std::vector<uint64_t> node_edges = node.edges();
         for (uint64_t j = 0; j < node_edges.size(); ++j) {
@@ -1359,8 +1356,8 @@ void ODGI::display(void) const {
     for (uint64_t q = 0; q < path_metadata_v.size(); ++q) {
         auto& p = path_metadata_v.at(q);
         std::cerr << q << ":" << p.name << ":"
-                  << as_integers(p.first)[0] << "/" << as_integers(p.first)[1] << "->"
-                  << as_integers(p.last)[0] << "/" << as_integers(p.last)[1] << " ";
+                  << as_integers(p.first)[0] << "(" <<  get_id(as_handle(as_integers(p.first)[0])) << ")/" << as_integers(p.first)[1] << "->"
+                  << as_integers(p.last)[0] << "(" <<  get_id(as_handle(as_integers(p.last)[0])) << ")/" << as_integers(p.last)[1] << " ";
     } std::cerr << std::endl;
 
     // not dumped...

@@ -396,10 +396,12 @@ private:
     suc_bv deleted_node_bv;
     uint64_t _deleted_node_count = 0;
     // efficient id to handle/sequence conversion
-    /// Max rank (distance above _id_increment) of a node in the graph
+    /// Max rank (distance above _id_increment) of a node in the graph.
+    /// 0 if the graph is empty.
     uint64_t _max_node_rank = 0;
-    /// Min rank (distance above _id_increment) of a node in the graph
-    uint64_t _min_node_rank = 0;
+    /// Min rank (distance above _id_increment) of a node in the graph.
+    /// Maximum possible value if the graph is empty, for easy min().
+    uint64_t _min_node_rank = std::numeric_limits<decltype(_min_node_rank)>::max();
     nid_t _id_increment = 0;
     /// records nodes that are hidden, but used to compactly store path sequence that has been removed from the node space
     hash_set<uint64_t> graph_id_hidden_set;
