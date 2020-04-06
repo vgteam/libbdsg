@@ -5,6 +5,7 @@
 #include "bdsg/hash_graph.hpp"
 
 #include <handlegraph/util.hpp>
+#include <unordered_set>
 
 namespace bdsg {
     
@@ -28,6 +29,9 @@ namespace bdsg {
     }
     
     handle_t HashGraph::create_handle(const string& sequence, const nid_t& id) {
+       
+        // TODO: We can't actually ban empty nodes yet. vg::algorithms::extract_extending_graph needs them.
+        // Maybe define a tag interface for graphs that can have them?
         graph[id] = node_t(sequence);
         max_id = max(max_id, id);
         min_id = min(min_id, id);
@@ -305,6 +309,17 @@ namespace bdsg {
     }
     
     void HashGraph::destroy_handle(const handle_t& handle) {
+    
+        // Clear out any paths on this handle. 
+        // We need to first compose a list of distinct visiting paths.
+        std::unordered_set<path_handle_t> visiting_paths;
+        for_each_step_on_handle(handle, [&](const step_handle_t& step) {
+            visiting_paths.insert(get_path_handle_of_step(step)); 
+        });
+        for (auto& p : visiting_paths) {
+            // Then we destroy all of them.
+            destroy_path(p);
+        }
         
         // remove backwards references from edges on other nodes
         node_t& node = graph[get_id(handle)];
