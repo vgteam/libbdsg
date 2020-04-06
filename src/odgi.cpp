@@ -1431,6 +1431,7 @@ void ODGI::to_gfa(std::ostream& out) const {
 
 long long int ODGI::serialize_and_measure(std::ostream& out) const {
     //rebuild_id_handle_mapping();
+    // TODO: every write here needs an endianness-converting function!
     long long int written = 0;
     out.write((char*)&_max_node_id,sizeof(_max_node_id));
     written += sizeof(_max_node_id);
@@ -1451,8 +1452,8 @@ long long int ODGI::serialize_and_measure(std::ostream& out) const {
     size_t hidden_count = graph_id_hidden_set.size();
     out.write((char*)&hidden_count,sizeof(hidden_count));
     written += sizeof(hidden_count);
-    for (nid_t& hidden : graph_id_hidden_set) {
-        out.write((char*)&hidden,sizeof(hidden));
+    for (const nid_t& hidden : graph_id_hidden_set) {
+        out.write((const char*)&hidden,sizeof(hidden));
         written += sizeof(hidden);
     }
     assert(_node_count == node_v.size());
@@ -1492,7 +1493,7 @@ long long int ODGI::serialize_and_measure(std::ostream& out) const {
 }
 
 void ODGI::load(std::istream& in) {
-    //uint64_t written = 0;
+    // TODO: every read here needs an endianness-converting function!
     in.read((char*)&_max_node_id,sizeof(_max_node_id));
     in.read((char*)&_min_node_id,sizeof(_min_node_id));
     in.read((char*)&_node_count,sizeof(_node_count));
