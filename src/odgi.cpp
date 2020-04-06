@@ -46,6 +46,12 @@ nid_t ODGI::rank_to_id(const uint64_t& rank) const {
 
 /// set the id increment, used when the graph starts at a high id to reduce loading costs
 void ODGI::set_id_increment(const nid_t& min_id) {
+    if (min_id < 1) {
+        // Clamp at the low end to 1, because rank 0 needs at least ID 1.
+        set_id_increment(1);
+        return;
+    }
+    
     if (get_node_count() > 0) {
         increment_node_ids(min_id - _id_increment);
     }
@@ -54,7 +60,83 @@ void ODGI::set_id_increment(const nid_t& min_id) {
 
 /// Add the given value to all node IDs
 void ODGI::increment_node_ids(nid_t increment) {
-    throw runtime_error("Not implemented");
+    
+    if (deleted_node_bv.size() == _deleted_node_count) {
+        // Nothing is in this graph! Nothing to do!
+        return;
+    }
+
+    if (increment > 0) {
+        // Shift right
+        
+        // Make sure node and deletion vectors are big enough
+        size_t old_size = node_v.size();
+        size_t new_size = old_size + increment;
+        node_v.resize(new_size);
+        while (deleted_node_bv.size() < new_size + 1) {
+            // Put a bunch of new 0s before the final delimiting 1.
+            deleted_node_bv.insert(old_size, 0);
+        }
+        // Shift all the nodes and deletion flags up
+        for (size_t i = new_size - 1; i >= increment; i--) {
+            node_v[i] = node_v[i - increment];
+            deleted_node_bv[i] = deleted_node_bv[i - increment];
+        }
+        // Clear out the low end (everyone is deleted)
+        for (size_t i = 0; i < increment; i++) {
+            deleted_node_bv[i] = 1;
+        }
+        _deleted_node_count += increment;
+    } else if (increment < 0) {
+        // Shift left
+        
+        if (-increment >= node_v.size()) {
+            throw std::runtime_error("Cannot shift IDs left by " + std::to_string(-increment) +
+                " because graph nodes would be destroyed.");
+        }
+        
+        for (size_t i = 0; i < -increment; i++) {
+            // Make sure all the slots we are clobbering are empty.
+            if (!deleted_node_bv[i]) {
+                throw std::runtime_error("Cannot shift IDs left by " + std::to_string(-increment) +
+                    " because graph nodes would be destroyed.");
+            }
+        }
+        
+        // Shift everything down
+        for (size_t i = 0; i < node_v.size() + increment; i++) {
+            node_v[i] = node_v[i - increment];
+            deleted_node_bv[i] = deleted_node_bv[i - increment];
+        }
+        // Clear out the high end (everyone is deleted).
+        // No need to touch the final delimiting 1.
+        for (size_t i = deleted_node_bv.size() + increment; i < deleted_node_bv.size() - 1; i++) {
+            deleted_node_bv[i] = 1;
+        }
+        
+        // Total number of deleted nodes is conserved.
+    } else {
+        // No shift. Nothing to do!
+        return;
+    }
+        
+    // Replace the hidden set
+    decltype(graph_id_hidden_set) new_hidden_set;
+    for (auto& item : graph_id_hidden_set) {
+        new_hidden_set.insert(item + increment);
+    }
+    graph_id_hidden_set = std::move(new_hidden_set);
+    
+    // Adjust the min and max node ranks
+    _max_node_rank += increment;
+    _min_node_rank += increment;
+
+    for (auto& path : path_metadata_v) {
+        // Increment all the ranks stored in the normal handles inside the step
+        // handles for path begin and end.
+        set_handle_of_step(path.first, add_to_number(get_handle_of_step(path.first), increment));
+        set_handle_of_step(path.last, add_to_number(get_handle_of_step(path.last), increment));
+    }
 }
 
 /// Reassign all node IDs as specified by the old->new mapping function.
@@ -439,7 +521,9 @@ void ODGI::for_each_step_in_path(const path_handle_t& path, const std::function<
 handle_t ODGI::create_handle(const std::string& sequence) {
     // get first deleted node to recycle
     if (_deleted_node_count) {
-        return create_handle(sequence, rank_to_id(deleted_node_bv.select1(0)));
+        uint64_t replaced_rank = deleted_node_bv.select1(0);
+        nid_t replaced_id = rank_to_id(replaced_rank);
+        return create_handle(sequence, replaced_id);
     } else {
         return create_handle(sequence, rank_to_id(node_v.size()));
     }
@@ -493,6 +577,7 @@ handle_t ODGI::create_handle(const std::string& sequence, const nid_t& id) {
     auto& node = node_v[handle_rank];
     node.set_sequence(sequence);
     // it's not deleted
+    assert(deleted_node_bv[handle_rank]);
     deleted_node_bv[handle_rank] = 0;
     --_deleted_node_count;
     // return handle
@@ -673,16 +758,19 @@ void ODGI::destroy_edge(const handle_t& left_h, const handle_t& right_h) {
     _edge_count -= found_edge;
 }
         
-/// Remove all nodes and edges. Does not update any stored paths.
+/// Remove all nodes, edges, and paths.
 void ODGI::clear(void) {
     suc_bv null_bv;
     _max_node_rank = 0;
     _min_node_rank = std::numeric_limits<decltype(_min_node_rank)>::max();
+    _id_increment = 1;
     _node_count = 0;
     _edge_count = 0;
     _path_count = 0;
     _path_handle_next = 0;
     deleted_node_bv = null_bv;
+    // Deleted node BV needs a final delimiter.
+    deleted_node_bv.push_back(1);
     node_v.clear();
     path_metadata_v.clear();
     path_name_map.clear();
@@ -1249,6 +1337,18 @@ void ODGI::decrement_rank(const step_handle_t& step_handle) {
     }
 }
 
+/// Modify the given step handle to point to the given handle.
+void ODGI::set_handle_of_step(step_handle_t& step_handle, const handle_t& handle) const {
+    as_integers(step_handle)[0] = as_integer(handle);
+}
+    
+/// Add the offset to the number packed in the given handle, and return a
+/// new modified handle.
+handle_t ODGI::add_to_number(const handle_t& handle, int64_t offset) const {
+    return number_bool_packing::pack(number_bool_packing::unpack_number(handle) + offset,
+        number_bool_packing::unpack_bit(handle));
+}
+
 /// reassign the given step to the new handle
 step_handle_t ODGI::set_step(const step_handle_t& step_handle, const handle_t& assign_to) {
     return rewrite_segment(step_handle, step_handle, { assign_to }).first;
@@ -1511,6 +1611,14 @@ void ODGI::load(std::istream& in) {
         in.read((char*)&v,sizeof(uint64_t));
         path_name_map[string(k)] = v;
     }
+    
+    if (_id_increment == 0) {
+        // Make sure _id_increment isn't 0. Otherwise, the rank-0 unused slot will
+        // try to have ID 0 and we can't use it. This upsets the create_handle
+        // logic that tries to re-use the first empty slot.
+        set_id_increment(1);
+    }
+    
 }
 
 }
