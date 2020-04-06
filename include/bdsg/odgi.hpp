@@ -275,7 +275,7 @@ public:
         destroy_edge(edge.first, edge.second);
     }
     
-    /// Remove all nodes and edges. Does not update any stored paths.
+    /// Remove all nodes, edges, and paths. 
     void clear(void);
 
     /// Remove all stored paths
@@ -395,10 +395,16 @@ private:
     /// Mark deleted nodes here for translating graph ids into internal ranks
     suc_bv deleted_node_bv;
     uint64_t _deleted_node_count = 0;
-    /// efficient id to handle/sequence conversion
-    nid_t _max_node_id = 0;
-    nid_t _min_node_id = 0;
-    nid_t _id_increment = 0;
+    // efficient id to handle/sequence conversion
+    /// Max rank (distance above _id_increment) of a node in the graph.
+    /// 0 if the graph is empty.
+    uint64_t _max_node_rank = 0;
+    /// Min rank (distance above _id_increment) of a node in the graph.
+    /// Maximum possible value if the graph is empty, for easy min().
+    uint64_t _min_node_rank = std::numeric_limits<decltype(_min_node_rank)>::max();
+    /// ID of the lowest-rank (rank 0) node.
+    /// Must be at least 1, or else the rank 0 node can't exist.
+    nid_t _id_increment = 1;
     /// records nodes that are hidden, but used to compactly store path sequence that has been removed from the node space
     hash_set<uint64_t> graph_id_hidden_set;
 
@@ -476,6 +482,13 @@ private:
 
     /// Decrement the step rank references for this step
     void decrement_rank(const step_handle_t& step_handle);
+    
+    /// Modify the given step handle to point to the given handle.
+    void set_handle_of_step(step_handle_t& step_handle, const handle_t& handle) const;
+    
+    /// Add the offset to the number packed in the given handle, and return a
+    /// new modified handle.
+    handle_t add_to_number(const handle_t& handle, int64_t offset) const;
 
     /// Compact away the deleted nodes info
     //void rebuild_id_handle_mapping(void);
@@ -484,7 +497,10 @@ private:
     void set_handle_sequence(const handle_t& handle, const std::string& seq);
 
     /// get the backing node rank for a given node id
-    uint64_t get_node_rank(const nid_t& node_id) const;
+    uint64_t id_to_rank(const nid_t& node_id) const;
+    
+    /// get the node id for the node with the given backing rank
+    nid_t rank_to_id(const uint64_t& rank) const;
 
 };
 
