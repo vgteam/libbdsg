@@ -245,17 +245,18 @@ public:
     /// The ID must be strictly greater than 0.
     handle_t create_handle(const std::string& sequence, const nid_t& id);
 
-    /// Create a "hidden" node which might carry parts of paths that traversed deleted portions of the graph
+    /// Create a node that is immediately  "hidden" (i.e. to be used for parts
+    /// of paths that traversed deleted portions of the graph).
+    /// has_node for the ID of a hidden handle will return false.
+    /// Also, no edges may be added to it.
     handle_t create_hidden_handle(const std::string& sequence);
 
     /// Remove the node belonging to the given handle and all of its edges.
-    /// Destroys any paths in which the node participates.
+    /// If any paths visit it, it becomes a "hidden" node accessible only via the paths.
     /// Invalidates the destroyed handle.
     /// May be called during serial for_each_handle iteration **ONLY** on the node being iterated.
     /// May **NOT** be called during parallel for_each_handle iteration.
     /// May **NOT** be called on the node from which edges are being followed during follow_edges.
-    /// May **NOT** be called during iteration over paths, if it would destroy a path.
-    /// May **NOT** be called during iteration along a path, if it would destroy that path.
     void destroy_handle(const handle_t& handle);
     
     /// Create an edge connecting the given handles in the given order and orientations.
@@ -404,8 +405,14 @@ private:
     nid_t _max_node_id = 0;
     nid_t _min_node_id = 0;
     nid_t _id_increment = 0;
-    /// records nodes that are hidden, but used to compactly store path sequence that has been removed from the node space
-    hash_set<uint64_t> graph_id_hidden_set;
+    /// Records nodes that are hidden, but used to compactly store path
+    /// sequence that has been removed from the node space. Hidden nodes are
+    /// not counted towards the node count of the graph, and has_node will
+    /// return false for their IDs (although new nodes cannot be created with
+    /// the same IDs). Hidden nodes are destroyed as soon as the last path
+    /// leaves them, so they may be invalidated by (or in the middle of!) path
+    /// operations like rewrite_segment.
+    hash_set<nid_t> graph_id_hidden_set;
 
     /// edge type conversion
     /// 1 = fwd->fwd, 2 = fwd->rev, 3 = rev->fwd, 4 = rev->rev
@@ -448,9 +455,6 @@ private:
 
     /// A helper to record the number of live nodes
     uint64_t _node_count = 0;
-
-    /// A counter that records the number of hidden nodes
-    uint64_t _hidden_count = 0;
 
     /// A helper to record the number of live edges
     uint64_t _edge_count = 0;

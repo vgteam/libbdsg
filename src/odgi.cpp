@@ -22,6 +22,10 @@ uint32_t ODGI::get_magic_number() const {
 
 /// Method to check if a node exists by ID
 bool ODGI::has_node(nid_t node_id) const {
+    if (graph_id_hidden_set.count(node_id)) {
+        // Hide this node.
+        return false;
+    }
     uint64_t rank = get_node_rank(node_id);
     return (rank >= node_v.size() ? false : !deleted_node_bv.at(rank));
 }
@@ -43,7 +47,7 @@ uint64_t ODGI::get_node_rank(const nid_t& node_id) const {
 
 /// set the id increment, used when the graph starts at a high id to reduce loading costs
 void ODGI::set_id_increment(const nid_t& min_id) {
-    if (get_node_count() > 0) {
+    if ((get_node_count() + graph_id_hidden_set.size()) > 0) {
         increment_node_ids(min_id - _id_increment);
     }
     _id_increment = min_id;
@@ -128,7 +132,9 @@ bool ODGI::for_each_handle_impl(const std::function<bool(const handle_t&)>& iter
         for (uint64_t i = 0; i < node_v.size(); ++i) {
             if (deleted_node_bv.at(i) == 1) continue;
             if (!flag) continue;
-            bool result = iteratee(number_bool_packing::pack(i,false));
+            handle_t packed = number_bool_packing::pack(i,false);
+            if (graph_id_hidden_set.count(get_id(packed))) continue;
+            bool result = iteratee(packed);
 #pragma omp atomic
             flag &= result;
         }
@@ -136,16 +142,19 @@ bool ODGI::for_each_handle_impl(const std::function<bool(const handle_t&)>& iter
     } else {
         for (uint64_t i = 0; i < node_v.size(); ++i) {
             if (deleted_node_bv.at(i) == 1) continue;
-            if (!iteratee(number_bool_packing::pack(i,false))) return false;
+            handle_t packed = number_bool_packing::pack(i,false);
+            if (graph_id_hidden_set.count(get_id(packed))) continue;
+            if (!iteratee(packed)) return false;
         }
         return true;
     }
 }
 
-/// Return the number of nodes in the graph
+/// Return the number of nodes in the graph.
+/// Doesn't count deleted or hidden nodes.
 /// TODO: can't be node_count because XG has a field named node_count.
 size_t ODGI::get_node_count(void) const {
-    return node_v.size()-_deleted_node_count;
+    return node_v.size() - _deleted_node_count - graph_id_hidden_set.size();
 }
     
 /// Return the smallest ID in the graph, or some smaller number if the
@@ -446,7 +455,6 @@ handle_t ODGI::create_hidden_handle(const std::string& sequence) {
     handle_t handle = create_handle(sequence);
     nid_t id = get_id(handle);
     graph_id_hidden_set.insert(id);
-    ++_hidden_count;
     return handle;
 }
 
@@ -496,19 +504,8 @@ handle_t ODGI::create_handle(const std::string& sequence, const nid_t& id) {
 }
     
 /// Remove the node belonging to the given handle and all of its edges.
+/// If any paths visit it, it becomes a "hidden" node accessible only via the paths.
 void ODGI::destroy_handle(const handle_t& handle) {
-
-    // Clear out any paths on this handle. 
-    // We need to first compose a list of distinct visiting paths.
-    std::unordered_set<path_handle_t> visiting_paths;
-    for_each_step_on_handle(handle, [&](const step_handle_t& step) {
-        visiting_paths.insert(get_path_handle_of_step(step)); 
-    });
-    for (auto& p : visiting_paths) {
-        // Then we destroy all of them.
-        destroy_path(p);
-    }
-
     handle_t fwd_handle = get_is_reverse(handle) ? flip(handle) : handle;
     uint64_t id = get_id(handle);
     // remove steps in edge lists
@@ -522,19 +519,29 @@ void ODGI::destroy_handle(const handle_t& handle) {
     for (auto& edge : edges_to_destroy) {
         destroy_edge(edge);
     }
-    // clear the node storage
+   
+    // Work out if it has any paths on it
     auto& node = node_v[number_bool_packing::unpack_number(handle)];
-    node.clear();
-    // remove from the graph by hiding it (compaction later)
-    deleted_node_bv[number_bool_packing::unpack_number(handle)] = 1;
-    // and from the set of hidden nodes, if it's a member
-    if (graph_id_hidden_set.count(id)) {
-        graph_id_hidden_set.erase(id);
-        --_hidden_count;
+    if (node.path_count() > 0) {
+        // Paths visit here, so hide the handle.
+        // We will get called again when the last one leaves.
+        graph_id_hidden_set.insert(id);
+    } else {
+        // No paths visit here. Destroy the handle and make sure it isn't hidden if it was.
+        
+        // clear the node storage
+        node.clear();
+        // remove from the graph by hiding it (compaction later)
+        deleted_node_bv[number_bool_packing::unpack_number(handle)] = 1;
+        // and from the set of hidden nodes, if it's a member
+        if (graph_id_hidden_set.count(id)) {
+            graph_id_hidden_set.erase(id);
+        }
+        ++_deleted_node_count;
+        // TODO: check if we should compact our deleted nodes storage
     }
-    //--_node_count;
-    ++_deleted_node_count;
-    // check if we should compact our deleted nodes storage
+    
+    
 }
 
 /*
@@ -1179,6 +1186,12 @@ void ODGI::destroy_step(const step_handle_t& step_handle) {
         });
     node_t& curr_node = node_v.at(number_bool_packing::unpack_number(get_handle_of_step(step_handle)));
     curr_node.remove_path_step(as_integers(step_handle)[1]);
+    
+    if (curr_node.path_count() == 0 && graph_id_hidden_set.count(get_id(handle))) {
+        // We have freed up a hidden handle from its last reference. Clean it
+        // up and get rid of the now-useless node.
+        destroy_handle(handle);
+    }
 }
 
 step_handle_t ODGI::prepend_step(const path_handle_t& path, const handle_t& to_append) {
@@ -1435,6 +1448,13 @@ long long int ODGI::serialize_and_measure(std::ostream& out) const {
     written += sizeof(_deleted_node_count);
     out.write((char*)&_id_increment,sizeof(_id_increment));
     written += sizeof(_id_increment);
+    size_t hidden_count = graph_id_hidden_set.size();
+    out.write((char*)&hidden_count,sizeof(hidden_count));
+    written += sizeof(hidden_count);
+    for (nid_t& hidden : graph_id_hidden_set) {
+        out.write((char*)&hidden,sizeof(hidden));
+        written += sizeof(hidden);
+    }
     assert(_node_count == node_v.size());
     for (auto& node : node_v) {
         written += node.serialize(out);
@@ -1481,6 +1501,13 @@ void ODGI::load(std::istream& in) {
     in.read((char*)&_path_handle_next,sizeof(_path_handle_next));
     in.read((char*)&_deleted_node_count,sizeof(_deleted_node_count));
     in.read((char*)&_id_increment,sizeof(_id_increment));
+    size_t hidden_count;
+    in.read((char*)&hidden_count,sizeof(hidden_count));
+    for (size_t i = 0; i < hidden_count; i++) {
+        nid_t hidden;
+        in.read((char*)&hidden,sizeof(hidden));
+        graph_id_hidden_set.insert(hidden);
+    }
     node_v.resize(_node_count);
     for (size_t i = 0; i < _node_count; ++i) {
         auto& node = node_v[i];
