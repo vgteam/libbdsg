@@ -137,4 +137,10 @@ void RobustPagedVector::serialize(ostream& out) const {
 size_t RobustPagedVector::memory_usage() const {
     return first_page.memory_usage() + latter_pages.memory_usage();
 }
+
+PackedSet::PackedSet() : gen(random_device()()) {
+    table.resize(bdsg_packed_set_size_schedule[0]);
 }
+
+}
+

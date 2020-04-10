@@ -273,20 +273,20 @@ namespace bdsg {
         return iterator(*this, path_handles.size());
     }
     
-    BBHashHelper::iterator::iterator(const BBHashHelper& iteratee, size_t path_handle_idx) : iteratee(iteratee), path_handle_idx(path_handle_idx) {
-        if (path_handle_idx < iteratee.path_handles.size()) {
-            step = iteratee.graph->path_begin(iteratee.path_handles[path_handle_idx]);
+    BBHashHelper::iterator::iterator(const BBHashHelper& iteratee, size_t path_handle_idx) : iteratee(&iteratee), path_handle_idx(path_handle_idx) {
+        if (path_handle_idx < this->iteratee->path_handles.size()) {
+            step = this->iteratee->graph->path_begin(this->iteratee->path_handles[path_handle_idx]);
         }
     }
     
     BBHashHelper::iterator& BBHashHelper::iterator::operator++() {
-        step = iteratee.graph->get_next_step(step);
-        if (step == iteratee.graph->path_begin(iteratee.path_handles[path_handle_idx]) ||
-            step == iteratee.graph->path_end(iteratee.path_handles[path_handle_idx])) {
+        step = iteratee->graph->get_next_step(step);
+        if (step == iteratee->graph->path_begin(iteratee->path_handles[path_handle_idx]) ||
+            step == iteratee->graph->path_end(iteratee->path_handles[path_handle_idx])) {
             // we either went off the end or looped around a circular path to the beginning again
             ++path_handle_idx;
-            if (path_handle_idx < iteratee.path_handles.size()) {
-                step = iteratee.graph->path_begin(iteratee.path_handles[path_handle_idx]);
+            if (path_handle_idx < iteratee->path_handles.size()) {
+                step = iteratee->graph->path_begin(iteratee->path_handles[path_handle_idx]);
             }
         }
         return *this;
@@ -301,7 +301,7 @@ namespace bdsg {
         // path handle
         return (&iteratee == &other.iteratee
                 && path_handle_idx == other.path_handle_idx
-                && (step == other.step || path_handle_idx == iteratee.path_handles.size()));
+                && (step == other.step || path_handle_idx == iteratee->path_handles.size()));
     }
     
     bool BBHashHelper::iterator::operator!=(const BBHashHelper::iterator& other) const {

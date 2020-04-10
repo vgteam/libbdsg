@@ -277,7 +277,7 @@ public:
         
         size_t path_handle_idx = 0;
         step_handle_t step;
-        const BBHashHelper& iteratee;
+        const BBHashHelper* iteratee;
         
         friend class BBHashHelper;
     };

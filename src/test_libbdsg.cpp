@@ -8,6 +8,7 @@
 #include <iostream>
 #include <vector>
 #include <cassert>
+#include <unordered_set>
 #include <random>
 #include <sstream>
 #include <deque>
@@ -1995,6 +1996,104 @@ void test_packed_deque() {
     cerr << "PackedDeque tests successful!" << endl;
 }
 
+void test_packed_set() {
+    enum set_op_t {INSERT = 0, REMOVE = 1, FIND = 2};
+    
+    random_device rd;
+    default_random_engine prng(rd());
+    uniform_int_distribution<int> op_distr(0, 2);
+    
+    int num_runs = 1000;
+    int num_ops = 200;
+    int inserts_per_op = 2;
+    int prev_inserts_per_op = 1;
+    int removes_per_op = 1;
+    int finds_per_op = 5;
+    
+    for (size_t i = 0; i < num_runs; i++) {
+        uint64_t next_val = 0;
+        
+        unordered_set<uint64_t> std_set;
+        PackedSet packed_set;
+        
+        for (size_t j = 0; j < num_ops; j++) {
+            set_op_t op = (set_op_t) op_distr(prng);
+            switch (op) {
+                case INSERT:
+                    
+                    for (size_t k = 0; k < inserts_per_op; ++k) {
+                        packed_set.insert(next_val);
+                        std_set.insert(next_val);
+                        next_val++;
+                    }
+                    for (size_t k = 0; k < prev_inserts_per_op; ++k) {
+                        uint64_t val = prng() % next_val;
+                        packed_set.insert(val);
+                        std_set.insert(val);
+                    }
+                    
+                    break;
+                    
+                case REMOVE:
+                    if (next_val > 0) {
+                        for (size_t k = 0; k < removes_per_op; ++k) {
+                            uint64_t val = prng() % next_val;
+                            packed_set.remove(val);
+                            std_set.erase(val);
+                        }
+                    }
+                    else {
+                        packed_set.remove(0);
+                        packed_set.remove(1);
+                        packed_set.remove(2);
+                        std_set.erase(0);
+                        std_set.erase(1);
+                        std_set.erase(2);
+                    }
+                    
+                    break;
+                    
+                case FIND:
+                    if (next_val) {
+                        for (size_t k = 0; k < finds_per_op; k++) {
+                            uint64_t val = prng() % next_val;
+                            assert(packed_set.find(val) == (bool) std_set.count(val));
+                        }
+                    }
+                    else {
+                        assert(packed_set.find(0) == (bool) std_set.count(0));
+                        assert(packed_set.find(1) == (bool) std_set.count(1));
+                        assert(packed_set.find(2) == (bool) std_set.count(2));
+                    }
+                    
+                    break;
+                    
+//                case SERIALIZE:
+//                {
+//                    stringstream strm;
+//
+//                    dyn_vec.serialize(strm);
+//                    strm.seekg(0);
+//                    PackedVector copy_vec(strm);
+//
+//                    assert(copy_vec.size() == dyn_vec.size());
+//                    for (size_t i = 0; i < copy_vec.size(); i++) {
+//                        assert(copy_vec.get(i) == dyn_vec.get(i));
+//                    }
+//                    break;
+//                }
+                    
+                default:
+                    break;
+            }
+            
+            assert(std_set.empty() == packed_set.empty());
+            assert(std_set.size() == packed_set.size());
+        }
+    }
+    cerr << "PackedSet tests successful!" << endl;
+}
+
 void test_packed_graph() {
     
     auto check_path = [&](MutablePathDeletableHandleGraph& graph, const path_handle_t& p, const vector<handle_t>& steps) {
@@ -2679,6 +2778,7 @@ int main(void) {
     test_packed_vector();
     test_paged_vector();
     test_packed_deque();
+    test_packed_set();
     test_deletable_handle_graphs();
     test_mutable_path_handle_graphs();
     test_serializable_handle_graphs();
