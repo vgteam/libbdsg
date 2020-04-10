@@ -142,5 +142,44 @@ PackedSet::PackedSet() : gen(random_device()()) {
     table.resize(bdsg_packed_set_size_schedule[0]);
 }
 
+PackedSet::iterator PackedSet::begin() const {
+    return iterator(this);
+}
+
+PackedSet::iterator PackedSet::end() const {
+    return iterator(this, table.size());
+}
+
+PackedSet::iterator::iterator(const PackedSet* iteratee) : iteratee(iteratee) {
+    // make sure i is always pointing at a non-null element
+    while (i < iteratee->table.size() && iteratee->table.get(i) == 0) {
+        ++i;
+    }
+}
+
+PackedSet::iterator::iterator(const PackedSet* iteratee, size_t i) : iteratee(iteratee), i(i) {
+    // nothing to do
+}
+
+PackedSet::iterator& PackedSet::iterator::operator++() {
+    // advance to the next non-null element
+    do {
+        ++i;
+    } while (i < iteratee->table.size() && iteratee->table.get(i) == 0);
+}
+
+uint64_t PackedSet::iterator::operator*() const {
+    return iteratee->from_diff(iteratee->table.get(i), iteratee->anchor);
+}
+
+bool PackedSet::iterator::operator==(const PackedSet::iterator& other) const {
+    return iteratee == other.iteratee && i == other.i;
+}
+
+bool PackedSet::iterator::operator!=(const PackedSet::iterator& other) const {
+    return !(*this == other);
+}
+
+
 }
 
