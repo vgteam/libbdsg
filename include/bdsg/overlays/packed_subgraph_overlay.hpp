@@ -91,11 +91,6 @@ private:
     
 public:
     
-    /// Returns true if there is an edge that allows traversal from the left
-    /// handle to the right handle. By default O(n) in the number of edges
-    /// on left, but can be overridden with more efficient implementations.
-    bool has_edge(const handle_t& left, const handle_t& right) const;
-    
     /// Returns one base of a handle's sequence, in the orientation of the
     /// handle.
     char get_base(const handle_t& handle, size_t index) const;

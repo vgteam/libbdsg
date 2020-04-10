@@ -2841,7 +2841,7 @@ void test_packed_subgraph_overlay() {
         assert(subgraph.get_degree(h1, false) == 0);
         
         subgraph.add_node(h4);
-        
+
         assert(subgraph.get_node_count() == 2);
         bool found2 = false;
         subgraph.for_each_handle([&](const handle_t& h) {
@@ -2888,7 +2888,7 @@ void test_packed_subgraph_overlay() {
         
         subgraph.add_node(graph.flip(h2));
         
-        assert(subgraph.get_node_count() == 2);
+        assert(subgraph.get_node_count() == 3);
         bool found3 = false;
         subgraph.for_each_handle([&](const handle_t& h) {
             if (subgraph.get_id(h) == graph.get_id(h1)) {
@@ -2974,6 +2974,65 @@ void test_packed_subgraph_overlay() {
         found2 = false;
         found3 = false;
         found4 = false;
+        
+        subgraph.remove_node(h1);
+        
+        assert(subgraph.get_node_count() == 2);
+        subgraph.for_each_handle([&](const handle_t& h) {
+            if (subgraph.get_id(h) == graph.get_id(h2)) {
+                found1 = true;
+                assert(graph.get_sequence(h) == graph.get_sequence(h2));
+            }
+            else if (subgraph.get_id(h) == graph.get_id(h4)) {
+                found2 = true;
+                assert(graph.get_sequence(h) == graph.get_sequence(h4));
+            }
+            else {
+                assert(false);
+            }
+        });
+        assert(found1);
+        assert(found2);
+        found1 = false;
+        found2 = false;
+        
+        assert(!subgraph.has_node(graph.get_id(h1)));
+        assert(subgraph.has_node(graph.get_id(h2)));
+        assert(!subgraph.has_node(graph.get_id(h3)));
+        assert(subgraph.has_node(graph.get_id(h4)));
+        
+        subgraph.follow_edges(h2, true, [&](const handle_t& h) {
+            assert(false);
+        });
+        subgraph.follow_edges(h2, false, [&](const handle_t& h) {
+            if (subgraph.get_id(h) == graph.get_id(h4) && !graph.get_is_reverse(h)) {
+                found1 = true;
+            }
+            else {
+                assert(false);
+            }
+        });
+        subgraph.follow_edges(h4, true, [&](const handle_t& h) {
+            if (subgraph.get_id(h) == graph.get_id(h2) && !graph.get_is_reverse(h)) {
+                found2 = true;
+            }
+            else {
+                assert(false);
+            }
+        });
+        subgraph.follow_edges(h4, false, [&](const handle_t& h) {
+            assert(false);
+        });
+        
+        assert(subgraph.get_degree(h2, true) == 0);
+        assert(subgraph.get_degree(h2, false) == 1);
+        assert(subgraph.get_degree(h4, true) == 1);
+        assert(subgraph.get_degree(h4, false) == 0);
+        
+        assert(found1);
+        assert(found2);
+        found1 = false;
+        found2 = false;
     }
     
     cerr << "PackedSubgraphOverlay tests successful!" << endl;

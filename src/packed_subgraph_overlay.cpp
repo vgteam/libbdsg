@@ -87,10 +87,6 @@ bool PackedSubgraphOverlay::for_each_handle_impl(const std::function<bool(const 
     return keep_going;
 }
 
-bool PackedSubgraphOverlay::has_edge(const handle_t& left, const handle_t& right) const {
-    return graph->has_edge(left, right);
-}
-
 char PackedSubgraphOverlay::get_base(const handle_t& handle, size_t index) const {
     return graph->get_base(handle, index);
 }
