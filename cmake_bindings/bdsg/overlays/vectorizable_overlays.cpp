@@ -18,7 +18,7 @@
 #include <pybind11/stl_bind.h>
 #include <pybind11/functional.h>
 #include <fstream>
-#include <bdsg/internal/binder_hook_compile.hpp>
+#include <bdsg/binder_hook_compile.hpp>
 
 
 #ifndef BINDER_PYBIND11_TYPE_CASTER
@@ -28,7 +28,7 @@
 	PYBIND11_MAKE_OPAQUE(std::shared_ptr<void>);
 #endif
 
-// bdsg::VectorizableOverlay file:bdsg/vectorizable_overlays.hpp line:34
+// bdsg::VectorizableOverlay file:bdsg/overlays/vectorizable_overlays.hpp line:34
 struct PyCallBack_bdsg_VectorizableOverlay : public bdsg::VectorizableOverlay {
 	using bdsg::VectorizableOverlay::VectorizableOverlay;
 
@@ -110,16 +110,16 @@ struct PyCallBack_bdsg_VectorizableOverlay : public bdsg::VectorizableOverlay {
 		}
 		return VectorizableOverlay::get_length(a0);
 	}
-	std::string get_sequence(const struct handlegraph::handle_t & a0) const override { 
+	class std::basic_string<char> get_sequence(const struct handlegraph::handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::VectorizableOverlay *>(this), "get_sequence");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<std::string>::value) {
-				static pybind11::detail::overload_caster_t<std::string> caster;
-				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<class std::basic_string<char>>::value) {
+				static pybind11::detail::overload_caster_t<class std::basic_string<char>> caster;
+				return pybind11::detail::cast_ref<class std::basic_string<char>>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<std::string>(std::move(o));
+			else return pybind11::detail::cast_safe<class std::basic_string<char>>(std::move(o));
 		}
 		return VectorizableOverlay::get_sequence(a0);
 	}
@@ -162,16 +162,16 @@ struct PyCallBack_bdsg_VectorizableOverlay : public bdsg::VectorizableOverlay {
 		}
 		return VectorizableOverlay::get_base(a0, a1);
 	}
-	std::string get_subsequence(const struct handlegraph::handle_t & a0, unsigned long a1, unsigned long a2) const override { 
+	class std::basic_string<char> get_subsequence(const struct handlegraph::handle_t & a0, unsigned long a1, unsigned long a2) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::VectorizableOverlay *>(this), "get_subsequence");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1, a2);
-			if (pybind11::detail::cast_is_temporary_value_reference<std::string>::value) {
-				static pybind11::detail::overload_caster_t<std::string> caster;
-				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<class std::basic_string<char>>::value) {
+				static pybind11::detail::overload_caster_t<class std::basic_string<char>> caster;
+				return pybind11::detail::cast_ref<class std::basic_string<char>>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<std::string>(std::move(o));
+			else return pybind11::detail::cast_safe<class std::basic_string<char>>(std::move(o));
 		}
 		return VectorizableOverlay::get_subsequence(a0, a1, a2);
 	}
@@ -333,7 +333,7 @@ struct PyCallBack_bdsg_VectorizableOverlay : public bdsg::VectorizableOverlay {
 	}
 };
 
-// bdsg::PathVectorizableOverlay file:bdsg/vectorizable_overlays.hpp line:191
+// bdsg::PathVectorizableOverlay file:bdsg/overlays/vectorizable_overlays.hpp line:191
 struct PyCallBack_bdsg_PathVectorizableOverlay : public bdsg::PathVectorizableOverlay {
 	using bdsg::PathVectorizableOverlay::PathVectorizableOverlay;
 
@@ -350,7 +350,7 @@ struct PyCallBack_bdsg_PathVectorizableOverlay : public bdsg::PathVectorizableOv
 		}
 		return PathVectorizableOverlay::get_path_count();
 	}
-	bool has_path(const std::string & a0) const override { 
+	bool has_path(const class std::basic_string<char> & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PathVectorizableOverlay *>(this), "has_path");
 		if (overload) {
@@ -363,7 +363,7 @@ struct PyCallBack_bdsg_PathVectorizableOverlay : public bdsg::PathVectorizableOv
 		}
 		return PathVectorizableOverlay::has_path(a0);
 	}
-	struct handlegraph::path_handle_t get_path_handle(const std::string & a0) const override { 
+	struct handlegraph::path_handle_t get_path_handle(const class std::basic_string<char> & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PathVectorizableOverlay *>(this), "get_path_handle");
 		if (overload) {
@@ -376,16 +376,16 @@ struct PyCallBack_bdsg_PathVectorizableOverlay : public bdsg::PathVectorizableOv
 		}
 		return PathVectorizableOverlay::get_path_handle(a0);
 	}
-	std::string get_path_name(const struct handlegraph::path_handle_t & a0) const override { 
+	class std::basic_string<char> get_path_name(const struct handlegraph::path_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PathVectorizableOverlay *>(this), "get_path_name");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<std::string>::value) {
-				static pybind11::detail::overload_caster_t<std::string> caster;
-				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<class std::basic_string<char>>::value) {
+				static pybind11::detail::overload_caster_t<class std::basic_string<char>> caster;
+				return pybind11::detail::cast_ref<class std::basic_string<char>>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<std::string>(std::move(o));
+			else return pybind11::detail::cast_safe<class std::basic_string<char>>(std::move(o));
 		}
 		return PathVectorizableOverlay::get_path_name(a0);
 	}
@@ -649,16 +649,16 @@ struct PyCallBack_bdsg_PathVectorizableOverlay : public bdsg::PathVectorizableOv
 		}
 		return VectorizableOverlay::get_length(a0);
 	}
-	std::string get_sequence(const struct handlegraph::handle_t & a0) const override { 
+	class std::basic_string<char> get_sequence(const struct handlegraph::handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PathVectorizableOverlay *>(this), "get_sequence");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<std::string>::value) {
-				static pybind11::detail::overload_caster_t<std::string> caster;
-				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<class std::basic_string<char>>::value) {
+				static pybind11::detail::overload_caster_t<class std::basic_string<char>> caster;
+				return pybind11::detail::cast_ref<class std::basic_string<char>>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<std::string>(std::move(o));
+			else return pybind11::detail::cast_safe<class std::basic_string<char>>(std::move(o));
 		}
 		return VectorizableOverlay::get_sequence(a0);
 	}
@@ -701,16 +701,16 @@ struct PyCallBack_bdsg_PathVectorizableOverlay : public bdsg::PathVectorizableOv
 		}
 		return VectorizableOverlay::get_base(a0, a1);
 	}
-	std::string get_subsequence(const struct handlegraph::handle_t & a0, unsigned long a1, unsigned long a2) const override { 
+	class std::basic_string<char> get_subsequence(const struct handlegraph::handle_t & a0, unsigned long a1, unsigned long a2) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PathVectorizableOverlay *>(this), "get_subsequence");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1, a2);
-			if (pybind11::detail::cast_is_temporary_value_reference<std::string>::value) {
-				static pybind11::detail::overload_caster_t<std::string> caster;
-				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<class std::basic_string<char>>::value) {
+				static pybind11::detail::overload_caster_t<class std::basic_string<char>> caster;
+				return pybind11::detail::cast_ref<class std::basic_string<char>>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<std::string>(std::move(o));
+			else return pybind11::detail::cast_safe<class std::basic_string<char>>(std::move(o));
 		}
 		return VectorizableOverlay::get_subsequence(a0, a1, a2);
 	}
@@ -898,7 +898,7 @@ struct PyCallBack_bdsg_PathVectorizableOverlay : public bdsg::PathVectorizableOv
 	}
 };
 
-// bdsg::PathPositionVectorizableOverlay file:bdsg/vectorizable_overlays.hpp line:286
+// bdsg::PathPositionVectorizableOverlay file:bdsg/overlays/vectorizable_overlays.hpp line:286
 struct PyCallBack_bdsg_PathPositionVectorizableOverlay : public bdsg::PathPositionVectorizableOverlay {
 	using bdsg::PathPositionVectorizableOverlay::PathPositionVectorizableOverlay;
 
@@ -954,7 +954,7 @@ struct PyCallBack_bdsg_PathPositionVectorizableOverlay : public bdsg::PathPositi
 		}
 		return PathVectorizableOverlay::get_path_count();
 	}
-	bool has_path(const std::string & a0) const override { 
+	bool has_path(const class std::basic_string<char> & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PathPositionVectorizableOverlay *>(this), "has_path");
 		if (overload) {
@@ -967,7 +967,7 @@ struct PyCallBack_bdsg_PathPositionVectorizableOverlay : public bdsg::PathPositi
 		}
 		return PathVectorizableOverlay::has_path(a0);
 	}
-	struct handlegraph::path_handle_t get_path_handle(const std::string & a0) const override { 
+	struct handlegraph::path_handle_t get_path_handle(const class std::basic_string<char> & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PathPositionVectorizableOverlay *>(this), "get_path_handle");
 		if (overload) {
@@ -980,16 +980,16 @@ struct PyCallBack_bdsg_PathPositionVectorizableOverlay : public bdsg::PathPositi
 		}
 		return PathVectorizableOverlay::get_path_handle(a0);
 	}
-	std::string get_path_name(const struct handlegraph::path_handle_t & a0) const override { 
+	class std::basic_string<char> get_path_name(const struct handlegraph::path_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PathPositionVectorizableOverlay *>(this), "get_path_name");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<std::string>::value) {
-				static pybind11::detail::overload_caster_t<std::string> caster;
-				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<class std::basic_string<char>>::value) {
+				static pybind11::detail::overload_caster_t<class std::basic_string<char>> caster;
+				return pybind11::detail::cast_ref<class std::basic_string<char>>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<std::string>(std::move(o));
+			else return pybind11::detail::cast_safe<class std::basic_string<char>>(std::move(o));
 		}
 		return PathVectorizableOverlay::get_path_name(a0);
 	}
@@ -1253,16 +1253,16 @@ struct PyCallBack_bdsg_PathPositionVectorizableOverlay : public bdsg::PathPositi
 		}
 		return VectorizableOverlay::get_length(a0);
 	}
-	std::string get_sequence(const struct handlegraph::handle_t & a0) const override { 
+	class std::basic_string<char> get_sequence(const struct handlegraph::handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PathPositionVectorizableOverlay *>(this), "get_sequence");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<std::string>::value) {
-				static pybind11::detail::overload_caster_t<std::string> caster;
-				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<class std::basic_string<char>>::value) {
+				static pybind11::detail::overload_caster_t<class std::basic_string<char>> caster;
+				return pybind11::detail::cast_ref<class std::basic_string<char>>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<std::string>(std::move(o));
+			else return pybind11::detail::cast_safe<class std::basic_string<char>>(std::move(o));
 		}
 		return VectorizableOverlay::get_sequence(a0);
 	}
@@ -1305,16 +1305,16 @@ struct PyCallBack_bdsg_PathPositionVectorizableOverlay : public bdsg::PathPositi
 		}
 		return VectorizableOverlay::get_base(a0, a1);
 	}
-	std::string get_subsequence(const struct handlegraph::handle_t & a0, unsigned long a1, unsigned long a2) const override { 
+	class std::basic_string<char> get_subsequence(const struct handlegraph::handle_t & a0, unsigned long a1, unsigned long a2) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PathPositionVectorizableOverlay *>(this), "get_subsequence");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1, a2);
-			if (pybind11::detail::cast_is_temporary_value_reference<std::string>::value) {
-				static pybind11::detail::overload_caster_t<std::string> caster;
-				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<class std::basic_string<char>>::value) {
+				static pybind11::detail::overload_caster_t<class std::basic_string<char>> caster;
+				return pybind11::detail::cast_ref<class std::basic_string<char>>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<std::string>(std::move(o));
+			else return pybind11::detail::cast_safe<class std::basic_string<char>>(std::move(o));
 		}
 		return VectorizableOverlay::get_subsequence(a0, a1, a2);
 	}
@@ -1515,9 +1515,9 @@ struct PyCallBack_bdsg_PathPositionVectorizableOverlay : public bdsg::PathPositi
 	}
 };
 
-void bind_bdsg_vectorizable_overlays(std::function< pybind11::module &(std::string const &namespace_) > &M)
+void bind_bdsg_overlays_vectorizable_overlays(std::function< pybind11::module &(std::string const &namespace_) > &M)
 {
-	{ // bdsg::VectorizableOverlay file:bdsg/vectorizable_overlays.hpp line:34
+	{ // bdsg::VectorizableOverlay file:bdsg/overlays/vectorizable_overlays.hpp line:34
 		pybind11::class_<bdsg::VectorizableOverlay, std::shared_ptr<bdsg::VectorizableOverlay>, PyCallBack_bdsg_VectorizableOverlay, handlegraph::VectorizableHandleGraph, handlegraph::ExpandingOverlayGraph> cl(M("bdsg"), "VectorizableOverlay", "");
 		cl.def( pybind11::init<const class handlegraph::HandleGraph *>(), pybind11::arg("graph") );
 
@@ -1542,7 +1542,7 @@ void bind_bdsg_vectorizable_overlays(std::function< pybind11::module &(std::stri
 		cl.def("edge_index", (unsigned long (bdsg::VectorizableOverlay::*)(const struct std::pair<struct handlegraph::handle_t, struct handlegraph::handle_t> &) const) &bdsg::VectorizableOverlay::edge_index, "Return a unique index among edges in the graph\n\nC++: bdsg::VectorizableOverlay::edge_index(const struct std::pair<struct handlegraph::handle_t, struct handlegraph::handle_t> &) const --> unsigned long", pybind11::arg("edge"));
 		cl.def("get_underlying_handle", (struct handlegraph::handle_t (bdsg::VectorizableOverlay::*)(const struct handlegraph::handle_t &) const) &bdsg::VectorizableOverlay::get_underlying_handle, "Returns the handle in the underlying graph that corresponds to a handle in the\n overlay\n\nC++: bdsg::VectorizableOverlay::get_underlying_handle(const struct handlegraph::handle_t &) const --> struct handlegraph::handle_t", pybind11::arg("handle"));
 	}
-	{ // bdsg::PathVectorizableOverlay file:bdsg/vectorizable_overlays.hpp line:191
+	{ // bdsg::PathVectorizableOverlay file:bdsg/overlays/vectorizable_overlays.hpp line:191
 		pybind11::class_<bdsg::PathVectorizableOverlay, std::shared_ptr<bdsg::PathVectorizableOverlay>, PyCallBack_bdsg_PathVectorizableOverlay, bdsg::VectorizableOverlay, handlegraph::PathHandleGraph> cl(M("bdsg"), "PathVectorizableOverlay", "");
 		cl.def( pybind11::init<const class handlegraph::PathHandleGraph *>(), pybind11::arg("path_graph") );
 
@@ -1564,7 +1564,7 @@ void bind_bdsg_vectorizable_overlays(std::function< pybind11::module &(std::stri
 		cl.def("get_next_step", (struct handlegraph::step_handle_t (bdsg::PathVectorizableOverlay::*)(const struct handlegraph::step_handle_t &) const) &bdsg::PathVectorizableOverlay::get_next_step, "Returns a handle to the next step on the path. If the given step is the final step\n of a non-circular path, this method has undefined behavior. In a circular path,\n the \"last\" step will loop around to the \"first\" step.\n\nC++: bdsg::PathVectorizableOverlay::get_next_step(const struct handlegraph::step_handle_t &) const --> struct handlegraph::step_handle_t", pybind11::arg("step_handle"));
 		cl.def("get_previous_step", (struct handlegraph::step_handle_t (bdsg::PathVectorizableOverlay::*)(const struct handlegraph::step_handle_t &) const) &bdsg::PathVectorizableOverlay::get_previous_step, "Returns a handle to the previous step on the path. If the given step is the first\n step of a non-circular path, this method has undefined behavior. In a circular path,\n it will loop around from the \"first\" step (i.e. the one returned by path_begin) to\n the \"last\" step.\n\nC++: bdsg::PathVectorizableOverlay::get_previous_step(const struct handlegraph::step_handle_t &) const --> struct handlegraph::step_handle_t", pybind11::arg("step_handle"));
 	}
-	{ // bdsg::PathPositionVectorizableOverlay file:bdsg/vectorizable_overlays.hpp line:286
+	{ // bdsg::PathPositionVectorizableOverlay file:bdsg/overlays/vectorizable_overlays.hpp line:286
 		pybind11::class_<bdsg::PathPositionVectorizableOverlay, std::shared_ptr<bdsg::PathPositionVectorizableOverlay>, PyCallBack_bdsg_PathPositionVectorizableOverlay, bdsg::PathVectorizableOverlay, handlegraph::PathPositionHandleGraph> cl(M("bdsg"), "PathPositionVectorizableOverlay", "");
 		cl.def( pybind11::init<const class handlegraph::PathPositionHandleGraph *>(), pybind11::arg("path_position_graph") );
 

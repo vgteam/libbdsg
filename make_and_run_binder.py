@@ -145,7 +145,7 @@ def make_all_includes():
     
     # Start by always including the binding-generation-time hook file, with
     # things Binder needs to see to generate good bindings.
-    all_includes = ['#include <bdsg/binder_hook_bind.hpp>']
+    all_includes = ['#include <bdsg/internal/binder_hook_bind.hpp>']
     all_include_filename = 'all_cmake_includes.hpp'
     
     for filename in all_sources_and_headers(include_deps=False):
