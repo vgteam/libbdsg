@@ -124,19 +124,6 @@ struct PyCallBack_bdsg_PackedSubgraphOverlay : public bdsg::PackedSubgraphOverla
 		}
 		return PackedSubgraphOverlay::get_sequence(a0);
 	}
-	bool has_edge(const struct handlegraph::handle_t & a0, const struct handlegraph::handle_t & a1) const override { 
-		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedSubgraphOverlay *>(this), "has_edge");
-		if (overload) {
-			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
-			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::overload_caster_t<bool> caster;
-				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
-			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
-		}
-		return PackedSubgraphOverlay::has_edge(a0, a1);
-	}
 	char get_base(const struct handlegraph::handle_t & a0, unsigned long a1) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedSubgraphOverlay *>(this), "get_base");
@@ -227,6 +214,19 @@ struct PyCallBack_bdsg_PackedSubgraphOverlay : public bdsg::PackedSubgraphOverla
 			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return HandleGraph::get_degree(a0, a1);
+	}
+	bool has_edge(const struct handlegraph::handle_t & a0, const struct handlegraph::handle_t & a1) const override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedSubgraphOverlay *>(this), "has_edge");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
+			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
+				static pybind11::detail::overload_caster_t<bool> caster;
+				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<bool>(std::move(o));
+		}
+		return HandleGraph::has_edge(a0, a1);
 	}
 	unsigned long get_edge_count() const override { 
 		pybind11::gil_scoped_acquire gil;
@@ -866,7 +866,6 @@ void bind_bdsg_overlays_packed_subgraph_overlay(std::function< pybind11::module 
 		cl.def("flip", (struct handlegraph::handle_t (bdsg::PackedSubgraphOverlay::*)(const struct handlegraph::handle_t &) const) &bdsg::PackedSubgraphOverlay::flip, "Invert the orientation of a handle (potentially without getting its ID)\n\nC++: bdsg::PackedSubgraphOverlay::flip(const struct handlegraph::handle_t &) const --> struct handlegraph::handle_t", pybind11::arg("handle"));
 		cl.def("get_length", (unsigned long (bdsg::PackedSubgraphOverlay::*)(const struct handlegraph::handle_t &) const) &bdsg::PackedSubgraphOverlay::get_length, "Get the length of a node\n\nC++: bdsg::PackedSubgraphOverlay::get_length(const struct handlegraph::handle_t &) const --> unsigned long", pybind11::arg("handle"));
 		cl.def("get_sequence", (std::string (bdsg::PackedSubgraphOverlay::*)(const struct handlegraph::handle_t &) const) &bdsg::PackedSubgraphOverlay::get_sequence, "Get the sequence of a node, presented in the handle's local forward orientation.\n\nC++: bdsg::PackedSubgraphOverlay::get_sequence(const struct handlegraph::handle_t &) const --> std::string", pybind11::arg("handle"));
-		cl.def("has_edge", (bool (bdsg::PackedSubgraphOverlay::*)(const struct handlegraph::handle_t &, const struct handlegraph::handle_t &) const) &bdsg::PackedSubgraphOverlay::has_edge, "Returns true if there is an edge that allows traversal from the left\n handle to the right handle. By default O(n) in the number of edges\n on left, but can be overridden with more efficient implementations.\n\nC++: bdsg::PackedSubgraphOverlay::has_edge(const struct handlegraph::handle_t &, const struct handlegraph::handle_t &) const --> bool", pybind11::arg("left"), pybind11::arg("right"));
 		cl.def("get_base", (char (bdsg::PackedSubgraphOverlay::*)(const struct handlegraph::handle_t &, unsigned long) const) &bdsg::PackedSubgraphOverlay::get_base, "Returns one base of a handle's sequence, in the orientation of the\n handle.\n\nC++: bdsg::PackedSubgraphOverlay::get_base(const struct handlegraph::handle_t &, unsigned long) const --> char", pybind11::arg("handle"), pybind11::arg("index"));
 		cl.def("get_subsequence", (std::string (bdsg::PackedSubgraphOverlay::*)(const struct handlegraph::handle_t &, unsigned long, unsigned long) const) &bdsg::PackedSubgraphOverlay::get_subsequence, "Returns a substring of a handle's sequence, in the orientation of the\n handle. If the indicated substring would extend beyond the end of the\n handle's sequence, the return value is truncated to the sequence's end.\n\nC++: bdsg::PackedSubgraphOverlay::get_subsequence(const struct handlegraph::handle_t &, unsigned long, unsigned long) const --> std::string", pybind11::arg("handle"), pybind11::arg("index"), pybind11::arg("size"));
 		cl.def("get_node_count", (unsigned long (bdsg::PackedSubgraphOverlay::*)() const) &bdsg::PackedSubgraphOverlay::get_node_count, "Return the number of nodes in the graph\n\nC++: bdsg::PackedSubgraphOverlay::get_node_count() const --> unsigned long");
