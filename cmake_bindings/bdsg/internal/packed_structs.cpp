@@ -92,7 +92,7 @@ void bind_bdsg_internal_packed_structs(std::function< pybind11::module &(std::st
 	}
 	{ // bdsg::PackedSet file:bdsg/internal/packed_structs.hpp line:334
 		pybind11::class_<bdsg::PackedSet, std::shared_ptr<bdsg::PackedSet>> cl(M("bdsg"), "PackedSet", "");
-		{ // bdsg::PackedSet::iterator file:bdsg/internal/packed_structs.hpp line:379
+		{ // bdsg::PackedSet::iterator file:bdsg/internal/packed_structs.hpp line:388
 			auto & enclosing_class = cl;
 			pybind11::class_<bdsg::PackedSet::iterator, std::shared_ptr<bdsg::PackedSet::iterator>> cl(enclosing_class, "iterator", "");
 			cl.def( pybind11::init( [](bdsg::PackedSet::iterator const &o){ return new bdsg::PackedSet::iterator(o); } ) );
