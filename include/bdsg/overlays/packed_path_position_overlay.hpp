@@ -273,7 +273,7 @@ public:
         
     private:
         
-        iterator(const BBHashHelper& iteratee, size_t path_handle_idx);
+        iterator(const BBHashHelper* iteratee, size_t path_handle_idx);
         
         size_t path_handle_idx = 0;
         step_handle_t step;
