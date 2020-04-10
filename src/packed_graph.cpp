@@ -1257,7 +1257,7 @@ namespace bdsg {
             // reassign IDs into a contiguous interval ordered by an approximate sort
             
             // use an overlay to convert to a single stranded digraph
-            StrandSplitGraph digraph(this);
+            StrandSplitOverlay digraph(this);
             
             // get a low FAS layout using Eades-Lin-Smyth algorithm
             vector<handle_t> layout = algorithms::eades_algorithm(&digraph);

@@ -12,7 +12,7 @@
 #include <map>
 
 #include "bdsg/overlays/vectorizable_overlays.hpp"
-#include "bdsg/overlays/packed_path_position_overlays.hpp"
+#include "bdsg/overlays/packed_path_position_overlay.hpp"
 
 namespace bdsg {
     

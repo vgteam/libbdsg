@@ -2,7 +2,7 @@
 #define BDSG_SPLIT_STRAND_GRAPH_HPP_INCLUDED
 
 /** \file
- * split_strand_graph.hpp: defines a handle graph overlay that duplicates nodes
+ * strand_split_overlay.hpp: defines a handle graph overlay that duplicates nodes
  * and edges so that both the forward and reverse strand of the underlying graph
  * are now on the forward strand
  */
@@ -17,20 +17,21 @@ using namespace handlegraph;
 
     /**
      * A HandleGraph implementation that overlays some other handle graph and splits
-     * the two strands of its nodes into separate nodes
+     * the two strands of its nodes into separate nodes. This creates a directed graph that
+     * has the same sequence space as the overlaid bidirected graph.
      */
-    class StrandSplitGraph : public ExpandingOverlayGraph {
+    class StrandSplitOverlay : public ExpandingOverlayGraph {
     public:
         
         /// Initialize as the reverse version of another graph, optionally also
         /// complementing
-        StrandSplitGraph(const HandleGraph* graph);
+        StrandSplitOverlay(const HandleGraph* graph);
         
         /// Default constructor -- not actually functional
-        StrandSplitGraph() = default;
+        StrandSplitOverlay() = default;
         
         /// Default destructor
-        ~StrandSplitGraph() = default;
+        ~StrandSplitOverlay() = default;
         
         //////////////////////////
         /// HandleGraph interface

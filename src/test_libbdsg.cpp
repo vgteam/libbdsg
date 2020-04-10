@@ -8,6 +8,7 @@
 #include <iostream>
 #include <vector>
 #include <cassert>
+#include <unordered_set>
 #include <random>
 #include <sstream>
 #include <deque>
@@ -18,8 +19,9 @@
 #include "bdsg/hash_graph.hpp"
 #include "bdsg/internal/packed_structs.hpp"
 #include "bdsg/overlays/path_position_overlays.hpp"
-#include "bdsg/overlays/packed_path_position_overlays.hpp"
+#include "bdsg/overlays/packed_path_position_overlay.hpp"
 #include "bdsg/overlays/vectorizable_overlays.hpp"
+#include "bdsg/overlays/packed_subgraph_overlay.hpp"
 
 using namespace bdsg;
 using namespace handlegraph;
@@ -1995,6 +1997,104 @@ void test_packed_deque() {
     cerr << "PackedDeque tests successful!" << endl;
 }
 
+void test_packed_set() {
+    enum set_op_t {INSERT = 0, REMOVE = 1, FIND = 2};
+    
+    random_device rd;
+    default_random_engine prng(rd());
+    uniform_int_distribution<int> op_distr(0, 2);
+    
+    int num_runs = 1000;
+    int num_ops = 200;
+    int inserts_per_op = 2;
+    int prev_inserts_per_op = 1;
+    int removes_per_op = 1;
+    int finds_per_op = 5;
+    
+    for (size_t i = 0; i < num_runs; i++) {
+        uint64_t next_val = 0;
+        
+        unordered_set<uint64_t> std_set;
+        PackedSet packed_set;
+        
+        for (size_t j = 0; j < num_ops; j++) {
+            set_op_t op = (set_op_t) op_distr(prng);
+            switch (op) {
+                case INSERT:
+                    
+                    for (size_t k = 0; k < inserts_per_op; ++k) {
+                        packed_set.insert(next_val);
+                        std_set.insert(next_val);
+                        next_val++;
+                    }
+                    for (size_t k = 0; k < prev_inserts_per_op; ++k) {
+                        uint64_t val = prng() % next_val;
+                        packed_set.insert(val);
+                        std_set.insert(val);
+                    }
+                    
+                    break;
+                    
+                case REMOVE:
+                    if (next_val > 0) {
+                        for (size_t k = 0; k < removes_per_op; ++k) {
+                            uint64_t val = prng() % next_val;
+                            packed_set.remove(val);
+                            std_set.erase(val);
+                        }
+                    }
+                    else {
+                        packed_set.remove(0);
+                        packed_set.remove(1);
+                        packed_set.remove(2);
+                        std_set.erase(0);
+                        std_set.erase(1);
+                        std_set.erase(2);
+                    }
+                    
+                    break;
+                    
+                case FIND:
+                    if (next_val) {
+                        for (size_t k = 0; k < finds_per_op; k++) {
+                            uint64_t val = prng() % next_val;
+                            assert(packed_set.find(val) == (bool) std_set.count(val));
+                        }
+                    }
+                    else {
+                        assert(packed_set.find(0) == (bool) std_set.count(0));
+                        assert(packed_set.find(1) == (bool) std_set.count(1));
+                        assert(packed_set.find(2) == (bool) std_set.count(2));
+                    }
+                    
+                    break;
+                    
+//                case SERIALIZE:
+//                {
+//                    stringstream strm;
+//
+//                    dyn_vec.serialize(strm);
+//                    strm.seekg(0);
+//                    PackedVector copy_vec(strm);
+//
+//                    assert(copy_vec.size() == dyn_vec.size());
+//                    for (size_t i = 0; i < copy_vec.size(); i++) {
+//                        assert(copy_vec.get(i) == dyn_vec.get(i));
+//                    }
+//                    break;
+//                }
+                    
+                default:
+                    break;
+            }
+            
+            assert(std_set.empty() == packed_set.empty());
+            assert(std_set.size() == packed_set.size());
+        }
+    }
+    cerr << "PackedSet tests successful!" << endl;
+}
+
 void test_packed_graph() {
     
     auto check_path = [&](MutablePathDeletableHandleGraph& graph, const path_handle_t& p, const vector<handle_t>& steps) {
@@ -2460,7 +2560,7 @@ void test_path_position_overlays() {
     vector<MutablePathDeletableHandleGraph*> implementations;
     implementations.push_back(&pg);
     implementations.push_back(&hg);
-    //implementations.push_back(&og);
+    implementations.push_back(&og);
     
     for (MutablePathDeletableHandleGraph* implementation : implementations) {
         
@@ -2674,15 +2774,281 @@ void test_vectorizable_overlays() {
     cerr << "VectorizableOverlay tests successful!" << endl;
 }
 
+void test_packed_subgraph_overlay() {
+    
+    bdsg::PackedGraph pg;
+    bdsg::HashGraph hg;
+    bdsg::ODGI og;
+    
+    vector<MutablePathDeletableHandleGraph*> implementations;
+    implementations.push_back(&pg);
+    implementations.push_back(&hg);
+    implementations.push_back(&og);
+    
+    for (MutablePathDeletableHandleGraph* implementation : implementations) {
+
+        MutablePathDeletableHandleGraph& graph = *implementation;
+        
+        handle_t h1 = graph.create_handle("AAA");
+        handle_t h2 = graph.create_handle("A");
+        handle_t h3 = graph.create_handle("T");
+        handle_t h4 = graph.create_handle("AAAAA");
+        
+        graph.create_edge(h1, h2);
+        graph.create_edge(h1, h3);
+        graph.create_edge(h2, h4);
+        graph.create_edge(h3, h4);
+        
+        PackedSubgraphOverlay subgraph(&graph);
+        assert(subgraph.get_node_count() == 0);
+        subgraph.for_each_handle([&](const handle_t& h) {
+            assert(false);
+        });
+        assert(!subgraph.has_node(graph.get_id(h1)));
+        assert(!subgraph.has_node(graph.get_id(h2)));
+        assert(!subgraph.has_node(graph.get_id(h3)));
+        assert(!subgraph.has_node(graph.get_id(h4)));
+        
+        subgraph.add_node(h1);
+        
+        assert(subgraph.get_node_count() == 1);
+        bool found1 = false;
+        subgraph.for_each_handle([&](const handle_t& h) {
+            if (subgraph.get_id(h) == graph.get_id(h1)) {
+                found1 = true;
+                assert(graph.get_sequence(h) == graph.get_sequence(h1));
+            }
+            else {
+                assert(false);
+            }
+        });
+        assert(found1);
+        found1 = false;
+        
+        assert(subgraph.has_node(graph.get_id(h1)));
+        assert(!subgraph.has_node(graph.get_id(h2)));
+        assert(!subgraph.has_node(graph.get_id(h3)));
+        assert(!subgraph.has_node(graph.get_id(h4)));
+        
+        subgraph.follow_edges(h1, true, [&](const handle_t& h) {
+            assert(false);
+        });
+        subgraph.follow_edges(h1, false, [&](const handle_t& h) {
+            assert(false);
+        });
+        
+        assert(subgraph.get_degree(h1, true) == 0);
+        assert(subgraph.get_degree(h1, false) == 0);
+        
+        subgraph.add_node(h4);
+
+        assert(subgraph.get_node_count() == 2);
+        bool found2 = false;
+        subgraph.for_each_handle([&](const handle_t& h) {
+            if (subgraph.get_id(h) == graph.get_id(h1)) {
+                found1 = true;
+                assert(graph.get_sequence(h) == graph.get_sequence(h1));
+            }
+            else if (subgraph.get_id(h) == graph.get_id(h4)) {
+                found2 = true;
+                assert(graph.get_sequence(h) == graph.get_sequence(h4));
+            }
+            else {
+                assert(false);
+            }
+        });
+        assert(found1);
+        assert(found2);
+        found1 = false;
+        found2 = false;
+        
+        assert(subgraph.has_node(graph.get_id(h1)));
+        assert(!subgraph.has_node(graph.get_id(h2)));
+        assert(!subgraph.has_node(graph.get_id(h3)));
+        assert(subgraph.has_node(graph.get_id(h4)));
+        
+        subgraph.follow_edges(h1, true, [&](const handle_t& h) {
+            assert(false);
+        });
+        subgraph.follow_edges(h1, false, [&](const handle_t& h) {
+            assert(false);
+        });
+        subgraph.follow_edges(h4, true, [&](const handle_t& h) {
+            assert(false);
+        });
+        subgraph.follow_edges(h4, false, [&](const handle_t& h) {
+            assert(false);
+        });
+        
+        
+        assert(subgraph.get_degree(h1, true) == 0);
+        assert(subgraph.get_degree(h1, false) == 0);
+        assert(subgraph.get_degree(h4, true) == 0);
+        assert(subgraph.get_degree(h4, false) == 0);
+        
+        subgraph.add_node(graph.flip(h2));
+        
+        assert(subgraph.get_node_count() == 3);
+        bool found3 = false;
+        subgraph.for_each_handle([&](const handle_t& h) {
+            if (subgraph.get_id(h) == graph.get_id(h1)) {
+                found1 = true;
+                assert(graph.get_sequence(h) == graph.get_sequence(h1));
+            }
+            else if (subgraph.get_id(h) == graph.get_id(h2)) {
+                found2 = true;
+                assert(graph.get_sequence(h) == graph.get_sequence(h2));
+            }
+            else if (subgraph.get_id(h) == graph.get_id(h4)) {
+                found3 = true;
+                assert(graph.get_sequence(h) == graph.get_sequence(h4));
+            }
+            else {
+                assert(false);
+            }
+        });
+        assert(found1);
+        assert(found2);
+        assert(found3);
+        found1 = false;
+        found2 = false;
+        found3 = false;
+        
+        assert(subgraph.has_node(graph.get_id(h1)));
+        assert(subgraph.has_node(graph.get_id(h2)));
+        assert(!subgraph.has_node(graph.get_id(h3)));
+        assert(subgraph.has_node(graph.get_id(h4)));
+        
+        bool found4 = false;
+        subgraph.follow_edges(h1, true, [&](const handle_t& h) {
+            assert(false);
+        });
+        subgraph.follow_edges(h1, false, [&](const handle_t& h) {
+            if (subgraph.get_id(h) == graph.get_id(h2) && !graph.get_is_reverse(h)) {
+                found1 = true;
+            }
+            else {
+                assert(false);
+            }
+        });
+        subgraph.follow_edges(h2, true, [&](const handle_t& h) {
+            if (subgraph.get_id(h) == graph.get_id(h1) && !graph.get_is_reverse(h)) {
+                found2 = true;
+            }
+            else {
+                assert(false);
+            }
+        });
+        subgraph.follow_edges(h2, false, [&](const handle_t& h) {
+            if (subgraph.get_id(h) == graph.get_id(h4) && !graph.get_is_reverse(h)) {
+                found3 = true;
+            }
+            else {
+                assert(false);
+            }
+        });
+        subgraph.follow_edges(h4, true, [&](const handle_t& h) {
+            if (subgraph.get_id(h) == graph.get_id(h2) && !graph.get_is_reverse(h)) {
+                found4 = true;
+            }
+            else {
+                assert(false);
+            }
+        });
+        subgraph.follow_edges(h4, false, [&](const handle_t& h) {
+            assert(false);
+        });
+        
+        assert(subgraph.get_degree(h1, true) == 0);
+        assert(subgraph.get_degree(h1, false) == 1);
+        assert(subgraph.get_degree(h2, true) == 1);
+        assert(subgraph.get_degree(h2, false) == 1);
+        assert(subgraph.get_degree(h4, true) == 1);
+        assert(subgraph.get_degree(h4, false) == 0);
+        
+        assert(found1);
+        assert(found2);
+        assert(found3);
+        assert(found4);
+        found1 = false;
+        found2 = false;
+        found3 = false;
+        found4 = false;
+        
+        subgraph.remove_node(h1);
+        
+        assert(subgraph.get_node_count() == 2);
+        subgraph.for_each_handle([&](const handle_t& h) {
+            if (subgraph.get_id(h) == graph.get_id(h2)) {
+                found1 = true;
+                assert(graph.get_sequence(h) == graph.get_sequence(h2));
+            }
+            else if (subgraph.get_id(h) == graph.get_id(h4)) {
+                found2 = true;
+                assert(graph.get_sequence(h) == graph.get_sequence(h4));
+            }
+            else {
+                assert(false);
+            }
+        });
+        assert(found1);
+        assert(found2);
+        found1 = false;
+        found2 = false;
+        
+        assert(!subgraph.has_node(graph.get_id(h1)));
+        assert(subgraph.has_node(graph.get_id(h2)));
+        assert(!subgraph.has_node(graph.get_id(h3)));
+        assert(subgraph.has_node(graph.get_id(h4)));
+        
+        subgraph.follow_edges(h2, true, [&](const handle_t& h) {
+            assert(false);
+        });
+        subgraph.follow_edges(h2, false, [&](const handle_t& h) {
+            if (subgraph.get_id(h) == graph.get_id(h4) && !graph.get_is_reverse(h)) {
+                found1 = true;
+            }
+            else {
+                assert(false);
+            }
+        });
+        subgraph.follow_edges(h4, true, [&](const handle_t& h) {
+            if (subgraph.get_id(h) == graph.get_id(h2) && !graph.get_is_reverse(h)) {
+                found2 = true;
+            }
+            else {
+                assert(false);
+            }
+        });
+        subgraph.follow_edges(h4, false, [&](const handle_t& h) {
+            assert(false);
+        });
+        
+        assert(subgraph.get_degree(h2, true) == 0);
+        assert(subgraph.get_degree(h2, false) == 1);
+        assert(subgraph.get_degree(h4, true) == 1);
+        assert(subgraph.get_degree(h4, false) == 0);
+        
+        assert(found1);
+        assert(found2);
+        found1 = false;
+        found2 = false;
+    }
+    
+    cerr << "PackedSubgraphOverlay tests successful!" << endl;
+}
+
 
 int main(void) {
     test_packed_vector();
     test_paged_vector();
     test_packed_deque();
+    test_packed_set();
     test_deletable_handle_graphs();
     test_mutable_path_handle_graphs();
     test_serializable_handle_graphs();
     test_packed_graph();
     test_path_position_overlays();
     test_vectorizable_overlays();
+    test_packed_subgraph_overlay();
 }

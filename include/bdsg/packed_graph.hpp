@@ -13,11 +13,10 @@
 #include <handlegraph/mutable_path_deletable_handle_graph.hpp>
 #include <handlegraph/serializable_handle_graph.hpp>
 
+#include "bdsg/overlays/strand_split_overlay.hpp"
 #include "bdsg/internal/packed_structs.hpp"
-#include "bdsg/internal/split_strand_graph.hpp"
 #include "bdsg/internal/hash_map.hpp"
 #include "bdsg/internal/utility.hpp"
-
 #include "bdsg/internal/eades_algorithm.hpp"
 
 
