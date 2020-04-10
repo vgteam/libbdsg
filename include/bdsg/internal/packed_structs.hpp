@@ -373,6 +373,39 @@ public:
     /// Get the minimum load factor of the hash table
     inline double min_load_factor() const;
     
+    /*
+     * An iterator class for the PackedSet
+     */
+    class iterator {
+    public:
+        iterator(const iterator& other) = default;
+        iterator() = delete;
+        ~iterator() = default;
+        iterator& operator=(const iterator& other) = default;
+        iterator& operator++();
+        uint64_t operator*() const;
+        bool operator==(const iterator& other) const;
+        bool operator!=(const iterator& other) const;
+        
+    private:
+        
+        iterator(const PackedSet* iteratee);
+        iterator(const PackedSet* iteratee, size_t i);
+        
+        const PackedSet* iteratee;
+        
+        // the index in the hash table
+        size_t i = 0;
+        
+        friend class PackedSet;
+    };
+    
+    /// Iterator to the first item in the set
+    iterator begin() const;
+    
+    /// Iterator to the past-the-last item in the set
+    iterator end() const;
+    
 private:
     
     /// Internal function that returns the index of either either the null seninel
@@ -417,6 +450,9 @@ private:
     
     /// Number of items in the set
     size_t num_items = 0;
+    
+    /// Let the iterator access the internals
+    friend class iterator;
 };
     
     
@@ -1051,7 +1087,7 @@ inline void PackedSet::remove(const uint64_t& value) {
             size_t hash_dist = j >= hsh ? j - hsh : (p - hsh) + j;
 
             if (hash_dist >= search_dist) {
-                // this value searched past i's during its placement, so we need
+                // this value searched past i during its placement, so we need
                 // to move it up to preserve the integrity of its future searches
                 table.set(i, table.get(j));
 

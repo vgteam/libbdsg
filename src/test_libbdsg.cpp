@@ -19,7 +19,7 @@
 #include "bdsg/hash_graph.hpp"
 #include "bdsg/internal/packed_structs.hpp"
 #include "bdsg/overlays/path_position_overlays.hpp"
-#include "bdsg/overlays/packed_path_position_overlays.hpp"
+#include "bdsg/overlays/packed_path_position_overlay.hpp"
 #include "bdsg/overlays/vectorizable_overlays.hpp"
 
 using namespace bdsg;

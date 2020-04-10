@@ -208,10 +208,11 @@ add_library(bdsg_objs OBJECT
   ${CMAKE_SOURCE_DIR}/src/node.cpp
   ${CMAKE_SOURCE_DIR}/src/odgi.cpp
   ${CMAKE_SOURCE_DIR}/src/packed_graph.cpp
-  ${CMAKE_SOURCE_DIR}/src/packed_path_position_overlays.cpp
+  ${CMAKE_SOURCE_DIR}/src/packed_path_position_overlay.cpp
   ${CMAKE_SOURCE_DIR}/src/packed_structs.cpp
+  ${CMAKE_SOURCE_DIR}/src/packed_subgraph_overlay.cpp
   ${CMAKE_SOURCE_DIR}/src/path_position_overlays.cpp
-  ${CMAKE_SOURCE_DIR}/src/split_strand_graph.cpp
+  ${CMAKE_SOURCE_DIR}/src/strand_split_overlay.cpp
   ${CMAKE_SOURCE_DIR}/src/utility.cpp
   ${CMAKE_SOURCE_DIR}/src/vectorizable_overlays.cpp
   )
