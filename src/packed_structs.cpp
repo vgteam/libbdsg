@@ -151,10 +151,17 @@ PackedSet::iterator PackedSet::end() const {
 }
 
 PackedSet::iterator::iterator(const PackedSet* iteratee) : iteratee(iteratee) {
+//    cerr << "making iterator to table: " << endl;
+//    for (size_t j = 0; j < iteratee->table.size(); j++) {
+//        cerr << iteratee->table.get(j) << " ";
+//    }
+//    cerr << endl;
     // make sure i is always pointing at a non-null element
     while (i < iteratee->table.size() && iteratee->table.get(i) == 0) {
+//        cerr << "advancing from " << i << " to find initial position" << endl;
         ++i;
     }
+//    cerr << "starting at " << i << endl;
 }
 
 PackedSet::iterator::iterator(const PackedSet* iteratee, size_t i) : iteratee(iteratee), i(i) {
@@ -164,8 +171,11 @@ PackedSet::iterator::iterator(const PackedSet* iteratee, size_t i) : iteratee(it
 PackedSet::iterator& PackedSet::iterator::operator++() {
     // advance to the next non-null element
     do {
+//        cerr << "advancing from " << i << " to find next position" << endl;
         ++i;
     } while (i < iteratee->table.size() && iteratee->table.get(i) == 0);
+//    cerr << "at " << i << endl;
+    return *this;
 }
 
 uint64_t PackedSet::iterator::operator*() const {
@@ -173,6 +183,7 @@ uint64_t PackedSet::iterator::operator*() const {
 }
 
 bool PackedSet::iterator::operator==(const PackedSet::iterator& other) const {
+//    cerr << "checking == for " << iteratee << " " << i << " and " << other.iteratee << " " << other.i << endl;
     return iteratee == other.iteratee && i == other.i;
 }
 

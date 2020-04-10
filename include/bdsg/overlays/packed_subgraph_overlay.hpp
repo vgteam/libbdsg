@@ -31,7 +31,7 @@ public:
     /// Initialize the overlay with the graph it sits on top of
     PackedSubgraphOverlay(const HandleGraph* graph);
     
-    /// Default constructor (not functional)
+    /// Default constructor (not functionally useful)
     PackedSubgraphOverlay();
     
     /// Destrutor
@@ -90,12 +90,6 @@ private:
     bool for_each_handle_impl(const std::function<bool(const handle_t&)>& iteratee, bool parallel = false) const;
     
 public:
-    
-    /// Get the number of edges on the right (go_left = false) or left (go_left
-    /// = true) side of the given handle. The default implementation is O(n) in
-    /// the number of edges returned, but graph implementations that track this
-    /// information more efficiently can override this method.
-    size_t get_degree(const handle_t& handle, bool go_left) const;
     
     /// Returns true if there is an edge that allows traversal from the left
     /// handle to the right handle. By default O(n) in the number of edges

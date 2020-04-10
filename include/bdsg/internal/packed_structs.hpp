@@ -349,6 +349,9 @@ public:
     /// Copy assignment operator
     PackedSet& operator=(const PackedSet& other) = default;
     
+    /// Forward declaration
+    class iterator;
+    
     /// Insert a value into the set. Has no effect if the value is already in the set.
     inline void insert(const uint64_t& value);
     
@@ -373,10 +376,16 @@ public:
     /// Get the minimum load factor of the hash table
     inline double min_load_factor() const;
     
+    /// Iterator to the first item in the set
+    iterator begin() const;
+    
+    /// Iterator to the past-the-last item in the set
+    iterator end() const;
+    
     /*
      * An iterator class for the PackedSet
      */
-    class iterator {
+    class iterator{
     public:
         iterator(const iterator& other) = default;
         iterator() = delete;
@@ -399,12 +408,6 @@ public:
         
         friend class PackedSet;
     };
-    
-    /// Iterator to the first item in the set
-    iterator begin() const;
-    
-    /// Iterator to the past-the-last item in the set
-    iterator end() const;
     
 private:
     

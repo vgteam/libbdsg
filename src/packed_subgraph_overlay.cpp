@@ -79,15 +79,12 @@ bool PackedSubgraphOverlay::follow_edges_impl(const handle_t& handle, bool go_le
 bool PackedSubgraphOverlay::for_each_handle_impl(const std::function<bool(const handle_t&)>& iteratee, bool parallel) const {
     // parallel is difficult to implement for a hash set, so it's all actually
     // going to be serial
+    // TODO: wouldn't be hard to return a "mesh" of iterators that are approximately equally spaced
     bool keep_going = true;
     for (auto iter = subgraph_handles.begin(), end = subgraph_handles.end(); keep_going && iter != end; ++iter) {
         keep_going = iteratee(handlegraph::as_handle(*iter));
     }
     return keep_going;
-}
-
-size_t PackedSubgraphOverlay::get_degree(const handle_t& handle, bool go_left) const {
-    return graph->get_degree(handle, go_left);
 }
 
 bool PackedSubgraphOverlay::has_edge(const handle_t& left, const handle_t& right) const {
