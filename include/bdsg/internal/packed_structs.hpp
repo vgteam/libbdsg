@@ -1001,7 +1001,7 @@ inline void PackedSet::rehash(bool shrink) {
     PackedVector new_table;
     new_table.resize(bdsg_packed_set_size_schedule[schedule_val]);
     
-    uniform_int_distribution<uint64_t> distr(0, new_table.size() - 1);
+    std::uniform_int_distribution<uint64_t> distr(0, new_table.size() - 1);
     for (size_t i = 0; i < 5; ++i) {
         coefs[i] = distr(gen);
     }
