@@ -4,13 +4,10 @@ language: cpp
 compiler: gcc
 
 script:
-  - mkdir build && cd build && cmake .. && make -j2
-cache:
-  ccache: true
-  directories:
-    - build
-    - lib
-    - bin
+  # Test cmake build
+  - mkdir build && cd build && cmake .. && make -j2 && make clean && cd .. && rm -Rf build
+  # Test Makefile build (no Python bindings)
+  - make -j2
 
 osx_image: xcode10.1
   
