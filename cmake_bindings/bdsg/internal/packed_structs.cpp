@@ -1,5 +1,4 @@
 #include <bdsg/internal/packed_structs.hpp>
-#include <cwchar>
 #include <ios>
 #include <istream>
 #include <ostream>

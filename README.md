@@ -2,6 +2,8 @@
 
 Optimized **b**i**d**irected **s**equence **g**raph implementations for graph genomics
 
+[![Documentation Status](https://readthedocs.org/projects/bdsg/badge/?version=master)](https://bdsg.readthedocs.io/en/master/?badge=master)
+
 ## About
 
 The main purpose of `libbdsg` is to provide high performance implementations of sequence graphs for graph-based pangenomics applications. The repository contains three graph implementations with different performance tradeoffs:

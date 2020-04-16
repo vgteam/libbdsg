@@ -15,4 +15,4 @@ bdsg/overlays/packed_path_position_overlay.cpp
 bdsg/overlays/packed_subgraph_overlay.cpp
 bdsg/overlays/path_position_overlays.cpp
 bdsg/overlays/vectorizable_overlays.cpp
-bdsg/packed_graph.cpp
+bdsg/overlays/vectorizable_overlays_1.cpp

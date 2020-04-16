@@ -1,4 +1,3 @@
-#include <cwchar>
 #include <handlegraph/serializable_handle_graph.hpp>
 #include <ios>
 #include <istream>

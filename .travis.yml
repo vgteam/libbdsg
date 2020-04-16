@@ -1,0 +1,19 @@
+# Control file for continuous integration testing at http://travis-ci.org/
+
+language: cpp
+compiler: gcc
+
+script:
+  # Test cmake build
+  - mkdir build && cd build && cmake .. && make -j2 && make clean && cd .. && rm -Rf build
+  # Test Makefile build (no Python bindings)
+  - make -j2
+
+osx_image: xcode10.1
+  
+matrix:
+  include:
+    - os: linux
+      compiler: gcc
+    - os: osx
+      compiler: clang
