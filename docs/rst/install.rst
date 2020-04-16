@@ -13,11 +13,11 @@ First, obtain a copy of the repository:
    git clone https://github.com/vgteam/libbdsg.git
    cd libbdsg
    
-On Mac, you will need to make sure you have OpenMP installed, as it is not part of the Mac system by default. To install it with Homebrew using libbdsg's Brewfile, you can do:
+On Mac, you will need to make sure you have OpenMP installed, as it is not part of the Mac system by default. To install it with Homebrew, you can do:
 
 .. code-block:: bash
 
-   brew bundle
+   brew install libomp
 
 Then, for all platforms, build through cmake:
 

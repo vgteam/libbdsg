@@ -4,8 +4,7 @@ language: cpp
 compiler: gcc
 
 before_install:
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew bundle || true; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install libomp; fi
 script:
   # Test cmake build
   - mkdir build && cd build && cmake .. && make -j2 && make clean && cd .. && rm -Rf build
