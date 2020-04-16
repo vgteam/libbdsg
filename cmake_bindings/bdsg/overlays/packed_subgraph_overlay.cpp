@@ -111,16 +111,16 @@ struct PyCallBack_bdsg_PackedSubgraphOverlay : public bdsg::PackedSubgraphOverla
 		}
 		return PackedSubgraphOverlay::get_length(a0);
 	}
-	class std::basic_string<char> get_sequence(const struct handlegraph::handle_t & a0) const override { 
+	std::string get_sequence(const struct handlegraph::handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedSubgraphOverlay *>(this), "get_sequence");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<class std::basic_string<char>>::value) {
-				static pybind11::detail::overload_caster_t<class std::basic_string<char>> caster;
-				return pybind11::detail::cast_ref<class std::basic_string<char>>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<std::string>::value) {
+				static pybind11::detail::overload_caster_t<std::string> caster;
+				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<class std::basic_string<char>>(std::move(o));
+			else return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		return PackedSubgraphOverlay::get_sequence(a0);
 	}
@@ -137,16 +137,16 @@ struct PyCallBack_bdsg_PackedSubgraphOverlay : public bdsg::PackedSubgraphOverla
 		}
 		return PackedSubgraphOverlay::get_base(a0, a1);
 	}
-	class std::basic_string<char> get_subsequence(const struct handlegraph::handle_t & a0, unsigned long a1, unsigned long a2) const override { 
+	std::string get_subsequence(const struct handlegraph::handle_t & a0, unsigned long a1, unsigned long a2) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedSubgraphOverlay *>(this), "get_subsequence");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1, a2);
-			if (pybind11::detail::cast_is_temporary_value_reference<class std::basic_string<char>>::value) {
-				static pybind11::detail::overload_caster_t<class std::basic_string<char>> caster;
-				return pybind11::detail::cast_ref<class std::basic_string<char>>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<std::string>::value) {
+				static pybind11::detail::overload_caster_t<std::string> caster;
+				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<class std::basic_string<char>>(std::move(o));
+			else return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		return PackedSubgraphOverlay::get_subsequence(a0, a1, a2);
 	}
@@ -364,16 +364,16 @@ struct PyCallBack_bdsg_PositionOverlay : public bdsg::PositionOverlay {
 		}
 		return PositionOverlay::get_length(a0);
 	}
-	class std::basic_string<char> get_sequence(const struct handlegraph::handle_t & a0) const override { 
+	std::string get_sequence(const struct handlegraph::handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PositionOverlay *>(this), "get_sequence");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<class std::basic_string<char>>::value) {
-				static pybind11::detail::overload_caster_t<class std::basic_string<char>> caster;
-				return pybind11::detail::cast_ref<class std::basic_string<char>>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<std::string>::value) {
+				static pybind11::detail::overload_caster_t<std::string> caster;
+				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<class std::basic_string<char>>(std::move(o));
+			else return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		return PositionOverlay::get_sequence(a0);
 	}
@@ -416,16 +416,16 @@ struct PyCallBack_bdsg_PositionOverlay : public bdsg::PositionOverlay {
 		}
 		return PositionOverlay::get_base(a0, a1);
 	}
-	class std::basic_string<char> get_subsequence(const struct handlegraph::handle_t & a0, unsigned long a1, unsigned long a2) const override { 
+	std::string get_subsequence(const struct handlegraph::handle_t & a0, unsigned long a1, unsigned long a2) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PositionOverlay *>(this), "get_subsequence");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1, a2);
-			if (pybind11::detail::cast_is_temporary_value_reference<class std::basic_string<char>>::value) {
-				static pybind11::detail::overload_caster_t<class std::basic_string<char>> caster;
-				return pybind11::detail::cast_ref<class std::basic_string<char>>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<std::string>::value) {
+				static pybind11::detail::overload_caster_t<std::string> caster;
+				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<class std::basic_string<char>>(std::move(o));
+			else return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		return PositionOverlay::get_subsequence(a0, a1, a2);
 	}
@@ -481,7 +481,7 @@ struct PyCallBack_bdsg_PositionOverlay : public bdsg::PositionOverlay {
 		}
 		return PositionOverlay::get_path_count();
 	}
-	bool has_path(const class std::basic_string<char> & a0) const override { 
+	bool has_path(const std::string & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PositionOverlay *>(this), "has_path");
 		if (overload) {
@@ -494,7 +494,7 @@ struct PyCallBack_bdsg_PositionOverlay : public bdsg::PositionOverlay {
 		}
 		return PositionOverlay::has_path(a0);
 	}
-	struct handlegraph::path_handle_t get_path_handle(const class std::basic_string<char> & a0) const override { 
+	struct handlegraph::path_handle_t get_path_handle(const std::string & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PositionOverlay *>(this), "get_path_handle");
 		if (overload) {
@@ -507,16 +507,16 @@ struct PyCallBack_bdsg_PositionOverlay : public bdsg::PositionOverlay {
 		}
 		return PositionOverlay::get_path_handle(a0);
 	}
-	class std::basic_string<char> get_path_name(const struct handlegraph::path_handle_t & a0) const override { 
+	std::string get_path_name(const struct handlegraph::path_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PositionOverlay *>(this), "get_path_name");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<class std::basic_string<char>>::value) {
-				static pybind11::detail::overload_caster_t<class std::basic_string<char>> caster;
-				return pybind11::detail::cast_ref<class std::basic_string<char>>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<std::string>::value) {
+				static pybind11::detail::overload_caster_t<std::string> caster;
+				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<class std::basic_string<char>>(std::move(o));
+			else return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		return PositionOverlay::get_path_name(a0);
 	}
