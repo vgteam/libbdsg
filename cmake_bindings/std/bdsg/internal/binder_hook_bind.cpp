@@ -1,21 +1,13 @@
 #include <binder/source/stl_binders.hpp>
-#include <fstream>
-#include <functional>
 #include <handlegraph/types.hpp>
 #include <internal/gap_bitvector.hpp>
 #include <internal/packed_vector.hpp>
 #include <internal/spsi.hpp>
-#include <ios>
 #include <istream>
 #include <iterator>
 #include <list>
-#include <locale>
-#include <map>
 #include <memory>
 #include <ostream>
-#include <ratio>
-#include <set>
-#include <sstream>
 #include <sstream> // __str__
 #include <string>
 #include <utility>
@@ -38,7 +30,7 @@
 	PYBIND11_MAKE_OPAQUE(std::shared_ptr<void>);
 #endif
 
-void bind_std_bdsg_binder_hook_bind(std::function< pybind11::module &(std::string const &namespace_) > &M)
+void bind_std_bdsg_internal_binder_hook_bind(std::function< pybind11::module &(std::string const &namespace_) > &M)
 {
 	// std::vector file:bdsg/internal/binder_hook_bind.hpp line:26
 	binder::vector_binder<unsigned long,std::allocator<unsigned long>>(M("std"), "unsigned_long", "std_allocator_unsigned_long_t");

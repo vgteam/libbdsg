@@ -1,13 +1,13 @@
 //
-//  packed_path_position_overlays.hpp
+//  packed_path_position_overlay.hpp
 //  
 //  Contains a memory efficient, generic overlays for PathHandleGraph's that add
 //  the PathPositionHandleGraph interface methods for querying steps by base-pair
 //  position.
 //
 
-#ifndef BDSG_PACKED_PATH_POSITION_OVERLAYS_HPP_INCLUDED
-#define BDSG_PACKED_PATH_POSITION_OVERLAYS_HPP_INCLUDED
+#ifndef BDSG_PACKED_PATH_POSITION_OVERLAY_HPP_INCLUDED
+#define BDSG_PACKED_PATH_POSITION_OVERLAY_HPP_INCLUDED
 
 #include <handlegraph/mutable_path_deletable_handle_graph.hpp>
 #include <handlegraph/path_position_handle_graph.hpp>
@@ -273,11 +273,11 @@ public:
         
     private:
         
-        iterator(const BBHashHelper& iteratee, size_t path_handle_idx);
+        iterator(const BBHashHelper* iteratee, size_t path_handle_idx);
         
         size_t path_handle_idx = 0;
         step_handle_t step;
-        const BBHashHelper& iteratee;
+        const BBHashHelper* iteratee;
         
         friend class BBHashHelper;
     };

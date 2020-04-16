@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <iostream>
 #include <vector>
+#include <random>
 #include <sdsl/int_vector.hpp>
 
 namespace bdsg {
@@ -324,6 +325,138 @@ private:
     static const double factor;
 };
     
+/*
+ * A hash set that maintains integers in bit-compressed form, with the bit
+ * width automatically adjusted to the entries. It is designed to have the
+ * best compression when the values are similar to each other in scale,
+ * except possibly for 0, which can be used as a sentinel.
+ */
+class PackedSet {
+public:
+    
+    /// Constructor
+    PackedSet();
+    /// Desctructor
+    ~PackedSet() = default;
+    
+    /// Move constructor
+    PackedSet(PackedSet&& other) = default;
+    /// Move assignment operator
+    PackedSet& operator=(PackedSet&& other) = default;
+    
+    /// Copy constructor
+    PackedSet(const PackedSet& other) = default;
+    /// Copy assignment operator
+    PackedSet& operator=(const PackedSet& other) = default;
+    
+    /// Forward declaration
+    class iterator;
+    
+    /// Insert a value into the set. Has no effect if the value is already in the set.
+    inline void insert(const uint64_t& value);
+    
+    /// Returns true if the value is in the set, else false.
+    inline bool find(const uint64_t& value) const;
+    
+    /// Remove a value into the set. Has no effect if the value is not in the set.
+    inline void remove(const uint64_t& value);
+    
+    /// Returns the number of values in the set
+    inline size_t size() const;
+    
+    /// Returns the number of values in the set
+    inline bool empty() const;
+    
+    /// Set the minimum and maxium load factors of the hash table
+    inline void set_load_factors(double min_load_factor, double max_load_factor);
+    
+    /// Get the maximum load factor of the hash table
+    inline double max_load_factor() const;
+    
+    /// Get the minimum load factor of the hash table
+    inline double min_load_factor() const;
+    
+    /// Iterator to the first item in the set
+    iterator begin() const;
+    
+    /// Iterator to the past-the-last item in the set
+    iterator end() const;
+    
+    /*
+     * An iterator class for the PackedSet
+     */
+    class iterator{
+    public:
+        iterator(const iterator& other) = default;
+        iterator() = delete;
+        ~iterator() = default;
+        iterator& operator=(const iterator& other) = default;
+        iterator& operator++();
+        uint64_t operator*() const;
+        bool operator==(const iterator& other) const;
+        bool operator!=(const iterator& other) const;
+        
+    private:
+        
+        iterator(const PackedSet* iteratee);
+        iterator(const PackedSet* iteratee, size_t i);
+        
+        const PackedSet* iteratee;
+        
+        // the index in the hash table
+        size_t i = 0;
+        
+        friend class PackedSet;
+    };
+    
+private:
+    
+    /// Internal function that returns the index of either either the null seninel
+    /// or the diff, whichever comes first in linear probing
+    inline size_t locate(const uint64_t& diff, const PackedVector& _table) const;
+    
+    /// Move up or down to the next size in the size schedule and rehash entries
+    void rehash(bool shrink);
+    
+    /// Execute hash function for a given table
+    inline size_t hash(const uint64_t& diff, const PackedVector& table) const;
+    
+    /// Convert a value to a difference from an anchor
+    inline uint64_t to_diff(const uint64_t& value, const uint64_t& _anchor) const;
+    
+    /// Convert a difference from an anchor to a value
+    inline uint64_t from_diff(const uint64_t& diff, const uint64_t& _anchor) const;
+    
+    /// Compute the optimal anchor for the current table entries
+    inline uint64_t optimal_anchor() const;
+    
+    /// The table where the entries are stored
+    PackedVector table;
+    
+    /// PRNG used to generate universal hash functions
+    default_random_engine gen;
+    
+    /// A value that we greedily choose from the input to anchor differences
+    uint64_t anchor = 0;
+        
+    /// Coefficients of a degree 4 polynomial over Z_p
+    size_t coefs[5] = {0, 0, 0, 0, 0};
+    
+    /// Index of the current size within the schedule of sizes
+    size_t schedule_val = 0;
+    
+    /// Minimum load factor on the array
+    double min_load = 0.33;
+    
+    /// Maximum load factor on the array
+    double max_load = 0.67;
+    
+    /// Number of items in the set
+    size_t num_items = 0;
+    
+    /// Let the iterator access the internals
+    friend class iterator;
+};
     
     
 /// Inline functions
@@ -383,8 +516,12 @@ inline void PackedVector::resize(const size_t& new_size) {
         }
     }
     else if (new_size > vec.size()) {
+        size_t old_capacity = vec.size();
         size_t new_capacity = std::max<size_t>(size_t(vec.size() * factor) + 1, new_size);
         reserve(new_capacity);
+        for (size_t i = old_capacity; i < vec.size(); i++) {
+            vec[i] = 0;
+        }
     }
     filled = new_size;
 }
@@ -745,6 +882,265 @@ inline void RobustPagedVector::clear() {
 
 inline size_t RobustPagedVector::page_width() const {
     return latter_pages.page_width();
+}
+
+
+
+inline size_t PackedSet::hash(const uint64_t& diff, const PackedVector& _table) const {
+    // do a degree-4 mod polynomial with random coefficients, which is a 5-wise
+    // independent hash function
+    size_t p = _table.size();
+    size_t x = 1;
+    size_t hsh = 0;
+    for (size_t i = 0; i < 5; ++i) {
+        hsh = (hsh + ((coefs[i] * x) % p)) % p;
+        x = (x * diff) % p;
+    }
+    return hsh;
+}
+
+inline uint64_t PackedSet::to_diff(const uint64_t& value, const uint64_t& _anchor) const {
+    // encodes 0 as a 1, regardless of the anchor value. represents all other values
+    // according to their difference from the anchor in the following manner:
+    // difference  0 -1  1 -2  2 -3  3 -4  4 ....
+    // integer     2  3  4  5  6  7  8  9 10 1...
+    // the goal here is use smaller integers to maintain low bit-width, allowing 0 as
+    // a sentinel value in the input, regardless of the anchor, and allowing 0 as
+    // a sentinel in the output, regardless of the input
+    
+    if (value == 0) {
+        return 1;
+    }
+    else if (value >= _anchor) {
+        return 2 * (value - _anchor + 1);
+    }
+    else {
+        return 2 * (_anchor - value) + 1;
+    }
+}
+
+inline uint64_t PackedSet::from_diff(const uint64_t& diff, const uint64_t& _anchor) const {
+    // inverse of to_diff
+    if (diff == 1) {
+        return 0;
+    }
+    else if (diff % 2 == 0) {
+        return _anchor + (diff / 2) - 1;
+    }
+    else {
+        return _anchor - (diff / 2);
+    }
+}
+
+inline uint64_t PackedSet::optimal_anchor() const {
+    uint64_t min_val = numeric_limits<uint64_t>::max();
+    uint64_t max_val = numeric_limits<uint64_t>::min();
+    for (size_t i = 0; i < table.size(); ++i) {
+        uint64_t diff = table.get(i);
+        if (diff >= 2) {
+            // this is an encoding of a non-zero value
+            uint64_t val = from_diff(diff, anchor);
+            min_val = min(min_val, val);
+            max_val = max(max_val, val);
+        }
+    }
+    return min_val == numeric_limits<uint64_t>::max() ? anchor : (max_val + min_val) / 2;
+}
+
+// a precomputed list of prime numbers that approximately correspond to powers of 1.25
+static constexpr uint64_t bdsg_packed_set_size_schedule[192] = {
+    1ull, 2ull, 3ull, 5ull, 7ull, 11ull, 13ull, 17ull, 19ull, 23ull, 31ull, 43ull, 53ull, 67ull,
+    83ull, 107ull, 131ull, 167ull, 211ull, 263ull, 317ull, 409ull, 509ull, 643ull, 797ull, 1009ull,
+    1259ull, 1571ull, 1951ull, 2459ull, 3079ull, 3851ull, 4813ull, 6011ull, 7523ull, 9403ull,
+    11743ull, 14683ull, 18367ull, 22943ull, 28697ull, 35869ull, 44839ull, 56041ull, 70061ull,
+    87559ull, 109471ull, 136841ull, 171053ull, 213821ull, 267271ull, 334093ull, 417617ull,
+    522017ull, 652507ull, 815663ull, 1019563ull, 1274461ull, 1593071ull, 1991359ull, 2489197ull,
+    3111491ull, 3889373ull, 4861729ull, 6077119ull, 7596451ull, 9495553ull, 11869423ull, 14836823ull,
+    18546019ull, 23182531ull, 28978171ull, 36222707ull, 45278381ull, 56597993ull, 70747483ull,
+    88434347ull, 110542937ull, 138178681ull, 172723339ull, 215904203ull, 269880239ull, 337350311ull,
+    421687909ull, 527109851ull, 658887367ull, 823609177ull, 1029511501ull, 1286889389ull,
+    1608611699ull, 2010764683ull, 2513455849ull, 3141819743ull, 3927274727ull, 4909093447ull,
+    6136366783ull, 7670458487ull, 9588073171ull, 11985091463ull, 14981364313ull, 18726705383ull,
+    23408381719ull, 29260477199ull, 36575596517ull, 45719495621ull, 57149369561ull, 71436711943ull,
+    89295889877ull, 111619862371ull, 139524828029ull, 174406035043ull, 218007543763ull,
+    272509429729ull, 340636787177ull, 425795983969ull, 532244979997ull, 665306224997ull,
+    831632781251ull, 1039540976543ull, 1299426220693ull, 1624282775867ull, 2030353469839ull,
+    2537941837309ull, 3172427296627ull, 3965534120791ull, 4956917650967ull, 6196147063709ull,
+    7745183829671ull, 9681479787061ull, 12101849733851ull, 15127312167367ull, 18909140209213ull,
+    23636425261531ull, 29545531576877ull, 36931914471139ull, 46164893088917ull, 57706116361109ull,
+    72132645451423ull, 90165806814311ull, 112707258517891ull, 140884073147359ull, 176105091434101ull,
+    220131364292747ull, 275164205365909ull, 343955256707429ull, 429944070884257ull, 537430088605367ull,
+    671787610756649ull, 839734513445857ull, 1049668141807321ull, 1312085177259179ull,
+    1640106471573979ull, 2050133089467481ull, 2562666361834343ull, 3203332952292953ull,
+    4004166190366189ull, 5005207737957737ull, 6256509672447187ull, 7820637090558769ull,
+    9775796363198681ull, 12219745453998391ull, 15274681817498017ull, 19093352271872513ull,
+    23866690339840631ull, 29833362924800803ull, 37291703656000973ull, 46614629570001271ull,
+    58268286962501543ull, 72835358703127003ull, 91044198378908741ull, 113805247973635963ull,
+    142256559967044949ull, 177820699958806141ull, 222275874948507727ull, 277844843685634633ull,
+    347306054607043327ull, 434132568258804167ull, 542665710323505179ull, 678332137904381549ull,
+    847915172380476881ull, 1059893965475596103ull, 1324867456844495087ull, 1656084321055618999ull,
+    2070105401319523831ull, 2587631751649404731ull, 3234539689561756073ull, 4043174611952195011ull,
+    5053968264940243967ull, 6317460331175304137ull, 7896825413969130449ull, 9871031767461412841ull,
+    12338789709326766061ull};
+
+inline void PackedSet::rehash(bool shrink) {
+    
+    // move to the next size in the schedule
+    if (shrink) {
+        if (schedule_val == 0) {
+            return;
+        }
+        --schedule_val;
+    }
+    else {
+        ++schedule_val;
+    }
+    
+    // find the value that will be the best anchor to the current entries
+    uint64_t new_anchor = optimal_anchor();
+    PackedVector new_table;
+    new_table.resize(bdsg_packed_set_size_schedule[schedule_val]);
+    
+    std::uniform_int_distribution<uint64_t> distr(0, new_table.size() - 1);
+    for (size_t i = 0; i < 5; ++i) {
+        coefs[i] = distr(gen);
+    }
+    
+    // move the entries over to the new table
+    for (size_t i = 0; i < table.size(); ++i) {
+        uint64_t diff = table.get(i);
+        if (diff != 0) {
+            // not a null sentinel, re-encode and add into the new table
+            diff = to_diff(from_diff(diff, anchor), new_anchor);
+            new_table.set(locate(diff, new_table), diff);
+        }
+    }
+    
+    anchor = new_anchor;
+    table = move(new_table);
+}
+
+inline size_t PackedSet::locate(const uint64_t& diff, const PackedVector& _table) const {
+    // linear probing until finding the diff or a null sentinel
+    size_t p = _table.size();
+    size_t i = hash(diff, _table);
+    while (_table.get(i) != 0 && _table.get(i) != diff) {
+        i = (i + 1) % p;
+    }
+    return i;
+}
+
+inline void PackedSet::insert(const uint64_t& value) {
+    
+    // greedily choose the first non-zero anchor
+    if (anchor == 0) {
+        anchor = value;
+    }
+    
+    // locate the value if it exists
+    uint64_t diff = to_diff(value, anchor);
+    size_t i = locate(diff, table);
+    if (table.get(i) == 0) {
+        // the item has not been inserted yet
+        if (num_items + 1 >= max_load * table.size()) {
+            // rehash so we don't exceed the max load
+            rehash(false);
+            // update the values that may have changed
+            diff = to_diff(value, anchor);
+            i = locate(diff, table);
+        }
+        
+        
+        table.set(i, diff);
+        ++num_items;
+    }
+}
+
+inline bool PackedSet::find(const uint64_t& value) const {
+    return table.get(locate(to_diff(value, anchor), table)) != 0;
+}
+
+inline void PackedSet::remove(const uint64_t& value) {
+    
+    // locate the value if it exists
+    uint64_t diff = to_diff(value, anchor);
+    size_t i = locate(diff, table);
+    
+    if (table.get(i) != 0) {
+        // the item exists in the table
+        if (num_items - 1 <= min_load * table.size()) {
+            // rehash so we don't exceed the min load
+            rehash(true);
+            // update the values that may have changed
+            diff = to_diff(value, anchor);
+            i = locate(diff, table);
+        }
+
+        // compute the linear probing distance from the hash value
+        size_t p = table.size();
+
+        // make sure we don't disrupt any linear probes by removing the value
+        size_t j = (i + 1) % p;
+        size_t search_dist = 1;
+        while (table.get(j) != 0) {
+
+            // how far did this value search from its hash to reach its current
+            // placement?
+            size_t hsh = hash(table.get(j), table);
+            size_t hash_dist = j >= hsh ? j - hsh : (p - hsh) + j;
+
+            if (hash_dist >= search_dist) {
+                // this value searched past i during its placement, so we need
+                // to move it up to preserve the integrity of its future searches
+                table.set(i, table.get(j));
+
+                // set up the next search
+                i = j;
+                search_dist = 0;
+            }
+
+            j = (j + 1) % p;
+            ++search_dist;
+        }
+
+        // we fixed up any placements in this block, now we've found a position
+        // that we can safely remove without disrupting any other searches
+        table.set(i, 0);
+
+        --num_items;
+    }
+}
+
+inline void PackedSet::set_load_factors(double min_load_factor, double max_load_factor) {
+    assert(max_load_factor > min_load_factor);
+    assert(min_load_factor >= 0.0);
+    assert(max_load_factor < 1.0);
+    min_load = min_load_factor;
+    max_load = max_load_factor;
+    if (table.size() > 0) {
+        while (num_items <= min_load * table.size()) {
+            rehash(true);
+        }
+        while (num_items >= max_load * table.size()) {
+            rehash(false);
+        }
+    }
+}
+
+inline double PackedSet::max_load_factor() const {
+    return max_load;
+}
+
+inline double PackedSet::min_load_factor() const {
+    return min_load;
+}
+
+inline size_t PackedSet::size() const {
+    return num_items;
+}
+
+inline bool PackedSet::empty() const {
+    return num_items == 0;
 }
     
 }

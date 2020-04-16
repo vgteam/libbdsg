@@ -116,7 +116,7 @@ set(hopscotch_map_INCLUDE "${INSTALL_DIR}/src/hopscotch_map/include")
 # libhandlegraph (full build using its cmake config)
 ExternalProject_Add(handlegraph
   GIT_REPOSITORY "https://github.com/vgteam/libhandlegraph.git"
-  GIT_TAG "8ca5bcad6581c3dbd0b4d31b0b726d70670d7fb9"
+  GIT_TAG "521ec5a4201b016227ddeea838e23e28203634f7"
   CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_DIR}
   UPDATE_COMMAND ""
   INSTALL_COMMAND "")
@@ -208,10 +208,11 @@ add_library(bdsg_objs OBJECT
   ${CMAKE_SOURCE_DIR}/src/node.cpp
   ${CMAKE_SOURCE_DIR}/src/odgi.cpp
   ${CMAKE_SOURCE_DIR}/src/packed_graph.cpp
-  ${CMAKE_SOURCE_DIR}/src/packed_path_position_overlays.cpp
+  ${CMAKE_SOURCE_DIR}/src/packed_path_position_overlay.cpp
   ${CMAKE_SOURCE_DIR}/src/packed_structs.cpp
+  ${CMAKE_SOURCE_DIR}/src/packed_subgraph_overlay.cpp
   ${CMAKE_SOURCE_DIR}/src/path_position_overlays.cpp
-  ${CMAKE_SOURCE_DIR}/src/split_strand_graph.cpp
+  ${CMAKE_SOURCE_DIR}/src/strand_split_overlay.cpp
   ${CMAKE_SOURCE_DIR}/src/utility.cpp
   ${CMAKE_SOURCE_DIR}/src/vectorizable_overlays.cpp
   )

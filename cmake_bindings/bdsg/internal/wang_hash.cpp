@@ -17,9 +17,9 @@
 	PYBIND11_MAKE_OPAQUE(std::shared_ptr<void>);
 #endif
 
-void bind_bdsg_wang_hash(std::function< pybind11::module &(std::string const &namespace_) > &M)
+void bind_bdsg_internal_wang_hash(std::function< pybind11::module &(std::string const &namespace_) > &M)
 {
-	// bdsg::wang_hash_64(unsigned long) file:bdsg/wang_hash.hpp line:10
+	// bdsg::wang_hash_64(unsigned long) file:bdsg/internal/wang_hash.hpp line:10
 	M("bdsg").def("wang_hash_64", (unsigned long (*)(unsigned long)) &bdsg::wang_hash_64, "Thomas Wang's integer hash function. In many implementations, std::hash\n is identity function for integers, which leads to performance issues.\n\nC++: bdsg::wang_hash_64(unsigned long) --> unsigned long", pybind11::arg("key"));
 
 }

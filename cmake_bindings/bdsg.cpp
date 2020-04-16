@@ -11,21 +11,20 @@ typedef std::function< pybind11::module & (std::string const &) > ModuleGetter;
 void bind_handlegraph_types(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_handlegraph_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_handlegraph_path_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
-void bind_std_bdsg_binder_hook_bind(std::function< pybind11::module &(std::string const &namespace_) > &M);
-void bind_bdsg_is_single_stranded(std::function< pybind11::module &(std::string const &namespace_) > &M);
-void bind_bdsg_eades_algorithm(std::function< pybind11::module &(std::string const &namespace_) > &M);
-void bind_handlegraph_mutable_path_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
-void bind_handlegraph_mutable_path_deletable_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
-void bind_bdsg_wang_hash(std::function< pybind11::module &(std::string const &namespace_) > &M);
-void bind_bdsg_packed_structs(std::function< pybind11::module &(std::string const &namespace_) > &M);
-void bind_bdsg_utility(std::function< pybind11::module &(std::string const &namespace_) > &M);
+void bind_handlegraph_mutable_path_mutable_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
+void bind_handlegraph_serializable_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
+void bind_bdsg_internal_wang_hash(std::function< pybind11::module &(std::string const &namespace_) > &M);
+void bind_bdsg_internal_packed_structs(std::function< pybind11::module &(std::string const &namespace_) > &M);
+void bind_bdsg_internal_utility(std::function< pybind11::module &(std::string const &namespace_) > &M);
+void bind_std_bdsg_internal_binder_hook_bind(std::function< pybind11::module &(std::string const &namespace_) > &M);
+void bind_bdsg_internal_is_single_stranded(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_odgi(std::function< pybind11::module &(std::string const &namespace_) > &M);
-void bind_handlegraph_expanding_overlay_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
-void bind_bdsg_split_strand_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_handlegraph_path_position_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
-void bind_bdsg_packed_path_position_overlays(std::function< pybind11::module &(std::string const &namespace_) > &M);
-void bind_bdsg_path_position_overlays(std::function< pybind11::module &(std::string const &namespace_) > &M);
-void bind_bdsg_vectorizable_overlays(std::function< pybind11::module &(std::string const &namespace_) > &M);
+void bind_bdsg_overlays_packed_path_position_overlay(std::function< pybind11::module &(std::string const &namespace_) > &M);
+void bind_bdsg_overlays_packed_subgraph_overlay(std::function< pybind11::module &(std::string const &namespace_) > &M);
+void bind_bdsg_overlays_path_position_overlays(std::function< pybind11::module &(std::string const &namespace_) > &M);
+void bind_bdsg_overlays_vectorizable_overlays(std::function< pybind11::module &(std::string const &namespace_) > &M);
+void bind_bdsg_overlays_vectorizable_overlays_1(std::function< pybind11::module &(std::string const &namespace_) > &M);
 
 
 PYBIND11_MODULE(bdsg, root_module) {
@@ -53,20 +52,19 @@ PYBIND11_MODULE(bdsg, root_module) {
 	bind_handlegraph_types(M);
 	bind_handlegraph_handle_graph(M);
 	bind_handlegraph_path_handle_graph(M);
-	bind_std_bdsg_binder_hook_bind(M);
-	bind_bdsg_is_single_stranded(M);
-	bind_bdsg_eades_algorithm(M);
-	bind_handlegraph_mutable_path_handle_graph(M);
-	bind_handlegraph_mutable_path_deletable_handle_graph(M);
-	bind_bdsg_wang_hash(M);
-	bind_bdsg_packed_structs(M);
-	bind_bdsg_utility(M);
+	bind_handlegraph_mutable_path_mutable_handle_graph(M);
+	bind_handlegraph_serializable_handle_graph(M);
+	bind_bdsg_internal_wang_hash(M);
+	bind_bdsg_internal_packed_structs(M);
+	bind_bdsg_internal_utility(M);
+	bind_std_bdsg_internal_binder_hook_bind(M);
+	bind_bdsg_internal_is_single_stranded(M);
 	bind_bdsg_odgi(M);
-	bind_handlegraph_expanding_overlay_graph(M);
-	bind_bdsg_split_strand_graph(M);
 	bind_handlegraph_path_position_handle_graph(M);
-	bind_bdsg_packed_path_position_overlays(M);
-	bind_bdsg_path_position_overlays(M);
-	bind_bdsg_vectorizable_overlays(M);
+	bind_bdsg_overlays_packed_path_position_overlay(M);
+	bind_bdsg_overlays_packed_subgraph_overlay(M);
+	bind_bdsg_overlays_path_position_overlays(M);
+	bind_bdsg_overlays_vectorizable_overlays(M);
+	bind_bdsg_overlays_vectorizable_overlays_1(M);
 
 }

@@ -792,42 +792,42 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 	}
 };
 
-void bind_bdsg_utility(std::function< pybind11::module &(std::string const &namespace_) > &M)
+void bind_bdsg_internal_utility(std::function< pybind11::module &(std::string const &namespace_) > &M)
 {
-	// bdsg::reverse_complement(const char &) file:bdsg/utility.hpp line:13
+	// bdsg::reverse_complement(const char &) file:bdsg/internal/utility.hpp line:13
 	M("bdsg").def("reverse_complement", (char (*)(const char &)) &bdsg::reverse_complement, "C++: bdsg::reverse_complement(const char &) --> char", pybind11::arg("c"));
 
-	// bdsg::reverse_complement(const std::string &) file:bdsg/utility.hpp line:14
+	// bdsg::reverse_complement(const std::string &) file:bdsg/internal/utility.hpp line:14
 	M("bdsg").def("reverse_complement", (std::string (*)(const std::string &)) &bdsg::reverse_complement, "C++: bdsg::reverse_complement(const std::string &) --> std::string", pybind11::arg("seq"));
 
-	// bdsg::reverse_complement_in_place(std::string &) file:bdsg/utility.hpp line:15
+	// bdsg::reverse_complement_in_place(std::string &) file:bdsg/internal/utility.hpp line:15
 	M("bdsg").def("reverse_complement_in_place", (void (*)(std::string &)) &bdsg::reverse_complement_in_place, "C++: bdsg::reverse_complement_in_place(std::string &) --> void", pybind11::arg("seq"));
 
-	// bdsg::is_all_n(const std::string &) file:bdsg/utility.hpp line:18
+	// bdsg::is_all_n(const std::string &) file:bdsg/internal/utility.hpp line:18
 	M("bdsg").def("is_all_n", (bool (*)(const std::string &)) &bdsg::is_all_n, "Return True if the given string is entirely Ns of either case, and false\n otherwise.\n\nC++: bdsg::is_all_n(const std::string &) --> bool", pybind11::arg("seq"));
 
-	// bdsg::allATGC(const std::string &) file:bdsg/utility.hpp line:20
+	// bdsg::allATGC(const std::string &) file:bdsg/internal/utility.hpp line:20
 	M("bdsg").def("allATGC", (bool (*)(const std::string &)) &bdsg::allATGC, "C++: bdsg::allATGC(const std::string &) --> bool", pybind11::arg("s"));
 
-	// bdsg::allATGCN(const std::string &) file:bdsg/utility.hpp line:21
+	// bdsg::allATGCN(const std::string &) file:bdsg/internal/utility.hpp line:21
 	M("bdsg").def("allATGCN", (bool (*)(const std::string &)) &bdsg::allATGCN, "C++: bdsg::allATGCN(const std::string &) --> bool", pybind11::arg("s"));
 
-	// bdsg::nonATGCNtoN(const std::string &) file:bdsg/utility.hpp line:22
+	// bdsg::nonATGCNtoN(const std::string &) file:bdsg/internal/utility.hpp line:22
 	M("bdsg").def("nonATGCNtoN", (std::string (*)(const std::string &)) &bdsg::nonATGCNtoN, "C++: bdsg::nonATGCNtoN(const std::string &) --> std::string", pybind11::arg("s"));
 
-	// bdsg::toUppercase(const std::string &) file:bdsg/utility.hpp line:24
+	// bdsg::toUppercase(const std::string &) file:bdsg/internal/utility.hpp line:24
 	M("bdsg").def("toUppercase", (std::string (*)(const std::string &)) &bdsg::toUppercase, "C++: bdsg::toUppercase(const std::string &) --> std::string", pybind11::arg("s"));
 
-	// bdsg::dna_as_int(char) file:bdsg/utility.hpp line:26
+	// bdsg::dna_as_int(char) file:bdsg/internal/utility.hpp line:26
 	M("bdsg").def("dna_as_int", (int (*)(char)) &bdsg::dna_as_int, "C++: bdsg::dna_as_int(char) --> int", pybind11::arg("c"));
 
-	// bdsg::int_as_dna(int) file:bdsg/utility.hpp line:41
+	// bdsg::int_as_dna(int) file:bdsg/internal/utility.hpp line:41
 	M("bdsg").def("int_as_dna", (char (*)(int)) &bdsg::int_as_dna, "C++: bdsg::int_as_dna(int) --> char", pybind11::arg("i"));
 
-	// bdsg::format_memory(unsigned long) file:bdsg/utility.hpp line:57
+	// bdsg::format_memory(unsigned long) file:bdsg/internal/utility.hpp line:57
 	M("bdsg").def("format_memory", (std::string (*)(unsigned long)) &bdsg::format_memory, "C++: bdsg::format_memory(unsigned long) --> std::string", pybind11::arg("s"));
 
-	// bdsg::get_thread_count() file:bdsg/utility.hpp line:61
+	// bdsg::get_thread_count() file:bdsg/internal/utility.hpp line:61
 	M("bdsg").def("get_thread_count", (int (*)()) &bdsg::get_thread_count, "Return the number of threads that OMP will produce for a parallel section.\n TODO: Assumes that this is the same for every parallel section.\n\nC++: bdsg::get_thread_count() --> int");
 
 	{ // bdsg::HashGraph file:bdsg/hash_graph.hpp line:23

@@ -124,6 +124,12 @@ public:
 
     /// Return a unique index among edges in the graph
     virtual size_t edge_index(const edge_t& edge) const;
+
+    /// Return the rank of a node (ranks start at 1)
+    virtual size_t id_to_rank(const nid_t& node_id) const;
+
+    /// Return the node with a given rank
+    virtual nid_t rank_to_id(const size_t& rank) const;
     
     ////////////////////////////////////////////////////////////////////////////
     // Expanding overlay interface

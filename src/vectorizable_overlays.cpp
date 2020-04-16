@@ -95,6 +95,14 @@ nid_t VectorizableOverlay::node_at_vector_offset(const size_t& offset) const {
 size_t VectorizableOverlay::edge_index(const edge_t& edge) const {
     return edge_to_rank->lookup(canonicalize_edge(edge)) + 1;
 }
+
+size_t VectorizableOverlay::id_to_rank(const nid_t& node_id) const {
+    return node_to_rank->lookup(node_id) + 1;
+}
+
+nid_t VectorizableOverlay::rank_to_id(const size_t& rank) const {
+    return rank_to_node.at(rank);
+}
     
 handle_t VectorizableOverlay::get_underlying_handle(const handle_t& handle) const {
     return handle;

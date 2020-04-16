@@ -10,7 +10,7 @@ INSTALL_INC_DIR=$(INSTALL_PREFIX)/include
 
 LIB_FLAGS:=-lbdsg -lsdsl -lhandlegraph -lomp
 
-OBJS:=$(OBJ_DIR)/eades_algorithm.o $(OBJ_DIR)/hash_graph.o $(OBJ_DIR)/is_single_stranded.o $(OBJ_DIR)/node.o $(OBJ_DIR)/odgi.o $(OBJ_DIR)/packed_graph.o $(OBJ_DIR)/packed_structs.o $(OBJ_DIR)/path_position_overlays.o $(OBJ_DIR)/packed_path_position_overlays.o $(OBJ_DIR)/vectorizable_overlays.o $(OBJ_DIR)/split_strand_graph.o $(OBJ_DIR)/utility.o
+OBJS:=$(OBJ_DIR)/eades_algorithm.o $(OBJ_DIR)/hash_graph.o $(OBJ_DIR)/is_single_stranded.o $(OBJ_DIR)/node.o $(OBJ_DIR)/odgi.o $(OBJ_DIR)/packed_graph.o $(OBJ_DIR)/packed_structs.o $(OBJ_DIR)/path_position_overlays.o $(OBJ_DIR)/packed_path_position_overlay.o $(OBJ_DIR)/vectorizable_overlays.o $(OBJ_DIR)/strand_split_overlay.o $(OBJ_DIR)/utility.o
 
 CXXFLAGS :=-O3 -Werror=return-type -std=c++14 -ggdb -g -msse4.2 -I$(INC_DIR) $(CXXFLAGS)
 
@@ -62,14 +62,15 @@ $(OBJ_DIR)/packed_structs.o: $(SRC_DIR)/packed_structs.cpp $(INC_DIR)/bdsg/inter
 $(OBJ_DIR)/path_position_overlays.o: $(SRC_DIR)/path_position_overlays.cpp $(INC_DIR)/bdsg/overlays/path_position_overlays.hpp
 	$(CXX) $(LDFLAGS) $(CPPFLAGS) $(CXXFLAGS) -c $(SRC_DIR)/path_position_overlays.cpp -o $(OBJ_DIR)/path_position_overlays.o
 
-$(OBJ_DIR)/packed_path_position_overlays.o: $(SRC_DIR)/packed_path_position_overlays.cpp $(INC_DIR)/bdsg/overlays/packed_path_position_overlays.hpp
-	$(CXX) $(LDFLAGS) $(CPPFLAGS) $(CXXFLAGS) -c $(SRC_DIR)/packed_path_position_overlays.cpp -o $(OBJ_DIR)/packed_path_position_overlays.o
+$(OBJ_DIR)/packed_path_position_overlay.o: $(SRC_DIR)/packed_path_position_overlay.cpp $(INC_DIR)/bdsg/overlays/packed_path_position_overlay.hpp
+	$(CXX) $(LDFLAGS) $(CPPFLAGS) $(CXXFLAGS) -c $(SRC_DIR)/packed_path_position_overlay.cpp -o $(OBJ_DIR)/packed_path_position_overlay.o
 
 $(OBJ_DIR)/vectorizable_overlays.o: $(SRC_DIR)/vectorizable_overlays.cpp $(INC_DIR)/bdsg/overlays/vectorizable_overlays.hpp
 	$(CXX) $(LDFLAGS) $(CPPFLAGS) $(CXXFLAGS) -c $(SRC_DIR)/vectorizable_overlays.cpp -o $(OBJ_DIR)/vectorizable_overlays.o
 
-$(OBJ_DIR)/split_strand_graph.o: $(SRC_DIR)/split_strand_graph.cpp $(INC_DIR)/bdsg/internal/split_strand_graph.hpp
-	$(CXX) $(LDFLAGS) $(CPPFLAGS) $(CXXFLAGS) -c $(SRC_DIR)/split_strand_graph.cpp -o $(OBJ_DIR)/split_strand_graph.o 
+$(OBJ_DIR)/strand_split_overlay.o: $(SRC_DIR)/strand_split_overlay.cpp $(INC_DIR)/bdsg/overlays/strand_split_overlay.hpp
+	$(CXX) $(LDFLAGS) $(CPPFLAGS) $(CXXFLAGS) -c $(SRC_DIR)/strand_split_overlay.cpp -o $(OBJ_DIR)/strand_split_overlay.o
+
 
 $(OBJ_DIR)/utility.o: $(SRC_DIR)/utility.cpp $(INC_DIR)/bdsg/internal/utility.hpp
 	$(CXX) $(LDFLAGS) $(CPPFLAGS) $(CXXFLAGS) -c $(SRC_DIR)/utility.cpp -o $(OBJ_DIR)/utility.o 
