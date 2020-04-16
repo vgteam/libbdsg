@@ -3,12 +3,14 @@
 language: cpp
 compiler: gcc
 
+before_install:
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install libomp; fi
 script:
-  # Test cmake build
-  - mkdir build && cd build && cmake .. && make -j2 && make clean && cd .. && rm -Rf build
-  # Test Makefile build (no Python bindings)
-  - make -j2
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then mkdir build && cd build && cmake .. && make -j2 && make clean && cd .. && rm -Rf build; fi
+  # On Linux Travis, if we don't feed it an exact Python, it wants both 3.7 and 3.8 installed and fails if one is missing.
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then mkdir build && cd build && cmake -DPYBIND11_PYTHON_VERSION=3.7 -DPYTHON_EXECUTABLE=`which python3.7` .. && make -j2 && make clean && cd .. && rm -Rf build; fi
 
+dist: bionic
 osx_image: xcode10.1
   
 matrix:
@@ -17,3 +19,10 @@ matrix:
       compiler: gcc
     - os: osx
       compiler: clang
+      
+addons:
+  apt:
+    update: true
+    packages:
+      - python3.7
+      - python3.7-dev
