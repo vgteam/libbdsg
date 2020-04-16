@@ -309,6 +309,32 @@ struct PyCallBack_handlegraph_VectorizableHandleGraph : public handlegraph::Vect
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"VectorizableHandleGraph::edge_index\"");
 	}
+	unsigned long id_to_rank(const long long & a0) const override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::VectorizableHandleGraph *>(this), "id_to_rank");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
+				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+		}
+		pybind11::pybind11_fail("Tried to call pure virtual function \"VectorizableHandleGraph::id_to_rank\"");
+	}
+	long long rank_to_id(const unsigned long & a0) const override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::VectorizableHandleGraph *>(this), "rank_to_id");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
+				static pybind11::detail::overload_caster_t<long long> caster;
+				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<long long>(std::move(o));
+		}
+		pybind11::pybind11_fail("Tried to call pure virtual function \"VectorizableHandleGraph::rank_to_id\"");
+	}
 };
 
 // handlegraph::PathHandleGraph file:handlegraph/path_handle_graph.hpp line:20
@@ -852,6 +878,8 @@ void bind_handlegraph_handle_graph(std::function< pybind11::module &(std::string
 		cl.def("node_vector_offset", (unsigned long (handlegraph::VectorizableHandleGraph::*)(const long long &) const) &handlegraph::VectorizableHandleGraph::node_vector_offset, "Return the start position of the node in a (possibly implict) sorted array\n constructed from the concatenation of the node sequences\n\nC++: handlegraph::VectorizableHandleGraph::node_vector_offset(const long long &) const --> unsigned long", pybind11::arg("node_id"));
 		cl.def("node_at_vector_offset", (long long (handlegraph::VectorizableHandleGraph::*)(const unsigned long &) const) &handlegraph::VectorizableHandleGraph::node_at_vector_offset, "Return the node overlapping the given offset in the implicit node vector\n\nC++: handlegraph::VectorizableHandleGraph::node_at_vector_offset(const unsigned long &) const --> long long", pybind11::arg("offset"));
 		cl.def("edge_index", (unsigned long (handlegraph::VectorizableHandleGraph::*)(const struct std::pair<struct handlegraph::handle_t, struct handlegraph::handle_t> &) const) &handlegraph::VectorizableHandleGraph::edge_index, "Return a unique index among edges in the graph\n\nC++: handlegraph::VectorizableHandleGraph::edge_index(const struct std::pair<struct handlegraph::handle_t, struct handlegraph::handle_t> &) const --> unsigned long", pybind11::arg("edge"));
+		cl.def("id_to_rank", (unsigned long (handlegraph::VectorizableHandleGraph::*)(const long long &) const) &handlegraph::VectorizableHandleGraph::id_to_rank, "Return the rank of a node (ranks start at 1)\n\nC++: handlegraph::VectorizableHandleGraph::id_to_rank(const long long &) const --> unsigned long", pybind11::arg("node_id"));
+		cl.def("rank_to_id", (long long (handlegraph::VectorizableHandleGraph::*)(const unsigned long &) const) &handlegraph::VectorizableHandleGraph::rank_to_id, "Return the node with a given rank\n\nC++: handlegraph::VectorizableHandleGraph::rank_to_id(const unsigned long &) const --> long long", pybind11::arg("rank"));
 		cl.def("assign", (class handlegraph::VectorizableHandleGraph & (handlegraph::VectorizableHandleGraph::*)(const class handlegraph::VectorizableHandleGraph &)) &handlegraph::VectorizableHandleGraph::operator=, "C++: handlegraph::VectorizableHandleGraph::operator=(const class handlegraph::VectorizableHandleGraph &) --> class handlegraph::VectorizableHandleGraph &", pybind11::return_value_policy::automatic, pybind11::arg(""));
 	}
 	{ // handlegraph::PathHandleGraph file:handlegraph/path_handle_graph.hpp line:20
