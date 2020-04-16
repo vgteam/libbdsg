@@ -17,3 +17,9 @@ matrix:
       compiler: gcc
     - os: osx
       compiler: clang
+      
+addons:
+  apt:
+    update: true
+    packages:
+      - python3.7
