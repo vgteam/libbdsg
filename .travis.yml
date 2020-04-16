@@ -10,6 +10,7 @@ script:
   # Test cmake build
   - mkdir build && cd build && cmake .. && make -j2 && make clean && cd .. && rm -Rf build
 
+dist: bionic
 osx_image: xcode10.1
   
 matrix:
