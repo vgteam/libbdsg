@@ -18,6 +18,13 @@ On Mac, you will need to make sure you have OpenMP installed, as it is not part 
 .. code-block:: bash
 
    brew install libomp
+   
+On Linux, besides Git, you will need to make sure you have a working compiler, CMake, and development headers for your favorite version of Python 3. On Ubuntu, you can do:
+
+.. code-block:: bash
+
+   sudo apt update
+   sudo apt install build-essential cmake python3.7 python3.7-dev
 
 Then, for all platforms, build through cmake:
 
