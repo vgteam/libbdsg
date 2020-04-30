@@ -78,7 +78,7 @@ include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 # sdsl-lite (full build using its cmake config)
 ExternalProject_Add(sdsl-lite
   SOURCE_DIR "${CMAKE_SOURCE_DIR}/deps/sdsl-lite"
-  CMAKE_ARGS "${CMAKE_ARGS};-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR> -DBUILD_SHARED_LIBS=ON"
+  CMAKE_ARGS "${CMAKE_ARGS};-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>;-DBUILD_SHARED_LIBS=ON"
   UPDATE_COMMAND ""
   INSTALL_COMMAND "")
 ExternalProject_Get_property(sdsl-lite INSTALL_DIR)
