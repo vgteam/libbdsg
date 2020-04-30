@@ -213,6 +213,14 @@ namespace bdsg {
     
     handle_t PackedGraph::create_handle(const string& sequence, const nid_t& id) {
         
+        if (sequence.empty()) {
+            throw std::runtime_error("error:[PackedGraph] tried to create an empty node with ID " + std::to_string(id));
+        }
+        
+        if (id <= 0) {
+            throw std::runtime_error("error:[PackedGraph] tried to create a node with non-positive ID " + std::to_string(id));
+        }
+        
         if (id >= min_id && id < min_id + nid_to_graph_iv.size()) {
             if (nid_to_graph_iv.get(id - min_id) != 0) {
                 throw std::runtime_error("error:[PackedGraph] tried to create a node with ID " + std::to_string(id) + ", but this ID already belongs to a different node");
@@ -694,6 +702,17 @@ namespace bdsg {
     }
     
     void PackedGraph::destroy_handle(const handle_t& handle) {
+    
+        // Clear out any paths on this handle. 
+        // We need to first compose a list of distinct visiting paths.
+        std::unordered_set<path_handle_t> visiting_paths;
+        for_each_step_on_handle(handle, [&](const step_handle_t& step) {
+            visiting_paths.insert(get_path_handle_of_step(step)); 
+        });
+        for (auto& p : visiting_paths) {
+            // Then we destroy all of them.
+            destroy_path(p);
+        }
         
         deleted_bases += get_length(handle);
         
@@ -1257,7 +1276,7 @@ namespace bdsg {
             // reassign IDs into a contiguous interval ordered by an approximate sort
             
             // use an overlay to convert to a single stranded digraph
-            StrandSplitGraph digraph(this);
+            StrandSplitOverlay digraph(this);
             
             // get a low FAS layout using Eades-Lin-Smyth algorithm
             vector<handle_t> layout = algorithms::eades_algorithm(&digraph);
@@ -1850,9 +1869,15 @@ namespace bdsg {
         for (size_t i = EDGE_TRAV_OFFSET; i < edge_lists_iv.size(); i += EDGE_RECORD_SIZE) {
             handle_t trav = decode_traversal(edge_lists_iv.get(i));
             // only translate edges to nodes that have not been deleted
-            if (nid_to_graph_iv.get(get_id(trav) - min_id)) {
-                trav = get_handle(get_new_id(get_id(trav)), get_is_reverse(trav));
-                edge_lists_iv.set(i, encode_traversal(trav));
+            auto trav_id = get_id(trav);
+            if (trav_id >= min_id) {
+                auto idx = trav_id - min_id;
+                if (idx < nid_to_graph_iv.size()) {
+                    if (nid_to_graph_iv.get(idx)) {
+                        trav = get_handle(get_new_id(trav_id), get_is_reverse(trav));
+                        edge_lists_iv.set(i, encode_traversal(trav));
+                    }
+                }
             }
         }
         
@@ -1867,10 +1892,17 @@ namespace bdsg {
             
             for (size_t j = 0; j < packed_path.steps_iv.size(); j += STEP_RECORD_SIZE) {
                 handle_t trav = decode_traversal(packed_path.steps_iv.get(j));
+                
                 // only translate step records of nodes that have not been deleted
-                if (nid_to_graph_iv.get(get_id(trav) - min_id)) {
-                    trav = get_handle(get_new_id(get_id(trav)), get_is_reverse(trav));
-                    packed_path.steps_iv.set(j, encode_traversal(trav));
+                auto trav_id = get_id(trav);
+                if (trav_id >= min_id) {
+                    auto idx = trav_id - min_id;
+                    if (idx < nid_to_graph_iv.size()) {
+                        if (nid_to_graph_iv.get(idx)) {
+                            trav = get_handle(get_new_id(get_id(trav)), get_is_reverse(trav));
+                            packed_path.steps_iv.set(j, encode_traversal(trav));
+                        }
+                    }
                 }
             }
         }

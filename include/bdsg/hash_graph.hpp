@@ -11,9 +11,9 @@
 #include <handlegraph/mutable_path_deletable_handle_graph.hpp>
 #include <handlegraph/serializable_handle_graph.hpp>
 
-#include "bdsg/hash_map.hpp"
-#include "bdsg/utility.hpp"
-#include "bdsg/endianness.hpp"
+#include "bdsg/internal/hash_map.hpp"
+#include "bdsg/internal/utility.hpp"
+#include "bdsg/internal/endianness.hpp"
 
 namespace bdsg {
     
@@ -106,17 +106,22 @@ public:
     string get_subsequence(const handle_t& handle, size_t index, size_t size) const;
 
     /// Create a new node with the given sequence and return the handle.
+    /// The sequence may not be empty.
     handle_t create_handle(const std::string& sequence);
 
     /// Create a new node with the given id and sequence, then return the handle.
+    /// The sequence may not be empty.
+    /// The ID must be strictly greater than 0.
     handle_t create_handle(const std::string& sequence, const nid_t& id);
     
     /// Remove the node belonging to the given handle and all of its edges.
-    /// Does not update any stored paths.
+    /// Destroys any paths in which the node participates.
     /// Invalidates the destroyed handle.
     /// May be called during serial for_each_handle iteration **ONLY** on the node being iterated.
     /// May **NOT** be called during parallel for_each_handle iteration.
     /// May **NOT** be called on the node from which edges are being followed during follow_edges.
+    /// May **NOT** be called during iteration over paths, if it would destroy a path.
+    /// May **NOT** be called during iteration along a path, if it would destroy that path.
     void destroy_handle(const handle_t& handle);
     
     /// Create an edge connecting the given handles in the given order and orientations.
@@ -346,7 +351,7 @@ private:
         
         /// Write the node to an out stream, applying the given ID offset to
         /// nodes referenced by edges.
-        void serialize(ostream& out, nid_t id_offset = 0) const;
+        void serialize(ostream& out) const;
         /// Read the node (in the format written by serialize()) from an in stream.
         void deserialize(istream& in);
     };
@@ -389,7 +394,7 @@ private:
         
         /// Write the path to an out stream, applying the given offset to all
         /// node IDs referenced by the path.
-        void serialize(ostream& out, nid_t id_offset = 0) const;
+        void serialize(ostream& out) const;
         
         /// Read the path (in the format written by serialize()) from an in stream.
         void deserialize(istream& in);
@@ -407,10 +412,6 @@ private:
     /// The minimum ID in the graph
     nid_t min_id = numeric_limits<nid_t>::max();
     
-    /// The node ID offset accumulated from increment_node_ids. Applied
-    /// dynamically when looking at handles, and permanently on serialization.
-    nid_t id_offset = 0;
-    
     /// Encodes the graph topology
     hash_map<nid_t, node_t> graph;
     
@@ -422,13 +423,6 @@ private:
     
     /// The next path ID we will assign to a new path
     int64_t next_path_id = 1;
-    
-    /// Get ther internal ID of a handle which is its index into internal data structures.
-    /// Does not have id_offset applied.
-    nid_t get_internal_id(const handle_t& handle) const;
-    
-    /// Convert a handle from an internal handle to a real ID space, serializable handle.
-    static handle_t apply_id_offset(const handle_t& internal, nid_t id_offset);
     
     /// Replace the ID in a handle with a different number
     static handle_t set_id(const handle_t& internal, nid_t new_id);

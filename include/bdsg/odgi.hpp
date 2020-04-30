@@ -25,10 +25,10 @@
 #include <handlegraph/mutable_path_deletable_handle_graph.hpp>
 #include <handlegraph/serializable_handle_graph.hpp>
 #include "dynamic.hpp"
-#include "bdsg/dynamic_types.hpp"
-#include "bdsg/utility.hpp"
-#include "bdsg/hash_map.hpp"
-#include "bdsg/node.hpp"
+#include "bdsg/internal/dynamic_types.hpp"
+#include "bdsg/internal/utility.hpp"
+#include "bdsg/internal/hash_map.hpp"
+#include "bdsg/internal/node.hpp"
 
 namespace bdsg {
 
@@ -133,15 +133,18 @@ public:
     size_t get_degree(const handle_t& handle, bool go_left) const;
     
     /// Get the locally forward version of a handle
-    handle_t forward(const handle_t& handle) const;
+    // Default is used
+    //handle_t forward(const handle_t& handle) const;
     
     /// A pair of handles can be used as an edge. When so used, the handles have a
     /// canonical order and orientation.
-    edge_t edge_handle(const handle_t& left, const handle_t& right) const;
+    // Default is used
+    //edge_t edge_handle(const handle_t& left, const handle_t& right) const;
     
     /// Such a pair can be viewed from either inward end handle and produce the
     /// outward handle you would arrive at.
-    handle_t traverse_edge_handle(const edge_t& edge, const handle_t& left) const;
+    // Default is used
+    //handle_t traverse_edge_handle(const edge_t& edge, const handle_t& left) const;
     
     ////////////////////////////////////////////////////////////////////////////
     // Path handle interface
@@ -221,9 +224,6 @@ public:
     /// Returns a handle to the path that an step is on
     path_handle_t get_path_handle_of_step(const step_handle_t& step_handle) const;
     
-    /// Returns the 0-based ordinal rank of a step on a path
-    size_t get_ordinal_rank_of_step(const step_handle_t& step_handle) const;
-
     /// Returns true if the given path is empty, and false otherwise
     bool is_empty(const path_handle_t& path_handle) const;
 
@@ -237,16 +237,22 @@ public:
     void set_circularity(const path_handle_t& path_handle, bool circular);
     
     /// Create a new node with the given sequence and return the handle.
+    /// The sequence may not be empty. 
     handle_t create_handle(const std::string& sequence);
 
     /// Create a new node with the given id and sequence, then return the handle.
+    /// The sequence may not be empty.
+    /// The ID must be strictly greater than 0.
     handle_t create_handle(const std::string& sequence, const nid_t& id);
 
-    /// Create a "hidden" node which might carry parts of paths that traversed deleted portions of the graph
+    /// Create a node that is immediately  "hidden" (i.e. to be used for parts
+    /// of paths that traversed deleted portions of the graph).
+    /// has_node for the ID of a hidden handle will return false.
+    /// Also, no edges may be added to it.
     handle_t create_hidden_handle(const std::string& sequence);
 
     /// Remove the node belonging to the given handle and all of its edges.
-    /// Does not update any stored paths.
+    /// If any paths visit it, it becomes a "hidden" node accessible only via the paths.
     /// Invalidates the destroyed handle.
     /// May be called during serial for_each_handle iteration **ONLY** on the node being iterated.
     /// May **NOT** be called during parallel for_each_handle iteration.
@@ -275,7 +281,7 @@ public:
         destroy_edge(edge.first, edge.second);
     }
     
-    /// Remove all nodes and edges. Does not update any stored paths.
+    /// Remove all nodes, edges, and paths. 
     void clear(void);
 
     /// Remove all stored paths
@@ -363,14 +369,6 @@ public:
      */
     step_handle_t append_step(const path_handle_t& path, const handle_t& to_append);
 
-    /**
-     * Insert a visit to a node to the given path between the given steps.
-     * Returns a handle to the new step on the path which is appended.
-
-     * Handles to prior steps on the path, and to other paths, must remain valid.
-     */
-    step_handle_t insert_step(const step_handle_t& before, const step_handle_t& after, const handle_t& to_insert);
-    
     /// Set the step to the given handle, possibly re-linking and cleaning up if needed
     step_handle_t set_step(const step_handle_t& step_handle, const handle_t& handle);
 
@@ -385,8 +383,9 @@ public:
     /// Convert to GFA (for debugging)
     void to_gfa(std::ostream& out) const;
 
-    /// Serialize
-    uint64_t serialize_and_measure(std::ostream& out) const;
+    /// Serialize. Return the number of bytes written.
+    /// We use a long long int here to keep varying types like uint64_t away from the Python bindings.
+    long long int serialize_and_measure(std::ostream& out) const;
 
     /// Load
     void load(std::istream& in);
@@ -402,12 +401,24 @@ private:
     /// Mark deleted nodes here for translating graph ids into internal ranks
     suc_bv deleted_node_bv;
     uint64_t _deleted_node_count = 0;
-    /// efficient id to handle/sequence conversion
-    nid_t _max_node_id = 0;
-    nid_t _min_node_id = 0;
-    nid_t _id_increment = 0;
-    /// records nodes that are hidden, but used to compactly store path sequence that has been removed from the node space
-    hash_set<uint64_t> graph_id_hidden_set;
+    // efficient id to handle/sequence conversion
+    /// Max rank (distance above _id_increment) of a node in the graph.
+    /// 0 if the graph is empty.
+    uint64_t _max_node_rank = 0;
+    /// Min rank (distance above _id_increment) of a node in the graph.
+    /// Maximum possible value if the graph is empty, for easy min().
+    uint64_t _min_node_rank = std::numeric_limits<decltype(_min_node_rank)>::max();
+    /// ID of the lowest-rank (rank 0) node.
+    /// Must be at least 1, or else the rank 0 node can't exist.
+    nid_t _id_increment = 1;
+    /// Records nodes that are hidden, but used to compactly store path
+    /// sequence that has been removed from the node space. Hidden nodes are
+    /// not counted towards the node count of the graph, and has_node will
+    /// return false for their IDs (although new nodes cannot be created with
+    /// the same IDs). Hidden nodes are destroyed as soon as the last path
+    /// leaves them, so they may be invalidated by (or in the middle of!) path
+    /// operations like rewrite_segment.
+    hash_set<nid_t> graph_id_hidden_set;
 
     /// edge type conversion
     /// 1 = fwd->fwd, 2 = fwd->rev, 3 = rev->fwd, 4 = rev->rev
@@ -451,9 +462,6 @@ private:
     /// A helper to record the number of live nodes
     uint64_t _node_count = 0;
 
-    /// A counter that records the number of hidden nodes
-    uint64_t _hidden_count = 0;
-
     /// A helper to record the number of live edges
     uint64_t _edge_count = 0;
 
@@ -483,6 +491,13 @@ private:
 
     /// Decrement the step rank references for this step
     void decrement_rank(const step_handle_t& step_handle);
+    
+    /// Modify the given step handle to point to the given handle.
+    void set_handle_of_step(step_handle_t& step_handle, const handle_t& handle) const;
+    
+    /// Add the offset to the number packed in the given handle, and return a
+    /// new modified handle.
+    handle_t add_to_number(const handle_t& handle, int64_t offset) const;
 
     /// Compact away the deleted nodes info
     //void rebuild_id_handle_mapping(void);
@@ -491,7 +506,10 @@ private:
     void set_handle_sequence(const handle_t& handle, const std::string& seq);
 
     /// get the backing node rank for a given node id
-    uint64_t get_node_rank(const nid_t& node_id) const;
+    uint64_t id_to_rank(const nid_t& node_id) const;
+    
+    /// get the node id for the node with the given backing rank
+    nid_t rank_to_id(const uint64_t& rank) const;
 
 };
 

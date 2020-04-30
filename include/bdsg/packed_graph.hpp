@@ -13,12 +13,11 @@
 #include <handlegraph/mutable_path_deletable_handle_graph.hpp>
 #include <handlegraph/serializable_handle_graph.hpp>
 
-#include "bdsg/packed_structs.hpp"
-#include "bdsg/split_strand_graph.hpp"
-#include "bdsg/hash_map.hpp"
-#include "bdsg/utility.hpp"
-
-#include "bdsg/eades_algorithm.hpp"
+#include "bdsg/overlays/strand_split_overlay.hpp"
+#include "bdsg/internal/packed_structs.hpp"
+#include "bdsg/internal/hash_map.hpp"
+#include "bdsg/internal/utility.hpp"
+#include "bdsg/internal/eades_algorithm.hpp"
 
 
 namespace bdsg {
@@ -116,17 +115,22 @@ public:
     nid_t max_node_id(void) const;
 
     /// Create a new node with the given sequence and return the handle.
+    /// The sequence may not be empty.
     handle_t create_handle(const std::string& sequence);
 
     /// Create a new node with the given id and sequence, then return the handle.
+    /// The sequence may not be empty.
+    /// The ID must be strictly greater than 0.
     handle_t create_handle(const std::string& sequence, const nid_t& id);
     
     /// Remove the node belonging to the given handle and all of its edges.
-    /// Does not update any stored paths.
+    /// Destroys any paths in which the node participates.
     /// Invalidates the destroyed handle.
     /// May be called during serial for_each_handle iteration **ONLY** on the node being iterated.
     /// May **NOT** be called during parallel for_each_handle iteration.
     /// May **NOT** be called on the node from which edges are being followed during follow_edges.
+    /// May **NOT** be called during iteration over paths, if it would destroy a path.
+    /// May **NOT** be called during iteration along a path, if it would destroy that path.
     void destroy_handle(const handle_t& handle);
     
     /// Create an edge connecting the given handles in the given order and orientations.

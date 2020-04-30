@@ -1,4 +1,4 @@
-#include "bdsg/is_single_stranded.hpp"
+#include "bdsg/internal/is_single_stranded.hpp"
 
 namespace bdsg {
 namespace algorithms {

@@ -1,16 +1,19 @@
 # Specify the minimum version for CMake
-
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.10)
+# We can't use CMake 3.11 until we no longer have to run on Ubuntu 18.04.
 
 # Project's name
 project(bdsg)
+
+# TODO: We can only do out-of-source builds!
+# TODO: How do we error out meaningfully on in-source builds?
+
 # We build using c++14
 set(CMAKE_CXX_STANDARD 14)
 
 # Use all standard-compliant optimizations
 set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -g")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -g")
-
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
   # assumes clang build
@@ -34,6 +37,9 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
   set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS} -lomp")
   
+  # Mac needs libdl and libomp when linking the library
+  set(PLATFORM_EXTRA_LIB_FLAGS -ldl -lomp)
+
 elseif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
   find_package(OpenMP REQUIRED)
@@ -42,6 +48,9 @@ elseif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS} -fopenmp")
   set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS} -fopenmp")
   set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+  
+  # Linux only needs libdl when linking the library
+  set(PLATFORM_EXTRA_LIB_FLAGS -ldl)
   
 endif()
 
@@ -69,7 +78,7 @@ include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 # sdsl-lite (full build using its cmake config)
 ExternalProject_Add(sdsl-lite
   SOURCE_DIR "${CMAKE_SOURCE_DIR}/deps/sdsl-lite"
-  CMAKE_ARGS "${CMAKE_ARGS};-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>"
+  CMAKE_ARGS "${CMAKE_ARGS};-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR> -DBUILD_SHARED_LIBS=ON"
   UPDATE_COMMAND ""
   INSTALL_COMMAND "")
 ExternalProject_Get_property(sdsl-lite INSTALL_DIR)
@@ -130,17 +139,53 @@ ExternalProject_Get_property(sparsepp SOURCE_DIR)
 set(sparsepp_INCLUDE "${SOURCE_DIR}")
 #set(sparsepp_LIB "${SOURCE_DIR}/src/sparsepp/")
 
+# Binder (because some generated bindings depend on headers packaged with Binder)
+ExternalProject_Add(binder
+  GIT_REPOSITORY "https://github.com/RosettaCommons/binder.git"
+  GIT_TAG "788ab422f9e919478944d79d5890441a964dd1db"
+  # we don't actually install Binder because we just need its headers
+  #CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_DIR}
+  UPDATE_COMMAND ""
+  INSTALL_COMMAND ""
+  BUILD_COMMAND ""
+  CONFIGURE_COMMAND "")
+ExternalProject_Get_property(binder INSTALL_DIR)
+set(binder_INCLUDE "${INSTALL_DIR}/src")
+
 # pybind11
-#ExternalProject_Add(pybind11
-#    GIT_REPOSITORY https://github.com/pybind/pybind11.git 
-#    GIT_TAG v2.2.4
-#    CONFIGURE_COMMAND ""
-#    BUILD_COMMAND ""
-#    INSTALL_COMMAND "")
-#ExternalProject_Get_Property(pybind11 SOURCE_DIR)
-#set(pybind11_INCLUDE_DIRS ${SOURCE_DIR}/include)
-#set(pybind11_DIR ${SOURCE_DIR})
-#add_subdirectory(${pybind11_DIR})
+if (CMAKE_MAJOR_VERSION EQUAL "3" AND CMAKE_MINOR_VERSION EQUAL "10")
+    # We need pybind11 installed in ./pybind11 *before* CMake can finish processing this file.
+    # On CMake 3.11+ we can do that with FetchContent
+    # But on CMake 3.10, available on Ubuntu 18.04, we have to just call git ourselves.
+    if (NOT EXISTS "${PROJECT_SOURCE_DIR}/pybind11")
+        message(WARNING "Running on CMake without FetchContent_Declare; attempting to download pybind11 manually")
+        execute_process(COMMAND git clone https://github.com/RosettaCommons/pybind11.git "${PROJECT_SOURCE_DIR}/pybind11")
+        execute_process(COMMAND git checkout 4f72ef846fe8453596230ac285eeaa0ce3278bb4
+                        WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/pybind11")
+    endif()
+    
+    # Whether we cloned it this time or not, include it.
+    add_subdirectory(pybind11)
+else()
+    # This FetchContent_Declare logic works only on CMake 3.11+.
+    # We can't use it on Ubuntu 18.04
+    
+    # set up FetchContent so we can incorporate pybind11
+    include(FetchContent)
+    
+    FetchContent_Declare(
+        pybind11
+        GIT_REPOSITORY https://github.com/RosettaCommons/pybind11.git
+        GIT_TAG 4f72ef846fe8453596230ac285eeaa0ce3278bb4
+    )
+    FetchContent_GetProperties(pybind11)
+    if (NOT pybind11_POPULATED)
+        FetchContent_Populate(pybind11)
+    endif()
+    
+    add_subdirectory(${pybind11_SOURCE_DIR} ${pybind11_BINARY_DIR})
+endif()
+
 
 #set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_BUILD_TYPE Debug)
@@ -153,10 +198,11 @@ add_library(bdsg_objs OBJECT
   ${CMAKE_SOURCE_DIR}/src/node.cpp
   ${CMAKE_SOURCE_DIR}/src/odgi.cpp
   ${CMAKE_SOURCE_DIR}/src/packed_graph.cpp
-  ${CMAKE_SOURCE_DIR}/src/packed_path_position_overlays.cpp
+  ${CMAKE_SOURCE_DIR}/src/packed_path_position_overlay.cpp
   ${CMAKE_SOURCE_DIR}/src/packed_structs.cpp
+  ${CMAKE_SOURCE_DIR}/src/packed_subgraph_overlay.cpp
   ${CMAKE_SOURCE_DIR}/src/path_position_overlays.cpp
-  ${CMAKE_SOURCE_DIR}/src/split_strand_graph.cpp
+  ${CMAKE_SOURCE_DIR}/src/strand_split_overlay.cpp
   ${CMAKE_SOURCE_DIR}/src/utility.cpp
   ${CMAKE_SOURCE_DIR}/src/vectorizable_overlays.cpp
   )
@@ -167,7 +213,9 @@ set(bdsg_DEPS
     hopscotch_map
     handlegraph
     bbhash
-    sparsepp)
+    sparsepp
+    binder
+)
 add_dependencies(bdsg_objs ${bdsg_DEPS})
 
 set(bdsg_INCLUDES
@@ -178,39 +226,43 @@ set(bdsg_INCLUDES
   "${hopscotch_map_INCLUDE}"
   "${handlegraph_INCLUDE}"
   "${sparsepp_INCLUDE}"
-  "${bbhash_INCLUDE}")
+  "${bbhash_INCLUDE}"
+  "${binder_INCLUDE}"
+)
 
 set(bdsg_LIBS
-  "${CMAKE_SOURCE_DIR}/lib/libbdsg.a"
-  "${sdsl-lite_LIB}/libsdsl.a"
-  "${sdsl-lite-divsufsort_LIB}/libdivsufsort.a"
-  "${sdsl-lite-divsufsort_LIB}/libdivsufsort64.a"
-  "${handlegraph_LIB}/libhandlegraph.a"
-  "-ldl")
+  "${sdsl-lite_LIB}/libsdsl${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  "${sdsl-lite-divsufsort_LIB}/libdivsufsort${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  "${sdsl-lite-divsufsort_LIB}/libdivsufsort64${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  "${handlegraph_LIB}/libhandlegraph${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  ${PLATFORM_EXTRA_LIB_FLAGS})
 
 target_include_directories(bdsg_objs PUBLIC ${bdsg_INCLUDES})
 set_target_properties(bdsg_objs PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
 
-add_library(libbdsg STATIC $<TARGET_OBJECTS:bdsg_objs>)
+add_library(libbdsg SHARED $<TARGET_OBJECTS:bdsg_objs>)
 set_target_properties(libbdsg PROPERTIES OUTPUT_NAME "bdsg")
 set_target_properties(libbdsg PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
+# On Mac at least, we need to link the library against the other dependency libraries
+# If we link them as PUBLIC they come along when anything links against libbdsg, as they should.
+target_link_libraries(libbdsg PUBLIC ${bdsg_LIBS})
 
 add_executable(test_libbdsg
   ${CMAKE_SOURCE_DIR}/src/test_libbdsg.cpp)
-add_dependencies(test_libbdsg libbdsg)
-target_link_libraries(test_libbdsg ${bdsg_LIBS})
+# add_dependencies(test_libbdsg libbdsg)
+target_link_libraries(test_libbdsg libbdsg)
 #  "${sdsl-lite_LIB}/libsdsl.a")
 target_include_directories(test_libbdsg PUBLIC ${bdsg_INCLUDES})
 set_target_properties(test_libbdsg PROPERTIES OUTPUT_NAME "test_libbdsg")
 
-# todo, for python bindings
-
-#add_subdirectory(deps/pybind11) # added as a submodule
-#pybind11_add_module(odgi_pybind11 "${CMAKE_SOURCE_DIR}/src/pythonmodule.cpp")
-#add_dependencies(odgi_pybind11 ${odgi_DEPS} libodgi_static)
-#target_include_directories(odgi_pybind11 PUBLIC ${odgi_INCLUDES})
-#target_link_libraries(odgi_pybind11 PRIVATE "${CMAKE_SOURCE_DIR}/lib/libodgi.a" "${odgi_LIBS}")
-#set_target_properties(odgi_pybind11 PROPERTIES OUTPUT_NAME "odgi")
+# TODO for python bindings
+file(GLOB_RECURSE pybind11_API "${CMAKE_SOURCE_DIR}/cmake_bindings/*.cpp")
+list(FILTER pybind11_API EXCLUDE REGEX ".*CMakeCXXCompilerId.cpp$")
+pybind11_add_module(bdsg_pybind11 ${pybind11_API})
+add_dependencies(bdsg_pybind11 ${bdsg_DEPS} libbdsg)
+target_include_directories(bdsg_pybind11 PUBLIC ${bdsg_INCLUDES})
+target_link_libraries(bdsg_pybind11 PRIVATE libbdsg "${bdsg_LIBS}")
+set_target_properties(bdsg_pybind11 PROPERTIES OUTPUT_NAME "bdsg")
 
 if (APPLE)
 elseif (TRUE)
