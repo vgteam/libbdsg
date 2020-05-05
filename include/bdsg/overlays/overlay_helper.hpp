@@ -51,8 +51,8 @@ VectorizableHandleGraph, PathPositionVectorizableOverlay, PathPositionHandleGrap
 template<typename T, typename U, typename V>
 class OverlayHelper {
 public:
-    T* apply(V* input_graph) {
-        overlaid = dynamic_cast<T*>(input_graph);
+    const T* apply(const V* input_graph) {
+        overlaid = dynamic_cast<const T*>(input_graph);
         if (overlaid == nullptr) {
             overlay = make_unique<U>(input_graph);
             overlaid = dynamic_cast<T*>(overlay.get());
@@ -60,13 +60,13 @@ public:
         }
         return overlaid;
     }
-
-    T* get() const {
+    
+    const T* get() const {
         return overlaid;
     }
 protected:
     unique_ptr<U> overlay;
-    T* overlaid = nullptr;
+    const T* overlaid = nullptr;
 };
 
 /// There must be a way to generalize with variadic templates
@@ -74,13 +74,13 @@ protected:
 template<typename T1, typename U1, typename V1, typename T2, typename U2, typename V2>
 class PairOverlayHelper {
 public:
-    T2* apply(V1* input_graph){
-        T1* g1 = overlay1.apply(input_graph);
-        T2* g2 = overlay2.apply(dynamic_cast<V2*>(g1));
+    const T2* apply(const V1* input_graph){
+        const T1* g1 = overlay1.apply(input_graph);
+        const T2* g2 = overlay2.apply(dynamic_cast<const V2*>(g1));
         return g2;
     }
 
-    T2* get() const {
+    const T2* get() const {
         return overlay2.get();
     }
 
