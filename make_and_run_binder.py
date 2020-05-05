@@ -17,7 +17,7 @@ from contextlib import contextmanager
 bindings_dir = 'cmake_bindings'
 this_project_source = f'{os.getcwd()}/src'
 this_project_include = f'{os.getcwd()}/include'
-this_project_deps = f'{os.getcwd()}/build' # This is the CMake build directory where depoendencies must have already been fetched by cmake.
+this_project_deps = f'{os.getcwd()}/deps' # Now deps come from submodules.
 this_project_namespace_to_bind = 'bdsg'
 python_module_name = 'bdsg'
 
@@ -55,7 +55,6 @@ def all_sources_and_headers(include_deps=False):
     '''
     Find all source or include files relevant to the project.
     Yields their paths.
-    Assumes the CMake build has run in ./build.
     
     Note that we count the libhandlegraph sources as part of this project's
     sources. We include them even if include_deps is false and we aren't
@@ -64,10 +63,10 @@ def all_sources_and_headers(include_deps=False):
     
     # And the paths we want to look in.
     # Always include libhandlegraph.
-    paths = [f'{this_project_source}/**/*', f'{this_project_include}/**/*', f'{this_project_deps}/handlegraph*/**/*']
+    paths = [f'{this_project_source}/**/*', f'{this_project_include}/**/*', f'{this_project_deps}/libhandlegraph/src/**/*']
     if include_deps:
         # Include all dependencies if asked
-        paths.append(f'{this_project_deps}/*/src/*/*')
+        paths.append(f'{this_project_deps}/**/*')
     # Get an iterable of glob iterables that search all combinations
     all_globs = (glob.glob(f'{f}.{e}', recursive=True) for f, e in itertools.product(paths, SOURCE_EXTENSIONS))
     # Deduplicate overlapping globs
@@ -200,12 +199,11 @@ def make_bindings_code(all_includes_fn, binder_executable):
     ''' runs the binder executable with required parameters '''
     # Find all the include directories for dependencies.
     # Some dependency repos have an include and some have an src/include.
-    # TODO: This (and a lot of this script) relies on a cmake build having been done out of "build" beforehand!
     # BBHash and sparsepp have weird project structures and needs to be handled specially.
-    proj_include = (glob.glob("build/*/src/*/include") +
-                    glob.glob("build/*/src/*/src/include") +
-                    ["build/sparsepp-prefix/src/sparsepp",
-                     "build/bbhash-prefix/src/bbhash"])
+    proj_include = (glob.glob(f'{this_project_deps}/*/include') +
+                    glob.glob(f'{this_project_deps}/*/src/include') +
+                    [f'{this_project_deps}/sparsepp',
+                     f'{this_project_deps}/BBHash'])
     # proj_include = " -I".join(proj_include)
     proj_include = [f'-I{i}' for i in proj_include]
     
