@@ -22,6 +22,12 @@ Additionally, `libbdsg` provides a few "overlays", which are applied to the grap
 
 ## Building and Installation
 
+When obtaining the source repo, make sure to clone with `--recursive` to get all the submodules:
+
+```
+git clone --recursive https://github.com/vgteam/libbdsg.git
+```
+
 ### With `cmake` (library and Python bindings)
 
 With CMake, we are able to build Python bindings that use `pybind11`. However, we only support out-of-source builds from a directory named `build`, and we still put the built artefacts in `lib` in the main project directory.
