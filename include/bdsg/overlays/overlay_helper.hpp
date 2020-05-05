@@ -51,6 +51,19 @@ VectorizableHandleGraph, PathPositionVectorizableOverlay, PathPositionHandleGrap
 template<typename T, typename U, typename V>
 class OverlayHelper {
 public:
+    // Handle non-const base graph
+    T* apply(V* input_graph) {
+        auto mutable_overlaid = dynamic_cast<T*>(input_graph);
+        if (mutable_overlaid == nullptr) {
+            overlay = make_unique<U>(input_graph);
+            mutable_overlaid = dynamic_cast<T*>(overlay.get());
+            assert(mutable_overlaid != nullptr);
+        }
+        overlaid = mutable_overlaid;
+        return mutable_overlaid;
+    }
+
+    // Handle const base graph
     const T* apply(const V* input_graph) {
         overlaid = dynamic_cast<const T*>(input_graph);
         if (overlaid == nullptr) {
@@ -61,6 +74,7 @@ public:
         return overlaid;
     }
     
+    // In general we can only get the const overlay later.
     const T* get() const {
         return overlaid;
     }
@@ -74,6 +88,12 @@ protected:
 template<typename T1, typename U1, typename V1, typename T2, typename U2, typename V2>
 class PairOverlayHelper {
 public:
+    T2* apply(V1* input_graph){
+        T1* g1 = overlay1.apply(input_graph);
+        T2* g2 = overlay2.apply(dynamic_cast<V2*>(g1));
+        return g2;
+    }
+
     const T2* apply(const V1* input_graph){
         const T1* g1 = overlay1.apply(input_graph);
         const T2* g2 = overlay2.apply(dynamic_cast<const V2*>(g1));
