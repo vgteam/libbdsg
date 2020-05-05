@@ -197,6 +197,17 @@ else()
 endif()
 
 
+# Make sure that pybind11 is looking at the same Python our shell is looking at
+execute_process(COMMAND "${PYTHON_EXECUTABLE}" --version OUTPUT_VARIABLE PYTHON_EXECUTABLE_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
+execute_process(COMMAND which python3 OUTPUT_VARIABLE PYTHON_WHICH OUTPUT_STRIP_TRAILING_WHITESPACE)
+execute_process(COMMAND "${PYTHON_WHICH}" --version OUTPUT_VARIABLE PYTHON_WHICH_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
+if (NOT PYTHON_EXECUTABLE_VERSION EQUAL PYTHON_WHICH_VERSION)
+    message(FATAL_ERROR "Python version mismatch: CMake wants to build for ${PYTHON_EXECUTABLE_VERSION} at ${PYTHON_EXECUTABLE}"
+            "but `python3` is ${PYTHON_WHICH_VERSION} at ${PYTHON_WHICH}. You will not be able to import the module in the"
+            "current Python! To use the version CMake selected, run the build in a virtualenv with that python version activated.")
+endif()
+
+
 #set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_BUILD_TYPE Debug)
 
