@@ -197,14 +197,25 @@ else()
 endif()
 
 
-# Make sure that pybind11 is looking at the same Python our shell is looking at
-execute_process(COMMAND "${PYTHON_EXECUTABLE}" --version OUTPUT_VARIABLE PYTHON_EXECUTABLE_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
-execute_process(COMMAND which python3 OUTPUT_VARIABLE PYTHON_WHICH OUTPUT_STRIP_TRAILING_WHITESPACE)
-execute_process(COMMAND "${PYTHON_WHICH}" --version OUTPUT_VARIABLE PYTHON_WHICH_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
-if (NOT PYTHON_EXECUTABLE_VERSION EQUAL PYTHON_WHICH_VERSION)
-    message(FATAL_ERROR "Python version mismatch: CMake wants to build for ${PYTHON_EXECUTABLE_VERSION} at ${PYTHON_EXECUTABLE}"
-            "but `python3` is ${PYTHON_WHICH_VERSION} at ${PYTHON_WHICH}. You will not be able to import the module in the"
-            "current Python! To use the version CMake selected, run the build in a virtualenv with that python version activated.")
+# Make sure that pybind11 is looking at the same Python our shell is looking at.
+# If this isn't true, on RtD, our build can go very wrong because we can't import the module.
+# And on a user's machine, it's almost certainly what they expect to happen.
+execute_process(COMMAND "${PYTHON_EXECUTABLE}" --version
+                OUTPUT_VARIABLE PYTHON_EXECUTABLE_VERSION
+                ERROR_VARIABLE PYTHON_EXECUTABLE_VERSION
+                OUTPUT_STRIP_TRAILING_WHITESPACE)
+execute_process(COMMAND which python3
+                OUTPUT_VARIABLE PYTHON_WHICH
+                OUTPUT_STRIP_TRAILING_WHITESPACE)
+execute_process(COMMAND "${PYTHON_WHICH}" --version
+                OUTPUT_VARIABLE PYTHON_WHICH_VERSION
+                ERROR_VARIABLE PYTHON_WHICH_VERSION
+                OUTPUT_STRIP_TRAILING_WHITESPACE)
+if (NOT PYTHON_EXECUTABLE_VERSION STREQUAL PYTHON_WHICH_VERSION)
+    message(FATAL_ERROR "Python version mismatch: CMake wants to build for ${PYTHON_EXECUTABLE_VERSION} at ${PYTHON_EXECUTABLE} "
+            "but `python3` is ${PYTHON_WHICH_VERSION} at ${PYTHON_WHICH}. You will not be able to import the module in the "
+            "current Python! To use the version CMake selected, run the build in a virtualenv with that Python version activated. "
+            "To use the version on your PATH, restart the build with -DPYTHON_EXECUTABLE=${PYTHON_WHICH} on the command line.")
 endif()
 
 
