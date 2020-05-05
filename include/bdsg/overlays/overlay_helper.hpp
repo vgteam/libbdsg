@@ -26,13 +26,21 @@ template<typename T1, typename U1, typename V1, typename T2, typename U2, typena
 // Helper to ensure that a PathHandleGraph has the PathPositionHandleGraph interface
 typedef OverlayHelper<PathPositionHandleGraph, PackedPositionOverlay, PathHandleGraph> PathPositionOverlayHelper;
 
+// Helper to ensure that a HandleGraph has the RankedHandleGraph interface.
+// TODO: If we write a dedicated, less powerful RankedOverlay, use that here instead.
+typedef OverlayHelper<RankedHandleGraph, VectorizableOverlay, HandleGraph> RankedOverlayHelper;
+
+// Helper to ensure that a PathHandleGraph has the RankedeHandleGraph interface.
+// TODO: If we write a dedicated, less powerful RankedOverlay, use that here instead.
+typedef OverlayHelper<RankedHandleGraph, PathVectorizableOverlay, PathHandleGraph> PathRankedOverlayHelper;
+
 // Helper to ensure that a HandleGraph has the VectorizableHandleGraph interface
 typedef OverlayHelper<VectorizableHandleGraph, VectorizableOverlay, HandleGraph> VectorizableOverlayHelper;
 
-// Helper to ensure that a PathHandleGraph has the PathVectorizableHandleGraph interface
+// Helper to ensure that a PathHandleGraph has the VectorizableHandleGraph interface
 typedef OverlayHelper<VectorizableHandleGraph, PathVectorizableOverlay, PathHandleGraph> PathVectorizableOverlayHelper;
 
-// Helper to ensure that a PathHandleGraph has the PathPositionVectorizableHandleGraph interface
+// Helper to ensure that a PathHandleGraph has the VectorizableHandleGraph and PathPositionHandleGraph interfaces.
 typedef PairOverlayHelper<PathPositionHandleGraph, PackedPositionOverlay, PathHandleGraph,
 VectorizableHandleGraph, PathPositionVectorizableOverlay, PathPositionHandleGraph> PathPositionVectorizableOverlayHelper;
 
@@ -43,8 +51,21 @@ VectorizableHandleGraph, PathPositionVectorizableOverlay, PathPositionHandleGrap
 template<typename T, typename U, typename V>
 class OverlayHelper {
 public:
+    // Handle non-const base graph
     T* apply(V* input_graph) {
-        overlaid = dynamic_cast<T*>(input_graph);
+        auto mutable_overlaid = dynamic_cast<T*>(input_graph);
+        if (mutable_overlaid == nullptr) {
+            overlay = make_unique<U>(input_graph);
+            mutable_overlaid = dynamic_cast<T*>(overlay.get());
+            assert(mutable_overlaid != nullptr);
+        }
+        overlaid = mutable_overlaid;
+        return mutable_overlaid;
+    }
+
+    // Handle const base graph
+    const T* apply(const V* input_graph) {
+        overlaid = dynamic_cast<const T*>(input_graph);
         if (overlaid == nullptr) {
             overlay = make_unique<U>(input_graph);
             overlaid = dynamic_cast<T*>(overlay.get());
@@ -52,13 +73,14 @@ public:
         }
         return overlaid;
     }
-
-    T* get() {
+    
+    // In general we can only get the const overlay later.
+    const T* get() const {
         return overlaid;
     }
 protected:
     unique_ptr<U> overlay;
-    T* overlaid = nullptr;
+    const T* overlaid = nullptr;
 };
 
 /// There must be a way to generalize with variadic templates
@@ -72,7 +94,13 @@ public:
         return g2;
     }
 
-    T2* get() {
+    const T2* apply(const V1* input_graph){
+        const T1* g1 = overlay1.apply(input_graph);
+        const T2* g2 = overlay2.apply(dynamic_cast<const V2*>(g1));
+        return g2;
+    }
+
+    const T2* get() const {
         return overlay2.get();
     }
 

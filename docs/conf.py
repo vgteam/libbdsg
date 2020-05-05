@@ -40,6 +40,9 @@ if not os.path.exists('../lib/bdsg.module'):
     # Use Make to call out to cmake and build the project so we can import and
     # document it.
     subprocess.check_call(['make', 'sphinxprep'])
+    
+    # Make sure we really can import it, or fail the whole build
+    import bdsg
 
 # -- Project information -----------------------------------------------------
 
