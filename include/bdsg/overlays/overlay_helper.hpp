@@ -26,13 +26,21 @@ template<typename T1, typename U1, typename V1, typename T2, typename U2, typena
 // Helper to ensure that a PathHandleGraph has the PathPositionHandleGraph interface
 typedef OverlayHelper<PathPositionHandleGraph, PackedPositionOverlay, PathHandleGraph> PathPositionOverlayHelper;
 
+// Helper to ensure that a HandleGraph has the RankedHandleGraph interface.
+// TODO: If we write a dedicated, less powerful RankedOverlay, use that here instead.
+typedef OverlayHelper<RankedHandleGraph, VectorizableOverlay, HandleGraph> RankedOverlayHelper;
+
+// Helper to ensure that a PathHandleGraph has the RankedeHandleGraph interface.
+// TODO: If we write a dedicated, less powerful RankedOverlay, use that here instead.
+typedef OverlayHelper<RankedHandleGraph, PathVectorizableOverlay, PathHandleGraph> PathRankedOverlayHelper;
+
 // Helper to ensure that a HandleGraph has the VectorizableHandleGraph interface
 typedef OverlayHelper<VectorizableHandleGraph, VectorizableOverlay, HandleGraph> VectorizableOverlayHelper;
 
-// Helper to ensure that a PathHandleGraph has the PathVectorizableHandleGraph interface
+// Helper to ensure that a PathHandleGraph has the VectorizableHandleGraph interface
 typedef OverlayHelper<VectorizableHandleGraph, PathVectorizableOverlay, PathHandleGraph> PathVectorizableOverlayHelper;
 
-// Helper to ensure that a PathHandleGraph has the PathPositionVectorizableHandleGraph interface
+// Helper to ensure that a PathHandleGraph has the VectorizableHandleGraph and PathPositionHandleGraph interfaces.
 typedef PairOverlayHelper<PathPositionHandleGraph, PackedPositionOverlay, PathHandleGraph,
 VectorizableHandleGraph, PathPositionVectorizableOverlay, PathPositionHandleGraph> PathPositionVectorizableOverlayHelper;
 
@@ -53,7 +61,7 @@ public:
         return overlaid;
     }
 
-    T* get() {
+    T* get() const {
         return overlaid;
     }
 protected:
@@ -72,7 +80,7 @@ public:
         return g2;
     }
 
-    T2* get() {
+    T2* get() const {
         return overlay2.get();
     }
 
