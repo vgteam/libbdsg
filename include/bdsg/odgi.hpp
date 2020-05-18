@@ -382,6 +382,10 @@ public:
 
     /// Convert to GFA (for debugging)
     void to_gfa(std::ostream& out) const;
+    /// Convert to GFA and send to the given filename, or "-" for standard output (the default).
+    void to_gfa(const string& filename) const;
+    /// Convert to GFA and return as a string.
+    string to_gfa() const;
 
     /// Serialize. Return the number of bytes written.
     /// We use a long long int here to keep varying types like uint64_t away from the Python bindings.

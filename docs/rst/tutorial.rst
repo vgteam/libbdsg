@@ -75,15 +75,43 @@ Which will output the following:
 
 .. testoutput::
         
-        n0: CGA
-        n1: TTGG
-        n2: CCGT
+   n0: CGA
+   n1: TTGG
+   n2: CCGT
 
-Since we are using :class:`bdsg.bdsg.ODGI`, a text representation of the data can be generated using :func:`bdsg.bdsg.ODGI.to_gfa`.
+Since we are using :class:`bdsg.bdsg.ODGI`, a text representation of the data can be generated using :func:`bdsg.bdsg.ODGI.to_gfa`. Use "-" as the destination filename to send the result to standard output, or provide no filename to get a string returned.
 
 .. testcode::
 
-        print(gr.to_gfa())
+   print(gr.to_gfa())
+        
+.. testoutput::
+   :hide:
+   :options: +NORMALIZE_WHITESPACE
+        
+   H    VN:Z:1.0
+   S    1    CGA
+   L    1    +    2    +    0M
+   S    2    TTGG
+   L    2    +    3    +    0M
+   S    3    CCGT
+   L    3    +    5    +    0M
+   L    3    +    4    +    0M
+   S    4    C
+   L    4    +    6    +    0M
+   S    5    GT
+   S    6    GATAA
+   L    6    +    9    +    0M
+   L    6    +    7    +    0M
+   S    7    CGG
+   L    7    +    9    +    0M
+   L    7    +    8    +    0M
+   S    8    ACA
+   L    8    +    10    +    0M
+   S    9    GCCG
+   L    9    +    6    +    0M
+   L    9    +    10    +    0M
+   S    10    ATATAAC
 
 Creating a Path
 ===============
@@ -195,7 +223,9 @@ We can poke around this data and get the sequence of the path with:
                 lambda y: handles.append(brca2.get_handle_of_step(y)) or True)
         sequence = ""
         for handle in handles:
-                sequence += brca2.get_sequence(handle)
+                sequence += brca2.get_seque:cd /z/home/anovak
+                :if exists('*inputsave')|call inputsave()|endif|tab drop /z/home/anovak/workspace/vg/deps/libbdsg/src/odgi.cpp|if exists('*inputrestore')|call inputrestore()|endif
+                nce(handle)
         
         print(sequence)
         

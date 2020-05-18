@@ -1541,6 +1541,27 @@ void ODGI::to_gfa(std::ostream& out) const {
         });
 }
 
+void ODGI::to_gfa(const string& filename) const {
+    if (filename == "-") {
+        to_gfa(std::cout);
+    } else {
+        ofstream out(filename);
+        if (!out) {
+            throw runtime_error("Could not open " + filename + " for writing");
+        }
+        to_gfa(out);
+        if (!out) {
+            throw runtime_error("Could not write GFA to " + filename);
+        }
+    }
+}
+
+string ODGI::to_gfa() const {
+    stringstream ss;
+    to_gfa(ss);
+    return ss.str();
+}
+
 long long int ODGI::serialize_and_measure(std::ostream& out) const {
     //rebuild_id_handle_mapping();
     // TODO: every write here needs an endianness-converting function!
