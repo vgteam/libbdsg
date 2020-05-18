@@ -26,7 +26,7 @@ Making a Graph
 ===============
 First, we must create the graph, then make each node and keep track of their handles. We're going to be using the **Optimized Dynamic Graph Implementation**, :class:`bdsg.bdsg.ODGI`, which is a good all-around graph that implements :class:`bdsg.handlegraph.MutablePathDeletableHandleGraph`.
 
-.. code-block:: python
+.. testcode::
 
         from bdsg.bdsg import ODGI
         gr = ODGI()
@@ -37,7 +37,7 @@ First, we must create the graph, then make each node and keep track of their han
 
 Now we link together these nodes using their handles. Note that each of these handles is directional, and we create each edge from the first handle to the second. In order to create both of the edges between `n5` and `n8` (since each can follow the other) we use ``create_edge`` twice.
 
-.. code-block:: python
+.. testcode::
 
         gr.create_edge(n[0], n[1])
         gr.create_edge(n[1], n[2])
@@ -58,7 +58,7 @@ Traversing Edges
 ================
 If we wanted to traverse these edges, we could do it using the iterator method :func:`bdsg.handlegraph.HandleGraph.follow_edges`.
 
-.. code-block:: python
+.. testcode::
 
         def next_node_list(handle):
                 lis = []
@@ -73,7 +73,7 @@ If we wanted to traverse these edges, we could do it using the iterator method :
 
 Which will output the following:
 
-.. code-block::
+.. testoutput::
         
         n0: CGA
         n1: TTGG
@@ -81,7 +81,7 @@ Which will output the following:
 
 Since we are using :class:`bdsg.bdsg.ODGI`, a text representation of the data can be generated using :func:`bdsg.bdsg.ODGI.to_gfa`.
 
-.. code-block:: python
+.. testcode::
 
         print(gr.to_gfa())
 
@@ -94,7 +94,7 @@ Generating a linear sequence from this graph could be done in infinitely many wa
 
 To create the hilighted path, we would need to create a :class:`bdsg.handlegraph.path_handle_t` in the graph, and then append each :class:`bdsg.handlegraph.handle_t` to the end of the path.
 
-.. code-block:: python
+.. testcode::
 
         path = gr.create_path_handle("path")
         gr.append_step(path, n[0])
@@ -110,7 +110,7 @@ To create the hilighted path, we would need to create a :class:`bdsg.handlegraph
 
         :func:`bdsg.handlegraph.MutablePathHandleGraph.append_step` will not stop you from appending nodes that are not connected to the preceeding node.
 
-.. code-block:: python
+.. testcode::
         
         # the following code runs without error
         badpath = gr.create_path_handle("badpath")
@@ -122,7 +122,7 @@ Traversing a path
 
 To traverse a path, we need to fetch a series of :class:`bdsg.handlegraph.step_handle_t` from the graph. Note that although we are effectively asking the path for these items in it, all accessor methods are a part of the :class:`bdsg.handlegraph.PathHandleGraph` object.
 
-.. code-block:: python
+.. testcode::
 
         step = gr.path_begin(path)
         while(gr.has_next_step(step)):
@@ -137,7 +137,7 @@ To traverse a path, we need to fetch a series of :class:`bdsg.handlegraph.step_h
 
 Which will output the following:
 
-.. code-block:: 
+.. testoutput::
         
         CGA
         TTGG
@@ -159,13 +159,13 @@ Graph File Example
 
 If you wish to save the graph from the above session, that can be done with:
 
-.. code-block:: python
+.. testcode::
 
         gr.serialize("example_graph.odgi")
 
 This can be loaded into a new python session by using:
 
-.. code-block:: python
+.. testcode::
         
         from bdsg.bdsg import ODGI
         gr = ODGI()
@@ -178,7 +178,7 @@ Each graph implementation knows how to read files in its respective file format.
 
 For example, provided that data has been serialized in PackedGraph format, it is possible to read it directly from a file with :class:`bdsg.bdsg.PackedGraph`. Download :download:`this graph <../exdata/cactus-brca2.pg>` and load it into python with:
 
-.. code-block:: python
+.. testcode::
         
         from bdsg.bdsg import PackedGraph
         brca2 = PackedGraph()
@@ -186,7 +186,7 @@ For example, provided that data has been serialized in PackedGraph format, it is
 
 We can poke around this data and get the sequence of the path with:
 
-.. code-block:: python
+.. testcode::
 
         path_handle = [] 
         handles = []
@@ -214,7 +214,7 @@ To export a graph from vg, you can use the following command:
     
 The resulting file can be loaded with :func:`bdsg.bdsg.PackedGraph.deserialize`.
 
-.. code-block:: python
+.. testcode::
         
         from bdsg.bdsg import PackedGraph
         graph = PackedGraph()
