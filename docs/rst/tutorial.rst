@@ -234,6 +234,7 @@ We can poke around this data and get the sequence of the path with:
     print(len(sequence))
     
 .. testoutput::
+    :hide:
     
     TGTGGCGCGA
     84159
