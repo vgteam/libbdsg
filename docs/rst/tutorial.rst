@@ -2,6 +2,12 @@
 Tutorial
 #########
 
+.. testsetup::
+
+   # Need to be in the directory with the test data
+   import os
+   os.chdir('exdata')
+
 ****************
 Creating Graphs
 ****************
@@ -216,18 +222,21 @@ We can poke around this data and get the sequence of the path with:
 
 .. testcode::
 
-        path_handle = [] 
-        handles = []
-        brca2.for_each_path_handle(lambda y: path_handle.append(y) or True)
-        brca2.for_each_step_in_path(path_handle[0], 
-                lambda y: handles.append(brca2.get_handle_of_step(y)) or True)
-        sequence = ""
-        for handle in handles:
-                sequence += brca2.get_seque:cd /z/home/anovak
-                :if exists('*inputsave')|call inputsave()|endif|tab drop /z/home/anovak/workspace/vg/deps/libbdsg/src/odgi.cpp|if exists('*inputrestore')|call inputrestore()|endif
-                nce(handle)
-        
-        print(sequence)
+   path_handle = [] 
+   handles = []
+   brca2.for_each_path_handle(lambda y: path_handle.append(y) or True)
+   brca2.for_each_step_in_path(path_handle[0], 
+       lambda y: handles.append(brca2.get_handle_of_step(y)) or True)
+   sequence = ""
+   for handle in handles:
+       sequence += brca2.get_sequence(handle)
+   print(sequence[0:10])
+   print(len(sequence))
+    
+.. testoutput::
+    
+   TGTGGCGCGA
+   84159
         
 Note how we are using ``or True`` in the iteratee callback lambda functions to make sure they return ``True``. If a callback returns ``False`` or ``None`` (which is what is returned when you don't return anything), iteration will stop early and the ``for_each`` call will return ``False``.
 
@@ -240,7 +249,7 @@ To export a graph from vg, you can use the following command:
 
 .. code-block:: bash
 
-        vg convert --packed-out graph.vg | vg view --extract-tag PackedGraph > graph.pg
+        vg convert --packed-out graph.vg | vg view - --extract-tag PackedGraph > graph.pg
     
 The resulting file can be loaded with :func:`bdsg.bdsg.PackedGraph.deserialize`.
 
