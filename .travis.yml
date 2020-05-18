@@ -35,3 +35,4 @@ addons:
     packages:
       - python3.7
       - python3.7-dev
+      - python3.7-pip
