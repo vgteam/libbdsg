@@ -16,8 +16,9 @@ help:
 # We need to make sure the Python module is built before we can document it.
 # But the exact name of it depends on the Python we are using, and the platform.
 # So we link it to something predictable.
+# Also make sure the CMake build will run Doxygen for us.
 ../lib/bdsg.module:
-	cd .. && mkdir -p build && cd build && cmake .. -DPYTHON_EXECUTABLE=$(shell which python3) && $(MAKE)
+	cd .. && mkdir -p build && cd build && cmake .. -DPYTHON_EXECUTABLE=$(shell which python3) -DRUN_DOXYGEN=ON && $(MAKE)
 	cd .. && ln lib/bdsg.cpython-*.* lib/bdsg.module
 
 # Make sure we are ready to run Sphinx
