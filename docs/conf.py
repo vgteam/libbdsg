@@ -55,6 +55,10 @@ version = u''
 # The full version, including alpha/beta/rc tags
 release = u''
 
+# -- Breathe Configuration ---------------------------------------------------
+
+breathe_projects = { "bdsg": "../build/doxygen/xml" }
+breathe_default_project = "bdsg"
 
 # -- General configuration ---------------------------------------------------
 
@@ -65,7 +69,7 @@ release = u''
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest']
+extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest', 'breathe']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
