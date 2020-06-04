@@ -292,3 +292,23 @@ elseif (TRUE)
     set(CMAKE_EXE_LINKER_FLAGS "-static")
   endif()
 endif()
+
+# Configure the Doxygen pass that we need for Breathe and Sphinx to document
+# our C++ code. See <https://vicrucann.github.io/tutorials/quick-cmake-doxygen/>
+option(RUN_DOXYGEN "Build Doxygen files required for Breathe-based docs" ON)
+
+if (RUN_DOXYGEN)
+  find_package(Doxygen)
+  if (DOXYGEN_FOUND)
+    # We need to substitute in paths in the Doxyfile depending on where CMake is having us build.
+    set(DOXYGEN_IN ${CMAKE_SOURCE_DIR}/docs/Doxyfile.in)
+    set(DOXYGEN_OUT ${CMAKE_BINARY_DIR}/Doxyfile)
+    configure_file(${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
+    
+    add_custom_target(run_doxygen ALL VERBATIM
+                      COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
+                      WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+  else()
+    message(FATAL_ERROR "No Doxygen found; cannot build with RUN_DOXYGEN ON")
+  endif()
+endif()

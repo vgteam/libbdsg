@@ -8,6 +8,7 @@ Welcome to bdsg's documentation!
    rst/tutorial
    rst/glossary
    rst/api
+   rst/cppapi
 
 ------
 Index
