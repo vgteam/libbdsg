@@ -30,6 +30,8 @@ git clone --recursive https://github.com/vgteam/libbdsg.git
 
 ### With `cmake` (library and Python bindings)
 
+Full CMake-based installation instructions, including tips on dependency installation, are available in [the documentation](https://bdsg.readthedocs.io/en/master/rst/install.html). A basic guide is provided here.
+
 With CMake, we are able to build Python bindings that use `pybind11`. However, we only support out-of-source builds from a directory named `build`, and we still put the built artifacts in `lib` in the main project directory.
 
 To run a CMake-based build:
