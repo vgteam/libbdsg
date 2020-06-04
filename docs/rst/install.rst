@@ -57,12 +57,13 @@ Arch Linux
 Gentoo Linux
 ~~~~~~~~~~~~
 
-Gentoo already ships Python 3 as part of the base system. 
+Gentoo already ships Python 3 as part of the base system, but the libbdsg build process goes most smoothly when the latest installed version of Python is selected as the default. Run the following as root:
    
 .. code-block:: bash
 
-   sudo emerge --sync
-   sudo emerge dev-vcs/git app-doc/doxygen dev-util/cmake
+   emerge --sync
+   emerge dev-vcs/git dev-util/cmake app-doc/doxygen dev-lang/python
+   eselect python update --python3
 
 -------------------
 Configure and Build
