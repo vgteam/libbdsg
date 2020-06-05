@@ -144,7 +144,35 @@ void ODGI::increment_node_ids(nid_t increment) {
 
 /// Reassign all node IDs as specified by the old->new mapping function.
 void ODGI::reassign_node_ids(const std::function<nid_t(const nid_t&)>& get_new_id) {
-    throw runtime_error("Node IDs cannot yet be reassigned in the ODGI graph implementation.");
+    ODGI reassigned;
+    // nodes
+    for_each_handle(
+        [&](const handle_t& handle) {
+            reassigned.create_handle(get_sequence(handle), get_new_id(get_id(handle)));
+        });
+    // edges
+    for_each_edge(
+        [&](const edge_t& edge) {
+            reassigned.create_edge(reassigned.get_handle(get_new_id(get_id(edge.first)), get_is_reverse(edge.first)),
+                                   reassigned.get_handle(get_new_id(get_id(edge.second)), get_is_reverse(edge.second)));
+        });
+    // paths
+    for_each_path_handle(
+        [&](const path_handle_t& old_path) {
+            path_handle_t new_path = reassigned.create_path_handle(get_path_name(old_path));
+            for_each_step_in_path(
+                old_path,
+                [&](const step_handle_t& step) {
+                    handle_t old_handle = get_handle_of_step(step);
+                    handle_t new_handle = reassigned.get_handle(get_new_id(get_id(old_handle)),
+                                                                get_is_reverse(old_handle));
+                    reassigned.append_step(new_path, new_handle);
+                });
+            if (get_is_circular(old_path)) {
+                reassigned.set_circularity(new_path, true);
+            }
+        });
+    *this = reassigned;
 }
     
 /// Get the orientation of a handle
