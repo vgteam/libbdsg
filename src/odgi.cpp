@@ -1129,11 +1129,6 @@ std::vector<handle_t> ODGI::divide_handle(const handle_t& handle, const std::vec
         });
     // reverse the order to allow for safe rewriting
     std::reverse(steps.begin(), steps.end());
-    /*
-    std::sort(steps.begin(), steps.end(), [](const step_handle_t& a, const step_handle_t& b) {
-            return as_integers(a)[0] == as_integers(b)[0] && as_integers(a)[1] > as_integers(b)[1]
-                || as_integers(a)[0] < as_integers(b)[0]; });
-    */
     // replace path steps with the new handles
     for (auto& step : steps) {
         handle_t h = get_handle_of_step(step);
