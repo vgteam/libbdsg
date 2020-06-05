@@ -376,6 +376,13 @@ public:
      */
     step_handle_t append_step(const path_handle_t& path, const handle_t& to_append);
 
+    /**
+     * Insert a visit to a node to the given path between the given steps.
+     * Returns a handle to the new step on the path which is appended.
+     * Handles to prior steps on the path, and to other paths, must remain valid.
+     */
+    step_handle_t insert_step(const step_handle_t& before, const step_handle_t& after, const handle_t& to_insert);
+
     /// Set the step to the given handle, possibly re-linking and cleaning up if needed
     step_handle_t set_step(const step_handle_t& step_handle, const handle_t& handle);
 

@@ -1469,6 +1469,12 @@ handle_t ODGI::add_to_number(const handle_t& handle, int64_t offset) const {
         number_bool_packing::unpack_bit(handle));
 }
 
+// Insert a visit to a node to the given path between the given steps.
+step_handle_t ODGI::insert_step(const step_handle_t& before, const step_handle_t& after, const handle_t& to_insert) {
+    auto p = rewrite_segment(after, after, { to_insert });
+    return get_next_step(p.first);
+}
+
 /// reassign the given step to the new handle
 step_handle_t ODGI::set_step(const step_handle_t& step_handle, const handle_t& assign_to) {
     return rewrite_segment(step_handle, get_next_step(step_handle), { assign_to }).first;
