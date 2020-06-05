@@ -1213,7 +1213,7 @@ handle_t ODGI::combine_handles(const std::vector<handle_t>& handles) {
     return combined;
 }
 
-/**
+/*
  * This is the interface for a handle graph with embedded paths where the paths can be modified.
  * Note that if the *graph* can also be modified, the implementation will also
  * need to inherit from MutableHandleGraph, via the combination
@@ -1225,7 +1225,6 @@ handle_t ODGI::combine_handles(const std::vector<handle_t>& handles) {
  * Destroy the given path. Invalidates handles to the path and its node steps.
  */
 void ODGI::destroy_path(const path_handle_t& path) {
-    if (get_step_count(path) == 0) return; // nothing to do
     // select everything with that handle in the path_handle_wt
     std::vector<step_handle_t> path_v;
     for_each_step_in_path(path, [this,&path_v](const step_handle_t& step) {
@@ -1239,6 +1238,14 @@ void ODGI::destroy_path(const path_handle_t& path) {
     for (auto& step : path_v) {
         destroy_step(step);
     }
+    // erase it from the name index if destroy_step didn't get it.
+    auto f = path_name_map.find(get_path_name(path));
+    if (f != path_name_map.end()) {
+        path_name_map.erase(f);
+    }
+    auto& p = path_metadata_v[as_integer(path)];
+    // our length should be 0
+    assert(p.length == 0);
     --_path_count;
 }
 
