@@ -910,7 +910,6 @@ void ODGI::apply_ordering(const std::vector<handle_t>& order_in, bool compact_id
         order = &order_in;
     }
     // nodes
-    //hash_map<nid_t, nid_t> ids;
     std::vector<nid_t> ids;
     uint64_t max_handle_rank = 0;
     uint64_t min_handle_rank = std::numeric_limits<uint64_t>::max();
