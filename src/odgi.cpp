@@ -978,8 +978,6 @@ void ODGI::apply_path_ordering(const std::vector<path_handle_t>& order) {
 /// graph.
 handle_t ODGI::apply_orientation(const handle_t& handle) {
 
-    cerr << "Apply orientation" << endl;
-
     // do nothing if we're already in the right orientation
     if (!get_is_reverse(handle)) return handle;
     handle_t fwd_handle = flip(handle);
@@ -1459,14 +1457,6 @@ std::pair<step_handle_t, step_handle_t> ODGI::rewrite_segment(const step_handle_
             return as_integers(a)[0] == as_integers(b)[0] && as_integers(a)[1] > as_integers(b)[1]
                 || as_integers(a)[0] < as_integers(b)[0]; });
                 
-    cerr << "Rewrite " << steps.size() << " steps on path of length " << path_meta.length << " to " << new_segment.size() << " steps" << endl;
-    if (has_predecessor) {
-        cerr << "Predecessor: " << get_id(get_handle_of_step(before)) << (get_is_reverse(get_handle_of_step(before)) ? '-' : '+') << endl;
-    }
-    if (has_successor) {
-        cerr << "Successor: " << get_id(get_handle_of_step(after)) << (get_is_reverse(get_handle_of_step(after)) ? '-' : '+') << endl;
-    }
-    
     // delete the previous steps, but don't clean up the whole path if it becomes empty
     for (auto& step : steps) {
         destroy_step(step, false);
@@ -1478,8 +1468,6 @@ std::pair<step_handle_t, step_handle_t> ODGI::rewrite_segment(const step_handle_
         new_steps.push_back(create_step(path, handle));
     }
     path_meta.length += new_steps.size();
-    
-    cerr << "New path length: " << path_meta.length << endl;
     
     if (new_steps.size()) {
         // link new steps together

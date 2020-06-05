@@ -1354,10 +1354,10 @@ void test_mutable_path_handle_graphs() {
     vector<MutablePathDeletableHandleGraph*> implementations;
     
     PackedGraph pg;
-    //implementations.push_back(&pg);
+    implementations.push_back(&pg);
     
     HashGraph hg;
-    //implementations.push_back(&hg);
+    implementations.push_back(&hg);
     
     ODGI og;
     implementations.push_back(&og);
@@ -1375,10 +1375,7 @@ void test_mutable_path_handle_graphs() {
             
             step_handle_t step = graph.path_begin(p);
             for (int i = 0; i < steps.size(); i++) {
-                cerr << "Check step " << i << " of " << steps.size() << endl;
-                cerr << "Expect visit to " << graph.get_id(steps[i]) << (graph.get_is_reverse(steps[i]) ? '-' : '+') << endl;
                 auto here = graph.get_handle_of_step(step);
-                cerr << "See visit to " << graph.get_id(here) << (graph.get_is_reverse(here) ? '-' : '+') << endl;
                 assert(graph.get_path_handle_of_step(step) == p);
                 assert(graph.get_handle_of_step(step) == steps[i]);
                 
@@ -1673,7 +1670,6 @@ void test_mutable_path_handle_graphs() {
                 assert(graph.get_handle_of_step(step) == steps[i]);
                 i++;
             }
-            cerr << "Expect to see " << steps.size() << " steps in new segment. See " << i << " steps" << endl;
             assert(i == steps.size());
         };
         
