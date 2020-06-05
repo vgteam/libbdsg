@@ -1263,12 +1263,7 @@ path_handle_t ODGI::create_path_handle(const std::string& name, bool is_circular
     // Make sure we are putting the metadata where we will find it.
     assert(path_metadata_v.size() == _path_rank_next);
     auto& p = find_metadata(path);
-    step_handle_t step;
-    as_integers(step)[0] = 0;
-    as_integers(step)[1] = 0;
-    p.first = step;
-    p.last = step;
-    p.length = 0;
+    // Path metadata starts out with 0 length and zeroed step handles. 
     p.name = name;
     p.is_circular = is_circular;
     ++_path_count;

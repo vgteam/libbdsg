@@ -458,9 +458,9 @@ private:
     }
     
     struct path_metadata_t {
-        uint64_t length;
-        step_handle_t first;
-        step_handle_t last;
+        uint64_t length = 0;
+        step_handle_t first = {0, 0};
+        step_handle_t last = {0, 0};
         std::string name;
         bool is_circular = false;
     };
