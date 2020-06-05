@@ -209,10 +209,20 @@ public:
     /// Returns true if the step handle is an end magic handle
     bool is_path_end(const step_handle_t& step_handle) const;
     
+protected:
+    
     /// Returns true if the step is not the last step on the path, else false
-    bool has_next_step(const step_handle_t& step_handle) const;
+    bool is_not_last_step(const step_handle_t& step_handle) const;
     
     /// Returns true if the step is not the first step on the path, else false
+    bool is_not_first_step(const step_handle_t& step_handle) const;
+    
+public:
+    
+    /// Returns true if the step is not the last step on the path, or the path is circular, else false
+    bool has_next_step(const step_handle_t& step_handle) const;
+    
+    /// Returns true if the step is not the first step on the path, or the path is circular, else false
     bool has_previous_step(const step_handle_t& step_handle) const;
     
     /// Returns a handle to the next step on the path
@@ -312,7 +322,7 @@ public:
     /// reflect this. Invalidates all handles to the node (including the one
     /// passed). Returns a new, valid handle to the node in its new forward
     /// orientation. Note that it is possible for the node's ID to change.
-    /// Does not update any stored paths. May change the ordering of the underlying
+    /// Updates all stored paths. May change the ordering of the underlying
     /// graph.
     handle_t apply_orientation(const handle_t& handle);
     
@@ -488,7 +498,7 @@ private:
     step_handle_t create_step(const path_handle_t& path, const handle_t& handle);
 
     /// Helper to destroy the internal records for the step
-    void destroy_step(const step_handle_t& step_handle);
+    void destroy_step(const step_handle_t& step_handle, bool clean_up_empty_path = true);
 
     /// Helper to stitch up partially built paths
     void link_steps(const step_handle_t& from, const step_handle_t& to);

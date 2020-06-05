@@ -1360,11 +1360,12 @@ void test_mutable_path_handle_graphs() {
     implementations.push_back(&hg);
     
     ODGI og;
-    //implementations.push_back(&og);
+    implementations.push_back(&og);
     
     for (MutablePathDeletableHandleGraph* implementation : implementations) {
         
         auto check_path = [&](MutablePathDeletableHandleGraph& graph, const path_handle_t& p, const vector<handle_t>& steps) {
+            cerr << "Want step count " << steps.size() << " and have " << graph.get_step_count(p) << endl;
             assert(graph.get_step_count(p) == steps.size());
             
             step_handle_t step = graph.path_begin(p);
@@ -1423,6 +1424,7 @@ void test_mutable_path_handle_graphs() {
 
             auto flipped = steps;
             for (size_t i = 0; i < steps.size(); i++) {
+                // TODO: can't this invalidate handles in the calling context?!?
                 graph.apply_orientation(graph.flip(graph.forward(flipped[i])));
                 flipped[i] = graph.flip(flipped[i]);
                 check_path(graph, p, flipped);
@@ -1659,32 +1661,48 @@ void test_mutable_path_handle_graphs() {
         
         auto check_rewritten_segment = [&](const pair<step_handle_t, step_handle_t>& new_segment,
                                            const vector<handle_t>& steps) {
-            int i = 0;
-            for (auto step = new_segment.first; step != new_segment.second; step = graph.get_next_step(step)) {
-                assert(graph.get_handle_of_step(step) == steps[i]);
-                i++;
+            // Make sure that the rewritten segment  bounds describe the replacement steps, inclusively
+            
+            if (steps.size() == 0) {
+                // If the replacement segment is supposed to be empty, make sure that the last step comes right before the first step.
+                assert(graph.get_next_step(new_segment.first) == new_segment.second);
+            } else {
+                // Make sure that when we walk the replacement segment we see the right stuff.
+                int i = 0;
+                for (auto step = new_segment.first; step != graph.get_next_step(new_segment.second); step = graph.get_next_step(step)) {
+                    assert(graph.get_handle_of_step(step) == steps[i]);
+                    i++;
+                }
+                assert(i == steps.size());
             }
-            assert(i == steps.size());
         };
         
         // rewrite the middle portion of a path
+        cerr << "rewrite the middle portion of a path" << endl;
         
+        // Skip entry 0, grab entries 1 through 3 (3 total) on the path
         step_handle_t s1 = graph.get_next_step(graph.path_begin(p4));
-        step_handle_t s2 = graph.get_next_step(graph.get_next_step(graph.get_next_step(s1)));
+        step_handle_t s2 = graph.get_next_step(graph.get_next_step(s1));
+        assert(graph.get_handle_of_step(s1) == segments[0]);
+        assert(graph.get_handle_of_step(s2) == segments[2]);
         
+        // Rewrite to visit these 3 nodes instead (leaving bounding h1 and h3 on either side)
         auto new_segment = graph.rewrite_segment(s1, s2, {graph.flip(segments[2]), graph.flip(segments[1]), graph.flip(segments[0])});
         
         check_flips(graph, p4, {h1, graph.flip(segments[2]), graph.flip(segments[1]), graph.flip(segments[0]), h3});
         check_rewritten_segment(new_segment, {graph.flip(segments[2]), graph.flip(segments[1]), graph.flip(segments[0])});
         
         // rewrite around the end of a circular path to delete
+        cerr << "rewrite around the end of a circular path to delete" << endl;
         
         graph.create_edge(h3, h1);
         graph.create_edge(segments[2], segments[0]);
         graph.set_circularity(p4, true);
         
         s1 = graph.get_previous_step(graph.path_begin(p4));
-        s2 = graph.get_next_step(graph.path_begin(p4));
+        s2 = graph.path_begin(p4);
+        assert(graph.get_handle_of_step(s1) == h3);
+        assert(graph.get_handle_of_step(s2) == h1);
         
         new_segment = graph.rewrite_segment(s1, s2, vector<handle_t>());
         
@@ -1692,6 +1710,7 @@ void test_mutable_path_handle_graphs() {
         check_rewritten_segment(new_segment, vector<handle_t>());
         
         // add into an empty slot
+        cerr << "add into an empty slot" << endl;
         
         new_segment = graph.rewrite_segment(new_segment.first, new_segment.second, {graph.flip(h1), graph.flip(h3)});
         
@@ -2156,6 +2175,7 @@ void test_packed_graph() {
 
         auto flipped = steps;
         for (size_t i = 0; i < steps.size(); i++) {
+            // TODO: can't this invalidate handles in the calling context?!?
             graph.apply_orientation(graph.flip(graph.forward(flipped[i])));
             flipped[i] = graph.flip(flipped[i]);
             check_path(graph, p, flipped);
