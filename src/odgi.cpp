@@ -4,8 +4,6 @@
 
 #include "bdsg/odgi.hpp"
 
-#include <unordered_set>
-
 namespace bdsg {
 
 void ODGI::serialize_members(std::ostream& out) const {
