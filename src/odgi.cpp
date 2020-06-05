@@ -1429,10 +1429,19 @@ std::pair<step_handle_t, step_handle_t> ODGI::rewrite_segment(const step_handle_
                                                                  const step_handle_t& segment_end,
                                                                  const std::vector<handle_t>& new_segment) {
     
+    // Detect if we are crossing the weld on a circular path
+    bool crossed_endpoint = false;
+    
     // collect the steps to replace
     std::vector<step_handle_t> steps;
     for (step_handle_t step = segment_begin; step != segment_end; step = get_next_step(step)) {
         steps.push_back(step);
+        if (step != segment_begin && !has_linear_previous_step(step)) {
+            // We crossed over the end of the path. Path ought to be circular,
+            // and we need to take care when hooking things up not to make a
+            // circular data structure.
+            crossed_endpoint = true;
+        }
     }
    
     // get the path metadata
@@ -1456,7 +1465,7 @@ std::pair<step_handle_t, step_handle_t> ODGI::rewrite_segment(const step_handle_
     std::sort(steps.begin(), steps.end(), [](const step_handle_t& a, const step_handle_t& b) {
             return as_integers(a)[0] == as_integers(b)[0] && as_integers(a)[1] > as_integers(b)[1]
                 || as_integers(a)[0] < as_integers(b)[0]; });
-                
+      
     // delete the previous steps, but don't clean up the whole path if it becomes empty
     for (auto& step : steps) {
         destroy_step(step, false);
@@ -1474,7 +1483,10 @@ std::pair<step_handle_t, step_handle_t> ODGI::rewrite_segment(const step_handle_
         for (uint64_t i = 0; i + 1 < new_steps.size(); ++i) {
             link_steps(new_steps[i], new_steps[i+1]);
         }
-        if (has_predecessor) {
+        if (has_predecessor && !crossed_endpoint) {
+            // A step exists before what we rewrote away, and we aren't
+            // rewriting across a circularization point and becoming the new
+            // beginning of the path.
             link_steps(before, new_steps.front());
         } else {
             path_meta.first = new_steps.front();
