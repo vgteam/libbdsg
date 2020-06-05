@@ -515,7 +515,7 @@ private:
     /// Get the 0-based rank encoded by a path handle
     size_t path_to_rank(const path_handle_t& path) const;
     
-    /// Get the path handle encodign the given 0-based rank
+    /// Get the path handle encoding the given 0-based rank
     path_handle_t rank_to_path(size_t rank) const;
     
     /// Add the offset to the number packed in the given handle, and return a
