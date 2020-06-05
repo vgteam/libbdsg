@@ -135,10 +135,12 @@ void ODGI::increment_node_ids(nid_t increment) {
     _min_node_rank += increment;
 
     for (auto& path : path_metadata_v) {
-        // Increment all the ranks stored in the normal handles inside the step
-        // handles for path begin and end.
-        set_handle_of_step(path.first, add_to_number(get_handle_of_step(path.first), increment));
-        set_handle_of_step(path.last, add_to_number(get_handle_of_step(path.last), increment));
+        if (path.length > 0) {
+            // Increment all the ranks stored in the normal handles inside the step
+            // handles for path begin and end.
+            set_handle_of_step(path.first, add_to_number(get_handle_of_step(path.first), increment));
+            set_handle_of_step(path.last, add_to_number(get_handle_of_step(path.last), increment));
+        }
     }
 }
 
@@ -316,17 +318,17 @@ bool ODGI::has_path(const std::string& path_name) const {
 path_handle_t ODGI::get_path_handle(const std::string& path_name) const {
     auto f = path_name_map.find(path_name);
     assert(f != path_name_map.end());
-    return as_path_handle(f->second);
+    return f->second;
 }
 
 /// Look up the name of a path from a handle to it
 std::string ODGI::get_path_name(const path_handle_t& path_handle) const {
-    return path_metadata_v.at(as_integer(path_handle)).name;
+    return find_metadata(path_handle).name;
 }
     
 /// Returns the number of node steps in the path
 size_t ODGI::get_step_count(const path_handle_t& path_handle) const {
-    return path_metadata_v.at(as_integer(path_handle)).length;
+    return find_metadata(path_handle).length;
 }
 
 /// Returns the number of paths stored in the graph
@@ -337,8 +339,8 @@ size_t ODGI::get_path_count(void) const {
 /// Execute a function on each path in the graph
 bool ODGI::for_each_path_handle_impl(const std::function<bool(const path_handle_t&)>& iteratee) const {
     bool flag = true;
-    for (uint64_t i = 0; i < _path_handle_next && flag; ++i) {
-        path_handle_t path = as_path_handle(i);
+    for (uint64_t i = 0; i < _path_rank_next && flag; ++i) {
+        path_handle_t path = rank_to_path(i);
         if (get_step_count(path) > 0) {
             flag &= iteratee(path);
         }
@@ -391,19 +393,19 @@ handle_t ODGI::get_handle_of_step(const step_handle_t& step_handle) const {
 /// Get a handle to the first step in a path.
 /// The path MUST be nonempty.
 step_handle_t ODGI::path_begin(const path_handle_t& path_handle) const {
-    return path_metadata_v.at(as_integer(path_handle)).first;
+    return find_metadata(path_handle).first;
 }
     
 /// Get a handle to the last step in a path
 /// The path MUST be nonempty.
 step_handle_t ODGI::path_back(const path_handle_t& path_handle) const {
-    return path_metadata_v.at(as_integer(path_handle)).last;
+    return find_metadata(path_handle).last;
 }
 
 /// Get the reverse end iterator
 step_handle_t ODGI::path_front_end(const path_handle_t& path_handle) const {
     step_handle_t step;
-    as_integers(step)[0] = as_integer(path_handle);
+    as_integers(step)[0] = path_to_rank(path_handle);
     as_integers(step)[1] = std::numeric_limits<uint64_t>::max() - 1;
     return step;
 }
@@ -411,19 +413,19 @@ step_handle_t ODGI::path_front_end(const path_handle_t& path_handle) const {
 /// Get the forward end iterator
 step_handle_t ODGI::path_end(const path_handle_t& path_handle) const {
     step_handle_t step;
-    as_integers(step)[0] = as_integer(path_handle);
+    as_integers(step)[0] = path_to_rank(path_handle);
     as_integers(step)[1] = std::numeric_limits<uint64_t>::max();
     return step;
 }
 
 /// is the path circular
 bool ODGI::get_is_circular(const path_handle_t& path_handle) const {
-    return path_metadata_v.at(as_integer(path_handle)).is_circular;
+    return find_metadata(path_handle).is_circular;
 }
 
 /// set the circular flag for the path
 void ODGI::set_circularity(const path_handle_t& path_handle, bool circular) {
-    path_metadata_v.at(as_integer(path_handle)).is_circular = circular;
+    find_metadata(path_handle).is_circular = circular;
 }
     
 /// Returns true if the step has a next step on the path that doesn't wrap around, else false
@@ -480,7 +482,7 @@ step_handle_t ODGI::get_next_step(const step_handle_t& step_handle) const {
     // check if we have a magic path iterator step handle
     if (is_path_front_end(step_handle)) {
         // After front end is the beginning of the path. Path is stored as the step's first number.
-        return path_begin(as_path_handle(as_integers(step_handle)[0]));
+        return path_begin(rank_to_path(as_integers(step_handle)[0]));
     } else if (is_path_end(step_handle)) {
         // Nothing really comes after this. Caller probably shouldn't be calling us. Just stay here.
         return step_handle;
@@ -491,9 +493,9 @@ step_handle_t ODGI::get_next_step(const step_handle_t& step_handle) const {
     const node_t& node = node_v.at(number_bool_packing::unpack_number(curr_handle));
     auto& step = node.get_path_step(as_integers(step_handle)[1]);
     if (step.next_id() == path_end_marker) {
-        if (path_metadata_v.at(step.path_id()).is_circular) {
+        if (find_metadata(rank_to_path(step.path_id())).is_circular) {
             // End of a circular path wraps back to start
-            return path_metadata_v.at(step.path_id()).first;
+            return find_metadata(rank_to_path(step.path_id())).first;
         } else {
             return path_end(get_path_handle_of_step(step_handle));
         }
@@ -515,7 +517,7 @@ step_handle_t ODGI::get_previous_step(const step_handle_t& step_handle) const {
         return step_handle;
     } else if (is_path_end(step_handle)) {
         // Before end is the last thing on the path. Path is stored as the step's first number.
-        return path_back(as_path_handle(as_integers(step_handle)[0]));
+        return path_back(rank_to_path(as_integers(step_handle)[0]));
     }
     // Otherwise we're actually on a node.
     handle_t curr_handle = get_handle_of_step(step_handle);
@@ -524,9 +526,9 @@ step_handle_t ODGI::get_previous_step(const step_handle_t& step_handle) const {
     const node_t& node = node_v.at(number_bool_packing::unpack_number(curr_handle));
     auto& step = node.get_path_step(as_integers(step_handle)[1]);
     if (step.prev_id() == path_begin_marker) {
-        if (path_metadata_v.at(step.path_id()).is_circular) {
+        if (find_metadata(rank_to_path(step.path_id())).is_circular) {
             // End of a start path wraps back to end
-            return path_metadata_v.at(step.path_id()).last;
+            return find_metadata(rank_to_path(step.path_id())).last;
         } else {
             return path_front_end(get_path_handle_of_step(step_handle));
         }
@@ -543,13 +545,13 @@ step_handle_t ODGI::get_previous_step(const step_handle_t& step_handle) const {
 path_handle_t ODGI::get_path_handle_of_step(const step_handle_t& step_handle) const {
     if (is_path_front_end(step_handle) || is_path_end(step_handle)) {
         // Looks like a sentinel. Path is stored as the first number.
-        return as_path_handle(as_integers(step_handle)[0]);
+        return rank_to_path(as_integers(step_handle)[0]);
     }
     
     // Otherwise, this step actually visits a node, so we ask the node what path it is on.
     const node_t& node = node_v.at(number_bool_packing::unpack_number(get_handle_of_step(step_handle)));
     auto& step = node.get_path_step(as_integers(step_handle)[1]);
-    return as_path_handle(step.path_id());
+    return rank_to_path(step.path_id());
 }
     
 ////////////////////////////////////////////////////////////////////////////
@@ -570,7 +572,7 @@ bool ODGI::is_empty(const path_handle_t& path_handle) const {
 
 /// Loop over all the steps along a path, from first through last
 void ODGI::for_each_step_in_path(const path_handle_t& path, const std::function<void(const step_handle_t&)>& iteratee) const {
-    auto& p = path_metadata_v[as_integer(path)];
+    auto& p = find_metadata(path);
     if (is_empty(path)) return;
     bool is_circular = get_is_circular(path);
     step_handle_t begin_step = path_begin(path);
@@ -856,7 +858,7 @@ void ODGI::clear(void) {
     _node_count = 0;
     _edge_count = 0;
     _path_count = 0;
-    _path_handle_next = 0;
+    _path_rank_next = 0;
     deleted_node_bv = null_bv;
     // Deleted node BV needs a final delimiter.
     deleted_node_bv.push_back(1);
@@ -871,7 +873,7 @@ void ODGI::clear_paths(void) {
             node.clear_path_steps();
         });
     _path_count = 0;
-    _path_handle_next = 0;
+    _path_rank_next = 0;
     path_metadata_v.clear();
     path_name_map.clear();
 }
@@ -1044,7 +1046,7 @@ handle_t ODGI::apply_orientation(const handle_t& handle) {
               std::map<uint64_t, std::pair<uint64_t, bool>>> // path backs
         path_rewrites = node.flip_paths(path_begin_marker, path_end_marker);
     for (auto& r : path_rewrites.first) {
-        auto& p = path_metadata_v[r.first];
+        auto& p = find_metadata(rank_to_path(r.first));
         step_handle_t step;
         as_integers(step)[0]
             = as_integer(number_bool_packing::pack(number_bool_packing::unpack_number(handle),
@@ -1053,7 +1055,7 @@ handle_t ODGI::apply_orientation(const handle_t& handle) {
         p.first = step;
     }
     for (auto& r : path_rewrites.second) {
-        auto& p = path_metadata_v[r.first];
+        auto& p = find_metadata(rank_to_path(r.first));
         step_handle_t step;
         as_integers(step)[0]
             = as_integer(number_bool_packing::pack(number_bool_packing::unpack_number(handle),
@@ -1243,7 +1245,7 @@ void ODGI::destroy_path(const path_handle_t& path) {
     if (f != path_name_map.end()) {
         path_name_map.erase(f);
     }
-    auto& p = path_metadata_v[as_integer(path)];
+    auto& p = find_metadata(path);
     // our length should be 0
     assert(p.length == 0);
     --_path_count;
@@ -1256,10 +1258,12 @@ void ODGI::destroy_path(const path_handle_t& path) {
  * remain valid.
  */
 path_handle_t ODGI::create_path_handle(const std::string& name, bool is_circular) {
-    path_handle_t path = as_path_handle(_path_handle_next++);
-    path_name_map[name] = as_integer(path);
+    path_handle_t path = rank_to_path(_path_rank_next++);
+    path_name_map[name] = path;
     path_metadata_v.emplace_back();
-    auto& p = path_metadata_v.back();
+    // Make sure we are putting the metadata where we will find it.
+    assert(path_metadata_v.size() == _path_rank_next);
+    auto& p = find_metadata(path);
     step_handle_t step;
     as_integers(step)[0] = 0;
     as_integers(step)[1] = 0;
@@ -1280,7 +1284,7 @@ step_handle_t ODGI::create_step(const path_handle_t& path, const handle_t& handl
     as_integers(step)[0] = as_integer(handle);
     as_integers(step)[1] = rank_on_handle;
     auto& node = node_v.at(number_bool_packing::unpack_number(handle));
-    node.add_path_step(as_integer(path), get_is_reverse(handle),
+    node.add_path_step(path_to_rank(path), get_is_reverse(handle),
                        path_begin_marker, 0, path_end_marker, 0);
     return step;
 }
@@ -1312,7 +1316,7 @@ void ODGI::destroy_step(const step_handle_t& step_handle, bool clean_up_empty_pa
         // we're about to erase the path, so we need to clean up the path metadata record
         path_handle_t path = get_path_handle_of_step(step_handle);
         path_name_map.erase(get_path_name(path));
-        path_metadata_v[as_integer(path)] = path_metadata_t();
+        find_metadata(path) = path_metadata_t();
     } else {
         if (has_prev) {
             auto step = get_previous_step(step_handle);
@@ -1325,7 +1329,7 @@ void ODGI::destroy_step(const step_handle_t& step_handle, bool clean_up_empty_pa
             step_node.set_path_step(step_rank, node_step);
         } else if (has_next) {
             auto step = get_next_step(step_handle);
-            auto& p = path_metadata_v[as_integer(get_path_handle_of_step(step))];
+            auto& p = find_metadata(get_path_handle_of_step(step));
             p.first = step;
         }
         if (has_next) {
@@ -1339,7 +1343,7 @@ void ODGI::destroy_step(const step_handle_t& step_handle, bool clean_up_empty_pa
             step_node.set_path_step(step_rank, node_step);
         } else if (has_prev) {
             auto step = get_previous_step(step_handle);
-            auto& p = path_metadata_v[as_integer(get_path_handle_of_step(step))];
+            auto& p = find_metadata(get_path_handle_of_step(step));
             p.last = step;
         }
     }
@@ -1366,7 +1370,7 @@ void ODGI::destroy_step(const step_handle_t& step_handle, bool clean_up_empty_pa
 
 step_handle_t ODGI::prepend_step(const path_handle_t& path, const handle_t& to_append) {
     // get the last step
-    auto& p = path_metadata_v[as_integer(path)];
+    auto& p = find_metadata(path);
     // create the new step
     step_handle_t new_step = create_step(path, to_append);
     if (!p.length) {
@@ -1385,7 +1389,7 @@ step_handle_t ODGI::prepend_step(const path_handle_t& path, const handle_t& to_a
 
 step_handle_t ODGI::append_step(const path_handle_t& path, const handle_t& to_append) {
     // get the last step
-    auto& p = path_metadata_v[as_integer(path)];
+    auto& p = find_metadata(path);
     // create the new step
     step_handle_t new_step = create_step(path, to_append);
     if (!p.length) {
@@ -1418,7 +1422,7 @@ void ODGI::decrement_rank(const step_handle_t& step_handle) {
         step_node.set_path_step(step_rank, node_step);
     } else {
         // update path metadata
-        auto& p = path_metadata_v[as_integer(get_path_handle_of_step(step_handle))];
+        auto& p = find_metadata(get_path_handle_of_step(step_handle));
         --as_integers(p.first)[1];
     }
     if (has_linear_next_step(step_handle)) {
@@ -1430,7 +1434,7 @@ void ODGI::decrement_rank(const step_handle_t& step_handle) {
         step_node.set_path_step(step_rank, node_step);
     } else {
         // update path metadata
-        auto& p = path_metadata_v[as_integer(get_path_handle_of_step(step_handle))];
+        auto& p = find_metadata(get_path_handle_of_step(step_handle));
         --as_integers(p.last)[1];
     }
 }
@@ -1439,7 +1443,31 @@ void ODGI::decrement_rank(const step_handle_t& step_handle) {
 void ODGI::set_handle_of_step(step_handle_t& step_handle, const handle_t& handle) const {
     as_integers(step_handle)[0] = as_integer(handle);
 }
-    
+
+/// Find the path metadata for a path
+ODGI::path_metadata_t& ODGI::find_metadata(const path_handle_t& path) {
+    // Nobody but us should touch path_metadata_v indexing!
+    return path_metadata_v.at(path_to_rank(path));
+}
+
+/// Find the metadata for a path, read-only
+const ODGI::path_metadata_t& ODGI::find_metadata(const path_handle_t& path) const {
+    // Nobody but us should touch path_metadata_v indexing!
+    return path_metadata_v.at(path_to_rank(path));
+}
+
+/// Get the 0-based rank encoded by a path handle
+size_t ODGI::path_to_rank(const path_handle_t& path) const {
+    // Nobody but us should unpack path handles!
+    return as_integer(path) - 1;
+}
+
+/// Get the path handle encodign the given 0-based rank
+path_handle_t ODGI::rank_to_path(size_t rank) const {
+    // Nobody but us should pack path handles!
+    return as_path_handle(rank + 1);
+}
+
 /// Add the offset to the number packed in the given handle, and return a
 /// new modified handle.
 handle_t ODGI::add_to_number(const handle_t& handle, int64_t offset) const {
@@ -1474,7 +1502,7 @@ std::pair<step_handle_t, step_handle_t> ODGI::rewrite_segment(const step_handle_
    
     // get the path metadata
     path_handle_t path = get_path_handle_of_step(segment_begin);
-    auto& path_meta = path_metadata_v[as_integer(path)];
+    auto& path_meta = find_metadata(path);
     
     // find the before and after steps, which we'll link into, if they exist
     // Ignore circularity; that is handled outside our link-based data structure.
@@ -1665,8 +1693,8 @@ long long int ODGI::serialize_and_measure(std::ostream& out) const {
     written += sizeof(_edge_count);
     out.write((char*)&_path_count,sizeof(_path_count));
     written += sizeof(_path_count);
-    out.write((char*)&_path_handle_next,sizeof(_path_handle_next));
-    written += sizeof(_path_handle_next);
+    out.write((char*)&_path_rank_next,sizeof(_path_rank_next));
+    written += sizeof(_path_rank_next);
     out.write((char*)&_deleted_node_count,sizeof(_deleted_node_count));
     written += sizeof(_deleted_node_count);
     out.write((char*)&_id_increment,sizeof(_id_increment));
@@ -1721,7 +1749,7 @@ void ODGI::load(std::istream& in) {
     in.read((char*)&_node_count,sizeof(_node_count));
     in.read((char*)&_edge_count,sizeof(_edge_count));
     in.read((char*)&_path_count,sizeof(_path_count));
-    in.read((char*)&_path_handle_next,sizeof(_path_handle_next));
+    in.read((char*)&_path_rank_next,sizeof(_path_rank_next));
     in.read((char*)&_deleted_node_count,sizeof(_deleted_node_count));
     in.read((char*)&_id_increment,sizeof(_id_increment));
     size_t hidden_count;
@@ -1759,8 +1787,8 @@ void ODGI::load(std::istream& in) {
         in.read((char*)&s,sizeof(size_t));
         char k[s+1]; k[s] = '\0';
         in.read(k,s);
-        uint64_t v;
-        in.read((char*)&v,sizeof(uint64_t));
+        path_handle_t v;
+        in.read((char*)&v,sizeof(v));
         path_name_map[string(k)] = v;
     }
     

@@ -468,7 +468,7 @@ private:
     std::vector<path_metadata_t> path_metadata_v;
 
     /// Links path names to handles
-    string_hash_map<std::string, uint64_t> path_name_map;
+    string_hash_map<std::string, path_handle_t> path_name_map;
 
     /// A helper to record the number of live nodes
     uint64_t _node_count = 0;
@@ -479,8 +479,8 @@ private:
     /// A helper to record the number of live paths
     uint64_t _path_count = 0;
 
-    /// A helper to record the next path handle (path deletions are hard because of our path FM-index)
-    uint64_t _path_handle_next = 0;
+    /// A helper to record the next path rank to use (path deletions are hard because of our path FM-index)
+    uint64_t _path_rank_next = 0;
 
     /// Helper to convert between edge storage and actual id
     uint64_t edge_delta_to_id(uint64_t left, uint64_t delta) const;
@@ -505,6 +505,18 @@ private:
     
     /// Modify the given step handle to point to the given handle.
     void set_handle_of_step(step_handle_t& step_handle, const handle_t& handle) const;
+    
+    /// Find the path metadata for a path
+    path_metadata_t& find_metadata(const path_handle_t& path);
+    
+    /// Find the metadata for a path, read-only
+    const path_metadata_t& find_metadata(const path_handle_t& path) const;
+    
+    /// Get the 0-based rank encoded by a path handle
+    size_t path_to_rank(const path_handle_t& path) const;
+    
+    /// Get the path handle encodign the given 0-based rank
+    path_handle_t rank_to_path(size_t rank) const;
     
     /// Add the offset to the number packed in the given handle, and return a
     /// new modified handle.
