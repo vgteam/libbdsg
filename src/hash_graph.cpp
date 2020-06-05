@@ -540,15 +540,8 @@ namespace bdsg {
             exit(1);
         }
         
-        // Since segment_end is included in the removed region, it can't be an end sentinel, so we can always advance it.
-        if (!has_next_step(segment_end)) {
-            cerr << "error:[HashGraph] attempted to rewrite a path segment that would remove the past-end step of the path" << endl;
-            exit(1);
-        }
-        auto segment_past_end = get_next_step(segment_end);
-        
         path_mapping_t* begin = (path_mapping_t*) intptr_t(as_integers(segment_begin)[1]);
-        path_mapping_t* end = (path_mapping_t*) intptr_t(as_integers(segment_past_end)[1]);
+        path_mapping_t* end = (path_mapping_t*) intptr_t(as_integers(segment_end)[1]);
         
         path_t& path_list = paths[as_integers(segment_begin)[0]];
         
@@ -573,7 +566,7 @@ namespace bdsg {
         }
         
         // init the new range for the return value
-        pair<step_handle_t, step_handle_t> new_range(segment_past_end, segment_past_end);
+        pair<step_handle_t, step_handle_t> new_range(segment_end, segment_end);
         
         // add the new segment into the slot
         bool first_iter = true;
@@ -587,9 +580,6 @@ namespace bdsg {
                 first_iter = false;
             }
         }
-        
-        // Back up the past-end in the range to the new end
-        new_range.second = get_previous_step(new_range.second);
         
         return new_range;
     }

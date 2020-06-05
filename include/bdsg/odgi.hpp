@@ -187,9 +187,6 @@ public:
     /// Get a node handle (node ID and orientation) from a handle to an step on a path
     handle_t get_handle_of_step(const step_handle_t& step_handle) const;
 
-    /// Get a path handle (path ID) from a handle to an step on a path
-    path_handle_t get_path(const step_handle_t& step_handle) const;
-    
     /// Get a handle to the first step in a path.
     /// The path MUST be nonempty.
     step_handle_t path_begin(const path_handle_t& path_handle) const;
@@ -211,18 +208,18 @@ public:
     
 protected:
     
-    /// Returns true if the step is not the last step on the path, else false
-    bool is_not_last_step(const step_handle_t& step_handle) const;
+    /// Returns true if the step has a next step on the path that doesn't wrap around, else false
+    bool has_linear_next_step(const step_handle_t& step_handle) const;
     
-    /// Returns true if the step is not the first step on the path, else false
-    bool is_not_first_step(const step_handle_t& step_handle) const;
+    /// Returns true if the step has a previous step on the path that doesn't wrap around, else false
+    bool has_linear_previous_step(const step_handle_t& step_handle) const;
     
 public:
     
-    /// Returns true if the step is not the last step on the path, or the path is circular, else false
+    /// Returns true if the step has a next step on the path, else false
     bool has_next_step(const step_handle_t& step_handle) const;
     
-    /// Returns true if the step is not the first step on the path, or the path is circular, else false
+    /// Returns true if the step has a previous step on the path, else false
     bool has_previous_step(const step_handle_t& step_handle) const;
     
     /// Returns a handle to the next step on the path
@@ -231,7 +228,7 @@ public:
     /// Returns a handle to the previous step on the path
     step_handle_t get_previous_step(const step_handle_t& step_handle) const;
     
-    /// Returns a handle to the path that an step is on
+    /// Returns a handle to the path that a step is on
     path_handle_t get_path_handle_of_step(const step_handle_t& step_handle) const;
     
     /// Returns true if the given path is empty, and false otherwise

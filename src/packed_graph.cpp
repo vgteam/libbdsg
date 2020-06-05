@@ -1703,13 +1703,6 @@ namespace bdsg {
             throw std::runtime_error("error:[PackedGraph] attempted to rewrite a path segment delimited by steps on two different paths");
         }
         
-        // Since segment_end is included in the removed region, it can't be an end sentinel, so we can always advance it.
-        if (!has_next_step(segment_end)) {
-            cerr << "error:[HashGraph] attempted to rewrite a path segment that would remove the past-end step of the path" << endl;
-            exit(1);
-        }
-        auto segment_past_end = get_next_step(segment_end);
-        
         size_t path_idx = as_integers(segment_begin)[0];
         PackedPath& packed_path =  paths[path_idx];
         
@@ -1717,7 +1710,7 @@ namespace bdsg {
         
         // find and erase the record of this node's membership on the path
         for (size_t step_offset = as_integers(segment_begin)[1];
-             step_offset != as_integers(segment_past_end)[1]; ) {
+             step_offset != as_integers(segment_end)[1]; ) {
             
             size_t g_iv_idx = graph_iv_index(decode_traversal(get_step_trav(packed_path, step_offset)));
             size_t node_member_idx = graph_index_to_node_member_index(g_iv_idx);
@@ -1725,7 +1718,7 @@ namespace bdsg {
             // find the membership record that corresponds to this step
             size_t prev = 0;
             size_t here = path_membership_node_iv.get(node_member_idx);
-            while (get_membership_path(here) != as_integers(segment_past_end)[0] ||
+            while (get_membership_path(here) != as_integers(segment_end)[0] ||
                    get_membership_step(here) != step_offset) {
                 prev = here;
                 here = get_next_membership(here);
@@ -1778,11 +1771,11 @@ namespace bdsg {
             step_offset = next_offset;
         }
         
-        pair<step_handle_t, step_handle_t> new_segment_range(segment_past_end, segment_past_end);
+        pair<step_handle_t, step_handle_t> new_segment_range(segment_end, segment_end);
         
         // now add in the new segment
         bool first_iter = true;
-        uint64_t anchor_offset = as_integers(segment_past_end)[1];
+        uint64_t anchor_offset = as_integers(segment_end)[1];
         for (const handle_t& handle : new_segment) {
             
             // create a new step record
@@ -1830,7 +1823,7 @@ namespace bdsg {
             
             // put a membership record for this occurrence at the front of the membership list
             size_t node_member_idx = graph_index_to_node_member_index(graph_iv_index(handle));
-            path_membership_id_iv.append(as_integers(segment_past_end)[0]);
+            path_membership_id_iv.append(as_integers(segment_end)[0]);
             path_membership_offset_iv.append(step_offset);
             path_membership_next_iv.append(path_membership_node_iv.get(node_member_idx));
             path_membership_node_iv.set(node_member_idx, path_membership_next_iv.size() / MEMBERSHIP_NEXT_RECORD_SIZE);
@@ -1841,9 +1834,6 @@ namespace bdsg {
                 first_iter = false;
             }
         }
-        
-        // Back up the past-end in the range to the new end
-        new_segment_range.second = get_previous_step(new_segment_range.second);
         
         return new_segment_range;
     }
