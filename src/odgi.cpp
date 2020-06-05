@@ -297,6 +297,23 @@ size_t ODGI::get_degree(const handle_t& handle, bool go_left) const {
     follow_edges(handle, go_left, [&degree](const handle_t& h) { ++degree; });
     return degree;
 }
+
+/// Get the locally forward version of a handle
+handle_t ODGI::forward(const handle_t& handle) const {
+    return HandleGraph::forward(handle);
+}
+
+/// A pair of handles can be used as an edge. When so used, the handles have a
+/// canonical order and orientation.
+edge_t ODGI::edge_handle(const handle_t& left, const handle_t& right) const {
+    return HandleGraph::edge_handle(left, right);
+}
+
+/// View the given edge handle from either inward end handle and produce the
+/// outward handle you would arrive at.
+handle_t ODGI::traverse_edge_handle(const edge_t& edge, const handle_t& left) const {
+    return HandleGraph::traverse_edge_handle(edge, left);
+}
     
 /**
  * This is the interface for a handle graph that stores embedded paths.

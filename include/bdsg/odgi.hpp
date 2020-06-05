@@ -132,19 +132,20 @@ public:
     /// information more efficiently can override this method.
     size_t get_degree(const handle_t& handle, bool go_left) const;
     
+    // We need to override these or the odgi project Python bindings can't
+    // build, because we can't use pybind11's def with a pointer to a virtual
+    // base class's member function.
+    
     /// Get the locally forward version of a handle
-    // Default is used
-    //handle_t forward(const handle_t& handle) const;
+    handle_t forward(const handle_t& handle) const;
     
     /// A pair of handles can be used as an edge. When so used, the handles have a
     /// canonical order and orientation.
-    // Default is used
-    //edge_t edge_handle(const handle_t& left, const handle_t& right) const;
+    edge_t edge_handle(const handle_t& left, const handle_t& right) const;
     
-    /// Such a pair can be viewed from either inward end handle and produce the
+    /// View the given edge handle from either inward end handle and produce the
     /// outward handle you would arrive at.
-    // Default is used
-    //handle_t traverse_edge_handle(const edge_t& edge, const handle_t& left) const;
+    handle_t traverse_edge_handle(const edge_t& edge, const handle_t& left) const;
     
     ////////////////////////////////////////////////////////////////////////////
     // Path handle interface
