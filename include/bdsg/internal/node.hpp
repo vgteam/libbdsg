@@ -76,6 +76,9 @@ public:
                        const uint64_t& prev_id, const uint64_t& prev_rank,
                        const uint64_t& next_id, const uint64_t& next_rank);
     void add_path_step(const step_t& step);
+    void set_path_step(const uint64_t& rank, const uint64_t& path_id, const bool& is_rev,
+                       const uint64_t& prev_id, const uint64_t& prev_rank,
+                       const uint64_t& next_id, const uint64_t& next_rank);
     void set_path_step(const uint64_t& rank, const step_t& step);
     std::pair<std::map<uint64_t, std::pair<uint64_t, bool>>, // path fronts
               std::map<uint64_t, std::pair<uint64_t, bool>>> // path backs
@@ -83,6 +86,7 @@ public:
     const std::vector<node_t::step_t> get_path_steps(void) const;
     const step_t get_path_step(const uint64_t& rank) const;
     void remove_path_step(const uint64_t& rank);
+    void update_path_last_bytes(void);
     void clear(void);
     void clear_path_steps(void);
     uint64_t serialize(std::ostream& out) const;
@@ -104,5 +108,4 @@ public:
 };
 
 }
-
 #endif
