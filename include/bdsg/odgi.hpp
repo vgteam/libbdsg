@@ -132,19 +132,20 @@ public:
     /// information more efficiently can override this method.
     size_t get_degree(const handle_t& handle, bool go_left) const;
     
+    // We need to override these or the odgi project Python bindings can't
+    // build, because we can't use pybind11's def with a pointer to a virtual
+    // base class's member function.
+    
     /// Get the locally forward version of a handle
-    // Default is used
-    //handle_t forward(const handle_t& handle) const;
+    handle_t forward(const handle_t& handle) const;
     
     /// A pair of handles can be used as an edge. When so used, the handles have a
     /// canonical order and orientation.
-    // Default is used
-    //edge_t edge_handle(const handle_t& left, const handle_t& right) const;
+    edge_t edge_handle(const handle_t& left, const handle_t& right) const;
     
-    /// Such a pair can be viewed from either inward end handle and produce the
+    /// View the given edge handle from either inward end handle and produce the
     /// outward handle you would arrive at.
-    // Default is used
-    //handle_t traverse_edge_handle(const edge_t& edge, const handle_t& left) const;
+    handle_t traverse_edge_handle(const edge_t& edge, const handle_t& left) const;
     
     ////////////////////////////////////////////////////////////////////////////
     // Path handle interface
@@ -187,9 +188,6 @@ public:
     /// Get a node handle (node ID and orientation) from a handle to an step on a path
     handle_t get_handle_of_step(const step_handle_t& step_handle) const;
 
-    /// Get a path handle (path ID) from a handle to an step on a path
-    path_handle_t get_path(const step_handle_t& step_handle) const;
-    
     /// Get a handle to the first step in a path.
     /// The path MUST be nonempty.
     step_handle_t path_begin(const path_handle_t& path_handle) const;
@@ -209,10 +207,20 @@ public:
     /// Returns true if the step handle is an end magic handle
     bool is_path_end(const step_handle_t& step_handle) const;
     
-    /// Returns true if the step is not the last step on the path, else false
+protected:
+    
+    /// Returns true if the step has a next step on the path that doesn't wrap around, else false
+    bool has_linear_next_step(const step_handle_t& step_handle) const;
+    
+    /// Returns true if the step has a previous step on the path that doesn't wrap around, else false
+    bool has_linear_previous_step(const step_handle_t& step_handle) const;
+    
+public:
+    
+    /// Returns true if the step has a next step on the path, else false
     bool has_next_step(const step_handle_t& step_handle) const;
     
-    /// Returns true if the step is not the first step on the path, else false
+    /// Returns true if the step has a previous step on the path, else false
     bool has_previous_step(const step_handle_t& step_handle) const;
     
     /// Returns a handle to the next step on the path
@@ -221,7 +229,7 @@ public:
     /// Returns a handle to the previous step on the path
     step_handle_t get_previous_step(const step_handle_t& step_handle) const;
     
-    /// Returns a handle to the path that an step is on
+    /// Returns a handle to the path that a step is on
     path_handle_t get_path_handle_of_step(const step_handle_t& step_handle) const;
     
     /// Returns true if the given path is empty, and false otherwise
@@ -312,7 +320,7 @@ public:
     /// reflect this. Invalidates all handles to the node (including the one
     /// passed). Returns a new, valid handle to the node in its new forward
     /// orientation. Note that it is possible for the node's ID to change.
-    /// Does not update any stored paths. May change the ordering of the underlying
+    /// Updates all stored paths. May change the ordering of the underlying
     /// graph.
     handle_t apply_orientation(const handle_t& handle);
     
@@ -368,6 +376,13 @@ public:
      * steps on the path, and to other paths, must remain valid.
      */
     step_handle_t append_step(const path_handle_t& path, const handle_t& to_append);
+
+    /**
+     * Insert a visit to a node to the given path between the given steps.
+     * Returns a handle to the new step on the path which is appended.
+     * Handles to prior steps on the path, and to other paths, must remain valid.
+     */
+    step_handle_t insert_step(const step_handle_t& before, const step_handle_t& after, const handle_t& to_insert);
 
     /// Set the step to the given handle, possibly re-linking and cleaning up if needed
     step_handle_t set_step(const step_handle_t& step_handle, const handle_t& handle);
@@ -451,9 +466,9 @@ private:
     }
     
     struct path_metadata_t {
-        uint64_t length;
-        step_handle_t first;
-        step_handle_t last;
+        uint64_t length = 0;
+        step_handle_t first = {0, 0};
+        step_handle_t last = {0, 0};
         std::string name;
         bool is_circular = false;
     };
@@ -461,7 +476,7 @@ private:
     std::vector<path_metadata_t> path_metadata_v;
 
     /// Links path names to handles
-    string_hash_map<std::string, uint64_t> path_name_map;
+    string_hash_map<std::string, path_handle_t> path_name_map;
 
     /// A helper to record the number of live nodes
     uint64_t _node_count = 0;
@@ -472,8 +487,8 @@ private:
     /// A helper to record the number of live paths
     uint64_t _path_count = 0;
 
-    /// A helper to record the next path handle (path deletions are hard because of our path FM-index)
-    uint64_t _path_handle_next = 0;
+    /// A helper to record the next path rank to use (path deletions are hard because of our path FM-index)
+    uint64_t _path_rank_next = 0;
 
     /// Helper to convert between edge storage and actual id
     uint64_t edge_delta_to_id(uint64_t left, uint64_t delta) const;
@@ -488,7 +503,7 @@ private:
     step_handle_t create_step(const path_handle_t& path, const handle_t& handle);
 
     /// Helper to destroy the internal records for the step
-    void destroy_step(const step_handle_t& step_handle);
+    void destroy_step(const step_handle_t& step_handle, bool clean_up_empty_path = true);
 
     /// Helper to stitch up partially built paths
     void link_steps(const step_handle_t& from, const step_handle_t& to);
@@ -498,6 +513,18 @@ private:
     
     /// Modify the given step handle to point to the given handle.
     void set_handle_of_step(step_handle_t& step_handle, const handle_t& handle) const;
+    
+    /// Find the path metadata for a path
+    path_metadata_t& find_metadata(const path_handle_t& path);
+    
+    /// Find the metadata for a path, read-only
+    const path_metadata_t& find_metadata(const path_handle_t& path) const;
+    
+    /// Get the 0-based rank encoded by a path handle
+    size_t path_to_rank(const path_handle_t& path) const;
+    
+    /// Get the path handle encoding the given 0-based rank
+    path_handle_t rank_to_path(size_t rank) const;
     
     /// Add the offset to the number packed in the given handle, and return a
     /// new modified handle.

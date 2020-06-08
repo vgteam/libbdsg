@@ -285,11 +285,16 @@ public:
     step_handle_t prepend_step(const path_handle_t& path, const handle_t& to_prepend);
     
     /**
-     * Delete a segment of a path and rewrite it as some other sequence of steps. Returns a pair
-     * of step_handle_t's that indicate the range of the new segment in the path. The segment to
-     * delete should be designated by the first and the past-the-last step handle.  If the step
-     * that is returned by path_begin is deleted, path_begin will now return the first step from
-     * the new segment or, in the case that the new segment is empty, segment_end.
+     * Delete a segment of a path and rewrite it as some other sequence of
+     * steps. Returns a pair of step_handle_t's that indicate the range of the
+     * new segment in the path. The segment to delete should be designated by
+     * the first (begin) and past-last (end) step handles.  If the step that is
+     * returned by path_begin is deleted, path_begin will now return the first
+     * step from the new segment or, in the case that the new segment is empty,
+     * the step used as segment_end. Empty ranges consist of two copies of the
+     * same step handle. Empty ranges in empty paths consist of two copies of
+     * the end sentinel handle for the path. Rewriting an empty range inserts
+     * before the provided end handle.
      */
     pair<step_handle_t, step_handle_t> rewrite_segment(const step_handle_t& segment_begin,
                                                        const step_handle_t& segment_end,

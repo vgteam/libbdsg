@@ -1360,16 +1360,22 @@ void test_mutable_path_handle_graphs() {
     implementations.push_back(&hg);
     
     ODGI og;
-    //implementations.push_back(&og);
+    implementations.push_back(&og);
     
     for (MutablePathDeletableHandleGraph* implementation : implementations) {
         
         auto check_path = [&](MutablePathDeletableHandleGraph& graph, const path_handle_t& p, const vector<handle_t>& steps) {
             assert(graph.get_step_count(p) == steps.size());
             
+            // Make sure steps connect back to the path
+            step_handle_t begin_step = graph.path_begin(p);
+            step_handle_t end_step = graph.path_end(p);
+            assert(graph.get_path_handle_of_step(begin_step) == p);
+            assert(graph.get_path_handle_of_step(end_step) == p);
+            
             step_handle_t step = graph.path_begin(p);
             for (int i = 0; i < steps.size(); i++) {
-                
+                auto here = graph.get_handle_of_step(step);
                 assert(graph.get_path_handle_of_step(step) == p);
                 assert(graph.get_handle_of_step(step) == steps[i]);
                 
@@ -1685,8 +1691,11 @@ void test_mutable_path_handle_graphs() {
         
         s1 = graph.get_previous_step(graph.path_begin(p4));
         s2 = graph.get_next_step(graph.path_begin(p4));
+        assert(s2 != graph.path_end(p4));
         
         new_segment = graph.rewrite_segment(s1, s2, vector<handle_t>());
+        // The end we get should be the same as the end we sent, since it is exclusive
+        assert(new_segment.second == s2);
         
         check_flips(graph, p4, {graph.flip(segments[2]), graph.flip(segments[1]), graph.flip(segments[0])});
         check_rewritten_segment(new_segment, vector<handle_t>());

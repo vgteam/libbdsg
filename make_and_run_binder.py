@@ -34,9 +34,10 @@ def clone_repos():
         # master when https://github.com/RosettaCommons/binder/pull/99 is
         # fixed.
         subprocess.check_call(['git', 'clone', 'https://github.com/RosettaCommons/binder.git', 'binder'])
+        parent = os.getcwd()
         os.chdir('binder')
         subprocess.check_call(['git', 'checkout', '788ab422f9e919478944d79d5890441a964dd1db'])
-        os.chdir('..')
+        os.chdir(parent)
 
 def build_binder():
     '''
@@ -247,9 +248,10 @@ def make_bindings_code(all_includes_fn, binder_executable):
                 
 def main():
     clone_repos()
+    parent = os.getcwd()
     os.chdir("binder")
     binder_executable = build_binder()
-    os.chdir("..")
+    os.chdir(parent)
     with clean_includes():
         all_includes_fn = make_all_includes()
         make_bindings_code(all_includes_fn, binder_executable)
