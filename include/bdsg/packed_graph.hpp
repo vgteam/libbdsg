@@ -25,7 +25,22 @@ namespace bdsg {
 using namespace std;
 using namespace handlegraph;
 
-
+/**
+ * PackedGraph is a HandleGraph implementation designed to use very little
+ * memory. It stores its data in bit-packed integer vectors, which are
+ * dynamically widened as needed in O(1) amortized time. Within these vectors,
+ * graphs are stored using adjacency linked lists.
+ *
+ * Since removals of elements can cause slots in the internal vectors to become
+ * unused, the graph will occasionally defragment itself after some
+ * modification operations, which involves copying its internal data
+ * structures.
+ *
+ * This implementation is a good choice when working with very large graphs,
+ * where the final memory usage of the constructed graph must be minimized. It
+ * is not a good choice when large fractions of the graph will need to be
+ * deleted and replaced; ODGI or HashGraph may be better for such workloads.
+ */
 class PackedGraph : public MutablePathDeletableHandleGraph, public SerializableHandleGraph {
         
 public:

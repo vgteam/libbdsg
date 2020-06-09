@@ -39,18 +39,30 @@ Graph Interfaces
 
 The :mod:`bdsg.handlegraph` module also defines a hierarchy of interfaces for graph implementations that provide different levels of features.
 
+~~~~~~~~~~~
+HandleGraph
+~~~~~~~~~~~
+
 The most basic is the :class:`bdsg.handlegraph.HandleGraph`, a completely immutable, unannotated graph.
 
 .. autoclass:: bdsg.handlegraph.HandleGraph
    :show-inheritance:
    :members:
-   
+
+~~~~~~~~~~~~~~~
+PathHandleGraph
+~~~~~~~~~~~~~~~
+
 On top of this, there is the :class:`bdsg.handlegraph.PathHandleGraph`, which allows for embedded, named paths in the graph.
 
 .. autoclass:: bdsg.handlegraph.PathHandleGraph
    :show-inheritance:
    :members:
-   
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Mutable and Deletable Interfaces
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 Then for each there are versions where the underlying graph is "mutable" (meaning that material can be added to it and nodes can be split) and "deletable" (meaning that nodes and edges can actually be removed from the graph), and for :class:`bdsg.handlegraph.PathHandleGraph` there are versions where the paths can be altered.
 
 .. autoclass:: bdsg.handlegraph.MutableHandleGraph
@@ -75,7 +87,11 @@ Then for each there are versions where the underlying graph is "mutable" (meanin
    
 Note that there is no :class:`bdsg.handlegraph.PathMutableHandleGraph` or :class:`bdsg.handlegraph.PathDeletableHandleGraph`; it does not make sense for the paths to be static while the graph can be modified.
 
-For paths, there is also the :class:`bdsg.handlegraph.PathPositionHandleGraph` which provides efficient random access by or lookup of base offset along each embedded path. Additionally, there is :class:`bdsg.handlegraph.VectorizableHandleGraph` which provides the same operations for a linearization of all of the graph's bases.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Position and Ordering Interfaces
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For paths, there is also the :class:`bdsg.handlegraph.PathPositionHandleGraph` which provides efficient random access by or lookup of base offset along each embedded path. Additionally, there is :class:`bdsg.handlegraph.VectorizableHandleGraph` which provides the same operations for a linearization of all of the graph's bases. There is also a :class:`bdsg.handlegraph.RankedHandleGraph` interface, which provides an ordering, though not necessarily a base-level linearization, of nodes and edges.
 
 .. autoclass:: bdsg.handlegraph.PathPositionHandleGraph
    :show-inheritance:
@@ -84,8 +100,16 @@ For paths, there is also the :class:`bdsg.handlegraph.PathPositionHandleGraph` w
 .. autoclass:: bdsg.handlegraph.VectorizableHandleGraph
    :show-inheritance:
    :members:
+   
+.. autoclass:: bdsg.handlegraph.RankedHandleGraph
+   :show-inheritance:
+   :members:
 
 Algorithm implementers are encouraged to take the least capable graph type necessary for their algorithm to function.
+
+~~~~~~~~~~~~~~~~~~~~~~~
+SerializableHandleGraph
+~~~~~~~~~~~~~~~~~~~~~~~
 
 Orthogonal to the mutability and paths hierarchy, there is a :class:`bdsg.handlegraph.SerializableHandleGraph` interface that is implemented by graphs that can be saved to and loaded from disk. The C++ API supports saving to and loading from C++ streams, but the Python API provides only the ability to save to or load from filenames.
 
@@ -112,13 +136,25 @@ Full Graph Implementations
 
 There are three full graph implementations in the module: :class:`bdsg.bdsg.PackedGraph`, :class:`bdsg.bdsg.HashGraph`, and :class:`bdsg.bdsg.ODGI`.
 
+~~~~~~~~~~~
+PackedGraph
+~~~~~~~~~~~
+
 .. autoclass:: bdsg.bdsg.PackedGraph
    :show-inheritance:
    :members:
+   
+~~~~~~~~~
+HashGraph
+~~~~~~~~~
 
 .. autoclass:: bdsg.bdsg.HashGraph
    :show-inheritance:
    :members:
+   
+~~~~
+ODGI
+~~~~
    
 .. autoclass:: bdsg.bdsg.ODGI
    :show-inheritance:
@@ -130,10 +166,6 @@ Graph Overlays
    
 In addition to these basic implementations, there are several "overlays". These overlays are graphs that wrap other graphs, providing features not avialable in the backing graph, or otherwise transforming it. 
 
-.. autoclass:: bdsg.handlegraph.ExpandingOverlayGraph
-   :show-inheritance:
-   :members:
-   
 .. autoclass:: bdsg.bdsg.PositionOverlay
    :show-inheritance:
    
@@ -151,6 +183,12 @@ In addition to these basic implementations, there are several "overlays". These 
    
 .. autoclass:: bdsg.bdsg.PathPositionVectorizableOverlay
    :show-inheritance:
+   
+Many of these are based on the :class:`bdsg.handlegraph.ExpandingOverlayGraph` interface, which guarantees that the overlay does not remove any graph material, and allows handles form the backing graph and the overlay graph to be interconverted.
+
+.. autoclass:: bdsg.handlegraph.ExpandingOverlayGraph
+   :show-inheritance:
+   :members:
 
 =================
 Typed Collections

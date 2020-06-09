@@ -134,6 +134,8 @@ To make a local copy of this documentation, first make sure you are in the root 
 
 Then open ``docs/_build/html/index.html`` in your web browser.
 
+Note that for documentation updates in the source code to propagate to the HTML output, you first need to regenerate the Python bindings (to update the docstrings in the Python module source) and rerun the CMake-based build (to build the module, and to generate the C++ Docygen XML).
+
 =======================
 Use libbdsg From Python
 =======================
