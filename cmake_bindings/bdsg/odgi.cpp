@@ -30,7 +30,7 @@
 	PYBIND11_MAKE_OPAQUE(std::shared_ptr<void>);
 #endif
 
-// bdsg::ODGI file:bdsg/odgi.hpp line:40
+// bdsg::ODGI file:bdsg/odgi.hpp line:51
 struct PyCallBack_bdsg_ODGI : public bdsg::ODGI {
 	using bdsg::ODGI::ODGI;
 
@@ -793,8 +793,8 @@ struct PyCallBack_bdsg_ODGI : public bdsg::ODGI {
 
 void bind_bdsg_odgi(std::function< pybind11::module &(std::string const &namespace_) > &M)
 {
-	{ // bdsg::ODGI file:bdsg/odgi.hpp line:40
-		pybind11::class_<bdsg::ODGI, std::shared_ptr<bdsg::ODGI>, PyCallBack_bdsg_ODGI, handlegraph::MutablePathDeletableHandleGraph, handlegraph::SerializableHandleGraph> cl(M("bdsg"), "ODGI", "");
+	{ // bdsg::ODGI file:bdsg/odgi.hpp line:51
+		pybind11::class_<bdsg::ODGI, std::shared_ptr<bdsg::ODGI>, PyCallBack_bdsg_ODGI, handlegraph::MutablePathDeletableHandleGraph, handlegraph::SerializableHandleGraph> cl(M("bdsg"), "ODGI", "ODGI (Optimized Dynamic Graph Index) is a good all-around HandleGraph\n implementation. It represents nodes as C++ objects stored in a vector, but\n aggressively bit-packs and delta-compresses edge and path step information\n within each node. Using separate node objects can reduce the need for\n defragmentation as in PackedGraph, but some deletion operations are still\n lazy.\n\n ODGI is a good implementation to choose if you don't need your graph to be\n as small as PackedGraph or as fast to access as HashGraph.");
 		cl.def( pybind11::init( [](){ return new bdsg::ODGI(); }, [](){ return new PyCallBack_bdsg_ODGI(); } ) );
 		cl.def( pybind11::init( [](PyCallBack_bdsg_ODGI const &o){ return new PyCallBack_bdsg_ODGI(o); } ) );
 		cl.def( pybind11::init( [](bdsg::ODGI const &o){ return new bdsg::ODGI(o); } ) );
@@ -814,6 +814,9 @@ void bind_bdsg_odgi(std::function< pybind11::module &(std::string const &namespa
 		cl.def("increment_node_ids", (void (bdsg::ODGI::*)(long long)) &bdsg::ODGI::increment_node_ids, "Add the given value to all node IDs\n\nC++: bdsg::ODGI::increment_node_ids(long long) --> void", pybind11::arg("increment"));
 		cl.def("reassign_node_ids", (void (bdsg::ODGI::*)(const class std::function<long long (const long long &)> &)) &bdsg::ODGI::reassign_node_ids, "Reassign all node IDs as specified by the old->new mapping function.\n\nC++: bdsg::ODGI::reassign_node_ids(const class std::function<long long (const long long &)> &) --> void", pybind11::arg("get_new_id"));
 		cl.def("get_degree", (unsigned long (bdsg::ODGI::*)(const struct handlegraph::handle_t &, bool) const) &bdsg::ODGI::get_degree, "Get the number of edges on the right (go_left = false) or left (go_left\n = true) side of the given handle. The default implementation is O(n) in\n the number of edges returned, but graph implementations that track this\n information more efficiently can override this method.\n\nC++: bdsg::ODGI::get_degree(const struct handlegraph::handle_t &, bool) const --> unsigned long", pybind11::arg("handle"), pybind11::arg("go_left"));
+		cl.def("forward", (struct handlegraph::handle_t (bdsg::ODGI::*)(const struct handlegraph::handle_t &) const) &bdsg::ODGI::forward, "Get the locally forward version of a handle\n\nC++: bdsg::ODGI::forward(const struct handlegraph::handle_t &) const --> struct handlegraph::handle_t", pybind11::arg("handle"));
+		cl.def("edge_handle", (struct std::pair<struct handlegraph::handle_t, struct handlegraph::handle_t> (bdsg::ODGI::*)(const struct handlegraph::handle_t &, const struct handlegraph::handle_t &) const) &bdsg::ODGI::edge_handle, "A pair of handles can be used as an edge. When so used, the handles have a\n canonical order and orientation.\n\nC++: bdsg::ODGI::edge_handle(const struct handlegraph::handle_t &, const struct handlegraph::handle_t &) const --> struct std::pair<struct handlegraph::handle_t, struct handlegraph::handle_t>", pybind11::arg("left"), pybind11::arg("right"));
+		cl.def("traverse_edge_handle", (struct handlegraph::handle_t (bdsg::ODGI::*)(const struct std::pair<struct handlegraph::handle_t, struct handlegraph::handle_t> &, const struct handlegraph::handle_t &) const) &bdsg::ODGI::traverse_edge_handle, "View the given edge handle from either inward end handle and produce the\n outward handle you would arrive at.\n\nC++: bdsg::ODGI::traverse_edge_handle(const struct std::pair<struct handlegraph::handle_t, struct handlegraph::handle_t> &, const struct handlegraph::handle_t &) const --> struct handlegraph::handle_t", pybind11::arg("edge"), pybind11::arg("left"));
 		cl.def("has_path", (bool (bdsg::ODGI::*)(const std::string &) const) &bdsg::ODGI::has_path, "Determine if a path name exists and is legal to get a path handle for.\n\nC++: bdsg::ODGI::has_path(const std::string &) const --> bool", pybind11::arg("path_name"));
 		cl.def("get_path_handle", (struct handlegraph::path_handle_t (bdsg::ODGI::*)(const std::string &) const) &bdsg::ODGI::get_path_handle, "Look up the path handle for the given path name.\n The path with that name must exist.\n\nC++: bdsg::ODGI::get_path_handle(const std::string &) const --> struct handlegraph::path_handle_t", pybind11::arg("path_name"));
 		cl.def("get_path_name", (std::string (bdsg::ODGI::*)(const struct handlegraph::path_handle_t &) const) &bdsg::ODGI::get_path_name, "Look up the name of a path from a handle to it\n\nC++: bdsg::ODGI::get_path_name(const struct handlegraph::path_handle_t &) const --> std::string", pybind11::arg("path_handle"));

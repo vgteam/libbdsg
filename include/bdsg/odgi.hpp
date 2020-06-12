@@ -37,6 +37,17 @@ using namespace handlegraph;
 // Resolve ambiguous nid_t typedef by putting it in our namespace.
 using nid_t = handlegraph::nid_t;
 
+/**
+ * ODGI (Optimized Dynamic Graph Index) is a good all-around HandleGraph
+ * implementation. It represents nodes as C++ objects stored in a vector, but
+ * aggressively bit-packs and delta-compresses edge and path step information
+ * within each node. Using separate node objects can reduce the need for
+ * defragmentation as in PackedGraph, but some deletion operations are still
+ * lazy.
+ *
+ * ODGI is a good implementation to choose if you don't need your graph to be
+ * as small as PackedGraph or as fast to access as HashGraph.
+ */
 class ODGI : public MutablePathDeletableHandleGraph, public SerializableHandleGraph {
 
 public:

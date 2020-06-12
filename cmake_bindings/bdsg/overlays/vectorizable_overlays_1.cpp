@@ -702,7 +702,7 @@ struct PyCallBack_bdsg_PathPositionVectorizableOverlay : public bdsg::PathPositi
 	}
 };
 
-// bdsg::PackedGraph file:bdsg/packed_graph.hpp line:29
+// bdsg::PackedGraph file:bdsg/packed_graph.hpp line:44
 struct PyCallBack_bdsg_PackedGraph : public bdsg::PackedGraph {
 	using bdsg::PackedGraph::PackedGraph;
 
@@ -1474,8 +1474,8 @@ void bind_bdsg_overlays_vectorizable_overlays_1(std::function< pybind11::module 
 		cl.def("get_position_of_step", (unsigned long (bdsg::PathPositionVectorizableOverlay::*)(const struct handlegraph::step_handle_t &) const) &bdsg::PathPositionVectorizableOverlay::get_position_of_step, "Returns the position along the path of the beginning of this step measured in\n bases of sequence. In a circular path, positions start at the step returned by\n path_begin().\n\nC++: bdsg::PathPositionVectorizableOverlay::get_position_of_step(const struct handlegraph::step_handle_t &) const --> unsigned long", pybind11::arg("step"));
 		cl.def("get_step_at_position", (struct handlegraph::step_handle_t (bdsg::PathPositionVectorizableOverlay::*)(const struct handlegraph::path_handle_t &, const unsigned long &) const) &bdsg::PathPositionVectorizableOverlay::get_step_at_position, "Returns the step at this position, measured in bases of sequence starting at\n the step returned by path_begin(). If the position is past the end of the\n path, returns path_end().\n\nC++: bdsg::PathPositionVectorizableOverlay::get_step_at_position(const struct handlegraph::path_handle_t &, const unsigned long &) const --> struct handlegraph::step_handle_t", pybind11::arg("path"), pybind11::arg("position"));
 	}
-	{ // bdsg::PackedGraph file:bdsg/packed_graph.hpp line:29
-		pybind11::class_<bdsg::PackedGraph, std::shared_ptr<bdsg::PackedGraph>, PyCallBack_bdsg_PackedGraph, handlegraph::MutablePathDeletableHandleGraph, handlegraph::SerializableHandleGraph> cl(M("bdsg"), "PackedGraph", "");
+	{ // bdsg::PackedGraph file:bdsg/packed_graph.hpp line:44
+		pybind11::class_<bdsg::PackedGraph, std::shared_ptr<bdsg::PackedGraph>, PyCallBack_bdsg_PackedGraph, handlegraph::MutablePathDeletableHandleGraph, handlegraph::SerializableHandleGraph> cl(M("bdsg"), "PackedGraph", "PackedGraph is a HandleGraph implementation designed to use very little\n memory. It stores its data in bit-packed integer vectors, which are\n dynamically widened as needed in O(1) amortized time. Within these vectors,\n graphs are stored using adjacency linked lists.\n\n Since removals of elements can cause slots in the internal vectors to become\n unused, the graph will occasionally defragment itself after some\n modification operations, which involves copying its internal data\n structures.\n\n This implementation is a good choice when working with very large graphs,\n where the final memory usage of the constructed graph must be minimized. It\n is not a good choice when large fractions of the graph will need to be\n deleted and replaced; ODGI or HashGraph may be better for such workloads.");
 		cl.def( pybind11::init( [](){ return new bdsg::PackedGraph(); }, [](){ return new PyCallBack_bdsg_PackedGraph(); } ) );
 		cl.def("has_node", (bool (bdsg::PackedGraph::*)(long long) const) &bdsg::PackedGraph::has_node, "Method to check if a node exists by ID\n\nC++: bdsg::PackedGraph::has_node(long long) const --> bool", pybind11::arg("node_id"));
 		cl.def("get_handle", [](bdsg::PackedGraph const &o, const long long & a0) -> handlegraph::handle_t { return o.get_handle(a0); }, "", pybind11::arg("node_id"));

@@ -23,28 +23,29 @@ using namespace handlegraph;
 template<typename T, typename U, typename V> class OverlayHelper;
 template<typename T1, typename U1, typename V1, typename T2, typename U2, typename V2> class PairOverlayHelper;
 
-// Helper to ensure that a PathHandleGraph has the PathPositionHandleGraph interface
+/// Helper to ensure that a PathHandleGraph has the PathPositionHandleGraph interface
 typedef OverlayHelper<PathPositionHandleGraph, PackedPositionOverlay, PathHandleGraph> PathPositionOverlayHelper;
 
-// Helper to ensure that a HandleGraph has the RankedHandleGraph interface.
+/// Helper to ensure that a HandleGraph has the RankedHandleGraph interface.
 // TODO: If we write a dedicated, less powerful RankedOverlay, use that here instead.
 typedef OverlayHelper<RankedHandleGraph, VectorizableOverlay, HandleGraph> RankedOverlayHelper;
 
-// Helper to ensure that a PathHandleGraph has the RankedeHandleGraph interface.
+/// Helper to ensure that a PathHandleGraph has the RankedeHandleGraph interface.
 // TODO: If we write a dedicated, less powerful RankedOverlay, use that here instead.
 typedef OverlayHelper<RankedHandleGraph, PathVectorizableOverlay, PathHandleGraph> PathRankedOverlayHelper;
 
-// Helper to ensure that a HandleGraph has the VectorizableHandleGraph interface
+/// Helper to ensure that a HandleGraph has the VectorizableHandleGraph interface
 typedef OverlayHelper<VectorizableHandleGraph, VectorizableOverlay, HandleGraph> VectorizableOverlayHelper;
 
-// Helper to ensure that a PathHandleGraph has the VectorizableHandleGraph interface
+/// Helper to ensure that a PathHandleGraph has the VectorizableHandleGraph interface
 typedef OverlayHelper<VectorizableHandleGraph, PathVectorizableOverlay, PathHandleGraph> PathVectorizableOverlayHelper;
 
-// Helper to ensure that a PathHandleGraph has the VectorizableHandleGraph and PathPositionHandleGraph interfaces.
+/// Helper to ensure that a PathHandleGraph has the VectorizableHandleGraph and PathPositionHandleGraph interfaces.
 typedef PairOverlayHelper<PathPositionHandleGraph, PackedPositionOverlay, PathHandleGraph,
 VectorizableHandleGraph, PathPositionVectorizableOverlay, PathPositionHandleGraph> PathPositionVectorizableOverlayHelper;
 
 
+/// Implementation of overlay helper core functionality.
 /// T = desired class
 /// U = overlay class
 /// V = input class
@@ -83,8 +84,9 @@ protected:
     const T* overlaid = nullptr;
 };
 
-/// There must be a way to generalize with variadic templates
-/// (I had trouble chaining the output of the nested overlays together and getting the types right when trying)
+/// Implementation of overlay helper functionality for when multiple overlays need to be stacked.
+// There must be a way to generalize with variadic templates
+// (I had trouble chaining the output of the nested overlays together and getting the types right when trying)
 template<typename T1, typename U1, typename V1, typename T2, typename U2, typename V2>
 class PairOverlayHelper {
 public:

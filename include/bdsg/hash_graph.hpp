@@ -20,6 +20,15 @@ namespace bdsg {
 using namespace std;
 using namespace handlegraph;
 
+
+/**
+ * HashGraph is a HandleGraph implementation designed for simplicity. Nodes are
+ * plain C++ objects stored in a hash map, which contain C++ vectors
+ * representing their adjacencies.
+ *
+ * HashGraph is a good choice when fast access to or modification of a graph is
+ * required, but can use more memory than other graph implementations.
+ */
 class HashGraph : public MutablePathDeletableHandleGraph, public SerializableHandleGraph {
         
 public:

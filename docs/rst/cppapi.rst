@@ -30,15 +30,27 @@ Graph Interfaces
 
 The ``handlegraph`` namespace also defines a hierarchy of interfaces for graph implementations that provide different levels of features.
 
+~~~~~~~~~~~
+HandleGraph
+~~~~~~~~~~~
+
 The most basic is the :cpp:class:`handlegraph::HandleGraph`, a completely immutable, unannotated graph.
 
 .. doxygenclass:: handlegraph::HandleGraph
    :members:
    
+~~~~~~~~~~~~~~~
+PathHandleGraph
+~~~~~~~~~~~~~~~
+   
 On top of this, there is the :cpp:class:`handlegraph::PathHandleGraph`, which allows for embedded, named paths in the graph.
 
 .. doxygenclass:: handlegraph::PathHandleGraph
    :members:
+   
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Mutable and Deletable Interfaces
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
    
 Then for each there are versions where the underlying graph is "mutable" (meaning that material can be added to it and nodes can be split) and "deletable" (meaning that nodes and edges can actually be removed from the graph), and for :cpp:class:`handlegraph::PathHandleGraph` there are versions where the paths can be altered.
 
@@ -59,15 +71,26 @@ Then for each there are versions where the underlying graph is "mutable" (meanin
    
 Note that there is no :cpp:class:`handlegraph::PathMutableHandleGraph` or :cpp:class:`handlegraph::PathDeletableHandleGraph`; it does not make sense for the paths to be static while the graph can be modified.
 
-For paths, there is also the :cpp:class:`handlegraph::PathPositionHandleGraph` which provides efficient random access by or lookup of base offset along each embedded path. Additionally, there is :cpp:class:`handlegraph::VectorizableHandleGraph` which provides the same operations for a linearization of all of the graph's bases.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Position and Ordering Interfaces
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For paths, there is also the :cpp:class:`handlegraph::PathPositionHandleGraph` which provides efficient random access by or lookup of base offset along each embedded path. Additionally, there is :cpp:class:`handlegraph::VectorizableHandleGraph` which provides the same operations for a linearization of all of the graph's bases. There is also a :cpp:class:`handlegraph::RankedHandleGraph` interface, which provides an ordering, though not necessarily a base-level linearization, of nodes and edges.
 
 .. doxygenclass:: handlegraph::PathPositionHandleGraph
    :members:
 
 .. doxygenclass:: handlegraph::VectorizableHandleGraph
    :members:
+   
+.. doxygenclass:: handlegraph::RankedHandleGraph
+   :members:
 
 Algorithm implementers are encouraged to take the least capable graph type necessary for their algorithm to function.
+
+~~~~~~~~~~~~~~~~~~~~~~~
+SerializableHandleGraph
+~~~~~~~~~~~~~~~~~~~~~~~
 
 Orthogonal to the mutability and paths hierarchy, there is a :cpp:class:`handlegraph::SerializableHandleGraph` interface that is implemented by graphs that can be saved to and loaded from disk. The C++ API supports saving to and loading from C++ streams, but the Python API provides only the ability to save to or load from filenames.
 
@@ -86,11 +109,23 @@ Full Graph Implementations
 
 There are three full graph implementations in the module: :cpp:class:`bdsg::PackedGraph`, :cpp:class:`bdsg::HashGraph`, and :cpp:class:`bdsg::ODGI`.
 
+~~~~~~~~~~~
+PackedGraph
+~~~~~~~~~~~
+
 .. doxygenclass:: bdsg::PackedGraph
    :members:
 
+~~~~~~~~~
+HashGraph
+~~~~~~~~~
+
 .. doxygenclass:: bdsg::HashGraph
    :members:
+   
+~~~~
+ODGI
+~~~~
    
 .. doxygenclass:: bdsg::ODGI
    :members:
@@ -101,9 +136,6 @@ Graph Overlays
    
 In addition to these basic implementations, there are several "overlays". These overlays are graphs that wrap other graphs, providing features not avialable in the backing graph, or otherwise transforming it. 
 
-.. doxygenclass:: handlegraph::ExpandingOverlayGraph
-   :members:
-   
 .. doxygenclass:: bdsg::PositionOverlay
    
 .. doxygenclass:: bdsg::PackedPositionOverlay
@@ -115,6 +147,41 @@ In addition to these basic implementations, there are several "overlays". These 
 .. doxygenclass:: bdsg::PathVectorizableOverlay
    
 .. doxygenclass:: bdsg::PathPositionVectorizableOverlay
+
+Many of these are based on the :cpp:class:`handlegraph::ExpandingOverlayGraph` interface, which guarantees that the overlay does not remove any graph material, and allows handles form the backing graph and the overlay graph to be interconverted.
+
+.. doxygenclass:: handlegraph::ExpandingOverlayGraph
+   :members:
+   :undoc-members:
+
+~~~~~~~~~~~~~~~~~~~~~
+Graph Overlay Helpers
+~~~~~~~~~~~~~~~~~~~~~
+
+From C++, some types are available to allow code to take an input of a more general type (say, a :cpp:class:`bdsg::HandleGraph`) and get a view of it as a more specific type (such as a :cpp:class:`bdsg::VectorizableHandleGraph`), using an overlay to bridge the gap if the backing graph implementation does not itself support the requested feature. For each pf these "overlay helpers", you instantiate the object (which allocates storage), use the ``apply()`` method to pass it a pointer to the backing graph and get a pointer to a graph of the requested type, and then use the ``get()`` method later if you need to get the requested-type graph pointer again. 
+
+.. doxygentypedef:: bdsg::PathPositionOverlayHelper
+   
+.. doxygentypedef:: bdsg::RankedOverlayHelper
+   
+.. doxygentypedef:: bdsg::PathRankedOverlayHelper
+   
+.. doxygentypedef:: bdsg::VectorizableOverlayHelper
+   
+.. doxygentypedef:: bdsg::PathVectorizableOverlayHelper
+   
+.. doxygentypedef:: bdsg::PathPositionVectorizableOverlayHelper
+
+All these overlay helpers are really instantiations of a couple of templates:
+
+.. doxygenclass:: bdsg::OverlayHelper
+   :members:
+   :undoc-members:
+   
+.. doxygenclass:: bdsg::PairOverlayHelper
+   :members:
+   :undoc-members:
+
 
 
 

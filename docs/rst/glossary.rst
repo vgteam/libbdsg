@@ -4,6 +4,8 @@
 Sorted Glossary of Methods
 ##########################
 
+This page divides the Handle Graph API methods by category. It is written in terms of the Python methods, but applies equally well to the C++ interface.
+
 .. _mutator:
 
 ===============
@@ -69,6 +71,9 @@ Path Mutators
 ------------------
 Path Step Mutators
 ------------------
+
+:class:`bdsg.handlegraph.MutablePathHandleGraph`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: bdsg.handlegraph.MutablePathHandleGraph.append_step
    :noindex:

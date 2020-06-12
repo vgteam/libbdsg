@@ -31,7 +31,7 @@
 	PYBIND11_MAKE_OPAQUE(std::shared_ptr<void>);
 #endif
 
-// bdsg::HashGraph file:bdsg/hash_graph.hpp line:23
+// bdsg::HashGraph file:bdsg/hash_graph.hpp line:32
 struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 	using bdsg::HashGraph::HashGraph;
 
@@ -830,8 +830,8 @@ void bind_bdsg_internal_utility(std::function< pybind11::module &(std::string co
 	// bdsg::get_thread_count() file:bdsg/internal/utility.hpp line:61
 	M("bdsg").def("get_thread_count", (int (*)()) &bdsg::get_thread_count, "Return the number of threads that OMP will produce for a parallel section.\n TODO: Assumes that this is the same for every parallel section.\n\nC++: bdsg::get_thread_count() --> int");
 
-	{ // bdsg::HashGraph file:bdsg/hash_graph.hpp line:23
-		pybind11::class_<bdsg::HashGraph, std::shared_ptr<bdsg::HashGraph>, PyCallBack_bdsg_HashGraph, handlegraph::MutablePathDeletableHandleGraph, handlegraph::SerializableHandleGraph> cl(M("bdsg"), "HashGraph", "");
+	{ // bdsg::HashGraph file:bdsg/hash_graph.hpp line:32
+		pybind11::class_<bdsg::HashGraph, std::shared_ptr<bdsg::HashGraph>, PyCallBack_bdsg_HashGraph, handlegraph::MutablePathDeletableHandleGraph, handlegraph::SerializableHandleGraph> cl(M("bdsg"), "HashGraph", "HashGraph is a HandleGraph implementation designed for simplicity. Nodes are\n plain C++ objects stored in a hash map, which contain C++ vectors\n representing their adjacencies.\n\n HashGraph is a good choice when fast access to or modification of a graph is\n required, but can use more memory than other graph implementations.");
 		cl.def( pybind11::init( [](){ return new bdsg::HashGraph(); }, [](){ return new PyCallBack_bdsg_HashGraph(); } ) );
 		cl.def( pybind11::init( [](PyCallBack_bdsg_HashGraph const &o){ return new PyCallBack_bdsg_HashGraph(o); } ) );
 		cl.def( pybind11::init( [](bdsg::HashGraph const &o){ return new bdsg::HashGraph(o); } ) );
