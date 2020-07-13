@@ -20,6 +20,14 @@ Additionally, `libbdsg` provides a few "overlays", which are applied to the grap
 
 `libbdsg` is written in C++. Using the instructions below, it is also possible to generate Python bindings to the underlying C++ library. The Python API is documented [here](https://bdsg.readthedocs.io/). The documentation also includes a tutorial that serves as a useful introduction to `libhandlegraph` and `libbdsg` concepts.
 
+## Citation
+
+A preprint that discusses the implementation and functionality of `libbdsg` is available under the following citation:
+
+Eizenga, JM, Novak, AM, Kobayashi, E, Villani, F, Cisar, C, Heumos, S, Hickey, G, Colonna, V, Paten, B, Garrison, E. (2020) Succinct dynamic variation graphs. _bioRxiv_. doi:[10.1101/2020.04.23.056317](https://doi.org/10.1101/2020.04.23.056317).
+
+The peer-reviewed article is forthcoming in _Bioinformatics_ under the title "Efficient dynamic variation graphs". It was drafted in [this GitHub respository](https://github.com/vgteam/handlegraph-paper).
+
 ## Building and Installation
 
 When obtaining the source repo, make sure to clone with `--recursive` to get all the submodules:
