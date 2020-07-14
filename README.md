@@ -83,6 +83,10 @@ The documentation can then be found at `docs/_build/html/index.html`.
 
 The build process with `make` assumes that these libraries and their headers have been installed in a place on the system where the compiler can find them (e.g. in `CPLUS_INCLUDE_PATH`).
 
+#### Easy `make` installation
+
+The [`libbdsg-easy`](https://github.com/vgteam/libbdsg-easy) repository provides a simple method to coordinate these dependencies for a `make` build using `git` submodules.
+
 #### Building
 
 The following commands will create the `libbdsg.a` library in the `lib` directory. 
