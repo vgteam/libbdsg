@@ -5,6 +5,9 @@ cmake_minimum_required(VERSION 3.10)
 # Project's name
 project(bdsg)
 
+option(RUN_DOXYGEN "Build Doxygen files required for Breathe-based docs" ON)
+option(BUILD_PYTHON_BINDINGS "Compile the bdsg Python module" ON)
+
 # TODO: We can only do out-of-source builds!
 # TODO: How do we error out meaningfully on in-source builds?
 
@@ -63,7 +66,9 @@ set(LIBRARY_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/lib)
 include_directories("${PROJECT_SOURCE_DIR}")
 
 # Add external projects
-include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
+include(ExternalProject)
+# And GNU ideas of install directories
+include(GNUInstallDirs)
 
 # TODO: We're using INSTALL_DIR very wrong. We *should* be actually installing
 # the external projects into their prefixes and working with the installed
@@ -139,73 +144,75 @@ ExternalProject_Get_property(sparsepp SOURCE_DIR)
 set(sparsepp_INCLUDE "${SOURCE_DIR}")
 #set(sparsepp_LIB "${SOURCE_DIR}/src/sparsepp/")
 
-# Binder (because some generated bindings depend on headers packaged with Binder)
-ExternalProject_Add(binder
-  GIT_REPOSITORY "https://github.com/RosettaCommons/binder.git"
-  GIT_TAG "788ab422f9e919478944d79d5890441a964dd1db"
-  # we don't actually install Binder because we just need its headers
-  #CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_DIR}
-  UPDATE_COMMAND ""
-  INSTALL_COMMAND ""
-  BUILD_COMMAND ""
-  CONFIGURE_COMMAND "")
-ExternalProject_Get_property(binder INSTALL_DIR)
-set(binder_INCLUDE "${INSTALL_DIR}/src")
+if (BUILD_PYTHON_BINDINGS)
+    # Binder (because some generated bindings depend on headers packaged with Binder)
+    ExternalProject_Add(binder
+      GIT_REPOSITORY "https://github.com/RosettaCommons/binder.git"
+      GIT_TAG "788ab422f9e919478944d79d5890441a964dd1db"
+      # we don't actually install Binder because we just need its headers
+      #CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_DIR}
+      UPDATE_COMMAND ""
+      INSTALL_COMMAND ""
+      BUILD_COMMAND ""
+      CONFIGURE_COMMAND "")
+    ExternalProject_Get_property(binder INSTALL_DIR)
+    set(binder_INCLUDE "${INSTALL_DIR}/src")
 
-# pybind11
-if (CMAKE_MAJOR_VERSION EQUAL "3" AND CMAKE_MINOR_VERSION EQUAL "10")
-    # We need pybind11 installed in ./pybind11 *before* CMake can finish processing this file.
-    # On CMake 3.11+ we can do that with FetchContent
-    # But on CMake 3.10, available on Ubuntu 18.04, we have to just call git ourselves.
-    if (NOT EXISTS "${PROJECT_SOURCE_DIR}/pybind11")
-        message(WARNING "Running on CMake without FetchContent_Declare; attempting to download pybind11 manually")
-        execute_process(COMMAND git clone https://github.com/RosettaCommons/pybind11.git "${PROJECT_SOURCE_DIR}/pybind11")
-        execute_process(COMMAND git checkout 4f72ef846fe8453596230ac285eeaa0ce3278bb4
-                        WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/pybind11")
+    # pybind11
+    if (CMAKE_MAJOR_VERSION EQUAL "3" AND CMAKE_MINOR_VERSION EQUAL "10")
+        # We need pybind11 installed in ./pybind11 *before* CMake can finish processing this file.
+        # On CMake 3.11+ we can do that with FetchContent
+        # But on CMake 3.10, available on Ubuntu 18.04, we have to just call git ourselves.
+        if (NOT EXISTS "${PROJECT_SOURCE_DIR}/pybind11")
+            message(WARNING "Running on CMake without FetchContent_Declare; attempting to download pybind11 manually")
+            execute_process(COMMAND git clone https://github.com/RosettaCommons/pybind11.git "${PROJECT_SOURCE_DIR}/pybind11")
+            execute_process(COMMAND git checkout 4f72ef846fe8453596230ac285eeaa0ce3278bb4
+                            WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/pybind11")
+        endif()
+        
+        # Whether we cloned it this time or not, include it.
+        add_subdirectory(pybind11)
+    else()
+        # This FetchContent_Declare logic works only on CMake 3.11+.
+        # We can't use it on Ubuntu 18.04
+        
+        # set up FetchContent so we can incorporate pybind11
+        include(FetchContent)
+        
+        FetchContent_Declare(
+            pybind11
+            GIT_REPOSITORY https://github.com/RosettaCommons/pybind11.git
+            GIT_TAG 4f72ef846fe8453596230ac285eeaa0ce3278bb4
+        )
+        FetchContent_GetProperties(pybind11)
+        if (NOT pybind11_POPULATED)
+            FetchContent_Populate(pybind11)
+        endif()
+        
+        add_subdirectory(${pybind11_SOURCE_DIR} ${pybind11_BINARY_DIR})
     endif()
-    
-    # Whether we cloned it this time or not, include it.
-    add_subdirectory(pybind11)
-else()
-    # This FetchContent_Declare logic works only on CMake 3.11+.
-    # We can't use it on Ubuntu 18.04
-    
-    # set up FetchContent so we can incorporate pybind11
-    include(FetchContent)
-    
-    FetchContent_Declare(
-        pybind11
-        GIT_REPOSITORY https://github.com/RosettaCommons/pybind11.git
-        GIT_TAG 4f72ef846fe8453596230ac285eeaa0ce3278bb4
-    )
-    FetchContent_GetProperties(pybind11)
-    if (NOT pybind11_POPULATED)
-        FetchContent_Populate(pybind11)
+
+
+    # Make sure that pybind11 is looking at the same Python our shell is looking at.
+    # If this isn't true, on RtD, our build can go very wrong because we can't import the module.
+    # And on a user's machine, it's almost certainly what they expect to happen.
+    execute_process(COMMAND "${PYTHON_EXECUTABLE}" --version
+                    OUTPUT_VARIABLE PYTHON_EXECUTABLE_VERSION
+                    ERROR_VARIABLE PYTHON_EXECUTABLE_VERSION
+                    OUTPUT_STRIP_TRAILING_WHITESPACE)
+    execute_process(COMMAND which python3
+                    OUTPUT_VARIABLE PYTHON_WHICH
+                    OUTPUT_STRIP_TRAILING_WHITESPACE)
+    execute_process(COMMAND "${PYTHON_WHICH}" --version
+                    OUTPUT_VARIABLE PYTHON_WHICH_VERSION
+                    ERROR_VARIABLE PYTHON_WHICH_VERSION
+                    OUTPUT_STRIP_TRAILING_WHITESPACE)
+    if (NOT PYTHON_EXECUTABLE_VERSION STREQUAL PYTHON_WHICH_VERSION)
+        message(FATAL_ERROR "Python version mismatch: CMake wants to build for ${PYTHON_EXECUTABLE_VERSION} at ${PYTHON_EXECUTABLE} "
+                "but `python3` is ${PYTHON_WHICH_VERSION} at ${PYTHON_WHICH}. You will not be able to import the module in the "
+                "current Python! To use the version CMake selected, run the build in a virtualenv with that Python version activated. "
+                "To use the version on your PATH, restart the build with -DPYTHON_EXECUTABLE=${PYTHON_WHICH} on the command line.")
     endif()
-    
-    add_subdirectory(${pybind11_SOURCE_DIR} ${pybind11_BINARY_DIR})
-endif()
-
-
-# Make sure that pybind11 is looking at the same Python our shell is looking at.
-# If this isn't true, on RtD, our build can go very wrong because we can't import the module.
-# And on a user's machine, it's almost certainly what they expect to happen.
-execute_process(COMMAND "${PYTHON_EXECUTABLE}" --version
-                OUTPUT_VARIABLE PYTHON_EXECUTABLE_VERSION
-                ERROR_VARIABLE PYTHON_EXECUTABLE_VERSION
-                OUTPUT_STRIP_TRAILING_WHITESPACE)
-execute_process(COMMAND which python3
-                OUTPUT_VARIABLE PYTHON_WHICH
-                OUTPUT_STRIP_TRAILING_WHITESPACE)
-execute_process(COMMAND "${PYTHON_WHICH}" --version
-                OUTPUT_VARIABLE PYTHON_WHICH_VERSION
-                ERROR_VARIABLE PYTHON_WHICH_VERSION
-                OUTPUT_STRIP_TRAILING_WHITESPACE)
-if (NOT PYTHON_EXECUTABLE_VERSION STREQUAL PYTHON_WHICH_VERSION)
-    message(FATAL_ERROR "Python version mismatch: CMake wants to build for ${PYTHON_EXECUTABLE_VERSION} at ${PYTHON_EXECUTABLE} "
-            "but `python3` is ${PYTHON_WHICH_VERSION} at ${PYTHON_WHICH}. You will not be able to import the module in the "
-            "current Python! To use the version CMake selected, run the build in a virtualenv with that Python version activated. "
-            "To use the version on your PATH, restart the build with -DPYTHON_EXECUTABLE=${PYTHON_WHICH} on the command line.")
 endif()
 
 
@@ -236,9 +243,14 @@ set(bdsg_DEPS
     handlegraph
     bbhash
     sparsepp
+)
+set(bdsg_PYTHON_DEPS
     binder
 )
 add_dependencies(bdsg_objs ${bdsg_DEPS})
+if (BUILD_PYTHON_BINDINGS)
+    add_dependencies(bdsg_objs ${bdsg_PYTHON_DEPS})
+endif()
 
 set(bdsg_INCLUDES
   "${CMAKE_SOURCE_DIR}/include"
@@ -251,6 +263,7 @@ set(bdsg_INCLUDES
   "${bbhash_INCLUDE}"
   "${binder_INCLUDE}"
 )
+# Note that binder_INCLUDE will be empty if Binder isn't in use.
 
 set(bdsg_LIBS
   "${sdsl-lite_LIB}/libsdsl${CMAKE_SHARED_LIBRARY_SUFFIX}"
@@ -265,9 +278,22 @@ set_target_properties(bdsg_objs PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
 add_library(libbdsg SHARED $<TARGET_OBJECTS:bdsg_objs>)
 set_target_properties(libbdsg PROPERTIES OUTPUT_NAME "bdsg")
 set_target_properties(libbdsg PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
+# Since we have a directory structure of headers, we can't just associate the
+# individual header files as PUBLIC_HEADERS and PRIVATE_HEADERS on the target.
+
 # On Mac at least, we need to link the library against the other dependency libraries
 # If we link them as PUBLIC they come along when anything links against libbdsg, as they should.
 target_link_libraries(libbdsg PUBLIC ${bdsg_LIBS})
+# This is what we want to actually install for users
+install(TARGETS libbdsg
+        LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+        PUBLIC_HEADER DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+        PRIVATE_HEADER DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+        INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+# Install headers separately. See <https://stackoverflow.com/a/54285948>
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/bdsg
+        DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+
 
 add_executable(test_libbdsg
   ${CMAKE_SOURCE_DIR}/src/test_libbdsg.cpp)
@@ -277,14 +303,15 @@ target_link_libraries(test_libbdsg libbdsg)
 target_include_directories(test_libbdsg PUBLIC ${bdsg_INCLUDES})
 set_target_properties(test_libbdsg PROPERTIES OUTPUT_NAME "test_libbdsg")
 
-# TODO for python bindings
-file(GLOB_RECURSE pybind11_API "${CMAKE_SOURCE_DIR}/cmake_bindings/*.cpp")
-list(FILTER pybind11_API EXCLUDE REGEX ".*CMakeCXXCompilerId.cpp$")
-pybind11_add_module(bdsg_pybind11 ${pybind11_API})
-add_dependencies(bdsg_pybind11 ${bdsg_DEPS} libbdsg)
-target_include_directories(bdsg_pybind11 PUBLIC ${bdsg_INCLUDES})
-target_link_libraries(bdsg_pybind11 PRIVATE libbdsg "${bdsg_LIBS}")
-set_target_properties(bdsg_pybind11 PROPERTIES OUTPUT_NAME "bdsg")
+if (BUILD_PYTHON_BINDINGS)
+    file(GLOB_RECURSE pybind11_API "${CMAKE_SOURCE_DIR}/cmake_bindings/*.cpp")
+    list(FILTER pybind11_API EXCLUDE REGEX ".*CMakeCXXCompilerId.cpp$")
+    pybind11_add_module(bdsg_pybind11 ${pybind11_API})
+    add_dependencies(bdsg_pybind11 ${bdsg_DEPS} libbdsg)
+    target_include_directories(bdsg_pybind11 PUBLIC ${bdsg_INCLUDES})
+    target_link_libraries(bdsg_pybind11 PRIVATE libbdsg "${bdsg_LIBS}")
+    set_target_properties(bdsg_pybind11 PROPERTIES OUTPUT_NAME "bdsg")
+endif()
 
 if (APPLE)
 elseif (TRUE)
@@ -295,8 +322,6 @@ endif()
 
 # Configure the Doxygen pass that we need for Breathe and Sphinx to document
 # our C++ code. See <https://vicrucann.github.io/tutorials/quick-cmake-doxygen/>
-option(RUN_DOXYGEN "Build Doxygen files required for Breathe-based docs" ON)
-
 if (RUN_DOXYGEN)
   find_package(Doxygen)
   if (DOXYGEN_FOUND)
@@ -312,3 +337,5 @@ if (RUN_DOXYGEN)
     message(FATAL_ERROR "No Doxygen found; cannot build with RUN_DOXYGEN ON")
   endif()
 endif()
+
+
