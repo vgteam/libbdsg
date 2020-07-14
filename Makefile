@@ -12,7 +12,7 @@ LIB_FLAGS:=-lbdsg -lsdsl -lhandlegraph -lomp
 
 OBJS:=$(OBJ_DIR)/eades_algorithm.o $(OBJ_DIR)/hash_graph.o $(OBJ_DIR)/is_single_stranded.o $(OBJ_DIR)/node.o $(OBJ_DIR)/odgi.o $(OBJ_DIR)/packed_graph.o $(OBJ_DIR)/packed_structs.o $(OBJ_DIR)/path_position_overlays.o $(OBJ_DIR)/packed_path_position_overlay.o $(OBJ_DIR)/vectorizable_overlays.o $(OBJ_DIR)/strand_split_overlay.o $(OBJ_DIR)/utility.o
 
-CXXFLAGS :=-O3 -Werror=return-type -std=c++14 -ggdb -g -msse4.2 -I$(INC_DIR) $(CXXFLAGS)
+CXXFLAGS :=-O3 -Werror=return-type -std=c++14 -ggdb -g -I$(INC_DIR) $(CXXFLAGS)
 
 ifeq ($(shell uname -s),Darwin)
 	CXXFLAGS := $(CXXFLAGS) -Xpreprocessor -fopenmp
