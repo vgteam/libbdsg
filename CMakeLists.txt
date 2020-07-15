@@ -70,93 +70,81 @@ include(ExternalProject)
 # And GNU ideas of install directories
 include(GNUInstallDirs)
 
-# TODO: We're using INSTALL_DIR very wrong. We *should* be actually installing
-# the external projects into their prefixes and working with the installed
-# files. Instead we're building but not installing them and trying to work with
-# the non-installed build trees.
-# 
-# Hence the blanked out INSTALL_COMMANDs to suppress the install step.
-#
-# We need to NOT blank out UPDATE_COMMAND or we can never change the Git revision we point to.
-# The cost of this is that we have to re-configure on every build if we do update.
+# We are going to actually install all these dependencies into their prefixes,
+# so we can then install them alongside us when we do our own install step.
+# TODO: Installing us alongside anything else that uses these dependencies in
+# this way, or the dependencies themselves, is going to result in !!FUN!!
+# problems as all the files clobber each other.
 
 # sdsl-lite (full build using its cmake config)
 ExternalProject_Add(sdsl-lite
   SOURCE_DIR "${CMAKE_SOURCE_DIR}/deps/sdsl-lite"
-  CMAKE_ARGS "${CMAKE_ARGS};-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>;-DBUILD_SHARED_LIBS=ON"
-  UPDATE_COMMAND ""
-  INSTALL_COMMAND "")
+  CMAKE_ARGS "${CMAKE_ARGS};-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>;-DBUILD_SHARED_LIBS=ON")
 ExternalProject_Get_property(sdsl-lite INSTALL_DIR)
-set(sdsl-lite_INCLUDE "${INSTALL_DIR}/src/sdsl-lite-build/include")
-set(sdsl-lite-divsufsort_INCLUDE "${INSTALL_DIR}/src/sdsl-lite-build/external/libdivsufsort/include")
-set(sdsl-lite_LIB "${INSTALL_DIR}/src/sdsl-lite-build/lib")
-set(sdsl-lite-divsufsort_LIB "${INSTALL_DIR}/src/sdsl-lite-build/external/libdivsufsort/lib")
+set(sdsl-lite_INCLUDE "${INSTALL_DIR}/${CMAKE_INSTALL_INCLUDEDIR}")
+set(sdsl-lite_LIB "${INSTALL_DIR}/${CMAKE_INSTALL_LIBDIR}")
 
 # DYNAMIC (header only)
+# Does not ship its own install step so we have to copy stuff ourselves
+# TODO: See https://github.com/xxsds/DYNAMIC/issues/23
+# Library needs to be revised to not want to be <prefix>/include/internal/*.hpp
 ExternalProject_Add(dynamic
   SOURCE_DIR "${CMAKE_SOURCE_DIR}/deps/DYNAMIC"
-  UPDATE_COMMAND ""
-  INSTALL_COMMAND ""
+  CONFIGURE_COMMAND ""
   BUILD_COMMAND ""
-  CONFIGURE_COMMAND "")
-ExternalProject_Get_property(dynamic SOURCE_DIR)
-set(dynamic_INCLUDE "${SOURCE_DIR}/include")
+  INSTALL_COMMAND bash -c "mkdir -p <INSTALL_DIR>/${CMAKE_INSTALL_INCLUDEDIR} && cp -r <SOURCE_DIR>/include/* <INSTALL_DIR>/${CMAKE_INSTALL_INCLUDEDIR}/")
+ExternalProject_Get_property(dynamic INSTALL_DIR)
+set(dynamic_INCLUDE "${INSTALL_DIR}/${CMAKE_INSTALL_INCLUDEDIR}")
 
 # hopscotch_map (required by DYNAMIC)
+# Actually able to install itself via CMake, with a proper CMake config file to find it.
+# But we can't use that because it won't be available at configure time.
 ExternalProject_Add(hopscotch_map
   SOURCE_DIR "${CMAKE_SOURCE_DIR}/deps/hopscotch-map"
-  UPDATE_COMMAND ""
-  INSTALL_COMMAND ""
-  BUILD_COMMAND ""
-  CONFIGURE_COMMAND "")
-ExternalProject_Get_property(hopscotch_map SOURCE_DIR)
-set(hopscotch_map_INCLUDE "${SOURCE_DIR}/include")
+  CMAKE_ARGS "${CMAKE_ARGS};-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>")
+ExternalProject_Get_property(hopscotch_map INSTALL_DIR)
+set(hopscotch_map_INCLUDE "${INSTALL_DIR}/${CMAKE_INSTALL_INCLUDEDIR}")
 
 # libhandlegraph (full build using its cmake config)
 ExternalProject_Add(handlegraph
   SOURCE_DIR "${CMAKE_SOURCE_DIR}/deps/libhandlegraph"
   CMAKE_ARGS "${CMAKE_ARGS};-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>")
 ExternalProject_Get_property(handlegraph INSTALL_DIR)
-set(handlegraph_INCLUDE "${INSTALL_DIR}/include")
-set(handlegraph_LIB "${INSTALL_DIR}/lib")
+set(handlegraph_INCLUDE "${INSTALL_DIR}/${CMAKE_INSTALL_INCLUDEDIR}")
+set(handlegraph_LIB "${INSTALL_DIR}/${CMAKE_INSTALL_LIBDIR}")
 
 # BBHash perfect hasher
+# Does not ship its own install step so we have to copy stuff ourselves
 ExternalProject_Add(bbhash
   SOURCE_DIR "${CMAKE_SOURCE_DIR}/deps/BBHash"
-  UPDATE_COMMAND ""
-  INSTALL_COMMAND ""
+  CONFIGURE_COMMAND ""
   BUILD_COMMAND ""
-  CONFIGURE_COMMAND "")
-ExternalProject_Get_property(bbhash SOURCE_DIR)
-set(bbhash_INCLUDE "${SOURCE_DIR}")
+  INSTALL_COMMAND bash -c "mkdir -p <INSTALL_DIR>/${CMAKE_INSTALL_INCLUDEDIR} && cp -r <SOURCE_DIR>/*.h <INSTALL_DIR>/${CMAKE_INSTALL_INCLUDEDIR}/")
+ExternalProject_Get_property(bbhash INSTALL_DIR)
+set(bbhash_INCLUDE "${INSTALL_DIR}/${CMAKE_INSTALL_INCLUDEDIR}")
 
 # sparsepp
+# Does not ship its own install step so we have to copy stuff ourselves
 ExternalProject_Add(sparsepp
-  #GIT_REPOSITORY "https://github.com/edawson/sparsepp.git"
   SOURCE_DIR "${CMAKE_SOURCE_DIR}/deps/sparsepp"
-  CMAKE_ARGS "${CMAKE_ARGS};-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>"
-#CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_DIR} # TODO ADD static build flag
-  UPDATE_COMMAND ""
-  INSTALL_COMMAND ""
+  CONFIGURE_COMMAND ""
   BUILD_COMMAND ""
-  CONFIGURE_COMMAND "")
-ExternalProject_Get_property(sparsepp SOURCE_DIR)
-set(sparsepp_INCLUDE "${SOURCE_DIR}")
-#set(sparsepp_LIB "${SOURCE_DIR}/src/sparsepp/")
+  INSTALL_COMMAND bash -c "mkdir -p <INSTALL_DIR>/${CMAKE_INSTALL_INCLUDEDIR} && cp -r <SOURCE_DIR>/sparsepp <INSTALL_DIR>/${CMAKE_INSTALL_INCLUDEDIR}/")
+ExternalProject_Get_property(sparsepp INSTALL_DIR)
+set(sparsepp_INCLUDE "${INSTALL_DIR}/${CMAKE_INSTALL_INCLUDEDIR}")
 
 if (BUILD_PYTHON_BINDINGS)
     # Binder (because some generated bindings depend on headers packaged with Binder)
     ExternalProject_Add(binder
       GIT_REPOSITORY "https://github.com/RosettaCommons/binder.git"
       GIT_TAG "788ab422f9e919478944d79d5890441a964dd1db"
-      # we don't actually install Binder because we just need its headers
+      # we don't actually build or install Binder via its CMake because we just need its headers
       #CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_DIR}
-      UPDATE_COMMAND ""
-      INSTALL_COMMAND ""
+      CONFIGURE_COMMAND ""
       BUILD_COMMAND ""
-      CONFIGURE_COMMAND "")
+      INSTALL_COMMAND bash -c "mkdir -p <INSTALL_DIR>/${CMAKE_INSTALL_INCLUDEDIR} && cp -r <SOURCE_DIR>/source/*.hpp <INSTALL_DIR>/${CMAKE_INSTALL_INCLUDEDIR}/")
     ExternalProject_Get_property(binder INSTALL_DIR)
-    set(binder_INCLUDE "${INSTALL_DIR}/src")
+    set(binder_INCLUDE "${INSTALL_DIR}/${CMAKE_INSTALL_INCLUDEDIR}")
 
     # pybind11
     if (CMAKE_MAJOR_VERSION EQUAL "3" AND CMAKE_MINOR_VERSION EQUAL "10")
@@ -196,6 +184,7 @@ if (BUILD_PYTHON_BINDINGS)
     # Make sure that pybind11 is looking at the same Python our shell is looking at.
     # If this isn't true, on RtD, our build can go very wrong because we can't import the module.
     # And on a user's machine, it's almost certainly what they expect to happen.
+    # PYTHON_EXECUTABLE and other PYTHON_ variables are set by pybind11's CMakeLists.txt
     execute_process(COMMAND "${PYTHON_EXECUTABLE}" --version
                     OUTPUT_VARIABLE PYTHON_EXECUTABLE_VERSION
                     ERROR_VARIABLE PYTHON_EXECUTABLE_VERSION
@@ -213,6 +202,12 @@ if (BUILD_PYTHON_BINDINGS)
                 "current Python! To use the version CMake selected, run the build in a virtualenv with that Python version activated. "
                 "To use the version on your PATH, restart the build with -DPYTHON_EXECUTABLE=${PYTHON_WHICH} on the command line.")
     endif()
+    
+    # Work out where Python binary modules should be installed for this Python,
+    # under the prefix. TODO: is there a variable for this? Should we reach out
+    # of the prefix and try to install in whatever directory is appropriate for
+    # the current Python, assuming we are root?
+    set(CMAKE_INSTALL_PYTHON_LIBDIR "${CMAKE_INSTALL_LIBDIR}/python${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}/site-packages")
 endif()
 
 
@@ -255,7 +250,6 @@ endif()
 set(bdsg_INCLUDES
   "${CMAKE_SOURCE_DIR}/include"
   "${sdsl-lite_INCLUDE}"
-  "${sdsl-lite-divsufsort_INCLUDE}"
   "${dynamic_INCLUDE}"
   "${hopscotch_map_INCLUDE}"
   "${handlegraph_INCLUDE}"
@@ -267,13 +261,23 @@ set(bdsg_INCLUDES
 
 set(bdsg_LIBS
   "${sdsl-lite_LIB}/libsdsl${CMAKE_SHARED_LIBRARY_SUFFIX}"
-  "${sdsl-lite-divsufsort_LIB}/libdivsufsort${CMAKE_SHARED_LIBRARY_SUFFIX}"
-  "${sdsl-lite-divsufsort_LIB}/libdivsufsort64${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  "${sdsl-lite_LIB}/libdivsufsort${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  "${sdsl-lite_LIB}/libdivsufsort64${CMAKE_SHARED_LIBRARY_SUFFIX}"
   "${handlegraph_LIB}/libhandlegraph${CMAKE_SHARED_LIBRARY_SUFFIX}"
   ${PLATFORM_EXTRA_LIB_FLAGS})
 
 target_include_directories(bdsg_objs PUBLIC ${bdsg_INCLUDES})
 set_target_properties(bdsg_objs PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
+
+# Make sure when we install our library we set its rpath so it can find its
+# dependencies we also install.
+# Set this up before library target is created.
+# If using this library as an ExternalProject, this needs to stay the default
+# or non-installed consumers of the library won't be able to find its
+# dependencies.
+# We put this in the cache if it isn't set, and preserve the cached value (from
+# "-D" on the command line if specified) if it is set.
+set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}" CACHE PATH "Library search path upon installation")
 
 add_library(libbdsg SHARED $<TARGET_OBJECTS:bdsg_objs>)
 set_target_properties(libbdsg PROPERTIES OUTPUT_NAME "bdsg")
@@ -284,6 +288,7 @@ set_target_properties(libbdsg PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
 # On Mac at least, we need to link the library against the other dependency libraries
 # If we link them as PUBLIC they come along when anything links against libbdsg, as they should.
 target_link_libraries(libbdsg PUBLIC ${bdsg_LIBS})
+
 # This is what we want to actually install for users
 install(TARGETS libbdsg
         LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
@@ -293,7 +298,22 @@ install(TARGETS libbdsg
 # Install headers separately. See <https://stackoverflow.com/a/54285948>
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/bdsg
         DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
-
+# Install headers from all dependencies. Make sure to use a trailing slash so
+# we merge all the include directory contents. Don't install Binder's includes
+# since we don't need headers for the Python module.
+install(DIRECTORY "${sdsl-lite_INCLUDE}/"
+                  "${dynamic_INCLUDE}/"
+                  "${hopscotch_map_INCLUDE}/"
+                  "${handlegraph_INCLUDE}/"
+                  "${sparsepp_INCLUDE}/"
+                  "${bbhash_INCLUDE}/"
+        DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+# Install libraries for out non-header-only library dependencies.
+# Don't bring along pkg-config files; they have wrong paths
+install(DIRECTORY "${sdsl-lite_LIB}/"
+                  "${handlegraph_LIB}/"
+        DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+        PATTERN "pkgconfig" EXCLUDE)
 
 add_executable(test_libbdsg
   ${CMAKE_SOURCE_DIR}/src/test_libbdsg.cpp)
@@ -304,6 +324,7 @@ target_include_directories(test_libbdsg PUBLIC ${bdsg_INCLUDES})
 set_target_properties(test_libbdsg PROPERTIES OUTPUT_NAME "test_libbdsg")
 
 if (BUILD_PYTHON_BINDINGS)
+    # Build the Pythoin bindings
     file(GLOB_RECURSE pybind11_API "${CMAKE_SOURCE_DIR}/cmake_bindings/*.cpp")
     list(FILTER pybind11_API EXCLUDE REGEX ".*CMakeCXXCompilerId.cpp$")
     pybind11_add_module(bdsg_pybind11 ${pybind11_API})
@@ -311,6 +332,10 @@ if (BUILD_PYTHON_BINDINGS)
     target_include_directories(bdsg_pybind11 PUBLIC ${bdsg_INCLUDES})
     target_link_libraries(bdsg_pybind11 PRIVATE libbdsg "${bdsg_LIBS}")
     set_target_properties(bdsg_pybind11 PROPERTIES OUTPUT_NAME "bdsg")
+    
+    # And install them
+    install(TARGETS bdsg_pybind11
+            LIBRARY DESTINATION "${CMAKE_INSTALL_PYTHON_LIBDIR}")
 endif()
 
 if (APPLE)
