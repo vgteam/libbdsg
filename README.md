@@ -22,11 +22,11 @@ Additionally, `libbdsg` provides a few "overlays", which are applied to the grap
 
 ## Citation
 
-A preprint that discusses the implementation and functionality of `libbdsg` is available under the following citation:
+A journal article that discusses the implementation and functionality of `libbdsg` is available under the following citation:
 
-Eizenga, JM, Novak, AM, Kobayashi, E, Villani, F, Cisar, C, Heumos, S, Hickey, G, Colonna, V, Paten, B, Garrison, E. (2020) Succinct dynamic variation graphs. _bioRxiv_. doi:[10.1101/2020.04.23.056317](https://doi.org/10.1101/2020.04.23.056317).
+Eizenga, JM, Novak, AM, Kobayashi, E, Villani, F, Cisar, C, Heumos, S, Hickey, G, Colonna, V, Paten, B, Garrison, E. (2020) Efficient dynamic variation graphs. _Bioinformatics_. doi:[10.1093/bioinformatics/btaa640](https://doi.org/10.1093/bioinformatics/btaa640).
 
-The peer-reviewed article is forthcoming in _Bioinformatics_ under the title "Efficient dynamic variation graphs". It was drafted in [this GitHub respository](https://github.com/vgteam/handlegraph-paper).
+The peer-reviewed article was drafted in [this GitHub respository](https://github.com/vgteam/handlegraph-paper), and a preprint is avilable [here]((https://doi.org/10.1101/2020.04.23.056317).
 
 ## Building and Installation
 
