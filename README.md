@@ -26,7 +26,7 @@ A journal article that discusses the implementation and functionality of `libbds
 
 Eizenga, JM, Novak, AM, Kobayashi, E, Villani, F, Cisar, C, Heumos, S, Hickey, G, Colonna, V, Paten, B, Garrison, E. (2020) Efficient dynamic variation graphs. _Bioinformatics_. doi:[10.1093/bioinformatics/btaa640](https://doi.org/10.1093/bioinformatics/btaa640).
 
-The peer-reviewed article was drafted in [this GitHub respository](https://github.com/vgteam/handlegraph-paper), and a preprint is avilable [here]((https://doi.org/10.1101/2020.04.23.056317).
+The peer-reviewed article was drafted in [this GitHub respository](https://github.com/vgteam/handlegraph-paper), and a preprint is avilable [here](https://doi.org/10.1101/2020.04.23.056317).
 
 ## Building and Installation
 
