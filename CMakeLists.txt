@@ -58,9 +58,9 @@ elseif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 endif()
 
 # Set the output folder where your program will be created
-set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin)
-set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
-set(LIBRARY_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/lib)
+set(CMAKE_CURRENT_BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/bin)
+set(EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR})
+set(LIBRARY_OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/lib)
 
 # The following folder will be included
 include_directories("${PROJECT_SOURCE_DIR}")
@@ -78,7 +78,7 @@ include(GNUInstallDirs)
 
 # sdsl-lite (full build using its cmake config)
 ExternalProject_Add(sdsl-lite
-  SOURCE_DIR "${CMAKE_SOURCE_DIR}/deps/sdsl-lite"
+  SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/sdsl-lite"
   CMAKE_ARGS "${CMAKE_ARGS};-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>;-DBUILD_SHARED_LIBS=ON")
 ExternalProject_Get_property(sdsl-lite INSTALL_DIR)
 set(sdsl-lite_INCLUDE "${INSTALL_DIR}/${CMAKE_INSTALL_INCLUDEDIR}")
@@ -89,7 +89,7 @@ set(sdsl-lite_LIB "${INSTALL_DIR}/${CMAKE_INSTALL_LIBDIR}")
 # TODO: See https://github.com/xxsds/DYNAMIC/issues/23
 # Library needs to be revised to not want to be <prefix>/include/internal/*.hpp
 ExternalProject_Add(dynamic
-  SOURCE_DIR "${CMAKE_SOURCE_DIR}/deps/DYNAMIC"
+  SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/DYNAMIC"
   CONFIGURE_COMMAND ""
   BUILD_COMMAND ""
   INSTALL_COMMAND bash -c "mkdir -p <INSTALL_DIR>/${CMAKE_INSTALL_INCLUDEDIR} && cp -r <SOURCE_DIR>/include/* <INSTALL_DIR>/${CMAKE_INSTALL_INCLUDEDIR}/")
@@ -100,14 +100,14 @@ set(dynamic_INCLUDE "${INSTALL_DIR}/${CMAKE_INSTALL_INCLUDEDIR}")
 # Actually able to install itself via CMake, with a proper CMake config file to find it.
 # But we can't use that because it won't be available at configure time.
 ExternalProject_Add(hopscotch_map
-  SOURCE_DIR "${CMAKE_SOURCE_DIR}/deps/hopscotch-map"
+  SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/hopscotch-map"
   CMAKE_ARGS "${CMAKE_ARGS};-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>")
 ExternalProject_Get_property(hopscotch_map INSTALL_DIR)
 set(hopscotch_map_INCLUDE "${INSTALL_DIR}/${CMAKE_INSTALL_INCLUDEDIR}")
 
 # libhandlegraph (full build using its cmake config)
 ExternalProject_Add(handlegraph
-  SOURCE_DIR "${CMAKE_SOURCE_DIR}/deps/libhandlegraph"
+  SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/libhandlegraph"
   CMAKE_ARGS "${CMAKE_ARGS};-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>")
 ExternalProject_Get_property(handlegraph INSTALL_DIR)
 set(handlegraph_INCLUDE "${INSTALL_DIR}/${CMAKE_INSTALL_INCLUDEDIR}")
@@ -116,7 +116,7 @@ set(handlegraph_LIB "${INSTALL_DIR}/${CMAKE_INSTALL_LIBDIR}")
 # BBHash perfect hasher
 # Does not ship its own install step so we have to copy stuff ourselves
 ExternalProject_Add(bbhash
-  SOURCE_DIR "${CMAKE_SOURCE_DIR}/deps/BBHash"
+  SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/BBHash"
   CONFIGURE_COMMAND ""
   BUILD_COMMAND ""
   INSTALL_COMMAND bash -c "mkdir -p <INSTALL_DIR>/${CMAKE_INSTALL_INCLUDEDIR} && cp -r <SOURCE_DIR>/*.h <INSTALL_DIR>/${CMAKE_INSTALL_INCLUDEDIR}/")
@@ -126,7 +126,7 @@ set(bbhash_INCLUDE "${INSTALL_DIR}/${CMAKE_INSTALL_INCLUDEDIR}")
 # sparsepp
 # Does not ship its own install step so we have to copy stuff ourselves
 ExternalProject_Add(sparsepp
-  SOURCE_DIR "${CMAKE_SOURCE_DIR}/deps/sparsepp"
+  SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/sparsepp"
   CONFIGURE_COMMAND ""
   BUILD_COMMAND ""
   INSTALL_COMMAND bash -c "mkdir -p <INSTALL_DIR>/${CMAKE_INSTALL_INCLUDEDIR} && cp -r <SOURCE_DIR>/sparsepp <INSTALL_DIR>/${CMAKE_INSTALL_INCLUDEDIR}/")
@@ -216,19 +216,19 @@ set(CMAKE_BUILD_TYPE Debug)
 
 # set up our target executable and specify its dependencies and includes
 add_library(bdsg_objs OBJECT
-  ${CMAKE_SOURCE_DIR}/src/eades_algorithm.cpp
-  ${CMAKE_SOURCE_DIR}/src/hash_graph.cpp
-  ${CMAKE_SOURCE_DIR}/src/is_single_stranded.cpp
-  ${CMAKE_SOURCE_DIR}/src/node.cpp
-  ${CMAKE_SOURCE_DIR}/src/odgi.cpp
-  ${CMAKE_SOURCE_DIR}/src/packed_graph.cpp
-  ${CMAKE_SOURCE_DIR}/src/packed_path_position_overlay.cpp
-  ${CMAKE_SOURCE_DIR}/src/packed_structs.cpp
-  ${CMAKE_SOURCE_DIR}/src/packed_subgraph_overlay.cpp
-  ${CMAKE_SOURCE_DIR}/src/path_position_overlays.cpp
-  ${CMAKE_SOURCE_DIR}/src/strand_split_overlay.cpp
-  ${CMAKE_SOURCE_DIR}/src/utility.cpp
-  ${CMAKE_SOURCE_DIR}/src/vectorizable_overlays.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/eades_algorithm.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/hash_graph.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/is_single_stranded.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/node.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/odgi.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/packed_graph.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/packed_path_position_overlay.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/packed_structs.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/packed_subgraph_overlay.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/path_position_overlays.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/strand_split_overlay.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/utility.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/vectorizable_overlays.cpp
   )
 
 set(bdsg_DEPS
@@ -248,7 +248,7 @@ if (BUILD_PYTHON_BINDINGS)
 endif()
 
 set(bdsg_INCLUDES
-  "${CMAKE_SOURCE_DIR}/include"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include"
   "${sdsl-lite_INCLUDE}"
   "${dynamic_INCLUDE}"
   "${hopscotch_map_INCLUDE}"
@@ -289,6 +289,9 @@ set_target_properties(libbdsg PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
 # If we link them as PUBLIC they come along when anything links against libbdsg, as they should.
 target_link_libraries(libbdsg PUBLIC ${bdsg_LIBS})
 
+# Remember to bring along the includes
+target_include_directories(libbdsg PUBLIC ${bdsg_INCLUDES})
+
 # This is what we want to actually install for users
 install(TARGETS libbdsg
         LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
@@ -296,7 +299,7 @@ install(TARGETS libbdsg
         PRIVATE_HEADER DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
         INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
 # Install headers separately. See <https://stackoverflow.com/a/54285948>
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/bdsg
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/bdsg
         DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
 # Install headers from all dependencies. Make sure to use a trailing slash so
 # we merge all the include directory contents. Don't install Binder's includes
@@ -316,7 +319,7 @@ install(DIRECTORY "${sdsl-lite_LIB}/"
         PATTERN "pkgconfig" EXCLUDE)
 
 add_executable(test_libbdsg
-  ${CMAKE_SOURCE_DIR}/src/test_libbdsg.cpp)
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/test_libbdsg.cpp)
 # add_dependencies(test_libbdsg libbdsg)
 target_link_libraries(test_libbdsg libbdsg)
 #  "${sdsl-lite_LIB}/libsdsl.a")
@@ -325,7 +328,7 @@ set_target_properties(test_libbdsg PROPERTIES OUTPUT_NAME "test_libbdsg")
 
 if (BUILD_PYTHON_BINDINGS)
     # Build the Pythoin bindings
-    file(GLOB_RECURSE pybind11_API "${CMAKE_SOURCE_DIR}/cmake_bindings/*.cpp")
+    file(GLOB_RECURSE pybind11_API "${CMAKE_CURRENT_SOURCE_DIR}/cmake_bindings/*.cpp")
     list(FILTER pybind11_API EXCLUDE REGEX ".*CMakeCXXCompilerId.cpp$")
     pybind11_add_module(bdsg_pybind11 ${pybind11_API})
     add_dependencies(bdsg_pybind11 ${bdsg_DEPS} libbdsg)
@@ -351,13 +354,13 @@ if (RUN_DOXYGEN)
   find_package(Doxygen)
   if (DOXYGEN_FOUND)
     # We need to substitute in paths in the Doxyfile depending on where CMake is having us build.
-    set(DOXYGEN_IN ${CMAKE_SOURCE_DIR}/docs/Doxyfile.in)
-    set(DOXYGEN_OUT ${CMAKE_BINARY_DIR}/Doxyfile)
+    set(DOXYGEN_IN ${CMAKE_CURRENT_SOURCE_DIR}/docs/Doxyfile.in)
+    set(DOXYGEN_OUT ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
     configure_file(${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
     
     add_custom_target(run_doxygen ALL VERBATIM
                       COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
-                      WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+                      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
   else()
     message(FATAL_ERROR "No Doxygen found; cannot build with RUN_DOXYGEN ON")
   endif()
