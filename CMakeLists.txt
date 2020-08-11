@@ -69,36 +69,22 @@ include(ExternalProject)
 # And GNU ideas of install directories
 include(GNUInstallDirs)
 
-# We are going to actually install all these dependencies into their prefixes,
-# so we can then install them alongside us when we do our own install step.
-# TODO: Installing us alongside anything else that uses these dependencies in
-# this way, or the dependencies themselves, is going to result in !!FUN!!
-# problems as all the files clobber each other.
-
-# sdsl-lite
+# sdsl-lite (gives an "sdsl" target)
 set(BUILD_SHARED_LIBS ON CACHE BOOL "Build sdsl-lite shared libraries")
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/deps/sdsl-lite")
 
+# hopscotch_map (required by DYNAMIC, gives a "tsl::hopscotch_map" target)
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/deps/hopscotch-map")
+
 # DYNAMIC (header only)
 # Does not ship its own install step so we have to copy stuff ourselves
-# TODO: See https://github.com/xxsds/DYNAMIC/issues/23
-# Library needs to be revised to not want to be <prefix>/include/internal/*.hpp
 ExternalProject_Add(dynamic
   SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/DYNAMIC"
   CONFIGURE_COMMAND ""
   BUILD_COMMAND ""
-  INSTALL_COMMAND bash -c "mkdir -p <INSTALL_DIR>/${CMAKE_INSTALL_INCLUDEDIR} && cp -r <SOURCE_DIR>/include/* <INSTALL_DIR>/${CMAKE_INSTALL_INCLUDEDIR}/")
+  INSTALL_COMMAND bash -c "mkdir -p <INSTALL_DIR>/${CMAKE_INSTALL_INCLUDEDIR} && cp -r <SOURCE_DIR>/include/dynamic <INSTALL_DIR>/${CMAKE_INSTALL_INCLUDEDIR}/")
 ExternalProject_Get_property(dynamic INSTALL_DIR)
 set(dynamic_INCLUDE "${INSTALL_DIR}/${CMAKE_INSTALL_INCLUDEDIR}")
-
-# hopscotch_map (required by DYNAMIC)
-# Actually able to install itself via CMake, with a proper CMake config file to find it.
-# But we can't use that because it won't be available at configure time.
-ExternalProject_Add(hopscotch_map
-  SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/hopscotch-map"
-  CMAKE_ARGS "${CMAKE_ARGS};-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>")
-ExternalProject_Get_property(hopscotch_map INSTALL_DIR)
-set(hopscotch_map_INCLUDE "${INSTALL_DIR}/${CMAKE_INSTALL_INCLUDEDIR}")
 
 # libhandlegraph (full build using its cmake config)
 ExternalProject_Add(handlegraph
@@ -244,7 +230,6 @@ endif()
 set(bdsg_INCLUDES
   "${CMAKE_CURRENT_SOURCE_DIR}/include"
   "${dynamic_INCLUDE}"
-  "${hopscotch_map_INCLUDE}"
   "${handlegraph_INCLUDE}"
   "${sparsepp_INCLUDE}"
   "${bbhash_INCLUDE}"
@@ -254,6 +239,7 @@ set(bdsg_INCLUDES
 
 set(bdsg_LIBS
   sdsl
+  tsl::hopscotch_map
   "${handlegraph_LIB}/libhandlegraph${CMAKE_SHARED_LIBRARY_SUFFIX}"
   ${PLATFORM_EXTRA_LIB_FLAGS})
 
@@ -264,6 +250,8 @@ if (CMAKE_MAJOR_VERSION EQUAL "3" AND (CMAKE_MINOR_VERSION EQUAL "10" OR CMAKE_M
     # Before CMake 3.12 we can't ise target_link_libraries on an object library to convey the need to use depencies' include directories
     get_target_property(sdsl_INCLUDE sdsl INCLUDE_DIRECTORIES)
     target_include_directories(bdsg_objs PUBLIC ${sdsl_INCLUDE})
+    get_target_property(hopscotch_map_INCLUDE tsl::hopscotch_map INTERFACE_INCLUDE_DIRECTORIES)
+    target_include_directories(bdsg_objs PUBLIC ${hopscotch_map_INCLUDE})
 else()
     # Set all the libs as public dependencies of the object library
     target_link_libraries(bdsg_objs PUBLIC ${bdsg_LIBS})
@@ -308,9 +296,7 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/bdsg
 # Install headers from all dependencies. Make sure to use a trailing slash so
 # we merge all the include directory contents. Don't install Binder's includes
 # since we don't need headers for the Python module.
-install(DIRECTORY "${sdsl-lite_INCLUDE}/"
-                  "${dynamic_INCLUDE}/"
-                  "${hopscotch_map_INCLUDE}/"
+install(DIRECTORY "${dynamic_INCLUDE}/"
                   "${handlegraph_INCLUDE}/"
                   "${sparsepp_INCLUDE}/"
                   "${bbhash_INCLUDE}/"
