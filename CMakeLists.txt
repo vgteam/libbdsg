@@ -75,13 +75,9 @@ include(GNUInstallDirs)
 # this way, or the dependencies themselves, is going to result in !!FUN!!
 # problems as all the files clobber each other.
 
-# sdsl-lite (full build using its cmake config)
-ExternalProject_Add(sdsl-lite
-  SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/sdsl-lite"
-  CMAKE_ARGS "${CMAKE_ARGS};-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>;-DCMAKE_INSTALL_NAME_DIR=<INSTALL_DIR>/lib;-DBUILD_SHARED_LIBS=ON")
-ExternalProject_Get_property(sdsl-lite INSTALL_DIR)
-set(sdsl-lite_INCLUDE "${INSTALL_DIR}/${CMAKE_INSTALL_INCLUDEDIR}")
-set(sdsl-lite_LIB "${INSTALL_DIR}/${CMAKE_INSTALL_LIBDIR}")
+# sdsl-lite
+set(BUILD_SHARED_LIBS ON CACHE BOOL "Build sdsl-lite shared libraries")
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/deps/sdsl-lite")
 
 # DYNAMIC (header only)
 # Does not ship its own install step so we have to copy stuff ourselves
@@ -231,7 +227,6 @@ add_library(bdsg_objs OBJECT
   )
 
 set(bdsg_DEPS
-    sdsl-lite
     dynamic
     hopscotch_map
     handlegraph
@@ -248,7 +243,6 @@ endif()
 
 set(bdsg_INCLUDES
   "${CMAKE_CURRENT_SOURCE_DIR}/include"
-  "${sdsl-lite_INCLUDE}"
   "${dynamic_INCLUDE}"
   "${hopscotch_map_INCLUDE}"
   "${handlegraph_INCLUDE}"
@@ -259,14 +253,21 @@ set(bdsg_INCLUDES
 # Note that binder_INCLUDE will be empty if Binder isn't in use.
 
 set(bdsg_LIBS
-  "${sdsl-lite_LIB}/libsdsl${CMAKE_SHARED_LIBRARY_SUFFIX}"
-  "${sdsl-lite_LIB}/libdivsufsort${CMAKE_SHARED_LIBRARY_SUFFIX}"
-  "${sdsl-lite_LIB}/libdivsufsort64${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  sdsl
   "${handlegraph_LIB}/libhandlegraph${CMAKE_SHARED_LIBRARY_SUFFIX}"
   ${PLATFORM_EXTRA_LIB_FLAGS})
 
 target_include_directories(bdsg_objs PUBLIC ${bdsg_INCLUDES})
 set_target_properties(bdsg_objs PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
+
+if (CMAKE_MAJOR_VERSION EQUAL "3" AND (CMAKE_MINOR_VERSION EQUAL "10" OR CMAKE_MINOR_VERSION EQUAL "11"))
+    # Before CMake 3.12 we can't ise target_link_libraries on an object library to convey the need to use depencies' include directories
+    get_target_property(sdsl_INCLUDE sdsl INCLUDE_DIRECTORIES)
+    target_include_directories(bdsg_objs PUBLIC ${sdsl_INCLUDE})
+else()
+    # Set all the libs as public dependencies of the object library
+    target_link_libraries(bdsg_objs PUBLIC ${bdsg_LIBS})
+endif()
 
 # Make sure when we install our library we set its rpath so it can find its
 # dependencies we also install.
@@ -284,9 +285,13 @@ set_target_properties(libbdsg PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
 # Since we have a directory structure of headers, we can't just associate the
 # individual header files as PUBLIC_HEADERS and PRIVATE_HEADERS on the target.
 
-# On Mac at least, we need to link the library against the other dependency libraries
-# If we link them as PUBLIC they come along when anything links against libbdsg, as they should.
-target_link_libraries(libbdsg PUBLIC ${bdsg_LIBS})
+if (CMAKE_MAJOR_VERSION EQUAL "3" AND (CMAKE_MINOR_VERSION EQUAL "10" OR CMAKE_MINOR_VERSION EQUAL "11"))
+    # Libraries weren't added as dependencies of the object library (which is
+    # not yet possible) so we need to add them as dependencies of the actual
+    # library
+    target_link_libraries(libbdsg PUBLIC ${bdsg_LIBS})
+endif()
+
 
 # Remember to bring along the includes
 target_include_directories(libbdsg PUBLIC ${bdsg_INCLUDES})
@@ -321,7 +326,6 @@ add_executable(test_libbdsg
   ${CMAKE_CURRENT_SOURCE_DIR}/src/test_libbdsg.cpp)
 # add_dependencies(test_libbdsg libbdsg)
 target_link_libraries(test_libbdsg libbdsg)
-#  "${sdsl-lite_LIB}/libsdsl.a")
 target_include_directories(test_libbdsg PUBLIC ${bdsg_INCLUDES})
 set_target_properties(test_libbdsg PROPERTIES OUTPUT_NAME "test_libbdsg")
 
