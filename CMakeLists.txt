@@ -40,8 +40,8 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
   set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS} -lomp")
   
-  # Mac needs libdl and libomp when linking the library
-  set(PLATFORM_EXTRA_LIB_FLAGS -ldl -lomp)
+  # Mac needs libdl and libomp when linking the library and a hint on where to look for them
+  set(PLATFORM_EXTRA_LIB_FLAGS -ldl -lomp -L/opt/local/lib/libomp -L/usr/local/lib)
 
 elseif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
@@ -72,6 +72,11 @@ include(GNUInstallDirs)
 # sdsl-lite (gives an "sdsl" target)
 set(BUILD_SHARED_LIBS ON CACHE BOOL "Build sdsl-lite shared libraries")
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/deps/sdsl-lite")
+if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    # It produces divsufsort and divsufsort64 targets that don't know they need OMP on Mac.
+    set_target_properties(divsufsort PROPERTIES LINK_FLAGS "-lomp")
+    set_target_properties(divsufsort64 PROPERTIES LINK_FLAGS "-lomp")
+endif()
 
 # hopscotch_map (required by DYNAMIC, gives a "tsl::hopscotch_map" target)
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/deps/hopscotch-map")
@@ -255,12 +260,11 @@ set_target_properties(libbdsg PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
 # Since we have a directory structure of headers, we can't just associate the
 # individual header files as PUBLIC_HEADERS and PRIVATE_HEADERS on the target.
 
-if (CMAKE_MAJOR_VERSION EQUAL "3" AND (CMAKE_MINOR_VERSION EQUAL "10" OR CMAKE_MINOR_VERSION EQUAL "11"))
-    # Libraries weren't added as dependencies of the object library (which is
-    # not yet possible) so we need to add them as dependencies of the actual
-    # library
-    target_link_libraries(libbdsg PUBLIC ${bdsg_LIBS})
-endif()
+# On older CMake, libraries weren't added as dependencies of the object library
+# (which is not yet possible) so we need to add them as dependencies of the
+# actual library. On Mac, we always need to do this, because you can't link a
+# library there without the libraries it depends on at runtime.
+target_link_libraries(libbdsg PUBLIC ${bdsg_LIBS})
 
 
 # Remember to bring along the includes
