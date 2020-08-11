@@ -197,7 +197,6 @@ add_library(bdsg_objs OBJECT
 
 set(bdsg_INCLUDES
   "${CMAKE_CURRENT_SOURCE_DIR}/include"
-  "${binder_INCLUDE}"
 )
 # Note that binder_INCLUDE will be empty if Binder isn't in use.
 
@@ -302,7 +301,7 @@ if (BUILD_PYTHON_BINDINGS)
     list(FILTER pybind11_API EXCLUDE REGEX ".*CMakeCXXCompilerId.cpp$")
     pybind11_add_module(bdsg_pybind11 ${pybind11_API})
     add_dependencies(bdsg_pybind11 ${bdsg_DEPS} libbdsg)
-    target_include_directories(bdsg_pybind11 PUBLIC ${bdsg_INCLUDES})
+    target_include_directories(bdsg_pybind11 PUBLIC ${bdsg_INCLUDES} "${binder_INCLUDE}")
     target_link_libraries(bdsg_pybind11 PRIVATE libbdsg "${bdsg_LIBS}")
     set_target_properties(bdsg_pybind11 PROPERTIES OUTPUT_NAME "bdsg")
     
