@@ -277,13 +277,12 @@ install(TARGETS libbdsg
 # Install headers separately. See <https://stackoverflow.com/a/54285948>
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/bdsg
         DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
-# Install headers from all dependencies. Make sure to use a trailing slash so
-# we merge all the include directory contents. Don't install Binder's includes
+# Install headers from all dependencies. Make sure to use a trailing slash to
+# dump all contents rather than the directory. Don't install Binder's includes
 # since we don't need headers for the Python module.
-install(DIRECTORY "${sparsepp_INCLUDE}/"
-                  "${CMAKE_CURRENT_SOURCE_DIR}/deps/DYNAMIC/include/"
+install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/deps/DYNAMIC/include/"
                   "${CMAKE_CURRENT_SOURCE_DIR}/deps/BBHash/"
-                  "${CMAKE_CURRENT_SOURCE_DIR}/deps/sparsepp/"
+                  "${CMAKE_CURRENT_SOURCE_DIR}/deps/sparsepp/sparsepp"
         DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
         FILES_MATCHING
         PATTERN "*.hpp"
