@@ -250,6 +250,8 @@ endif()
 add_library(libbdsg SHARED $<TARGET_OBJECTS:bdsg_objs>)
 set_target_properties(libbdsg PROPERTIES OUTPUT_NAME "bdsg")
 set_target_properties(libbdsg PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
+# Make sure we can find our dependency libraries after installation, if we aren't installing into the system search path
+set_target_properties(libbdsg PROPERTIES INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
 # Since we have a directory structure of headers, we can't just associate the
 # individual header files as PUBLIC_HEADERS and PRIVATE_HEADERS on the target.
 
@@ -287,9 +289,9 @@ install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/deps/DYNAMIC/include/"
 
 add_executable(test_libbdsg
   ${CMAKE_CURRENT_SOURCE_DIR}/src/test_libbdsg.cpp)
-# add_dependencies(test_libbdsg libbdsg)
 target_link_libraries(test_libbdsg libbdsg)
 set_target_properties(test_libbdsg PROPERTIES OUTPUT_NAME "test_libbdsg")
+set_target_properties(test_libbdsg PROPERTIES INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
 
 if (BUILD_PYTHON_BINDINGS)
     # Build the Pythoin bindings
@@ -300,6 +302,7 @@ if (BUILD_PYTHON_BINDINGS)
     target_include_directories(bdsg_pybind11 PUBLIC ${bdsg_INCLUDES} "${binder_INCLUDE}")
     target_link_libraries(bdsg_pybind11 PRIVATE libbdsg "${bdsg_LIBS}")
     set_target_properties(bdsg_pybind11 PROPERTIES OUTPUT_NAME "bdsg")
+    set_target_properties(bdsg_pybind11 PROPERTIES INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
     
     # And install them
     install(TARGETS bdsg_pybind11
