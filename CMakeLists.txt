@@ -77,14 +77,10 @@ add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/deps/sdsl-lite")
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/deps/hopscotch-map")
 
 # DYNAMIC (header only)
-# Does not ship its own install step so we have to copy stuff ourselves
-ExternalProject_Add(dynamic
-  SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/DYNAMIC"
-  CONFIGURE_COMMAND ""
-  BUILD_COMMAND ""
-  INSTALL_COMMAND bash -c "mkdir -p <INSTALL_DIR>/${CMAKE_INSTALL_INCLUDEDIR} && cp -r <SOURCE_DIR>/include/dynamic <INSTALL_DIR>/${CMAKE_INSTALL_INCLUDEDIR}/")
-ExternalProject_Get_property(dynamic INSTALL_DIR)
-set(dynamic_INCLUDE "${INSTALL_DIR}/${CMAKE_INSTALL_INCLUDEDIR}")
+# Does not ship its own install step or define a target, so we make our own target
+add_library(dynamic INTERFACE)
+target_include_directories(dynamic INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/deps/DYNAMIC/include")
+target_link_libraries(dynamic INTERFACE tsl::hopscotch_map)
 
 # libhandlegraph (full build using its cmake config)
 ExternalProject_Add(handlegraph
@@ -212,9 +208,28 @@ add_library(bdsg_objs OBJECT
   ${CMAKE_CURRENT_SOURCE_DIR}/src/vectorizable_overlays.cpp
   )
 
+set(bdsg_INCLUDES
+  "${CMAKE_CURRENT_SOURCE_DIR}/include"
+  "${handlegraph_INCLUDE}"
+  "${sparsepp_INCLUDE}"
+  "${bbhash_INCLUDE}"
+  "${binder_INCLUDE}"
+)
+# Note that binder_INCLUDE will be empty if Binder isn't in use.
+
+# Targets we depend on that are real library targets that we can install.
+set(bdsg_TARGET_DEPS
+  sdsl
+  tsl::hopscotch_map
+  dynamic)
+
+set(bdsg_LIBS
+  ${bdsg_TARGET_DEPS}
+  "${handlegraph_LIB}/libhandlegraph${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  ${PLATFORM_EXTRA_LIB_FLAGS})
+
+# Targets we depend on that are just external projects
 set(bdsg_DEPS
-    dynamic
-    hopscotch_map
     handlegraph
     bbhash
     sparsepp
@@ -227,22 +242,6 @@ if (BUILD_PYTHON_BINDINGS)
     add_dependencies(bdsg_objs ${bdsg_PYTHON_DEPS})
 endif()
 
-set(bdsg_INCLUDES
-  "${CMAKE_CURRENT_SOURCE_DIR}/include"
-  "${dynamic_INCLUDE}"
-  "${handlegraph_INCLUDE}"
-  "${sparsepp_INCLUDE}"
-  "${bbhash_INCLUDE}"
-  "${binder_INCLUDE}"
-)
-# Note that binder_INCLUDE will be empty if Binder isn't in use.
-
-set(bdsg_LIBS
-  sdsl
-  tsl::hopscotch_map
-  "${handlegraph_LIB}/libhandlegraph${CMAKE_SHARED_LIBRARY_SUFFIX}"
-  ${PLATFORM_EXTRA_LIB_FLAGS})
-
 target_include_directories(bdsg_objs PUBLIC ${bdsg_INCLUDES})
 set_target_properties(bdsg_objs PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
 
@@ -252,6 +251,8 @@ if (CMAKE_MAJOR_VERSION EQUAL "3" AND (CMAKE_MINOR_VERSION EQUAL "10" OR CMAKE_M
     target_include_directories(bdsg_objs PUBLIC ${sdsl_INCLUDE})
     get_target_property(hopscotch_map_INCLUDE tsl::hopscotch_map INTERFACE_INCLUDE_DIRECTORIES)
     target_include_directories(bdsg_objs PUBLIC ${hopscotch_map_INCLUDE})
+    get_target_property(dynamic_INCLUDE dynamic INTERFACE_INCLUDE_DIRECTORIES)
+    target_include_directories(bdsg_objs PUBLIC ${dynamic_INCLUDE})
 else()
     # Set all the libs as public dependencies of the object library
     target_link_libraries(bdsg_objs PUBLIC ${bdsg_LIBS})
@@ -296,8 +297,7 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/bdsg
 # Install headers from all dependencies. Make sure to use a trailing slash so
 # we merge all the include directory contents. Don't install Binder's includes
 # since we don't need headers for the Python module.
-install(DIRECTORY "${dynamic_INCLUDE}/"
-                  "${handlegraph_INCLUDE}/"
+install(DIRECTORY "${handlegraph_INCLUDE}/"
                   "${sparsepp_INCLUDE}/"
                   "${bbhash_INCLUDE}/"
         DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
