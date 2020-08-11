@@ -1,4 +1,4 @@
-#include <binder/source/stl_binders.hpp>
+#include <stl_binders.hpp>
 #include <handlegraph/types.hpp>
 #include <internal/gap_bitvector.hpp>
 #include <internal/packed_vector.hpp>
