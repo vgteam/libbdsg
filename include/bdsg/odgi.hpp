@@ -24,7 +24,7 @@
 #include <handlegraph/deletable_handle_graph.hpp>
 #include <handlegraph/mutable_path_deletable_handle_graph.hpp>
 #include <handlegraph/serializable_handle_graph.hpp>
-#include "dynamic.hpp"
+#include "dynamic/dynamic.hpp"
 #include "bdsg/internal/dynamic_types.hpp"
 #include "bdsg/internal/utility.hpp"
 #include "bdsg/internal/hash_map.hpp"

@@ -1,8 +1,8 @@
 #include <stl_binders.hpp>
 #include <handlegraph/types.hpp>
-#include <internal/gap_bitvector.hpp>
-#include <internal/packed_vector.hpp>
-#include <internal/spsi.hpp>
+#include <dynamic/internal/gap_bitvector.hpp>
+#include <dynamic/internal/packed_vector.hpp>
+#include <dynamic/internal/spsi.hpp>
 #include <istream>
 #include <iterator>
 #include <list>

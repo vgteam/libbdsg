@@ -1,7 +1,7 @@
 #ifndef BSDG_DYNAMIC_TYPES_HPP
 #define BSDG_DYNAMIC_TYPES_HPP
 
-#include "dynamic.hpp"
+#include <dynamic/dynamic.hpp>
 
 namespace bdsg {
 
