@@ -83,12 +83,8 @@ target_include_directories(dynamic INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/deps/D
 target_link_libraries(dynamic INTERFACE tsl::hopscotch_map)
 
 # libhandlegraph (full build using its cmake config)
-ExternalProject_Add(handlegraph
-  SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/libhandlegraph"
-  CMAKE_ARGS "${CMAKE_ARGS};-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>")
-ExternalProject_Get_property(handlegraph INSTALL_DIR)
-set(handlegraph_INCLUDE "${INSTALL_DIR}/${CMAKE_INSTALL_INCLUDEDIR}")
-set(handlegraph_LIB "${INSTALL_DIR}/${CMAKE_INSTALL_LIBDIR}")
+# Produces handlegraph_shared and handlegraph_static targets (as well as handlegraph_objs)
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/deps/libhandlegraph")
 
 # BBHash perfect hasher
 # Does not ship its own install step so we have to copy stuff ourselves
@@ -210,7 +206,6 @@ add_library(bdsg_objs OBJECT
 
 set(bdsg_INCLUDES
   "${CMAKE_CURRENT_SOURCE_DIR}/include"
-  "${handlegraph_INCLUDE}"
   "${sparsepp_INCLUDE}"
   "${bbhash_INCLUDE}"
   "${binder_INCLUDE}"
@@ -221,16 +216,15 @@ set(bdsg_INCLUDES
 set(bdsg_TARGET_DEPS
   sdsl
   tsl::hopscotch_map
-  dynamic)
+  dynamic
+  handlegraph_shared)
 
 set(bdsg_LIBS
   ${bdsg_TARGET_DEPS}
-  "${handlegraph_LIB}/libhandlegraph${CMAKE_SHARED_LIBRARY_SUFFIX}"
   ${PLATFORM_EXTRA_LIB_FLAGS})
 
 # Targets we depend on that are just external projects
 set(bdsg_DEPS
-    handlegraph
     bbhash
     sparsepp
 )
@@ -247,12 +241,14 @@ set_target_properties(bdsg_objs PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
 
 if (CMAKE_MAJOR_VERSION EQUAL "3" AND (CMAKE_MINOR_VERSION EQUAL "10" OR CMAKE_MINOR_VERSION EQUAL "11"))
     # Before CMake 3.12 we can't ise target_link_libraries on an object library to convey the need to use depencies' include directories
-    get_target_property(sdsl_INCLUDE sdsl INCLUDE_DIRECTORIES)
+    get_target_property(sdsl_INCLUDE sdsl INTERFACE_INCLUDE_DIRECTORIES)
     target_include_directories(bdsg_objs PUBLIC ${sdsl_INCLUDE})
     get_target_property(hopscotch_map_INCLUDE tsl::hopscotch_map INTERFACE_INCLUDE_DIRECTORIES)
     target_include_directories(bdsg_objs PUBLIC ${hopscotch_map_INCLUDE})
     get_target_property(dynamic_INCLUDE dynamic INTERFACE_INCLUDE_DIRECTORIES)
     target_include_directories(bdsg_objs PUBLIC ${dynamic_INCLUDE})
+    get_target_property(handlegraph_INCLUDE handlegraph_shared INTERFACE_INCLUDE_DIRECTORIES)
+    target_include_directories(bdsg_objs PUBLIC ${handlegraph_INCLUDE})
 else()
     # Set all the libs as public dependencies of the object library
     target_link_libraries(bdsg_objs PUBLIC ${bdsg_LIBS})
@@ -285,8 +281,10 @@ endif()
 # Remember to bring along the includes
 target_include_directories(libbdsg PUBLIC ${bdsg_INCLUDES})
 
-# This is what we want to actually install for users
-install(TARGETS libbdsg
+# This is what we want to actually install for users.
+# Dependencies from add_subdirectory install themselves, but any wrapping
+# interface/imported targets we created here need to be installed here.
+install(TARGETS libbdsg dynamic 
         LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
         PUBLIC_HEADER DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
         PRIVATE_HEADER DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
@@ -297,22 +295,14 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/bdsg
 # Install headers from all dependencies. Make sure to use a trailing slash so
 # we merge all the include directory contents. Don't install Binder's includes
 # since we don't need headers for the Python module.
-install(DIRECTORY "${handlegraph_INCLUDE}/"
-                  "${sparsepp_INCLUDE}/"
+install(DIRECTORY "${sparsepp_INCLUDE}/"
                   "${bbhash_INCLUDE}/"
         DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
-# Install libraries for out non-header-only library dependencies.
-# Don't bring along pkg-config files; they have wrong paths
-install(DIRECTORY "${sdsl-lite_LIB}/"
-                  "${handlegraph_LIB}/"
-        DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-        PATTERN "pkgconfig" EXCLUDE)
 
 add_executable(test_libbdsg
   ${CMAKE_CURRENT_SOURCE_DIR}/src/test_libbdsg.cpp)
 # add_dependencies(test_libbdsg libbdsg)
 target_link_libraries(test_libbdsg libbdsg)
-target_include_directories(test_libbdsg PUBLIC ${bdsg_INCLUDES})
 set_target_properties(test_libbdsg PROPERTIES OUTPUT_NAME "test_libbdsg")
 
 if (BUILD_PYTHON_BINDINGS)
