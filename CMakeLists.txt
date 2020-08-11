@@ -247,16 +247,6 @@ else()
     target_link_libraries(bdsg_objs PUBLIC ${bdsg_LIBS})
 endif()
 
-# Make sure when we install our library we set its rpath so it can find its
-# dependencies we also install.
-# Set this up before library target is created.
-# If using this library as an ExternalProject, this needs to stay the default
-# or non-installed consumers of the library won't be able to find its
-# dependencies.
-# We put this in the cache if it isn't set, and preserve the cached value (from
-# "-D" on the command line if specified) if it is set.
-set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}" CACHE PATH "Library search path upon installation")
-
 add_library(libbdsg SHARED $<TARGET_OBJECTS:bdsg_objs>)
 set_target_properties(libbdsg PROPERTIES OUTPUT_NAME "bdsg")
 set_target_properties(libbdsg PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
