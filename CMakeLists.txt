@@ -92,15 +92,10 @@ add_library(bbhash INTERFACE)
 target_include_directories(bbhash INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/deps/BBHash/")
 # We would be able to use public_header for the one header, but that's not allowed with IMPORTED libraries.
 
-# sparsepp
-# Does not ship its own install step so we have to copy stuff ourselves
-ExternalProject_Add(sparsepp
-  SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/sparsepp"
-  CONFIGURE_COMMAND ""
-  BUILD_COMMAND ""
-  INSTALL_COMMAND bash -c "mkdir -p <INSTALL_DIR>/${CMAKE_INSTALL_INCLUDEDIR} && cp -r <SOURCE_DIR>/sparsepp <INSTALL_DIR>/${CMAKE_INSTALL_INCLUDEDIR}/")
-ExternalProject_Get_property(sparsepp INSTALL_DIR)
-set(sparsepp_INCLUDE "${INSTALL_DIR}/${CMAKE_INSTALL_INCLUDEDIR}")
+# sparsepp (header only)
+# Does not ship its own install step or define a target, so we make our own target
+add_library(sparsepp INTERFACE)
+target_include_directories(sparsepp INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/deps/sparsepp/")
 
 if (BUILD_PYTHON_BINDINGS)
     # Binder (because some generated bindings depend on headers packaged with Binder)
@@ -202,7 +197,6 @@ add_library(bdsg_objs OBJECT
 
 set(bdsg_INCLUDES
   "${CMAKE_CURRENT_SOURCE_DIR}/include"
-  "${sparsepp_INCLUDE}"
   "${binder_INCLUDE}"
 )
 # Note that binder_INCLUDE will be empty if Binder isn't in use.
@@ -213,22 +207,15 @@ set(bdsg_TARGET_DEPS
   tsl::hopscotch_map
   dynamic
   handlegraph_shared
-  bbhash)
+  bbhash
+  sparsepp)
 
 set(bdsg_LIBS
   ${bdsg_TARGET_DEPS}
   ${PLATFORM_EXTRA_LIB_FLAGS})
 
-# Targets we depend on that are just external projects
-set(bdsg_DEPS
-    sparsepp
-)
-set(bdsg_PYTHON_DEPS
-    binder
-)
-add_dependencies(bdsg_objs ${bdsg_DEPS})
 if (BUILD_PYTHON_BINDINGS)
-    add_dependencies(bdsg_objs ${bdsg_PYTHON_DEPS})
+    add_dependencies(bdsg_objs binder)
 endif()
 
 target_include_directories(bdsg_objs PUBLIC ${bdsg_INCLUDES})
@@ -246,6 +233,8 @@ if (CMAKE_MAJOR_VERSION EQUAL "3" AND (CMAKE_MINOR_VERSION EQUAL "10" OR CMAKE_M
     target_include_directories(bdsg_objs PUBLIC ${handlegraph_INCLUDE})
     get_target_property(bbhash_INCLUDE bbhash INTERFACE_INCLUDE_DIRECTORIES)
     target_include_directories(bdsg_objs PUBLIC ${bbhash_INCLUDE})
+    get_target_property(sparsepp_INCLUDE sparsepp INTERFACE_INCLUDE_DIRECTORIES)
+    target_include_directories(bdsg_objs PUBLIC ${sparsepp_INCLUDE})
 else()
     # Set all the libs as public dependencies of the object library
     target_link_libraries(bdsg_objs PUBLIC ${bdsg_LIBS})
@@ -295,6 +284,7 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/bdsg
 install(DIRECTORY "${sparsepp_INCLUDE}/"
                   "${CMAKE_CURRENT_SOURCE_DIR}/deps/DYNAMIC/include/"
                   "${CMAKE_CURRENT_SOURCE_DIR}/deps/BBHash/"
+                  "${CMAKE_CURRENT_SOURCE_DIR}/deps/sparsepp/"
         DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
         FILES_MATCHING
         PATTERN "*.hpp"
