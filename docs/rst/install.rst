@@ -22,7 +22,7 @@ First, obtain a copy of the repository. Assuming you have Git installed already:
 Install Dependencies
 --------------------
 
-Some dependencies of libbdsg need to be installed before building the library. A working compile with C++14 and OpenMP support, CMake 3.10 or newer, Doxygen, and development headers for ``python3`` are required. How to install these varies depending on your operating system. Please follow the section for your OS below:
+Some dependencies of libbdsg need to be installed before building the library. A working compiler with C++14 and OpenMP support, CMake 3.10 or newer, Doxygen, and development headers for ``python3`` are required. How to install these varies depending on your operating system. Please follow the section for your OS below:
 
 ~~~~~
 macOS
