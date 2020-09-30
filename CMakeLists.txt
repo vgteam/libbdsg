@@ -13,6 +13,11 @@ option(BUILD_PYTHON_BINDINGS "Compile the bdsg Python module" ON)
 
 # We build using c++14
 set(CMAKE_CXX_STANDARD 14)
+# We need library paths to be relative in the build directories so we can let
+# the libraries in our Python module find each other when we package them into
+# a wheel. This only works on CMake 3.14+; older CMake we have to bully with
+# linker options.
+set(CMAKE_BUILD_RPATH_USE_ORIGIN ON)
 
 # Use all standard-compliant optimizations
 set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -g")
@@ -41,7 +46,8 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS} -lomp")
   
   # Mac needs libdl and libomp when linking the library and a hint on where to look for them
-  set(PLATFORM_EXTRA_LIB_FLAGS -ldl -lomp -L/opt/local/lib/libomp -L/usr/local/lib)
+  # Also make sure to manually force a $ORIGIN in the RPath for when CMAKE_BUILD_RPATH_USE_ORIGIN doesn't work.
+  set(PLATFORM_EXTRA_LIB_FLAGS -ldl -lomp -L/opt/local/lib/libomp -L/usr/local/lib -Wl,-rpath='$ORIGIN')
   
   # Mac needs install names set after installation
   SET(CMAKE_INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
@@ -56,7 +62,8 @@ elseif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
   
   # Linux only needs libdl when linking the library
-  set(PLATFORM_EXTRA_LIB_FLAGS -ldl)
+  # Also make sure to manually force a $ORIGIN in the RPath for when CMAKE_BUILD_RPATH_USE_ORIGIN doesn't work.
+  set(PLATFORM_EXTRA_LIB_FLAGS -ldl -Wl,-rpath='$ORIGIN')
   
 endif()
 
