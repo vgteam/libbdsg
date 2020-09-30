@@ -60,8 +60,8 @@ class build_ext(build_ext_orig):
 setup(
     name='bdsg',
     version='0.1',
-    packages=['bdsg_empty'],
-    ext_modules=[CMakeExtension('bdsg_ext')],
+    packages=['bdsg'],
+    ext_modules=[CMakeExtension('bdsg')],
     cmdclass={
         'build_ext': build_ext,
     }

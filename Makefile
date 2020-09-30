@@ -1,6 +1,6 @@
-SRC_DIR:=src
-OBJ_DIR:=obj
-INC_DIR:=include
+SRC_DIR:=bdsg/src
+OBJ_DIR:=bdsg/obj
+INC_DIR:=bdsg/include
 LIB_DIR:=lib
 BIN_DIR:=bin
 
