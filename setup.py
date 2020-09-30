@@ -59,7 +59,11 @@ class build_ext(build_ext_orig):
 
 setup(
     name='bdsg',
-    version='0.1',
+    author="vgteam",
+    author_email="anovak@soe.ucsc.edu",
+    description="Library for BiDirected Sequence Graphs",
+    use_scm_version=True, # Just get the version and non-artifact file list from Git
+    setup_requires=['setuptools_scm', 'setuptools_git_ls_files'], # Make sure to get everything in Git *and* everything in submodules
     packages=['bdsg'],
     ext_modules=[CMakeExtension('bdsg')],
     cmdclass={
