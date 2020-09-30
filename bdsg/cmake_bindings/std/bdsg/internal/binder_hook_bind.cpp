@@ -1,4 +1,3 @@
-#include <binder/source/stl_binders.hpp>
 #include <handlegraph/types.hpp>
 #include <istream>
 #include <iterator>
@@ -6,6 +5,7 @@
 #include <memory>
 #include <ostream>
 #include <sstream> // __str__
+#include <stl_binders.hpp>
 #include <string>
 #include <utility>
 #include <vector>
