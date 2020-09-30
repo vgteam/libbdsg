@@ -14,12 +14,12 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../lib/'))
+sys.path.insert(0, os.path.abspath('../../lib/'))
 
 # We need to check if libbdsg is built, but we can't `import bdsg` because
 # if we don't find it, we can't import it again later once we make it.
 # So just poll for ../lib/bdsg.module flag file from the build process.
-if not os.path.exists('../lib/bdsg.module'):
+if not os.path.exists('../../lib/bdsg.module'):
     # libbdsg isn't built yet. See if we can build it.
     # Hack to try and get the build to run on RtD which doesn't give us command-running hooks.
     import subprocess
