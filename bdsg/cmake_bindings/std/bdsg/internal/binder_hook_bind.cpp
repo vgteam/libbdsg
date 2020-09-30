@@ -1,14 +1,11 @@
-#include <stl_binders.hpp>
 #include <handlegraph/types.hpp>
-#include <dynamic/internal/gap_bitvector.hpp>
-#include <dynamic/internal/packed_vector.hpp>
-#include <dynamic/internal/spsi.hpp>
 #include <istream>
 #include <iterator>
 #include <list>
 #include <memory>
 #include <ostream>
 #include <sstream> // __str__
+#include <stl_binders.hpp>
 #include <string>
 #include <utility>
 #include <vector>

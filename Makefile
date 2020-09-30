@@ -1,6 +1,7 @@
-SRC_DIR:=src
-OBJ_DIR:=obj
-INC_DIR:=include
+SRC_DIR:=bdsg/src
+OBJ_DIR:=bdsg/obj
+INC_DIR:=bdsg/include
+DOC_DIR:=bdsg/docs
 LIB_DIR:=lib
 BIN_DIR:=bin
 
@@ -28,7 +29,7 @@ test: all $(BIN_DIR)/test_libbdsg
 	./$(BIN_DIR)/test_libbdsg
 
 docs:
-	cd docs && $(MAKE) html
+	cd $(DOC_DIR) && $(MAKE) html
 
 .pre-build:
 	@if [ ! -d $(LIB_DIR) ]; then mkdir -p $(LIB_DIR); fi

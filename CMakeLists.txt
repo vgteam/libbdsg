@@ -13,6 +13,11 @@ option(BUILD_PYTHON_BINDINGS "Compile the bdsg Python module" ON)
 
 # We build using c++14
 set(CMAKE_CXX_STANDARD 14)
+# We need library paths to be relative in the build directories so we can let
+# the libraries in our Python module find each other when we package them into
+# a wheel. This only works on CMake 3.14+; older CMake we have to bully with
+# linker options.
+set(CMAKE_BUILD_RPATH_USE_ORIGIN ON)
 
 # Use all standard-compliant optimizations
 set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -g")
@@ -41,6 +46,7 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS} -lomp")
   
   # Mac needs libdl and libomp when linking the library and a hint on where to look for them
+  # Mac doesn't have $ORIGIN for RPaths. We might not be able to produce a working Mac wheel for Python bindings.
   set(PLATFORM_EXTRA_LIB_FLAGS -ldl -lomp -L/opt/local/lib/libomp -L/usr/local/lib)
   
   # Mac needs install names set after installation
@@ -56,9 +62,13 @@ elseif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
   
   # Linux only needs libdl when linking the library
-  set(PLATFORM_EXTRA_LIB_FLAGS -ldl)
+  # Also make sure to manually force a $ORIGIN in the RPath for when CMAKE_BUILD_RPATH_USE_ORIGIN doesn't work.
+  set(PLATFORM_EXTRA_LIB_FLAGS -ldl -Wl,-rpath='$ORIGIN')
   
 endif()
+
+# Find our bdsg package directory where input sources and dependencies are
+set(bdsg_DIR "${CMAKE_CURRENT_SOURCE_DIR}/bdsg")
 
 # Set the output folder where your program will be created
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/bin)
@@ -74,7 +84,7 @@ include(GNUInstallDirs)
 
 # sdsl-lite (gives an "sdsl" target)
 set(BUILD_SHARED_LIBS ON CACHE BOOL "Build sdsl-lite shared libraries")
-add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/deps/sdsl-lite")
+add_subdirectory("${bdsg_DIR}/deps/sdsl-lite")
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     # It produces divsufsort and divsufsort64 targets that don't know they need OMP on Mac.
     set_target_properties(divsufsort PROPERTIES LINK_FLAGS "-lomp")
@@ -82,28 +92,28 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 endif()
 
 # hopscotch_map (required by DYNAMIC, gives a "tsl::hopscotch_map" target)
-add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/deps/hopscotch-map")
+add_subdirectory("${bdsg_DIR}/deps/hopscotch-map")
 
 # DYNAMIC (header only)
 # Does not ship its own install step or define a target, so we make our own target
 add_library(dynamic INTERFACE)
-target_include_directories(dynamic INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/deps/DYNAMIC/include")
+target_include_directories(dynamic INTERFACE "${bdsg_DIR}/deps/DYNAMIC/include")
 target_link_libraries(dynamic INTERFACE tsl::hopscotch_map)
 
 # libhandlegraph (full build using its cmake config)
 # Produces handlegraph_shared and handlegraph_static targets (as well as handlegraph_objs)
-add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/deps/libhandlegraph")
+add_subdirectory("${bdsg_DIR}/deps/libhandlegraph")
 
 # BBHash perfect hasher (header only)
 # Does not ship its own install step or define a target, so we make our own target
 add_library(bbhash INTERFACE)
-target_include_directories(bbhash INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/deps/BBHash/")
+target_include_directories(bbhash INTERFACE "${bdsg_DIR}/deps/BBHash/")
 # We would be able to use public_header for the one header, but that's not allowed with IMPORTED libraries.
 
 # sparsepp (header only)
 # Does not ship its own install step or define a target, so we make our own target
 add_library(sparsepp INTERFACE)
-target_include_directories(sparsepp INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/deps/sparsepp/")
+target_include_directories(sparsepp INTERFACE "${bdsg_DIR}/deps/sparsepp/")
 
 if (BUILD_PYTHON_BINDINGS)
     # Binder (because some generated bindings depend on headers packaged with Binder)
@@ -188,23 +198,23 @@ set(CMAKE_BUILD_TYPE Debug)
 
 # set up our target executable and specify its dependencies and includes
 add_library(bdsg_objs OBJECT
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/eades_algorithm.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/hash_graph.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/is_single_stranded.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/node.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/odgi.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/packed_graph.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/packed_path_position_overlay.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/packed_structs.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/packed_subgraph_overlay.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/path_position_overlays.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/strand_split_overlay.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/utility.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/vectorizable_overlays.cpp
+  ${bdsg_DIR}/src/eades_algorithm.cpp
+  ${bdsg_DIR}/src/hash_graph.cpp
+  ${bdsg_DIR}/src/is_single_stranded.cpp
+  ${bdsg_DIR}/src/node.cpp
+  ${bdsg_DIR}/src/odgi.cpp
+  ${bdsg_DIR}/src/packed_graph.cpp
+  ${bdsg_DIR}/src/packed_path_position_overlay.cpp
+  ${bdsg_DIR}/src/packed_structs.cpp
+  ${bdsg_DIR}/src/packed_subgraph_overlay.cpp
+  ${bdsg_DIR}/src/path_position_overlays.cpp
+  ${bdsg_DIR}/src/strand_split_overlay.cpp
+  ${bdsg_DIR}/src/utility.cpp
+  ${bdsg_DIR}/src/vectorizable_overlays.cpp
   )
 
 set(bdsg_INCLUDES
-  "${CMAKE_CURRENT_SOURCE_DIR}/include"
+  "${bdsg_DIR}/include"
 )
 # Note that binder_INCLUDE will be empty if Binder isn't in use.
 
@@ -274,28 +284,28 @@ install(TARGETS libbdsg
         PRIVATE_HEADER DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
         INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
 # Install headers separately. See <https://stackoverflow.com/a/54285948>
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/bdsg
+install(DIRECTORY ${bdsg_DIR}/include/bdsg
         DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
 # Install headers from all dependencies. Make sure to use a trailing slash to
 # dump all contents rather than the directory. Don't install Binder's includes
 # since we don't need headers for the Python module.
-install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/deps/DYNAMIC/include/"
-                  "${CMAKE_CURRENT_SOURCE_DIR}/deps/BBHash/"
-                  "${CMAKE_CURRENT_SOURCE_DIR}/deps/sparsepp/sparsepp"
+install(DIRECTORY "${bdsg_DIR}/deps/DYNAMIC/include/"
+                  "${bdsg_DIR}/deps/BBHash/"
+                  "${bdsg_DIR}/deps/sparsepp/sparsepp"
         DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
         FILES_MATCHING
         PATTERN "*.hpp"
         PATTERN "*.h")
 
 add_executable(test_libbdsg
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/test_libbdsg.cpp)
+  ${bdsg_DIR}/src/test_libbdsg.cpp)
 target_link_libraries(test_libbdsg libbdsg)
 set_target_properties(test_libbdsg PROPERTIES OUTPUT_NAME "test_libbdsg")
 set_target_properties(test_libbdsg PROPERTIES INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
 
 if (BUILD_PYTHON_BINDINGS)
     # Build the Pythoin bindings
-    file(GLOB_RECURSE pybind11_API "${CMAKE_CURRENT_SOURCE_DIR}/cmake_bindings/*.cpp")
+    file(GLOB_RECURSE pybind11_API "${bdsg_DIR}/cmake_bindings/*.cpp")
     list(FILTER pybind11_API EXCLUDE REGEX ".*CMakeCXXCompilerId.cpp$")
     pybind11_add_module(bdsg_pybind11 ${pybind11_API})
     add_dependencies(bdsg_pybind11 ${bdsg_DEPS} libbdsg)
@@ -322,7 +332,7 @@ if (RUN_DOXYGEN)
   find_package(Doxygen)
   if (DOXYGEN_FOUND)
     # We need to substitute in paths in the Doxyfile depending on where CMake is having us build.
-    set(DOXYGEN_IN ${CMAKE_CURRENT_SOURCE_DIR}/docs/Doxyfile.in)
+    set(DOXYGEN_IN ${bdsg_DIR}/docs/Doxyfile.in)
     set(DOXYGEN_OUT ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
     configure_file(${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
     

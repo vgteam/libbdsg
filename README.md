@@ -28,17 +28,28 @@ Eizenga, JM, Novak, AM, Kobayashi, E, Villani, F, Cisar, C, Heumos, S, Hickey, G
 
 The peer-reviewed article was drafted in [this GitHub respository](https://github.com/vgteam/handlegraph-paper), and a preprint is avilable [here](https://doi.org/10.1101/2020.04.23.056317).
 
-## Building and Installation
+## Installation
+
+There are several ways to install libbdsg.
+
+### From `pip` (Python bindings only)
+
+If you only want the Python bindings (`bdsg` module), you can install via `pip`:
+
+```
+pip install bdsg
+```
+
+### With `cmake` (C++ library and Python bindings)
+
+Full CMake-based installation instructions, including tips on dependency installation, are available in [the documentation](https://bdsg.readthedocs.io/en/master/rst/install.html). A basic guide is provided here.
 
 When obtaining the source repo, make sure to clone with `--recursive` to get all the submodules:
 
 ```
 git clone --recursive https://github.com/vgteam/libbdsg.git
+cd libbdsg
 ```
-
-### With `cmake` (library and Python bindings)
-
-Full CMake-based installation instructions, including tips on dependency installation, are available in [the documentation](https://bdsg.readthedocs.io/en/master/rst/install.html). A basic guide is provided here.
 
 With CMake, we are able to build Python bindings that use `pybind11`. However, we only support out-of-source builds from a directory named `build`, and we still put the built artifacts in `lib` in the main project directory.
 

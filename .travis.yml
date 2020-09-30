@@ -11,10 +11,10 @@ script:
   # We may have several Pythons and need to take care to use the one that `python3` is.
   - cmake -DPYTHON_EXECUTABLE=`which python3` ..
   - make -j2
-  - cd ../docs
+  - cd ../bdsg/docs
   - pip3 install -r requirements.txt
   - make doctest
-  - cd ../build 
+  - cd ../../build 
   - make clean
   - cd .. 
   - rm -Rf build

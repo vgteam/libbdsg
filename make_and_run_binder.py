@@ -14,10 +14,11 @@ from contextlib import contextmanager
 
 
 # Overall script settings
-bindings_dir = 'cmake_bindings'
-this_project_source = f'{os.getcwd()}/src'
-this_project_include = f'{os.getcwd()}/include'
-this_project_deps = f'{os.getcwd()}/deps' # Now deps come from submodules.
+this_project_package = f'{os.getcwd()}/bdsg'
+this_project_source = f'{this_project_package}/src'
+this_project_include = f'{this_project_package}/include'
+this_project_deps = f'{this_project_package}/deps' # Now deps come from submodules.
+bindings_dir = f'{this_project_package}/cmake_bindings'
 this_project_namespace_to_bind = 'bdsg'
 python_module_name = 'bdsg'
 
@@ -210,7 +211,7 @@ def make_bindings_code(all_includes_fn, binder_executable):
     
     command = [binder_executable,
         "--root-module", python_module_name,
-        "--prefix", f'{os.getcwd()}/{bindings_dir}/',
+        "--prefix", f'{bindings_dir}/',
         '--bind', this_project_namespace_to_bind,
         "--config", "config.cfg",
         all_includes_fn,

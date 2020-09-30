@@ -17,17 +17,17 @@ help:
 # But the exact name of it depends on the Python we are using, and the platform.
 # So we link it to something predictable.
 # Also make sure the CMake build will run Doxygen for us.
-../lib/bdsg.module:
-	cd .. && mkdir -p build && cd build && cmake .. -DPYTHON_EXECUTABLE=$(shell which python3) -DRUN_DOXYGEN=ON && $(MAKE)
-	cd .. && ln lib/bdsg.cpython-*.* lib/bdsg.module
+../../lib/bdsg.module:
+	cd ../.. && mkdir -p build && cd build && cmake .. -DPYTHON_EXECUTABLE=$(shell which python3) -DRUN_DOXYGEN=ON && $(MAKE)
+	cd ../.. && ln lib/bdsg.cpython-*.* lib/bdsg.module
 
 # Make sure we are ready to run Sphinx
-sphinxprep: ../lib/bdsg.module
+sphinxprep: ../../lib/bdsg.module
 
 clean:
 	rm -Rf $(BUILDDIR)
 
-# Spkinx targets: route specific targets to Sphinx using the new
+# Sphinx targets: route specific targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
 # TODO: Update when Sphinx gets more targets
 html: sphinxprep
