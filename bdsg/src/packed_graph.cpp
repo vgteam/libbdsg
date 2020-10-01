@@ -609,6 +609,10 @@ namespace bdsg {
         handle_t looking_for = flip(handle);
         while (next_edge_idx) {
             handle_t target = decode_traversal(get_edge_target(next_edge_idx));
+            if (target == looking_for) {
+                set_edge_target(next_edge_idx, flip(return_val.back()));
+                continue;
+            }
             size_t backward_edge_idx = graph_iv.get(graph_iv_index(target) + (get_is_reverse(target) ?
                                                                               GRAPH_END_EDGES_OFFSET :
                                                                               GRAPH_START_EDGES_OFFSET));
