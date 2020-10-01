@@ -240,11 +240,16 @@ namespace bdsg {
         
         // move the edges out the end of the node to the final one
         node_t& final_node = graph[get_id(return_val.back())];
-        final_node.right_edges = move(graph[get_id(handle)].right_edges);
-        graph[get_id(handle)].right_edges.clear();
-        
+        node_t& orig_node = graph[get_id(handle)];
+        final_node.right_edges = move(orig_node.right_edges);
+        orig_node.right_edges.clear();
+
         // update the backwards references back onto this node
-        for (const handle_t& next : final_node.right_edges) {
+        for (handle_t& next : final_node.right_edges) {
+            if (next == flip(forward_handle)) {
+                next = flip(return_val.back());
+                continue;
+            }
             for (handle_t& bwd_target : get_is_reverse(next) ?
                                         graph[get_id(next)].right_edges :
                                         graph[get_id(next)].left_edges) {
