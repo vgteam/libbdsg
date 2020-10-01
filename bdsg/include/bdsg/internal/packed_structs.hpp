@@ -948,9 +948,8 @@ inline uint64_t PackedSet::optimal_anchor() const {
 }
 
 // a precomputed list of prime numbers that approximately correspond to powers of 1.25
-// except with the first handful spread out more (to speed up small allocations)
-static constexpr uint64_t bdsg_packed_set_size_schedule[185] = {
-    1ull, 5ull, 13ull, 23ull, 43ull, 53ull, 67ull, 83ull, 107ull, 131ull, 167ull, 211ull, 263ull,
+static constexpr uint64_t bdsg_packed_set_size_schedule[192] = {
+    1ull, 2ull, 3ull, 5ull, 7ull, 11ull, 13ull, 17ull, 19ull, 23ull, 31ull, 43ull, 53ull, 67ull, 83ull, 107ull, 131ull, 167ull, 211ull, 263ull,
     317ull, 409ull, 509ull, 643ull, 797ull, 1009ull, 1259ull, 1571ull, 1951ull, 2459ull, 3079ull,
     3851ull, 4813ull, 6011ull, 7523ull, 9403ull, 11743ull, 14683ull, 18367ull, 22943ull, 28697ull,
     35869ull, 44839ull, 56041ull, 70061ull, 87559ull, 109471ull, 136841ull, 171053ull, 213821ull,
