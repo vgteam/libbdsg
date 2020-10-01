@@ -14,10 +14,11 @@ from contextlib import contextmanager
 
 
 # Overall script settings
-bindings_dir = 'cmake_bindings'
-this_project_source = f'{os.getcwd()}/src'
-this_project_include = f'{os.getcwd()}/include'
-this_project_deps = f'{os.getcwd()}/build' # This is the CMake build directory where depoendencies must have already been fetched by cmake.
+this_project_package = f'{os.getcwd()}/bdsg'
+this_project_source = f'{this_project_package}/src'
+this_project_include = f'{this_project_package}/include'
+this_project_deps = f'{this_project_package}/deps' # Now deps come from submodules.
+bindings_dir = f'{this_project_package}/cmake_bindings'
 this_project_namespace_to_bind = 'bdsg'
 python_module_name = 'bdsg'
 
@@ -34,9 +35,10 @@ def clone_repos():
         # master when https://github.com/RosettaCommons/binder/pull/99 is
         # fixed.
         subprocess.check_call(['git', 'clone', 'https://github.com/RosettaCommons/binder.git', 'binder'])
+        parent = os.getcwd()
         os.chdir('binder')
         subprocess.check_call(['git', 'checkout', '788ab422f9e919478944d79d5890441a964dd1db'])
-        os.chdir('..')
+        os.chdir(parent)
 
 def build_binder():
     '''
@@ -55,7 +57,6 @@ def all_sources_and_headers(include_deps=False):
     '''
     Find all source or include files relevant to the project.
     Yields their paths.
-    Assumes the CMake build has run in ./build.
     
     Note that we count the libhandlegraph sources as part of this project's
     sources. We include them even if include_deps is false and we aren't
@@ -64,10 +65,10 @@ def all_sources_and_headers(include_deps=False):
     
     # And the paths we want to look in.
     # Always include libhandlegraph.
-    paths = [f'{this_project_source}/**/*', f'{this_project_include}/**/*', f'{this_project_deps}/handlegraph*/**/*']
+    paths = [f'{this_project_source}/**/*', f'{this_project_include}/**/*', f'{this_project_deps}/libhandlegraph/src/**/*']
     if include_deps:
         # Include all dependencies if asked
-        paths.append(f'{this_project_deps}/*/src/*/*')
+        paths.append(f'{this_project_deps}/**/*')
     # Get an iterable of glob iterables that search all combinations
     all_globs = (glob.glob(f'{f}.{e}', recursive=True) for f, e in itertools.product(paths, SOURCE_EXTENSIONS))
     # Deduplicate overlapping globs
@@ -200,18 +201,17 @@ def make_bindings_code(all_includes_fn, binder_executable):
     ''' runs the binder executable with required parameters '''
     # Find all the include directories for dependencies.
     # Some dependency repos have an include and some have an src/include.
-    # TODO: This (and a lot of this script) relies on a cmake build having been done out of "build" beforehand!
     # BBHash and sparsepp have weird project structures and needs to be handled specially.
-    proj_include = (glob.glob("build/*/src/*/include") +
-                    glob.glob("build/*/src/*/src/include") +
-                    ["build/sparsepp-prefix/src/sparsepp",
-                     "build/bbhash-prefix/src/bbhash"])
+    proj_include = (glob.glob(f'{this_project_deps}/*/include') +
+                    glob.glob(f'{this_project_deps}/*/src/include') +
+                    [f'{this_project_deps}/sparsepp',
+                     f'{this_project_deps}/BBHash'])
     # proj_include = " -I".join(proj_include)
     proj_include = [f'-I{i}' for i in proj_include]
     
     command = [binder_executable,
         "--root-module", python_module_name,
-        "--prefix", f'{os.getcwd()}/{bindings_dir}/',
+        "--prefix", f'{bindings_dir}/',
         '--bind', this_project_namespace_to_bind,
         "--config", "config.cfg",
         all_includes_fn,
@@ -249,9 +249,10 @@ def make_bindings_code(all_includes_fn, binder_executable):
                 
 def main():
     clone_repos()
+    parent = os.getcwd()
     os.chdir("binder")
     binder_executable = build_binder()
-    os.chdir("..")
+    os.chdir(parent)
     with clean_includes():
         all_includes_fn = make_all_includes()
         make_bindings_code(all_includes_fn, binder_executable)
