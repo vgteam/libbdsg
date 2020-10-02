@@ -59,6 +59,7 @@ class build_ext(build_ext_orig):
 
 setup(
     name='bdsg',
+    url='https://github.com/vgteam/libbdsg',
     author="vgteam",
     author_email="anovak@soe.ucsc.edu",
     description="Library for BiDirected Sequence Graphs",
