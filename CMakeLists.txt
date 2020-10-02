@@ -2,6 +2,9 @@
 cmake_minimum_required(VERSION 3.10)
 # We can't use CMake 3.11 until we no longer have to run on Ubuntu 18.04.
 
+# Make MACOSX_RPATH on explicitly, so non-installed libraries use @rpath in install name
+set(CMAKE_MACOSX_RPATH ON)
+
 # Project's name
 project(bdsg)
 

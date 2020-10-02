@@ -1346,6 +1346,46 @@ void test_deletable_handle_graphs() {
         }
     }
     
+    // another batch of tests involving divide handle and reversing
+    // self edges
+    {
+        vector<DeletableHandleGraph*> implementations;
+        
+        HashGraph hg;
+        implementations.push_back(&hg);
+        
+        PackedGraph pg;
+        implementations.push_back(&pg);
+        
+        //ODGI og;
+        //implementations.push_back(&og);
+        
+        for (DeletableHandleGraph* implementation : implementations) {
+            DeletableHandleGraph& graph = *implementation;
+            
+            handle_t h1 = graph.create_handle("ATGAA");
+            handle_t h2 = graph.create_handle("ATGAA");
+            
+            graph.create_edge(h1, graph.flip(h1));
+            graph.create_edge(graph.flip(h2), h2);
+            
+            auto parts1 = graph.divide_handle(h1, {2, 4});
+            auto parts2 = graph.divide_handle(h2, {2, 4});
+            
+            assert(parts1.size() == 3);
+            assert(parts2.size() == 3);
+            
+            assert(graph.has_edge(parts1[0], parts1[1]));
+            assert(graph.has_edge(parts1[1], parts1[2]));
+            assert(graph.has_edge(parts1[2], graph.flip(parts1[2])));
+            
+            assert(graph.has_edge(parts2[0], parts2[1]));
+            assert(graph.has_edge(parts2[1], parts2[2]));
+            assert(graph.has_edge(graph.flip(parts2[0]), parts2[0]));
+            
+        }
+    }
+    
     cerr << "DeletableHandleGraph tests successful!" << endl;
 }
 
