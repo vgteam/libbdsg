@@ -117,6 +117,11 @@ public:
     /// Move assignment operator
     PagedVector& operator=(PagedVector&& other) = default;
     
+    /// Copy constructor
+    PagedVector(const PagedVector& other) = default;
+    /// Copy assignment operator
+    PagedVector& operator=(const PagedVector& other) = default;
+    
     // Destructor
     ~PagedVector();
     
@@ -198,6 +203,11 @@ public:
     /// Move assignment operator
     RobustPagedVector& operator=(RobustPagedVector&& other) = default;
     
+    /// Copy constructor
+    RobustPagedVector(const RobustPagedVector& other) = default;
+    /// Copy assignment operator
+    RobustPagedVector& operator=(const RobustPagedVector& other) = default;
+    
     // Destructor
     ~RobustPagedVector();
     
@@ -268,6 +278,11 @@ public:
     PackedDeque(PackedDeque&& other) = default;
     /// Move assignment operator
     PackedDeque& operator=(PackedDeque&& other) = default;
+    
+    /// Copy constructor
+    PackedDeque(const PackedDeque& other) = default;
+    /// Copy assignment operator
+    PackedDeque& operator=(const PackedDeque& other) = default;
     
     /// Destructor
     ~PackedDeque(void);
