@@ -244,13 +244,16 @@ Note how we are using ``or True`` in the iteratee callback lambda functions to m
 Reading in a Graph from vg
 ==========================
 
-Graph assembies can be created with `vg <https://github.com/vgteam/vg>`_. Many ``.vg`` files that vg 1.28.0 or newer produces will be in HashGraph format, directly loadable by :func:`bdsg.bdsg.HashGraph.deserialize`. However, some outputs of streaming operations, including ``vg construct``, will need to be converted. To check a file, you can use ``vg stats --format``, like so:
+Graph assembies can be created with `vg <https://github.com/vgteam/vg>`_. Many ``.vg`` files that vg 1.28.0 or newer produces will be in HashGraph format, directly loadable by :func:`bdsg.bdsg.HashGraph.deserialize`.
+To check a file, you can use ``vg stats --format``, like so:
 
 .. code-block:: bash
 
     vg stats --format graph.vg
     
-If this produces ``format: VG-Protobuf``, or if you have a ``.xg`` file and it reports ``format: XG``, you will need to convert the graph to HashGraph, PackedGraph, or ODGI format, and load it with the appropriate class. For example, you can do this:
+If you see one of ``format: HashGraph``, ``format: PackedGraph``, or ``format: ODGI``, you can probably (but not always; see the note on encapsulation_) load the graph with :class:`bdsg.bdsg.HashGraph`, :class:`bdsg.bdsg.PackedGraph`, or :class:`bdsg.bdsg.ODGI`, respectively.
+
+However, in some circumstances, you will need to convert the graph to one of those formats. Some graphs (most notably, graphs from ``vg construct``) will report ``format: VG-Protobuf``, and ``.xg`` files will report ``format: XG``. These graphs will need to be converted to HashGraph, PackedGraph, or ODGI format, and then loaded with the appropriate class. For example, you can do this:
 
 .. code-block:: bash
 
@@ -266,8 +269,10 @@ The resulting PackedGraph file can be loaded with :func:`bdsg.bdsg.PackedGraph.d
 
 To use :class:`bdsg.bdsg.HashGraph` instead, substitute ``--hash-out`` for ``--packed-out``. For :class:`bdsg.bdsg.ODGI`, use ``--odgi-out``.
 
-Older vg Graphs
-===============
+.. _encapsulation:
+
+Older vg Graphs with Encapsulation
+==================================
 
 Versions of vg before 1.28.0 would encapsulate HashGraph, PackedGraph, and ODGI graphs in a file format that vg can read but libbdsg cannot. Consequently, some older graph files will be reported as ``format: HashGraph``, ``format: PackedGraph``, or ``format: ODGI`` by ``vg stats --format``, but will still not be readable using libbdsg.
 
@@ -278,3 +283,5 @@ If you encounter one of these files, you can use ``vg view --extract-tag`` to re
     vg view graph.vg --extract-tag PackedGraph > graph.pg
 
 This also works for ``HashGraph`` and ``ODGI`` files, by replacing ``PackedGraph`` with ``HashGraph`` or ``ODGI``.
+
+Running the file through ``vg convert`` with vg 1.28.0 or newer will also solve the problem, but could take longer.
