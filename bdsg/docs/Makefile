@@ -23,6 +23,7 @@ help:
 
 # Make sure we are ready to run Sphinx
 sphinxprep: ../../lib/bdsg.module
+	pip3 install -r requirements.txt
 
 clean:
 	rm -Rf $(BUILDDIR)
