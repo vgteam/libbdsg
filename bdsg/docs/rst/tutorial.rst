@@ -250,7 +250,7 @@ Graph assembies can be created with `vg <https://github.com/vgteam/vg>`_. Many `
 
     vg stats --format graph.vg
     
-If this produces ``format: VG-Protobuf``, you will need to convert the graph to HashGraph PackedGraph, or ODGI format, and load it with the appropriate class. For example, you can do this:
+If this produces ``format: VG-Protobuf``, or if you have a ``.xg`` file and it reports ``format: XG``, you will need to convert the graph to HashGraph, PackedGraph, or ODGI format, and load it with the appropriate class. For example, you can do this:
 
 .. code-block:: bash
 
@@ -264,7 +264,7 @@ The resulting PackedGraph file can be loaded with :func:`bdsg.bdsg.PackedGraph.d
     graph = PackedGraph()
     graph.deserialize("graph.pg")
 
-To use :class:`bdsg.bdsg.HashGraph` instead, substitute ``--hash-out`` for ``--packed-out``.
+To use :class:`bdsg.bdsg.HashGraph` instead, substitute ``--hash-out`` for ``--packed-out``. For :class:`bdsg.bdsg.ODGI`, use ``--odgi-out``.
 
 Older vg Graphs
 ===============
