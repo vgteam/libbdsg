@@ -23,7 +23,7 @@ help:
 
 # Make sure we are ready to run Sphinx
 sphinxprep: ../../lib/bdsg.module
-	pip3 install -r requirements.txt --use-feature=2020-resolver || pip3 install -r requirements.txt
+	python3 -c 'import sphinx ; import breathe' || pip3 install -r requirements.txt --use-feature=2020-resolver
 
 clean:
 	rm -Rf $(BUILDDIR)
