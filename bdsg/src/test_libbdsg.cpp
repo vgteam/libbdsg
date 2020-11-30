@@ -1153,14 +1153,14 @@ void test_deletable_handle_graphs() {
             graph.create_edge(h6, h7);
             graph.create_edge(h7, h8);
             
-            graph.truncate_handle(h7, true, 1);
+            h7 = graph.truncate_handle(h7, true, 1);
             assert(graph.get_sequence(h7) == "CGG");
             assert(graph.get_degree(h7, true) == 0);
             assert(graph.get_degree(h7, false) == 1);
             assert(graph.get_degree(h6, false) == 0);
             assert(graph.get_degree(h8, true) == 1);
             
-            graph.truncate_handle(h7, false, 2);
+            h7 = graph.truncate_handle(h7, false, 2);
             assert(graph.get_sequence(h7) == "CG");
             assert(graph.get_degree(h7, true) == 0);
             assert(graph.get_degree(h7, false) == 0);
