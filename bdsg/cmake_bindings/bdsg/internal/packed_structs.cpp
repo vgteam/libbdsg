@@ -46,6 +46,8 @@ void bind_bdsg_internal_packed_structs(std::function< pybind11::module &(std::st
 		pybind11::class_<bdsg::PagedVector, std::shared_ptr<bdsg::PagedVector>> cl(M("bdsg"), "PagedVector", "");
 		cl.def( pybind11::init<unsigned long>(), pybind11::arg("page_size") );
 
+		cl.def( pybind11::init( [](bdsg::PagedVector const &o){ return new bdsg::PagedVector(o); } ) );
+		cl.def("assign", (class bdsg::PagedVector & (bdsg::PagedVector::*)(const class bdsg::PagedVector &)) &bdsg::PagedVector::operator=, "Copy assignment operator\n\nC++: bdsg::PagedVector::operator=(const class bdsg::PagedVector &) --> class bdsg::PagedVector &", pybind11::return_value_policy::automatic, pybind11::arg("other"));
 		cl.def("set", (void (bdsg::PagedVector::*)(const unsigned long &, const unsigned long &)) &bdsg::PagedVector::set, "Set the i-th value\n\nC++: bdsg::PagedVector::set(const unsigned long &, const unsigned long &) --> void", pybind11::arg("i"), pybind11::arg("value"));
 		cl.def("get", (unsigned long (bdsg::PagedVector::*)(const unsigned long &) const) &bdsg::PagedVector::get, "Returns the i-th value\n\nC++: bdsg::PagedVector::get(const unsigned long &) const --> unsigned long", pybind11::arg("i"));
 		cl.def("append", (void (bdsg::PagedVector::*)(const unsigned long &)) &bdsg::PagedVector::append, "Add a value to the end\n\nC++: bdsg::PagedVector::append(const unsigned long &) --> void", pybind11::arg("value"));
@@ -58,10 +60,12 @@ void bind_bdsg_internal_packed_structs(std::function< pybind11::module &(std::st
 		cl.def("page_width", (unsigned long (bdsg::PagedVector::*)() const) &bdsg::PagedVector::page_width, "Returns the page width of the vector\n\nC++: bdsg::PagedVector::page_width() const --> unsigned long");
 		cl.def("memory_usage", (unsigned long (bdsg::PagedVector::*)() const) &bdsg::PagedVector::memory_usage, "Reports the amount of memory consumed by this object in bytes\n\nC++: bdsg::PagedVector::memory_usage() const --> unsigned long");
 	}
-	{ // bdsg::RobustPagedVector file:bdsg/internal/packed_structs.hpp line:188
+	{ // bdsg::RobustPagedVector file:bdsg/internal/packed_structs.hpp line:193
 		pybind11::class_<bdsg::RobustPagedVector, std::shared_ptr<bdsg::RobustPagedVector>> cl(M("bdsg"), "RobustPagedVector", "");
 		cl.def( pybind11::init<unsigned long>(), pybind11::arg("page_size") );
 
+		cl.def( pybind11::init( [](bdsg::RobustPagedVector const &o){ return new bdsg::RobustPagedVector(o); } ) );
+		cl.def("assign", (class bdsg::RobustPagedVector & (bdsg::RobustPagedVector::*)(const class bdsg::RobustPagedVector &)) &bdsg::RobustPagedVector::operator=, "Copy assignment operator\n\nC++: bdsg::RobustPagedVector::operator=(const class bdsg::RobustPagedVector &) --> class bdsg::RobustPagedVector &", pybind11::return_value_policy::automatic, pybind11::arg("other"));
 		cl.def("set", (void (bdsg::RobustPagedVector::*)(const unsigned long &, const unsigned long &)) &bdsg::RobustPagedVector::set, "Set the i-th value\n\nC++: bdsg::RobustPagedVector::set(const unsigned long &, const unsigned long &) --> void", pybind11::arg("i"), pybind11::arg("value"));
 		cl.def("get", (unsigned long (bdsg::RobustPagedVector::*)(const unsigned long &) const) &bdsg::RobustPagedVector::get, "Returns the i-th value\n\nC++: bdsg::RobustPagedVector::get(const unsigned long &) const --> unsigned long", pybind11::arg("i"));
 		cl.def("append", (void (bdsg::RobustPagedVector::*)(const unsigned long &)) &bdsg::RobustPagedVector::append, "Add a value to the end\n\nC++: bdsg::RobustPagedVector::append(const unsigned long &) --> void", pybind11::arg("value"));
@@ -74,9 +78,11 @@ void bind_bdsg_internal_packed_structs(std::function< pybind11::module &(std::st
 		cl.def("page_width", (unsigned long (bdsg::RobustPagedVector::*)() const) &bdsg::RobustPagedVector::page_width, "Returns the page width of the vector\n\nC++: bdsg::RobustPagedVector::page_width() const --> unsigned long");
 		cl.def("memory_usage", (unsigned long (bdsg::RobustPagedVector::*)() const) &bdsg::RobustPagedVector::memory_usage, "Reports the amount of memory consumed by this object in bytes\n\nC++: bdsg::RobustPagedVector::memory_usage() const --> unsigned long");
 	}
-	{ // bdsg::PackedDeque file:bdsg/internal/packed_structs.hpp line:260
+	{ // bdsg::PackedDeque file:bdsg/internal/packed_structs.hpp line:270
 		pybind11::class_<bdsg::PackedDeque, std::shared_ptr<bdsg::PackedDeque>> cl(M("bdsg"), "PackedDeque", "");
 		cl.def( pybind11::init( [](){ return new bdsg::PackedDeque(); } ) );
+		cl.def( pybind11::init( [](bdsg::PackedDeque const &o){ return new bdsg::PackedDeque(o); } ) );
+		cl.def("assign", (class bdsg::PackedDeque & (bdsg::PackedDeque::*)(const class bdsg::PackedDeque &)) &bdsg::PackedDeque::operator=, "Copy assignment operator\n\nC++: bdsg::PackedDeque::operator=(const class bdsg::PackedDeque &) --> class bdsg::PackedDeque &", pybind11::return_value_policy::automatic, pybind11::arg("other"));
 		cl.def("set", (void (bdsg::PackedDeque::*)(const unsigned long &, const unsigned long &)) &bdsg::PackedDeque::set, "Set the i-th value\n\nC++: bdsg::PackedDeque::set(const unsigned long &, const unsigned long &) --> void", pybind11::arg("i"), pybind11::arg("value"));
 		cl.def("get", (unsigned long (bdsg::PackedDeque::*)(const unsigned long &) const) &bdsg::PackedDeque::get, "Returns the i-th value\n\nC++: bdsg::PackedDeque::get(const unsigned long &) const --> unsigned long", pybind11::arg("i"));
 		cl.def("append_front", (void (bdsg::PackedDeque::*)(const unsigned long &)) &bdsg::PackedDeque::append_front, "Add a value to the front\n\nC++: bdsg::PackedDeque::append_front(const unsigned long &) --> void", pybind11::arg("value"));
@@ -89,9 +95,9 @@ void bind_bdsg_internal_packed_structs(std::function< pybind11::module &(std::st
 		cl.def("clear", (void (bdsg::PackedDeque::*)()) &bdsg::PackedDeque::clear, "Empty the contents\n\nC++: bdsg::PackedDeque::clear() --> void");
 		cl.def("memory_usage", (unsigned long (bdsg::PackedDeque::*)() const) &bdsg::PackedDeque::memory_usage, "Reports the amount of memory consumed by this object in bytes.\n\nC++: bdsg::PackedDeque::memory_usage() const --> unsigned long");
 	}
-	{ // bdsg::PackedSet file:bdsg/internal/packed_structs.hpp line:334
+	{ // bdsg::PackedSet file:bdsg/internal/packed_structs.hpp line:349
 		pybind11::class_<bdsg::PackedSet, std::shared_ptr<bdsg::PackedSet>> cl(M("bdsg"), "PackedSet", "");
-		{ // bdsg::PackedSet::iterator file:bdsg/internal/packed_structs.hpp line:388
+		{ // bdsg::PackedSet::iterator file:bdsg/internal/packed_structs.hpp line:403
 			auto & enclosing_class = cl;
 			pybind11::class_<bdsg::PackedSet::iterator, std::shared_ptr<bdsg::PackedSet::iterator>> cl(enclosing_class, "iterator", "");
 			cl.def( pybind11::init( [](bdsg::PackedSet::iterator const &o){ return new bdsg::PackedSet::iterator(o); } ) );
