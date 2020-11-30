@@ -388,7 +388,7 @@ namespace bdsg {
                     continue;
                 }
                 node_t& left_node = graph[get_id(left)];
-                auto& left_edge_list = get_is_reverse(left) ? left_node.left_edges : left_node.right_edges;
+                auto& left_edge_list = get_is_reverse(left) ? left_node.right_edges : left_node.left_edges;
                 
                 for (handle_t& next : left_edge_list) {
                     if (next == fwd_handle) {
