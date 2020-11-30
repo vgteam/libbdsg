@@ -971,6 +971,19 @@ struct PyCallBack_handlegraph_PathHandleGraph : public handlegraph::PathHandleGr
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"PathHandleGraph::get_step_count\"");
 	}
+	unsigned long get_step_count(const struct handlegraph::handle_t & a0) const override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathHandleGraph *>(this), "get_step_count");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
+				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+		}
+		return PathHandleGraph::get_step_count(a0);
+	}
 	struct handlegraph::handle_t get_handle_of_step(const struct handlegraph::step_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::PathHandleGraph *>(this), "get_handle_of_step");
@@ -1455,6 +1468,7 @@ void bind_handlegraph_handle_graph(std::function< pybind11::module &(std::string
 		cl.def("get_path_name", (std::string (handlegraph::PathHandleGraph::*)(const struct handlegraph::path_handle_t &) const) &handlegraph::PathHandleGraph::get_path_name, "Look up the name of a path from a handle to it\n\nC++: handlegraph::PathHandleGraph::get_path_name(const struct handlegraph::path_handle_t &) const --> std::string", pybind11::arg("path_handle"));
 		cl.def("get_is_circular", (bool (handlegraph::PathHandleGraph::*)(const struct handlegraph::path_handle_t &) const) &handlegraph::PathHandleGraph::get_is_circular, "Look up whether a path is circular\n\nC++: handlegraph::PathHandleGraph::get_is_circular(const struct handlegraph::path_handle_t &) const --> bool", pybind11::arg("path_handle"));
 		cl.def("get_step_count", (unsigned long (handlegraph::PathHandleGraph::*)(const struct handlegraph::path_handle_t &) const) &handlegraph::PathHandleGraph::get_step_count, "Returns the number of node steps in the path\n\nC++: handlegraph::PathHandleGraph::get_step_count(const struct handlegraph::path_handle_t &) const --> unsigned long", pybind11::arg("path_handle"));
+		cl.def("get_step_count", (unsigned long (handlegraph::PathHandleGraph::*)(const struct handlegraph::handle_t &) const) &handlegraph::PathHandleGraph::get_step_count, "Returns the number of node steps on a handle\n\nC++: handlegraph::PathHandleGraph::get_step_count(const struct handlegraph::handle_t &) const --> unsigned long", pybind11::arg("handle"));
 		cl.def("get_handle_of_step", (struct handlegraph::handle_t (handlegraph::PathHandleGraph::*)(const struct handlegraph::step_handle_t &) const) &handlegraph::PathHandleGraph::get_handle_of_step, "Get a node handle (node ID and orientation) from a handle to an step on a path\n\nC++: handlegraph::PathHandleGraph::get_handle_of_step(const struct handlegraph::step_handle_t &) const --> struct handlegraph::handle_t", pybind11::arg("step_handle"));
 		cl.def("get_path_handle_of_step", (struct handlegraph::path_handle_t (handlegraph::PathHandleGraph::*)(const struct handlegraph::step_handle_t &) const) &handlegraph::PathHandleGraph::get_path_handle_of_step, "Returns a handle to the path that an step is on\n\nC++: handlegraph::PathHandleGraph::get_path_handle_of_step(const struct handlegraph::step_handle_t &) const --> struct handlegraph::path_handle_t", pybind11::arg("step_handle"));
 		cl.def("path_begin", (struct handlegraph::step_handle_t (handlegraph::PathHandleGraph::*)(const struct handlegraph::path_handle_t &) const) &handlegraph::PathHandleGraph::path_begin, "Get a handle to the first step, which will be an arbitrary step in a circular path\n that we consider \"first\" based on our construction of the path. If the path is empty,\n then the implementation must return the same value as path_end().\n\nC++: handlegraph::PathHandleGraph::path_begin(const struct handlegraph::path_handle_t &) const --> struct handlegraph::step_handle_t", pybind11::arg("path_handle"));

@@ -262,7 +262,8 @@ namespace bdsg {
         
         // create edges between the segments of the original node
         for (size_t i = 1; i < return_val.size(); i++) {
-            create_edge(return_val[i - 1], return_val[i]);
+            graph[get_id(return_val[i - 1])].right_edges.push_back(return_val[i]);
+            graph[get_id(return_val[i])].left_edges.push_back(flip(return_val[i - 1]));
         }
         
         // update the paths and the occurrence records
@@ -370,6 +371,60 @@ namespace bdsg {
                 break;
             }
         }
+    }
+
+    handle_t HashGraph::truncate_handle(const handle_t& handle, bool trunc_left, size_t offset) {
+        
+        handle_t fwd_handle = forward(handle);
+        offset = get_is_reverse(handle) ? get_length(handle) - offset : offset;
+        trunc_left = get_is_reverse(handle) != trunc_left;
+        
+        node_t& node = graph[get_id(fwd_handle)];
+        // TODO: repetitive with destroy_edge
+        if (trunc_left) {
+            // remove references on the other nodes
+            for (handle_t left : node.left_edges) {
+                if (left == fwd_handle) {
+                    continue;
+                }
+                node_t& left_node = graph[get_id(left)];
+                auto& left_edge_list = get_is_reverse(left) ? left_node.right_edges : left_node.left_edges;
+                
+                for (handle_t& next : left_edge_list) {
+                    if (next == fwd_handle) {
+                        next = left_edge_list.back();
+                        left_edge_list.pop_back();
+                        break;
+                    }
+                }
+            }
+            // remove references on this node
+            node.left_edges.clear();
+            node.sequence = node.sequence.substr(offset, string::npos);
+        }
+        else {
+            // remove references on the other nodes
+            for (handle_t right : node.right_edges) {
+                if (right == flip(fwd_handle)) {
+                    continue;
+                }
+                node_t& right_node = graph[get_id(right)];
+                auto& right_edge_list = get_is_reverse(right) ? right_node.right_edges : right_node.left_edges;
+                
+                for (handle_t& prev : right_edge_list) {
+                    if (prev == flip(fwd_handle)) {
+                        prev = right_edge_list.back();
+                        right_edge_list.pop_back();
+                        break;
+                    }
+                }
+            }
+            // remove references on this node
+            node.right_edges.clear();
+            node.sequence.resize(offset);
+        }
+        
+        return handle;
     }
     
     void HashGraph::clear(void) {
