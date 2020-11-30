@@ -142,6 +142,12 @@ public:
     /// Does not update any stored paths.
     void destroy_edge(const handle_t& left, const handle_t& right);
     
+    /// Shorten a node by truncating either the left or right side of the node, relative to the orientation
+    /// of the handle, starting from a given offset along the nodes sequence. Any edges on the truncated
+    /// end of the node are deleted. Returns a (possibly altered) handle to the truncated node.
+    /// May invalid stored paths.
+    handle_t truncate_handle(const handle_t& handle, bool trunc_left, size_t offset);
+    
     /// Remove all nodes and edges. Does not update any stored paths.
     void clear(void);
     
