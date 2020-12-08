@@ -11,6 +11,7 @@
 #include <unordered_set>
 #include <random>
 #include <sstream>
+#include <thread>
 #include <deque>
 #include <functional>
 #include <stdexcept>
@@ -29,6 +30,8 @@
 using namespace bdsg;
 using namespace handlegraph;
 using namespace std;
+
+//#define debug_at
 
 
 /**
@@ -62,7 +65,9 @@ public:
         }
         auto base = serialized_data();
         auto found = (Item*)(base + (index * sizeof(Item)));
+#ifdef debug_at
         std::cerr << "Got writable reference to item index " << index << " at " << (void*)found << std::endl;
+#endif
         return *found;
     }
     
@@ -74,65 +79,265 @@ public:
         }
         auto base = serialized_data();
         auto found = (Item*)(base + (index * sizeof(Item)));
+#ifdef debug_at
         std::cerr << "Got read-only reference to item index " << index << " at " << (void*)found << std::endl;
+#endif
         return *found;
     }
 };
 
+// Have helpers to store and check some test data
+
+void fill_to(TriviallySerializableArray<int64_t>& data, size_t count, int64_t nonce) {
+    for (size_t i = 0; i < count; i++) {
+        data.at(i) = ((i * i + (i << 2)) ^ nonce);
+    }
+}
+
+void verify_to(const TriviallySerializableArray<int64_t>& data, size_t count, int64_t nonce) {
+    if (count > data.size()) {
+        throw std::runtime_error("Trying to check " + std::to_string(count) + " items but only " + std::to_string(data.size()) + " are available");
+    }
+    for (size_t i = 0; i < count; i++) {
+        assert(data.at(i) == ((i * i + (i << 2))) ^ nonce);
+    }
+}
+
 void test_trivially_serializable() {
-    TriviallySerializableArray<int64_t> numbers;
     
-    // We should start empty
-    assert(numbers.size() == 0);
     
-    // We should be able to expand.
-    numbers.resize(100);
-    assert(numbers.size() == 100);
+    // We're going to need a temporary file
+    // This filename fill be filled in with the actual filename.
+    char filename[] = "tmpXXXXXX";
+    int tmpfd = mkstemp(filename);
+    assert(tmpfd != -1);
     
-    // We should be able to contract again.
-    numbers.resize(0);
-    assert(numbers.size() == 0);
-    
-    // TODO: If /proc/sys/vm/overcommit_memory is 1 and we use MAP_NORESERVE
-    // internally, we could get arbitrarily big without really needing the RAM or swap.
-    // This should be 1 PB
-    //                     k       m       g       t       p
-    size_t VERY_BIG = 1L * 1000L * 1000L * 1000L * 1000L * 1000L;
-    //numbers.resize(VERY_BIG);
-    //assert(numbers.size() == VERY_BIG);
-    
-    // We should be able to contract again.
-    numbers.resize(0);
-    assert(numbers.size() == 0);
-    
-    // We should be able to actually store some data
-    auto fill_to = [&](size_t count) {
-        for (size_t i = 0; i < count; i++) {
-            numbers.at(i) = i * i + (i << 2);
+    {
+        // Make a test array
+        TriviallySerializableArray<int64_t> numbers;
+        
+        // We should start empty
+        assert(numbers.size() == 0);
+        
+        // We should be able to expand.
+        numbers.resize(100);
+        assert(numbers.size() == 100);
+        
+        // We should be able to contract again.
+        numbers.resize(0);
+        assert(numbers.size() == 0);
+        
+        // TODO: If /proc/sys/vm/overcommit_memory is 1 and we use MAP_NORESERVE
+        // internally, we could get arbitrarily big without really needing the RAM or swap.
+        // This should be 1 PB
+        //                     k       m       g       t       p
+        size_t VERY_BIG = 1L * 1000L * 1000L * 1000L * 1000L * 1000L;
+        //numbers.resize(VERY_BIG);
+        //assert(numbers.size() == VERY_BIG);
+        
+        // We should be able to contract again.
+        numbers.resize(0);
+        assert(numbers.size() == 0);
+        
+        // We can actually hold data
+        numbers.resize(10);
+        fill_to(numbers, 10, 0);
+        verify_to(numbers, 10, 0);
+        
+        // Data is preserved when we resize down
+        numbers.resize(5);
+        assert(numbers.size() == 5);
+        verify_to(numbers, 5, 0);
+        
+        // Data is preserved when we resize up
+        numbers.resize(20480);
+        verify_to(numbers, 5, 0);
+        fill_to(numbers, 20480, 0);
+        verify_to(numbers, 20480, 0);
+        
+        {
+            // Save it to a C++ stream
+            stringstream strm;
+            numbers.serialize(strm);
+            
+            // Load it back from the C++ stream
+            strm.seekg(0);
+            TriviallySerializableArray<int64_t> reloaded;
+            reloaded.deserialize(strm);
+            
+            // Make sure that's right
+            verify_to(reloaded, 20480, 0);
+            
+            // Destroy copy
         }
-    };
-    auto verify_to = [&](size_t count) {
-        assert(count <= numbers.size());
-        for (size_t i = 0; i < count; i++) {
-            assert(numbers.at(i) == i * i + (i << 2));
+        
+        {
+            // Open a pipe and get read and write ends.
+            int pipefds[2];
+            assert(pipe(pipefds) == 0);
+            
+            // Start a thread to read the pipe
+            std::thread read_thread([](int fd) {
+                // Read a copy from the pipe
+                TriviallySerializableArray<int64_t> reloaded;
+                reloaded.deserialize(fd);
+                
+                // Make sure that's right
+                verify_to(reloaded, 20480, 0);
+                
+                // CLose our end of the pipe.
+                assert(close(fd) == 0);
+                
+                // Copy goes out of scope
+            }, pipefds[0]);
+            
+            // Save to the write end of the pipe
+            numbers.serialize(pipefds[1]);
+            // Close our end of the pipe so the other end stops streaming.
+            assert(close(pipefds[1]) == 0);
+            
+            // Join the thread
+            read_thread.join();
         }
-    };
+        
+        // Data is preserved after pipe write
+        verify_to(numbers, 20480, 0);
+        
+        // Data is preserved when we resize down after pipe write
+        numbers.resize(120);
+        verify_to(numbers, 120, 0);
+        // And back up again
+        numbers.resize(20480);
+        verify_to(numbers, 120, 0);
+        fill_to(numbers, 20480, 0);
+        verify_to(numbers, 20480, 0);
+        
+        // Write out to the temp file FD
+        numbers.serialize(tmpfd);
+        
+        // Make sure it's still right
+        verify_to(numbers, 20480, 0);
+        
+        {
+            // Load it in another copy, from FD
+            TriviallySerializableArray<int64_t> reloaded;
+            reloaded.deserialize(tmpfd);
+            
+            // Make sure that's right
+            verify_to(reloaded, 20480, 0);
+            
+            // Destroy copy
+        }
+        
+        // Close our temp file, which should not affect the link.
+        // It also should work; the object isn't allowed to tamper with our
+        // file descriptor.
+        assert(close(tmpfd) == 0);
+        
+        {
+            // Load it in another copy, from filename
+            TriviallySerializableArray<int64_t> reloaded;
+            reloaded.deserialize(std::string(filename));
+            
+            // Make sure that's right
+            verify_to(reloaded, 20480, 0);
+            
+            // Destroy copy
+        }
+        
+        // Modify the original in place
+        numbers.resize(40960);
+        fill_to(numbers, 40960, 1);
+        
+        {
+            // Load it in a new copy
+            TriviallySerializableArray<int64_t> reloaded;
+            reloaded.deserialize(std::string(filename));
+            
+            // Make sure the modification took
+            verify_to(reloaded, 40960, 1);
+            
+            // Destroy copy
+        }
+        
+        {
+            // Load it in a copy
+            TriviallySerializableArray<int64_t> reloaded;
+            reloaded.deserialize(std::string(filename));
+            
+            // Sever the copy connection
+            reloaded.dissociate();
+            
+            // Modify the copy
+            reloaded.resize(4096);
+            fill_to(reloaded, 4096, 3);
+            
+            // Make sure original is the same.
+            verify_to(numbers, 40960, 1);
+            
+            // Destroy copy
+        }
+        
+        // Make sure original is the same.
+        verify_to(numbers, 40960, 1);
+        
+        // Sever connection on original
+        numbers.dissociate();
+        
+        // Modify it again
+        numbers.resize(12);
+        fill_to(numbers, 12, 2);
+        
+        // Destroy it, because modifications to the file by other
+        // non-dissociated loaders may put it into an undefined state.
+    }
     
-    // We can actually hold data
-    numbers.resize(10);
-    fill_to(10);
-    verify_to(10);
+    {
+        // Load it in a copy
+        TriviallySerializableArray<int64_t> reloaded;
+        reloaded.deserialize(std::string(filename));
+        
+        // Make sure the last modification is not visible
+        verify_to(reloaded, 40960, 1);
+        
+        // Modify the copy
+        reloaded.resize(4096);
+        fill_to(reloaded, 4096, 3);
     
-    // Data is preserved when we resize down
-    numbers.resize(5);
-    assert(numbers.size() == 5);
-    verify_to(5);
+        {
+            // Load another copy
+            TriviallySerializableArray<int64_t> rereloaded;
+            rereloaded.deserialize(std::string(filename));
+            
+            // Make sure the modification is visible
+            verify_to(rereloaded, 4096, 3);
+            
+            // Discard it
+        }
+        
+        // Sever the connection on the copy
+        reloaded.dissociate();
+       
+        // Modify the copy
+        reloaded.resize(4096);
+        fill_to(reloaded, 4096, 4);
+        
+        {
+            // Load another copy
+            TriviallySerializableArray<int64_t> rereloaded;
+            rereloaded.deserialize(std::string(filename));
+            
+            // Make sure the modification is not visible
+            verify_to(rereloaded, 4096, 3);
+            
+            // Discard it
+        }
+        
+        // Discard loaded copy
+    }
     
-    // Data is preserved when we resize up
-    numbers.resize(2048);
-    verify_to(5);
-    fill_to(2048);
-    verify_to(2048);
+    // Try and delete the file out of the directory.
+    unlink(filename);
     
     cerr << "TriviallySerializable tests successful!" << endl;
 }
