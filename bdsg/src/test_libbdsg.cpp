@@ -13,6 +13,7 @@
 #include <sstream>
 #include <deque>
 #include <functional>
+#include <stdexcept>
 
 #include "bdsg/odgi.hpp"
 #include "bdsg/packed_graph.hpp"
@@ -23,9 +24,118 @@
 #include "bdsg/overlays/vectorizable_overlays.hpp"
 #include "bdsg/overlays/packed_subgraph_overlay.hpp"
 
+#include <handlegraph/trivially_serializable.hpp>
+
 using namespace bdsg;
 using namespace handlegraph;
 using namespace std;
+
+
+/**
+ * We define this template to test the TriviallySerializable mmap-managing base
+ * class independently.
+ */
+template<typename Item>
+class TriviallySerializableArray : public handlegraph::TriviallySerializable {
+public:
+
+    TriviallySerializableArray() = default;
+    
+    uint32_t get_magic_number() const {
+        // We must define a magic number for this type.
+        return 0x12345678;
+    }
+    
+    size_t size() const {
+        return serialized_data_size() / sizeof(Item); 
+    }
+    
+    void resize(size_t count) {
+        serialized_data_resize(count * sizeof(Item));
+    }
+    
+    Item& at(size_t index) {
+        static_assert(sizeof(Item) % sizeof(char) == 0);
+        if (index >= size()) {
+            throw std::out_of_range("Tried to access index " + std::to_string(index) +
+                " in array of size " + std::to_string(size()));
+        }
+        auto base = serialized_data();
+        auto found = (Item*)(base + (index * sizeof(Item)));
+        std::cerr << "Got writable reference to item index " << index << " at " << (void*)found << std::endl;
+        return *found;
+    }
+    
+    Item& at(size_t index) const {
+        static_assert(sizeof(Item) % sizeof(char) == 0);
+        if (index >= size()) {
+            throw std::out_of_range("Tried to access index " + std::to_string(index) +
+                " in array of size " + std::to_string(size()));
+        }
+        auto base = serialized_data();
+        auto found = (Item*)(base + (index * sizeof(Item)));
+        std::cerr << "Got read-only reference to item index " << index << " at " << (void*)found << std::endl;
+        return *found;
+    }
+};
+
+void test_trivially_serializable() {
+    TriviallySerializableArray<int64_t> numbers;
+    
+    // We should start empty
+    assert(numbers.size() == 0);
+    
+    // We should be able to expand.
+    numbers.resize(100);
+    assert(numbers.size() == 100);
+    
+    // We should be able to contract again.
+    numbers.resize(0);
+    assert(numbers.size() == 0);
+    
+    // TODO: If /proc/sys/vm/overcommit_memory is 1 and we use MAP_NORESERVE
+    // internally, we could get arbitrarily big without really needing the RAM or swap.
+    // This should be 1 PB
+    //                     k       m       g       t       p
+    size_t VERY_BIG = 1L * 1000L * 1000L * 1000L * 1000L * 1000L;
+    //numbers.resize(VERY_BIG);
+    //assert(numbers.size() == VERY_BIG);
+    
+    // We should be able to contract again.
+    numbers.resize(0);
+    assert(numbers.size() == 0);
+    
+    // We should be able to actually store some data
+    auto fill_to = [&](size_t count) {
+        for (size_t i = 0; i < count; i++) {
+            numbers.at(i) = i * i + (i << 2);
+        }
+    };
+    auto verify_to = [&](size_t count) {
+        assert(count <= numbers.size());
+        for (size_t i = 0; i < count; i++) {
+            assert(numbers.at(i) == i * i + (i << 2));
+        }
+    };
+    
+    // We can actually hold data
+    numbers.resize(10);
+    fill_to(10);
+    verify_to(10);
+    
+    // Data is preserved when we resize down
+    numbers.resize(5);
+    assert(numbers.size() == 5);
+    verify_to(5);
+    
+    // Data is preserved when we resize up
+    numbers.resize(2048);
+    verify_to(5);
+    fill_to(2048);
+    verify_to(2048);
+    
+    cerr << "TriviallySerializable tests successful!" << endl;
+}
 
 void test_serializable_handle_graphs() {
     
@@ -3089,6 +3199,7 @@ void test_packed_subgraph_overlay() {
 
 
 int main(void) {
+    test_trivially_serializable();
     test_packed_vector();
     test_paged_vector();
     test_packed_deque();
