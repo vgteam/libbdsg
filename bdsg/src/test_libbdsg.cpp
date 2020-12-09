@@ -16,6 +16,8 @@
 #include <functional>
 #include <stdexcept>
 
+#include <sys/stat.h>
+
 #include "bdsg/odgi.hpp"
 #include "bdsg/packed_graph.hpp"
 #include "bdsg/hash_graph.hpp"
@@ -229,11 +231,6 @@ void test_trivially_serializable() {
             // Destroy copy
         }
         
-        // Close our temp file, which should not affect the link.
-        // It also should work; the object isn't allowed to tamper with our
-        // file descriptor.
-        assert(close(tmpfd) == 0);
-        
         {
             // Load it in another copy, from filename
             TriviallySerializableArray<int64_t> reloaded;
@@ -256,6 +253,24 @@ void test_trivially_serializable() {
             
             // Make sure the modification took
             verify_to(reloaded, 40960, 1);
+            
+            // Destroy copy
+        }
+        
+        {
+            // Load it in a copy
+            TriviallySerializableArray<int64_t> reloaded;
+            reloaded.deserialize(std::string(filename));
+            
+            // Sever the copy connection
+            reloaded.dissociate();
+            
+            // Modify the copy
+            reloaded.resize(4096);
+            fill_to(reloaded, 4096, 3);
+            
+            // Make sure original is the same.
+            verify_to(numbers, 40960, 1);
             
             // Destroy copy
         }
@@ -335,6 +350,38 @@ void test_trivially_serializable() {
         
         // Discard loaded copy
     }
+    
+    
+    // Make the backing file read-only, so reads won't have a write-back link.
+    assert(fchmod(tmpfd, 0400) == 0);
+    
+    {
+        // Load a copy
+        TriviallySerializableArray<int64_t> reloaded;
+        reloaded.deserialize(std::string(filename));
+        
+        // Modify the copy without dissociating
+        reloaded.resize(512);
+        fill_to(reloaded, 512, 5);
+        
+        // Discard it
+    }
+    
+    {
+        // Load another copy
+        TriviallySerializableArray<int64_t> reloaded;
+        reloaded.deserialize(std::string(filename));
+        
+        // Make sure the modification to the read-only file is not visible
+        verify_to(reloaded, 4096, 3);
+        
+        // Discard it
+    }
+    
+    // Close our temp file, which should not affect the link.
+    // It also should work; the object isn't allowed to tamper with our
+    // file descriptor.
+    assert(close(tmpfd) == 0);
     
     // Try and delete the file out of the directory.
     unlink(filename);
