@@ -60,7 +60,7 @@ public:
     }
     
     Item& at(size_t index) {
-        static_assert(sizeof(Item) % sizeof(char) == 0);
+        static_assert(sizeof(Item) % sizeof(char) == 0, "Items must be char-aligned");
         if (index >= size()) {
             throw std::out_of_range("Tried to access index " + std::to_string(index) +
                 " in array of size " + std::to_string(size()));
@@ -74,7 +74,7 @@ public:
     }
     
     Item& at(size_t index) const {
-        static_assert(sizeof(Item) % sizeof(char) == 0);
+        static_assert(sizeof(Item) % sizeof(char) == 0, "Items must be char-aligned");
         if (index >= size()) {
             throw std::out_of_range("Tried to access index " + std::to_string(index) +
                 " in array of size " + std::to_string(size()));
@@ -101,7 +101,7 @@ void verify_to(const TriviallySerializableArray<int64_t>& data, size_t count, in
         throw std::runtime_error("Trying to check " + std::to_string(count) + " items but only " + std::to_string(data.size()) + " are available");
     }
     for (size_t i = 0; i < count; i++) {
-        assert(data.at(i) == ((i * i + (i << 2))) ^ nonce);
+        assert(data.at(i) == (((i * i + (i << 2))) ^ nonce));
     }
 }
 
