@@ -247,6 +247,7 @@ handle_t FlatGraph::create_handle(const std::string& sequence, const nid_t& id) 
         // Assume it is free.
         
         size_t trailing_free_space = ensure_trailing_space(node_space);
+        header = get<header_t>(0);
         
         // Now break off space for the node just after the current last node, if any.
         size_t node_offset = serialized_data_size() - trailing_free_space;
@@ -255,6 +256,10 @@ handle_t FlatGraph::create_handle(const std::string& sequence, const nid_t& id) 
             // We took all the last node's free space
             get<node_t>(header->last_node)->free_space = 0;
         } 
+         
+        // Grab where the previous node was.
+        // Will be max value if there isn't one.
+        size_t prev_node = header->last_node
         
         // We are the new last and possibly first node.
         header->last_node = node_offset;
@@ -267,6 +272,7 @@ handle_t FlatGraph::create_handle(const std::string& sequence, const nid_t& id) 
         node->id = id;
         node->seq_bytes = sequence.size();
         node->edge_count = 0;
+        node->prev_node = prev_node; 
         node->free_space = trailing_free_space;
         put_bytes(node_offset + sizeof(node), sequence);
         
@@ -276,7 +282,7 @@ handle_t FlatGraph::create_handle(const std::string& sequence, const nid_t& id) 
 }
 
 
-size_t FlatGraph::ensure_training_space(size_t needed) {
+size_t FlatGraph::ensure_trailing_space(size_t needed) {
     const header_t* header = get<header_t>(0);
 
     // How much free space is at the end of the data?
@@ -309,16 +315,131 @@ size_t FlatGraph::ensure_training_space(size_t needed) {
 }
 
 void FlatGraph::destroy_handle(const handle_t& handle) {
-    // Follow each edge offset here that isn't to this node
+    // Find the header
+    header_t* header = get<header_t>(0);
+
+    // Find the node
+    size_t offset = handlegraph::number_bool_packing::unpack_number(handle);
+    node_t* node = get<node_t>(offset);
     
-    // Scan, swap back edge to end, and remove it
+    // Find its edges in memory
+    edge_t* first = get<edge_t>(offset + sizeof(node_t) + node->seq_bytes);
+    edge_t* last = first + node->edge_count; // counts in full edge_t units
     
-    // TODO: we can't actually credit ourselves to the previous node as free
-    // space unless we know where, exactly, it is.
+    for (edge_t* e = first; e != last; ++e) {
+        // For each attachment
+        if (e->other != offset) {
+            // If it is to a different node
+            
+            // Go grab that node
+            node_t* other_node = get<node_t>(e->other);
+            
+            // And scan its edges
+            edge_t* other_first = get<edge_t>(e->other + sizeof(node_t) + other_node->seq_bytes);
+            edge_t* other_last = first + other_node->edge_count; // counts in full edge_t units
+            
+            // Count how many we removed
+            size_t removed = 0;
+            
+            for (edge_t* other_e = other_first; other_e != other_last; ++other_e) {
+                if (other_e->other == offset) {
+                    // We found a back edge.
+                    
+                    // Put it at the end of the edges
+                    std::swap(*other_e, *(other_last - 1));
+                    
+                    // Back up to look here again
+                    --other_e;
+                    // Also trim the range we check
+                    --other_last;
+                    
+                    removed++;
+                }
+            }
+            
+            // Now we put all the edges to remove at the end, so deallocate them.
+            other_node->edge_count -= removed;
+            other_node->free_space += removed * sizeof(edgte_t);
+        }
+    }
     
-    // Remove this node by tweaking free space on the previous node, if any.
+    // Now eliminate ourselves
     
-    // And the next node, if any.
+    size_t next_node_offset = offset + sizeof(node_t) + node->seq_bytes + node->edge_count * sizeof(edge_t) + node->free_space;
+    size_t prev_node_offset = node->prev_node;
+    
+    if (prev_node_offset != numeric_limits<size_t>::max()) {
+        // We have a previous node
+        node_t* prev = get<node_t>(prev_node_offset);
+        
+        // Credit ourselves and our free space to the free space of the previous node
+        prev->free_space += (next_node_offset - offset);
+    } else {
+        // We were the first node.
+        // Adjust the header for the new first node.
+        if (next_node_offset < serialized_data_size()) {
+            // We have a next node that is now the first node
+            header->first_node = next_node_offset;
+        } else {
+            // There is no next node, so now there's no first node.
+            header->first_node = numeric_limits<size_t>::max();
+        }
+    }
+    
+    if (next_node_offset < serialized_data_size()) {
+        // We have a next node.
+        node_t* next = get<node_t>(next_node_offset);
+        
+        // It should point back to whatever our previous node was, if any
+        next->prev_node = prev_node_offset;
+    } else {
+        // Actually we were the last node.
+        // Adjust the header for the new last node.
+        // If we have no prev node this is already the no-node sentinel.
+        header->first_node = prev_node
+    }
+    
+    if (node->id == header->min_node_id) {
+        // We no longer know of the min node ID
+        header->min_node_id = numeric_limits<nid_t>::min();
+    }
+    
+    if (node->id == header->max_node_id) {
+        // We no longer know of the max node ID
+        header->max_node_id = numeric_limits<nid_t>::max();
+    }
+    
+    // Now we will return and our node will no longer exist. Might get
+    // overwritten.
+}
+
+void FlatGraph::create_edge(const handle_t& left, const handle_t& right) {
+    if (has_edge(left, right)) {
+        // We need to ignore existing edges.
+        // TODO: Sort edges for binary search.
+        return;
+    }
+    
+    
+    // Find the node
+    size_t offset = handlegraph::number_bool_packing::unpack_number(handle);
+    node_t* node = get<node_t>(offset);
+    
+    if (node->free_space < sizeof(edge_t)) {
+        // We need more room.
+        
+        // TODO: we can't actually move this node or any other node to get more room, because we can't invalidate any handles! 
+        
+    }
+    
+}
+
+void FlatGraph::destroy_edge(const handle_t& left, const handle_t& right) {
+}
+    
+void FlatGraph::clear(void) {
+    // We can just drop all our data.
+    serialized_data_resize(0);
 }
 
 }

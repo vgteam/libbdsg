@@ -54,6 +54,9 @@ protected:
         /// Number of edges stored immediately after the sequence.
         /// Alignment is for wimps.
         uint64_t edge_count;
+        /// Offset of the previous node, or max value if no previous node.
+        /// Needed so we can remove nodes and link up their neighbors.
+        uint64_t prev_node;
         /// Amount of free space between the last edge and the next node.
         uint64_t free_space;
     };
@@ -102,7 +105,7 @@ protected:
     /// Make sure we are big enough to have the given amount of free space at
     /// the end. Returns the amount we actually have. May reallocate, so you
     /// need to get the header again.
-    size_t ensure_training_space(size_t needed);
+    size_t ensure_trailing_space(size_t needed);
     
 public:
     
