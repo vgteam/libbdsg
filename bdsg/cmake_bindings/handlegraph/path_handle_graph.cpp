@@ -189,6 +189,19 @@ struct PyCallBack_handlegraph_MutablePathHandleGraph : public handlegraph::Mutab
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"PathHandleGraph::get_step_count\"");
 	}
+	unsigned long get_step_count(const struct handlegraph::handle_t & a0) const override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathHandleGraph *>(this), "get_step_count");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
+				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+		}
+		return PathHandleGraph::get_step_count(a0);
+	}
 	struct handlegraph::handle_t get_handle_of_step(const struct handlegraph::step_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathHandleGraph *>(this), "get_handle_of_step");
@@ -728,6 +741,19 @@ struct PyCallBack_handlegraph_MutableHandleGraph : public handlegraph::MutableHa
 		}
 		return MutableHandleGraph::increment_node_ids(a0);
 	}
+	void increment_node_ids(long a0) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutableHandleGraph *>(this), "increment_node_ids");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
+				static pybind11::detail::overload_caster_t<void> caster;
+				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<void>(std::move(o));
+		}
+		return MutableHandleGraph::increment_node_ids(a0);
+	}
 	void reassign_node_ids(const class std::function<long long (const long long &)> & a0) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutableHandleGraph *>(this), "reassign_node_ids");
@@ -979,9 +1005,9 @@ struct PyCallBack_handlegraph_MutableHandleGraph : public handlegraph::MutableHa
 
 void bind_handlegraph_path_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M)
 {
-	{ // handlegraph::PathForEachSocket file:handlegraph/path_handle_graph.hpp line:200
+	{ // handlegraph::PathForEachSocket file:handlegraph/path_handle_graph.hpp line:203
 		pybind11::class_<handlegraph::PathForEachSocket, std::shared_ptr<handlegraph::PathForEachSocket>> cl(M("handlegraph"), "PathForEachSocket", "An auxilliary class that enables for each loops over paths. Not intended to\n constructed directly. Instead, use the PathHandleGraph's scan_path method.");
-		{ // handlegraph::PathForEachSocket::iterator file:handlegraph/path_handle_graph.hpp line:214
+		{ // handlegraph::PathForEachSocket::iterator file:handlegraph/path_handle_graph.hpp line:217
 			auto & enclosing_class = cl;
 			pybind11::class_<handlegraph::PathForEachSocket::iterator, std::shared_ptr<handlegraph::PathForEachSocket::iterator>> cl(enclosing_class, "iterator", "Iterator object over path");
 			cl.def( pybind11::init( [](handlegraph::PathForEachSocket::iterator const &o){ return new handlegraph::PathForEachSocket::iterator(o); } ) );
@@ -1026,6 +1052,7 @@ void bind_handlegraph_path_handle_graph(std::function< pybind11::module &(std::s
 		cl.def("apply_ordering", (void (handlegraph::MutableHandleGraph::*)(const class std::vector<handlegraph::handle_t> &, bool)) &handlegraph::MutableHandleGraph::apply_ordering, "Reorder the graph's internal structure to match that given.\n This sets the order that is used for iteration in functions like for_each_handle.\n Optionally may compact the id space of the graph to match the ordering, from 1->|ordering|.\n This may be a no-op in the case of graph implementations that do not have any mechanism to maintain an ordering.\n\nC++: handlegraph::MutableHandleGraph::apply_ordering(const class std::vector<handlegraph::handle_t> &, bool) --> void", pybind11::arg("order"), pybind11::arg("compact_ids"));
 		cl.def("set_id_increment", (void (handlegraph::MutableHandleGraph::*)(const long long &)) &handlegraph::MutableHandleGraph::set_id_increment, "Set a minimum id to increment the id space by, used as a hint during construction.\n May have no effect on a backing implementation.\n\nC++: handlegraph::MutableHandleGraph::set_id_increment(const long long &) --> void", pybind11::arg("min_id"));
 		cl.def("increment_node_ids", (void (handlegraph::MutableHandleGraph::*)(long long)) &handlegraph::MutableHandleGraph::increment_node_ids, "Add the given value to all node IDs.\n Has a default implementation in terms of reassign_node_ids, but can be\n implemented more efficiently in some graphs.\n\nC++: handlegraph::MutableHandleGraph::increment_node_ids(long long) --> void", pybind11::arg("increment"));
+		cl.def("increment_node_ids", (void (handlegraph::MutableHandleGraph::*)(long)) &handlegraph::MutableHandleGraph::increment_node_ids, "This specialization for long appears to be needed to avoid confusion about nid_t\n\nC++: handlegraph::MutableHandleGraph::increment_node_ids(long) --> void", pybind11::arg("increment"));
 		cl.def("reassign_node_ids", (void (handlegraph::MutableHandleGraph::*)(const class std::function<long long (const long long &)> &)) &handlegraph::MutableHandleGraph::reassign_node_ids, "Renumber all node IDs using the given function, which, given an old ID, returns the new ID.\n Modifies the graph in place. Invalidates all outstanding handles.\n If the graph supports paths, they also must be updated.\n The mapping function may return 0. In this case, the input ID will\n remain unchanged. The mapping function should not return any ID for\n which it would return 0.\n\nC++: handlegraph::MutableHandleGraph::reassign_node_ids(const class std::function<long long (const long long &)> &) --> void", pybind11::arg("get_new_id"));
 		cl.def("assign", (class handlegraph::MutableHandleGraph & (handlegraph::MutableHandleGraph::*)(const class handlegraph::MutableHandleGraph &)) &handlegraph::MutableHandleGraph::operator=, "C++: handlegraph::MutableHandleGraph::operator=(const class handlegraph::MutableHandleGraph &) --> class handlegraph::MutableHandleGraph &", pybind11::return_value_policy::automatic, pybind11::arg(""));
 	}

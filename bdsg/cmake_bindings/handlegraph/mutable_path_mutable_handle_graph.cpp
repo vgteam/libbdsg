@@ -192,6 +192,19 @@ struct PyCallBack_handlegraph_MutablePathMutableHandleGraph : public handlegraph
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"PathHandleGraph::get_step_count\"");
 	}
+	unsigned long get_step_count(const struct handlegraph::handle_t & a0) const override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathMutableHandleGraph *>(this), "get_step_count");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
+				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+		}
+		return PathHandleGraph::get_step_count(a0);
+	}
 	struct handlegraph::handle_t get_handle_of_step(const struct handlegraph::step_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathMutableHandleGraph *>(this), "get_handle_of_step");
@@ -725,6 +738,19 @@ struct PyCallBack_handlegraph_MutablePathMutableHandleGraph : public handlegraph
 		}
 		return MutableHandleGraph::increment_node_ids(a0);
 	}
+	void increment_node_ids(long a0) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathMutableHandleGraph *>(this), "increment_node_ids");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
+				static pybind11::detail::overload_caster_t<void> caster;
+				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<void>(std::move(o));
+		}
+		return MutableHandleGraph::increment_node_ids(a0);
+	}
 	void reassign_node_ids(const class std::function<long long (const long long &)> & a0) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathMutableHandleGraph *>(this), "reassign_node_ids");
@@ -769,6 +795,19 @@ struct PyCallBack_handlegraph_DeletableHandleGraph : public handlegraph::Deletab
 			else return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"DeletableHandleGraph::destroy_edge\"");
+	}
+	struct handlegraph::handle_t truncate_handle(const struct handlegraph::handle_t & a0, bool a1, unsigned long a2) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::DeletableHandleGraph *>(this), "truncate_handle");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1, a2);
+			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::handle_t>::value) {
+				static pybind11::detail::overload_caster_t<struct handlegraph::handle_t> caster;
+				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
+		}
+		return DeletableHandleGraph::truncate_handle(a0, a1, a2);
 	}
 	void clear() override { 
 		pybind11::gil_scoped_acquire gil;
@@ -888,6 +927,19 @@ struct PyCallBack_handlegraph_DeletableHandleGraph : public handlegraph::Deletab
 		pybind11::pybind11_fail("Tried to call pure virtual function \"MutableHandleGraph::set_id_increment\"");
 	}
 	void increment_node_ids(long long a0) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::DeletableHandleGraph *>(this), "increment_node_ids");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
+				static pybind11::detail::overload_caster_t<void> caster;
+				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<void>(std::move(o));
+		}
+		return MutableHandleGraph::increment_node_ids(a0);
+	}
+	void increment_node_ids(long a0) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::DeletableHandleGraph *>(this), "increment_node_ids");
 		if (overload) {
@@ -1309,6 +1361,19 @@ struct PyCallBack_handlegraph_MutablePathDeletableHandleGraph : public handlegra
 			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"PathHandleGraph::get_step_count\"");
+	}
+	unsigned long get_step_count(const struct handlegraph::handle_t & a0) const override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "get_step_count");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
+				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+		}
+		return PathHandleGraph::get_step_count(a0);
 	}
 	struct handlegraph::handle_t get_handle_of_step(const struct handlegraph::step_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
@@ -1843,6 +1908,19 @@ struct PyCallBack_handlegraph_MutablePathDeletableHandleGraph : public handlegra
 		}
 		return MutableHandleGraph::increment_node_ids(a0);
 	}
+	void increment_node_ids(long a0) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "increment_node_ids");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
+				static pybind11::detail::overload_caster_t<void> caster;
+				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<void>(std::move(o));
+		}
+		return MutableHandleGraph::increment_node_ids(a0);
+	}
 	void reassign_node_ids(const class std::function<long long (const long long &)> & a0) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "reassign_node_ids");
@@ -1882,6 +1960,19 @@ struct PyCallBack_handlegraph_MutablePathDeletableHandleGraph : public handlegra
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"DeletableHandleGraph::destroy_edge\"");
 	}
+	struct handlegraph::handle_t truncate_handle(const struct handlegraph::handle_t & a0, bool a1, unsigned long a2) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "truncate_handle");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1, a2);
+			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::handle_t>::value) {
+				static pybind11::detail::overload_caster_t<struct handlegraph::handle_t> caster;
+				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
+		}
+		return DeletableHandleGraph::truncate_handle(a0, a1, a2);
+	}
 	void clear() override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "clear");
@@ -1911,6 +2002,7 @@ void bind_handlegraph_mutable_path_mutable_handle_graph(std::function< pybind11:
 		cl.def( pybind11::init( [](){ return new PyCallBack_handlegraph_DeletableHandleGraph(); } ) );
 		cl.def("destroy_handle", (void (handlegraph::DeletableHandleGraph::*)(const struct handlegraph::handle_t &)) &handlegraph::DeletableHandleGraph::destroy_handle, "Remove the node belonging to the given handle and all of its edges.\n Either destroys any paths in which the node participates, or leaves a\n \"hidden\", un-iterateable handle in the path to represent the sequence\n of the removed node.\n Invalidates the destroyed handle.\n May be called during serial for_each_handle iteration **ONLY** on the node being iterated.\n May **NOT** be called during parallel for_each_handle iteration.\n May **NOT** be called on the node from which edges are being followed during follow_edges.\n May **NOT** be called during iteration over paths, if it could destroy a path.\n May **NOT** be called during iteration along a path, if it could destroy that path.\n\nC++: handlegraph::DeletableHandleGraph::destroy_handle(const struct handlegraph::handle_t &) --> void", pybind11::arg("handle"));
 		cl.def("destroy_edge", (void (handlegraph::DeletableHandleGraph::*)(const struct handlegraph::handle_t &, const struct handlegraph::handle_t &)) &handlegraph::DeletableHandleGraph::destroy_edge, "Remove the edge connecting the given handles in the given order and orientations.\n Ignores nonexistent edges.\n Does not update any stored paths.\n\nC++: handlegraph::DeletableHandleGraph::destroy_edge(const struct handlegraph::handle_t &, const struct handlegraph::handle_t &) --> void", pybind11::arg("left"), pybind11::arg("right"));
+		cl.def("truncate_handle", (struct handlegraph::handle_t (handlegraph::DeletableHandleGraph::*)(const struct handlegraph::handle_t &, bool, unsigned long)) &handlegraph::DeletableHandleGraph::truncate_handle, "Shorten a node by truncating either the left or right side of the node, relative to the orientation\n of the handle, starting from a given offset along the nodes sequence. Any edges on the truncated\n end of the node are deleted. Returns a (possibly altered) handle to the truncated node.\n May invalid stored paths.\n\nC++: handlegraph::DeletableHandleGraph::truncate_handle(const struct handlegraph::handle_t &, bool, unsigned long) --> struct handlegraph::handle_t", pybind11::arg("handle"), pybind11::arg("trunc_left"), pybind11::arg("offset"));
 		cl.def("destroy_edge", (void (handlegraph::DeletableHandleGraph::*)(const struct std::pair<struct handlegraph::handle_t, struct handlegraph::handle_t> &)) &handlegraph::DeletableHandleGraph::destroy_edge, "Convenient wrapper for destroy_edge.\n\nC++: handlegraph::DeletableHandleGraph::destroy_edge(const struct std::pair<struct handlegraph::handle_t, struct handlegraph::handle_t> &) --> void", pybind11::arg("edge"));
 		cl.def("clear", (void (handlegraph::DeletableHandleGraph::*)()) &handlegraph::DeletableHandleGraph::clear, "Remove all nodes and edges. May also remove all paths, if applicable.\n\nC++: handlegraph::DeletableHandleGraph::clear() --> void");
 		cl.def("assign", (class handlegraph::DeletableHandleGraph & (handlegraph::DeletableHandleGraph::*)(const class handlegraph::DeletableHandleGraph &)) &handlegraph::DeletableHandleGraph::operator=, "C++: handlegraph::DeletableHandleGraph::operator=(const class handlegraph::DeletableHandleGraph &) --> class handlegraph::DeletableHandleGraph &", pybind11::return_value_policy::automatic, pybind11::arg(""));

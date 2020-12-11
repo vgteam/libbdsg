@@ -1507,6 +1507,27 @@ void test_deletable_handle_graphs() {
                 assert(found4);
                 assert(found5);
             }
+            
+            auto h6 = graph.create_handle("ACGT");
+            auto h7 = graph.create_handle("GCGG");
+            auto h8 = graph.create_handle("TTCA");
+            
+            graph.create_edge(h6, h7);
+            graph.create_edge(h7, h8);
+            
+            h7 = graph.truncate_handle(h7, true, 1);
+            assert(graph.get_sequence(h7) == "CGG");
+            assert(graph.get_degree(h7, true) == 0);
+            assert(graph.get_degree(h7, false) == 1);
+            assert(graph.get_degree(h6, false) == 0);
+            assert(graph.get_degree(h8, true) == 1);
+            
+            h7 = graph.truncate_handle(h7, false, 2);
+            assert(graph.get_sequence(h7) == "CG");
+            assert(graph.get_degree(h7, true) == 0);
+            assert(graph.get_degree(h7, false) == 0);
+            assert(graph.get_degree(h6, false) == 0);
+            assert(graph.get_degree(h8, true) == 0);
         }
     }
     
