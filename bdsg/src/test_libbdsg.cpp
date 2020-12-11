@@ -22,12 +22,12 @@
 #include "bdsg/packed_graph.hpp"
 #include "bdsg/hash_graph.hpp"
 #include "bdsg/internal/packed_structs.hpp"
+#include "bdsg/internal/mmap_backend.hpp"
 #include "bdsg/overlays/path_position_overlays.hpp"
 #include "bdsg/overlays/packed_path_position_overlay.hpp"
 #include "bdsg/overlays/vectorizable_overlays.hpp"
 #include "bdsg/overlays/packed_subgraph_overlay.hpp"
 
-#include <handlegraph/trivially_serializable.hpp>
 
 using namespace bdsg;
 using namespace handlegraph;
@@ -37,14 +37,14 @@ using namespace std;
 
 
 /**
- * We define this template to test the TriviallySerializable mmap-managing base
+ * We define this template to test the mmap-managing base
  * class independently.
  */
 template<typename Item>
-class TriviallySerializableArray : public handlegraph::TriviallySerializable {
+class MmapArray : public MmapBackend {
 public:
 
-    TriviallySerializableArray() = default;
+    MmapArray() = default;
     
     uint32_t get_magic_number() const {
         // We must define a magic number for this type.
@@ -90,13 +90,13 @@ public:
 
 // Have helpers to store and check some test data
 
-void fill_to(TriviallySerializableArray<int64_t>& data, size_t count, int64_t nonce) {
+void fill_to(MmapArray<int64_t>& data, size_t count, int64_t nonce) {
     for (size_t i = 0; i < count; i++) {
         data.at(i) = ((i * i + (i << 2)) ^ nonce);
     }
 }
 
-void verify_to(const TriviallySerializableArray<int64_t>& data, size_t count, int64_t nonce) {
+void verify_to(const MmapArray<int64_t>& data, size_t count, int64_t nonce) {
     if (count > data.size()) {
         throw std::runtime_error("Trying to check " + std::to_string(count) + " items but only " + std::to_string(data.size()) + " are available");
     }
@@ -105,7 +105,7 @@ void verify_to(const TriviallySerializableArray<int64_t>& data, size_t count, in
     }
 }
 
-void test_trivially_serializable() {
+void test_mmap_backend() {
     
     
     // We're going to need a temporary file
@@ -116,7 +116,7 @@ void test_trivially_serializable() {
     
     {
         // Make a test array
-        TriviallySerializableArray<int64_t> numbers;
+        MmapArray<int64_t> numbers;
         
         // We should start empty
         assert(numbers.size() == 0);
@@ -164,7 +164,7 @@ void test_trivially_serializable() {
             
             // Load it back from the C++ stream
             strm.seekg(0);
-            TriviallySerializableArray<int64_t> reloaded;
+            MmapArray<int64_t> reloaded;
             reloaded.deserialize(strm);
             
             // Make sure that's right
@@ -181,7 +181,7 @@ void test_trivially_serializable() {
             // Start a thread to read the pipe
             std::thread read_thread([](int fd) {
                 // Read a copy from the pipe
-                TriviallySerializableArray<int64_t> reloaded;
+                MmapArray<int64_t> reloaded;
                 reloaded.deserialize(fd);
                 
                 // Make sure that's right
@@ -222,7 +222,7 @@ void test_trivially_serializable() {
         
         {
             // Load it in another copy, from FD
-            TriviallySerializableArray<int64_t> reloaded;
+            MmapArray<int64_t> reloaded;
             reloaded.deserialize(tmpfd);
             
             // Make sure that's right
@@ -233,7 +233,7 @@ void test_trivially_serializable() {
         
         {
             // Load it in another copy, from filename
-            TriviallySerializableArray<int64_t> reloaded;
+            MmapArray<int64_t> reloaded;
             reloaded.deserialize(std::string(filename));
             
             // Make sure that's right
@@ -248,7 +248,7 @@ void test_trivially_serializable() {
         
         {
             // Load it in a new copy
-            TriviallySerializableArray<int64_t> reloaded;
+            MmapArray<int64_t> reloaded;
             reloaded.deserialize(std::string(filename));
             
             // Make sure the modification took
@@ -259,7 +259,7 @@ void test_trivially_serializable() {
         
         {
             // Load it in a copy
-            TriviallySerializableArray<int64_t> reloaded;
+            MmapArray<int64_t> reloaded;
             reloaded.deserialize(std::string(filename));
             
             // Sever the copy connection
@@ -277,7 +277,7 @@ void test_trivially_serializable() {
         
         {
             // Load it in a copy
-            TriviallySerializableArray<int64_t> reloaded;
+            MmapArray<int64_t> reloaded;
             reloaded.deserialize(std::string(filename));
             
             // Sever the copy connection
@@ -309,7 +309,7 @@ void test_trivially_serializable() {
     
     {
         // Load it in a copy
-        TriviallySerializableArray<int64_t> reloaded;
+        MmapArray<int64_t> reloaded;
         reloaded.deserialize(std::string(filename));
         
         // Make sure the last modification is not visible
@@ -321,7 +321,7 @@ void test_trivially_serializable() {
     
         {
             // Load another copy
-            TriviallySerializableArray<int64_t> rereloaded;
+            MmapArray<int64_t> rereloaded;
             rereloaded.deserialize(std::string(filename));
             
             // Make sure the modification is visible
@@ -339,7 +339,7 @@ void test_trivially_serializable() {
         
         {
             // Load another copy
-            TriviallySerializableArray<int64_t> rereloaded;
+            MmapArray<int64_t> rereloaded;
             rereloaded.deserialize(std::string(filename));
             
             // Make sure the modification is not visible
@@ -357,7 +357,7 @@ void test_trivially_serializable() {
     
     {
         // Load a copy
-        TriviallySerializableArray<int64_t> reloaded;
+        MmapArray<int64_t> reloaded;
         reloaded.deserialize(std::string(filename));
         
         // Modify the copy without dissociating
@@ -369,7 +369,7 @@ void test_trivially_serializable() {
     
     {
         // Load another copy
-        TriviallySerializableArray<int64_t> reloaded;
+        MmapArray<int64_t> reloaded;
         reloaded.deserialize(std::string(filename));
         
         // Make sure the modification to the read-only file is not visible
@@ -386,7 +386,7 @@ void test_trivially_serializable() {
     // Try and delete the file out of the directory.
     unlink(filename);
     
-    cerr << "TriviallySerializable tests successful!" << endl;
+    cerr << "MmapBackend tests successful!" << endl;
 }
 
 void test_serializable_handle_graphs() {
@@ -3472,7 +3472,7 @@ void test_packed_subgraph_overlay() {
 
 
 int main(void) {
-    test_trivially_serializable();
+    test_mmap_backend();
     test_packed_vector();
     test_paged_vector();
     test_packed_deque();

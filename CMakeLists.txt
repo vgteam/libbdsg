@@ -204,6 +204,7 @@ add_library(bdsg_objs OBJECT
   ${bdsg_DIR}/src/eades_algorithm.cpp
   ${bdsg_DIR}/src/hash_graph.cpp
   ${bdsg_DIR}/src/is_single_stranded.cpp
+  ${bdsg_DIR}/src/mmap_backend.cpp
   ${bdsg_DIR}/src/node.cpp
   ${bdsg_DIR}/src/odgi.cpp
   ${bdsg_DIR}/src/packed_graph.cpp
