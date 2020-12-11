@@ -182,7 +182,7 @@ public:
     /// Does not update any stored paths.
     void destroy_edge(const handle_t& left, const handle_t& right);
     
-    /// Remove all nodes and edges. Does not update any stored paths.
+    /// Remove all nodes and edges. 
     void clear(void);
     
     /// Alter the node that the given handle corresponds to so the orientation
