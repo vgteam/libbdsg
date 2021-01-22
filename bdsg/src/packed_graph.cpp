@@ -545,6 +545,7 @@ namespace bdsg {
         vector<size_t> forward_offsets = offsets;
         size_t node_length = get_length(handle);
         if (get_is_reverse(handle)) {
+            reverse(forward_offsets.begin(), forward_offsets.end());            
             for (size_t& off : forward_offsets) {
                 off = node_length - off;
             }
