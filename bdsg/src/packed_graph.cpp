@@ -670,11 +670,18 @@ namespace bdsg {
                     set_step_prev(packed_path, divided_trav_offsets.back(), other_idx);
                 }
                 
+                // update the head of the path, if necessary
+                if (path_head_iv.get(get_membership_path(path_membership)) == occ_idx) {
+                    path_head_iv.set(get_membership_path(path_membership), divided_trav_offsets.back());
+                }
+                
                 // add connections between the divided segments
                 for (size_t i = 1; i < divided_trav_offsets.size(); i++) {
                     set_step_prev(packed_path, divided_trav_offsets[i - 1], divided_trav_offsets[i]);
                     set_step_next(packed_path, divided_trav_offsets[i], divided_trav_offsets[i - 1]);
                 }
+                
+                
             }
             else {
                 // update connection to the original node that should now be to the final divided node
@@ -683,6 +690,12 @@ namespace bdsg {
                     set_step_prev(packed_path, other_idx, divided_trav_offsets.back());
                     set_step_next(packed_path, divided_trav_offsets.back(), other_idx);
                 }
+                
+                // update the tail of the path, if necessary
+                if (path_tail_iv.get(get_membership_path(path_membership)) == occ_idx) {
+                    path_tail_iv.set(get_membership_path(path_membership), divided_trav_offsets.back());
+                }
+                   
                 
                 // add connections between the divided segments
                 for (size_t i = 1; i < divided_trav_offsets.size(); i++) {
