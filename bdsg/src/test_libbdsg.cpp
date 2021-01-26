@@ -1419,27 +1419,27 @@ void test_mutable_path_handle_graphs() {
     
     HashGraph hg;
     implementations.push_back(&hg);
-    
+
     ODGI og;
     implementations.push_back(&og);
     
     for (MutablePathDeletableHandleGraph* implementation : implementations) {
-        
+
         auto check_path = [&](MutablePathDeletableHandleGraph& graph, const path_handle_t& p, const vector<handle_t>& steps) {
             assert(graph.get_step_count(p) == steps.size());
-            
+
             // Make sure steps connect back to the path
             step_handle_t begin_step = graph.path_begin(p);
             step_handle_t end_step = graph.path_end(p);
             assert(graph.get_path_handle_of_step(begin_step) == p);
             assert(graph.get_path_handle_of_step(end_step) == p);
-            
+
             step_handle_t step = graph.path_begin(p);
             for (int i = 0; i < steps.size(); i++) {
                 auto here = graph.get_handle_of_step(step);
                 assert(graph.get_path_handle_of_step(step) == p);
                 assert(graph.get_handle_of_step(step) == steps[i]);
-                
+
                 if (graph.get_is_circular(p)) {
                     assert(graph.has_next_step(step));
                     assert(graph.has_previous_step(step));
@@ -1448,24 +1448,24 @@ void test_mutable_path_handle_graphs() {
                     assert(graph.has_next_step(step) == i + 1 < steps.size());
                     assert(graph.has_previous_step(step) == i > 0);
                 }
-                
+
                 step = graph.get_next_step(step);
             }
-            
+
             if (graph.get_is_circular(p) && !graph.is_empty(p)) {
                 assert(step == graph.path_begin(p));
             }
             else {
                 assert(step == graph.path_end(p));
             }
-            
+
             step = graph.path_back(p);
-            
+
             for (int i = steps.size() - 1; i >= 0; i--) {
-                
+
                 assert(graph.get_path_handle_of_step(step) == p);
                 assert(graph.get_handle_of_step(step) == steps[i]);
-                
+
                 if (graph.get_is_circular(p)) {
                     assert(graph.has_next_step(step));
                     assert(graph.has_previous_step(step));
@@ -1474,10 +1474,10 @@ void test_mutable_path_handle_graphs() {
                     assert(graph.has_next_step(step) == i + 1 < steps.size());
                     assert(graph.has_previous_step(step) == i > 0);
                 }
-                
+
                 step = graph.get_previous_step(step);
             }
-            
+
             if (graph.get_is_circular(p) && !graph.is_empty(p)) {
                 assert(step == graph.path_back(p));
             }
@@ -1485,7 +1485,7 @@ void test_mutable_path_handle_graphs() {
                 assert(step == graph.path_front_end(p));
             }
         };
-        
+
         auto check_flips = [&](MutablePathDeletableHandleGraph& graph, const path_handle_t& p, const vector<handle_t>& steps) {
 
             auto flipped = steps;
@@ -1493,64 +1493,64 @@ void test_mutable_path_handle_graphs() {
                 graph.apply_orientation(graph.flip(graph.forward(flipped[i])));
                 flipped[i] = graph.flip(flipped[i]);
                 check_path(graph, p, flipped);
-                
+
                 graph.apply_orientation(graph.flip(graph.forward(flipped[i])));
                 flipped[i] = graph.flip(flipped[i]);
                 check_path(graph, p, flipped);
             }
         };
-        
+
         MutablePathDeletableHandleGraph& graph = *implementation;
-        
+
         handle_t h1 = graph.create_handle("AC");
         handle_t h2 = graph.create_handle("CAGTGA");
         handle_t h3 = graph.create_handle("GT");
-        
+
         graph.create_edge(h1, h2);
         graph.create_edge(h2, h3);
         graph.create_edge(h1, graph.flip(h2));
         graph.create_edge(graph.flip(h2), h3);
-        
+
         assert(!graph.has_path("1"));
         assert(graph.get_path_count() == 0);
-        
+
         path_handle_t p1 = graph.create_path_handle("1");
-        
+
         assert(graph.has_path("1"));
         assert(graph.get_path_count() == 1);
         assert(graph.get_path_handle("1") == p1);
         assert(graph.get_path_name(p1) == "1");
         assert(graph.get_step_count(p1) == 0);
         assert(graph.is_empty(p1));
-        
+
         graph.append_step(p1, h1);
-        
+
         assert(graph.get_step_count(p1) == 1);
         assert(!graph.is_empty(p1));
-        
+
         graph.append_step(p1, h2);
         graph.append_step(p1, h3);
-        
+
         assert(graph.get_step_count(p1) == 3);
-        
+
         // graph can traverse a path
         check_path(graph, p1, {h1, h2, h3});
-        
+
         // graph preserves paths when reversing nodes
         check_flips(graph, p1, {h1, h2, h3});
-        
+
         // make a circular path
         path_handle_t p2 = graph.create_path_handle("2", true);
         assert(graph.get_path_count() == 2);
-        
+
         graph.append_step(p2, h1);
         graph.append_step(p2, graph.flip(h2));
         graph.append_step(p2, h3);
-        
+
         check_path(graph, p2, {h1, graph.flip(h2), h3});
-        
+
         // graph can query steps of a node on paths
-        
+
         bool found1 = false, found2 = false;
         vector<step_handle_t> steps = graph.steps_of_handle(h1);
         for (auto& step : steps) {
@@ -1569,7 +1569,7 @@ void test_mutable_path_handle_graphs() {
         assert(found1);
         assert(found2);
         found1 = found2 = false;
-        
+
         steps = graph.steps_of_handle(h1, true);
         for (auto& step : steps) {
             if (graph.get_path_handle_of_step(step) == p1 &&
@@ -1587,12 +1587,12 @@ void test_mutable_path_handle_graphs() {
         assert(found1);
         assert(found2);
         found1 = found2 = false;
-        
+
         steps = graph.steps_of_handle(graph.flip(h1), true);
         for (auto& step : steps) {
             assert(false);
         }
-        
+
         steps = graph.steps_of_handle(h2, true);
         for (auto& step : steps) {
             if (graph.get_path_handle_of_step(step) == p1 &&
@@ -1616,52 +1616,52 @@ void test_mutable_path_handle_graphs() {
         assert(found1);
         assert(found2);
         found1 = found2 = false;
-        
+
         vector<handle_t> segments = graph.divide_handle(h2, {size_t(2), size_t(4)});
-        
+
         // graph preserves paths when dividing nodes
-        
+
         check_path(graph, p1, {h1, segments[0], segments[1], segments[2], h3});
         check_path(graph, p2, {h1, graph.flip(segments[2]), graph.flip(segments[1]), graph.flip(segments[0]), h3});
-        
+
         path_handle_t p3 = graph.create_path_handle("3");
         graph.append_step(p3, h1);
         graph.append_step(p3, segments[0]);
-        
+
         assert(graph.has_path("3"));
         assert(graph.get_path_count() == 3);
-        
+
         // graph can toggle circularity
-        
+
         graph.for_each_path_handle([&](const path_handle_t& p) {
-            
+
             vector<handle_t> steps;
-            
+
             for (handle_t h : graph.scan_path(p)) {
                 steps.push_back(h);
             }
-            
+
             bool starting_circularity = graph.get_is_circular(p);
-            
+
             // make every transition occur
             for (bool circularity : {true, true, false, false, true}) {
                 graph.set_circularity(p, circularity);
                 assert(graph.get_is_circular(p) == circularity);
                 check_path(graph, p, steps);
             }
-            
+
             graph.set_circularity(p, starting_circularity);
         });
-        
+
         // graph can destroy paths
-        
+
         graph.destroy_path(p3);
-        
+
         assert(!graph.has_path("3"));
         assert(graph.get_path_count() == 2);
-        
+
         bool found3 = false;
-        
+
         graph.for_each_path_handle([&](const path_handle_t& p) {
             if (graph.get_path_name(p) == "1") {
                 found1 = true;
@@ -1676,22 +1676,22 @@ void test_mutable_path_handle_graphs() {
                 assert(false);
             }
         });
-        
+
         assert(found1);
         assert(found2);
         assert(!found3);
-        
+
         // check flips to see if membership records are still functional
         check_flips(graph, p1, {h1, segments[0], segments[1], segments[2], h3});
         check_flips(graph, p2, {h1, graph.flip(segments[2]), graph.flip(segments[1]), graph.flip(segments[0]), h3});
-        
+
         graph.destroy_path(p1);
-        
+
         assert(!graph.has_path("1"));
         assert(graph.get_path_count() == 1);
-        
+
         found1 = found2 = found3 = false;
-        
+
         graph.for_each_path_handle([&](const path_handle_t& p) {
             if (graph.get_path_name(p) == "1") {
                 found1 = true;
@@ -1706,14 +1706,14 @@ void test_mutable_path_handle_graphs() {
                 assert(false);
             }
         });
-        
+
         assert(!found1);
         assert(found2);
         assert(!found3);
-        
+
         // check flips to see if membership records are still functional
         check_flips(graph, p2, {h1, graph.flip(segments[2]), graph.flip(segments[1]), graph.flip(segments[0]), h3});
-        
+
         // make a path to rewrite
         path_handle_t p4 = graph.create_path_handle("4");
         graph.prepend_step(p4, h3);
@@ -1721,9 +1721,9 @@ void test_mutable_path_handle_graphs() {
         graph.prepend_step(p4, segments[1]);
         graph.prepend_step(p4, segments[0]);
         graph.prepend_step(p4, h1);
-        
+
         check_flips(graph, p4, {h1, segments[0], segments[1], segments[2], h3});
-        
+
         auto check_rewritten_segment = [&](const pair<step_handle_t, step_handle_t>& new_segment,
                                            const vector<handle_t>& steps) {
             int i = 0;
@@ -1733,41 +1733,95 @@ void test_mutable_path_handle_graphs() {
             }
             assert(i == steps.size());
         };
-        
+
         // rewrite the middle portion of a path
-        
+
         step_handle_t s1 = graph.get_next_step(graph.path_begin(p4));
         step_handle_t s2 = graph.get_next_step(graph.get_next_step(graph.get_next_step(s1)));
-        
+
         auto new_segment = graph.rewrite_segment(s1, s2, {graph.flip(segments[2]), graph.flip(segments[1]), graph.flip(segments[0])});
-        
+
         check_flips(graph, p4, {h1, graph.flip(segments[2]), graph.flip(segments[1]), graph.flip(segments[0]), h3});
         check_rewritten_segment(new_segment, {graph.flip(segments[2]), graph.flip(segments[1]), graph.flip(segments[0])});
-        
+
         // rewrite around the end of a circular path to delete
-        
+
         graph.create_edge(h3, h1);
         graph.create_edge(segments[2], segments[0]);
         graph.set_circularity(p4, true);
-        
+
         s1 = graph.get_previous_step(graph.path_begin(p4));
         s2 = graph.get_next_step(graph.path_begin(p4));
         assert(s2 != graph.path_end(p4));
-        
+
         new_segment = graph.rewrite_segment(s1, s2, vector<handle_t>());
         // The end we get should be the same as the end we sent, since it is exclusive
         assert(new_segment.second == s2);
-        
+
         check_flips(graph, p4, {graph.flip(segments[2]), graph.flip(segments[1]), graph.flip(segments[0])});
         check_rewritten_segment(new_segment, vector<handle_t>());
-        
+
         // add into an empty slot
-        
+
         new_segment = graph.rewrite_segment(new_segment.first, new_segment.second, {graph.flip(h1), graph.flip(h3)});
-        
+
         check_flips(graph, p4, {graph.flip(h1), graph.flip(h3), graph.flip(segments[2]), graph.flip(segments[1]), graph.flip(segments[0])});
         check_rewritten_segment(new_segment, {graph.flip(h1), graph.flip(h3)});
+
+    }
+    
+    {
+        vector<pair<MutablePathMutableHandleGraph*, MutablePathMutableHandleGraph*>> implementations;
         
+        // Add implementations
+        
+        ODGI og, og2;
+        implementations.push_back(make_pair(&og, &og2));
+        
+        HashGraph hg, hg2;
+        implementations.push_back(make_pair(&hg, &hg2));
+        
+        PackedGraph pg, pg2;
+        implementations.push_back(make_pair(&pg, &pg2));
+        
+        // And test them
+        for (int imp = 0; imp < implementations.size(); ++imp) {
+            for (bool backwards : {false, true}) {
+                
+                MutablePathMutableHandleGraph* g = backwards ? implementations[imp].first : implementations[imp].second;
+                
+                assert(g->get_node_count() == 0);
+                
+                handle_t handle = g->create_handle("TTATATTCCAACTCTCTG");
+                if (backwards) {
+                    handle = g->flip(handle);
+                }
+                path_handle_t path_handle = g->create_path_handle("Path");
+                g->append_step(path_handle, handle);
+                string seq = g->get_sequence(handle);
+                vector<string> true_parts = { seq.substr(0, 1), seq.substr(1, 4), seq.substr(5, 5), seq.substr(10) };
+                
+                // Should get (C,AGAG,AGTTG,GAATATAA)  (forward)
+                // Should get (T,TATA,TTCCA,ACTCTCTG)  (reverse)
+                auto parts = g->divide_handle(handle, {1, 5, 10});
+                assert(parts.size() == true_parts.size());
+                for (int i = 0; i < parts.size(); ++i) {
+                    assert(g->get_sequence(parts[i]) == true_parts[i]);
+                    assert(g->get_is_reverse(parts[i]) == backwards);
+                }
+                
+                vector<handle_t> steps;
+                g->for_each_step_in_path(path_handle, [&](step_handle_t step_handle) {
+                    steps.push_back(g->get_handle_of_step(step_handle));
+                });
+                assert(steps.size() == true_parts.size());
+                for (int i = 0; i < parts.size(); ++i) {
+                    assert(g->get_sequence(steps[i]) == true_parts[i]);
+                    assert(g->get_is_reverse(steps[i]) == backwards);
+                }
+            }
+        }
+
     }
     
     cerr << "MutablePathDeletableHandleGraph tests successful!" << endl;
