@@ -607,7 +607,7 @@ namespace bdsg {
         // update the back edges onto the final node in the division
         // note: we don't need to do the same for the first node since its ID stays the same
         size_t next_edge_idx = end_edges;
-        handle_t looking_for = flip(handle);
+        handle_t looking_for = flip(forward_handle);
         while (next_edge_idx) {
             handle_t target = decode_traversal(get_edge_target(next_edge_idx));
             if (target == looking_for) {
@@ -721,7 +721,7 @@ namespace bdsg {
     
     void PackedGraph::destroy_handle(const handle_t& handle) {
     
-        // Clear out any paths on this handle. 
+        // Clear out any paths on this handle.
         // We need to first compose a list of distinct visiting paths.
         std::unordered_set<path_handle_t> visiting_paths;
         for_each_step_on_handle(handle, [&](const step_handle_t& step) {
@@ -758,10 +758,7 @@ namespace bdsg {
             }
             return true;
         });
-        
-        // TODO: should we update the path membership for the node? deleting a node on a path
-        // is undefined behavior, so we don't *need* to...
-        
+                
         // remove the reference to the node
         nid_to_graph_iv.set(get_id(handle) - min_id, 0);
         
@@ -772,7 +769,6 @@ namespace bdsg {
     }
     
     void PackedGraph::remove_edge_reference(const handle_t& on, const handle_t& to) {
-        
         // Note: this function assumes that edge ref exists, crashes otherwise
         
         size_t g_iv_idx = graph_iv_index(on) + (get_is_reverse(on)
@@ -1963,6 +1959,153 @@ namespace bdsg {
         min_id = new_min_id;
         max_id = new_max_id;
         nid_to_graph_iv = move(new_nid_to_graph_iv);
+    }
+
+    void PackedGraph::print_graph(ostream& out) const {
+        out << "min id " << min_id << ", max id " << max_id << endl;
+        out << "nid_to_graph_iv" << endl;
+        for (size_t i = 0; i < nid_to_graph_iv.size(); ++i) {
+            out << " " << nid_to_graph_iv.get(i);
+        }
+        out << endl;
+        out << "graph_iv" << endl;
+        for (size_t i = 0; i < graph_iv.size(); ++i) {
+            if (i != 0 && i % GRAPH_RECORD_SIZE == 0) {
+                out << " |";
+            }
+            out << " " << graph_iv.get(i);
+        }
+        out << endl;
+        out << "edge_lists_iv" << endl;
+        for (size_t i = 0; i < edge_lists_iv.size(); ++i) {
+            if (i != 0 && i % EDGE_RECORD_SIZE == 0) {
+                out << " |";
+            }
+            out << " " << edge_lists_iv.get(i);
+        }
+        out << endl;
+        out << "seq_start_iv" << endl;
+        for (size_t i = 0; i < seq_start_iv.size(); ++i) {
+            if (i != 0 && i % SEQ_START_RECORD_SIZE == 0) {
+                out << " |";
+            }
+            out << " " << seq_start_iv.get(i);
+        }
+        out << endl;
+        out << "seq_length_iv" << endl;
+        for (size_t i = 0; i < seq_length_iv.size(); ++i) {
+            if (i != 0 && i % SEQ_LENGTH_RECORD_SIZE == 0) {
+                out << " |";
+            }
+            out << " " << seq_length_iv.get(i);
+        }
+        out << endl;
+        out << "seq_iv" << endl;
+        for (size_t i = 0; i < seq_iv.size(); ++i) {
+            out << " " << seq_iv.get(i);
+        }
+        out << endl;
+        out << "path_membership_node_iv" << endl;
+        for (size_t i = 0; i < path_membership_node_iv.size(); ++i) {
+            if (i != 0 && i % NODE_MEMBER_RECORD_SIZE == 0) {
+                out << " |";
+            }
+            out << " " << path_membership_node_iv.get(i);
+        }
+        out << endl;
+        out << "path_membership_id_iv" << endl;
+        for (size_t i = 0; i < path_membership_id_iv.size(); ++i) {
+            if (i != 0 && i % MEMBERSHIP_ID_RECORD_SIZE == 0) {
+                out << " |";
+            }
+            out << " " << path_membership_id_iv.get(i);
+        }
+        out << endl;
+        out << "path_membership_offset_iv" << endl;
+        for (size_t i = 0; i < path_membership_offset_iv.size(); ++i) {
+            if (i != 0 && i % MEMBERSHIP_OFFSET_RECORD_SIZE == 0) {
+                out << " |";
+            }
+            out << " " << path_membership_offset_iv.get(i);
+        }
+        out << endl;
+        out << "path_membership_next_iv" << endl;
+        for (size_t i = 0; i < path_membership_next_iv.size(); ++i) {
+            if (i != 0 && i % MEMBERSHIP_NEXT_RECORD_SIZE == 0) {
+                out << " |";
+            }
+            out << " " << path_membership_next_iv.get(i);
+        }
+        out << endl;
+        out << "char_assignment" << endl;
+        for (const auto& char_mapping : char_assignment) {
+            out << " " << char_mapping.first << ":" << char_mapping.second;
+        }
+        out << endl;
+        out << "inverse_char_assignment" << endl;
+        out << " " << inverse_char_assignment << endl;
+        out << "path_name_start_iv" << endl;
+        for (size_t i = 0; i < path_name_start_iv.size(); ++i) {
+            if (i != 0) {
+                out << " |";
+            }
+            out << " " << path_name_start_iv.get(i);
+        }
+        out << endl;
+        out << "path_name_length_iv" << endl;
+        for (size_t i = 0; i < path_name_length_iv.size(); ++i) {
+            if (i != 0) {
+                out << " |";
+            }
+            out << " " << path_name_length_iv.get(i);
+        }
+        out << endl;
+        out << "path_names_iv" << endl;
+        for (size_t i = 0; i < path_names_iv.size(); ++i) {
+            out << " " << path_names_iv.get(i);
+        }
+        out << endl;
+        out << "path_is_deleted_iv" << endl;
+        for (size_t i = 0; i < path_is_deleted_iv.size(); ++i) {
+            out << " " << path_is_deleted_iv.get(i);
+        }
+        out << endl;
+        out << "path_is_circular_iv" << endl;
+        for (size_t i = 0; i < path_is_circular_iv.size(); ++i) {
+            out << " " << path_is_circular_iv.get(i);
+        }
+        out << endl;
+        out << "path_head_iv" << endl;
+        for (size_t i = 0; i < path_head_iv.size(); ++i) {
+            out << " " << path_head_iv.get(i);
+        }
+        out << endl;
+        out << "path_tail_iv" << endl;
+        for (size_t i = 0; i < path_tail_iv.size(); ++i) {
+            out << " " << path_tail_iv.get(i);
+        }
+        out << endl;
+        out << "path_deleted_steps_iv" << endl;
+        for (size_t i = 0; i < path_deleted_steps_iv.size(); ++i) {
+            out << " " << path_deleted_steps_iv.get(i);
+        }
+        out << endl;
+        for (size_t i = 0; i < paths.size(); ++i) {
+            const auto& path = paths[i];
+            out << "path " << i << " links_iv" << endl;
+            for (size_t j = 0; j < path.links_iv.size(); ++j) {
+                if (j != 0 && j % PATH_RECORD_SIZE == 0) {
+                    out << " |";
+                }
+                out << " " << path.links_iv.get(j);
+            }
+            out << endl;
+            out << "path " << i << " steps_iv" << endl;
+            for (size_t j = 0; j < path.steps_iv.size(); ++j) {
+                out << " " << path.steps_iv.get(j);
+            }
+            out << endl;
+        }
     }
 
     void PackedGraph::report_memory(ostream& out, bool individual_paths) const {

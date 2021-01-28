@@ -88,28 +88,28 @@ void test_deletable_handle_graphs() {
     // first batch of tests
     {
         vector<DeletableHandleGraph*> implementations;
-        
+
         // Add implementations
-        
+
         PackedGraph pg;
         implementations.push_back(&pg);
-        
+
         HashGraph hg;
         implementations.push_back(&hg);
 
         ODGI og;
         implementations.push_back(&og);
-        
+
         // And test them
-        
+
         for (DeletableHandleGraph* implementation : implementations) {
-            
+
             DeletableHandleGraph& graph = *implementation;
-            
+
             assert(graph.get_node_count() == 0);
-            
+
             handle_t h = graph.create_handle("ATG", 2);
-            
+
             // DeletableHandleGraph has correct structure after creating a node
             {
                 assert(graph.get_sequence(h) == "ATG");
@@ -121,17 +121,17 @@ void test_deletable_handle_graphs() {
                 assert(graph.get_length(h) == 3);
                 assert(graph.has_node(graph.get_id(h)));
                 assert(!graph.has_node(graph.get_id(h) + 1));
-                
+
                 assert(graph.get_handle(graph.get_id(h)) == h);
                 assert(!graph.get_is_reverse(h));
                 assert(graph.get_is_reverse(graph.flip(h)));
-                
+
                 assert(graph.get_node_count() == 1);
                 assert(graph.min_node_id() == graph.get_id(h));
                 assert(graph.max_node_id() == graph.get_id(h));
                 assert(graph.get_total_length() == 3);
                 assert(graph.get_edge_count() == 0);
-                
+
                 graph.follow_edges(h, true, [](const handle_t& prev) {
                     assert(false);
                     return true;
@@ -141,12 +141,12 @@ void test_deletable_handle_graphs() {
                     return true;
                 });
             }
-            
+
             handle_t h2 = graph.create_handle("CT", 1);
-            
+
             // DeletableHandleGraph has correct structure after creating a node at the beginning of ID space
             {
-                
+
                 assert(graph.get_sequence(h2) == "CT");
                 assert(graph.get_sequence(graph.flip(h2)) == "AG");
                 assert(graph.get_base(h2, 1) == 'T');
@@ -156,15 +156,15 @@ void test_deletable_handle_graphs() {
                 assert(graph.get_length(h2) == 2);
                 assert(graph.has_node(graph.get_id(h2)));
                 assert(!graph.has_node(max(graph.get_id(h), graph.get_id(h2)) + 1));
-                
+
                 assert(graph.get_handle(graph.get_id(h2)) == h2);
-                
+
                 assert(graph.get_node_count() == 2);
                 assert(graph.min_node_id() == graph.get_id(h2));
                 assert(graph.max_node_id() == graph.get_id(h));
                 assert(graph.get_total_length() == 5);
                 assert(graph.get_edge_count() == 0);
-                
+
                 graph.follow_edges(h2, true, [](const handle_t& prev) {
                     assert(false);
                     return true;
@@ -174,11 +174,11 @@ void test_deletable_handle_graphs() {
                     return true;
                 });
             }
-            
+
             // creating and accessing a node at the end of ID space
-            
+
             handle_t h3 = graph.create_handle("GAC", 4);
-            
+
             // DeletableHandleGraph has correct structure after creating a node at the end of ID space
             {
                 assert(graph.get_sequence(h3) == "GAC");
@@ -188,15 +188,15 @@ void test_deletable_handle_graphs() {
                 assert(graph.get_subsequence(h3, 1, 1) == "A");
                 assert(graph.get_subsequence(graph.flip(h3), 0, 5) == "GTC");
                 assert(graph.get_length(h3) == 3);
-                
+
                 assert(graph.get_handle(graph.get_id(h3)) == h3);
-                
+
                 assert(graph.get_node_count() == 3);
                 assert(graph.min_node_id() == graph.get_id(h2));
                 assert(graph.max_node_id() == graph.get_id(h3));
                 assert(graph.get_total_length() == 8);
                 assert(graph.get_edge_count() == 0);
-                
+
                 graph.follow_edges(h3, true, [](const handle_t& prev) {
                     assert(false);
                     return true;
@@ -206,26 +206,26 @@ void test_deletable_handle_graphs() {
                     return true;
                 });
             }
-            
-            
+
+
             // creating and accessing in the middle of ID space
-            
+
             handle_t h4 = graph.create_handle("T", 3);
-            
+
             // DeletableHandleGraph has correct structure after creating a node in the middle of ID space
             {
                 assert(graph.get_sequence(h4) == "T");
                 assert(graph.get_sequence(graph.flip(h4)) == "A");
                 assert(graph.get_length(h4) == 1);
-                
+
                 assert(graph.get_handle(graph.get_id(h4)) == h4);
-                
+
                 assert(graph.get_node_count() == 4);
                 assert(graph.min_node_id() == graph.get_id(h2));
                 assert(graph.max_node_id() == graph.get_id(h3));
                 assert(graph.get_total_length() == 9);
                 assert(graph.get_edge_count() == 0);
-                
+
                 graph.follow_edges(h4, true, [](const handle_t& prev) {
                     assert(false);
                     return true;
@@ -235,16 +235,16 @@ void test_deletable_handle_graphs() {
                     return true;
                 });
             }
-            
+
             graph.create_edge(h, h2);
-            
+
             bool found1 = false, found2 = false, found3 = false, found4 = false;
             int count1 = 0, count2 = 0, count3 = 0, count4 = 0;
-            
+
             // DeletableHandleGraph has correct structure after creating an edge
             {
                 assert(graph.get_edge_count() == 1);
-                
+
                 graph.follow_edges(h, false, [&](const handle_t& next) {
                     if (next == h2) {
                         found1 = true;
@@ -281,20 +281,20 @@ void test_deletable_handle_graphs() {
                 assert(found2);
                 assert(found3);
                 assert(found4);
-                
+
                 count1 = count2 = count3 = count4 = 0;
                 found1 = found2 = found3 = found4 = false;
             }
-            
+
             graph.create_edge(h, graph.flip(h3));
-            
+
             bool found5 = false, found6 = false, found7 = false, found8 = false;
             int count5 = 0, count6 = 0;
-            
+
             // DeletableHandleGraph has correct structure after creating an edge with a traversal
             {
                 assert(graph.get_edge_count() == 2);
-                
+
                 graph.follow_edges(h, false, [&](const handle_t& next) {
                     if (next == h2) {
                         found1 = true;
@@ -357,17 +357,17 @@ void test_deletable_handle_graphs() {
                 assert(found6);
                 assert(found7);
                 assert(found8);
-                
+
                 count1 = count2 = count3 = count4 = count5 = count6 = 0;
                 found1 = found2 = found3 = found4 = found5 = found6 = found7 = found8 = false;
             }
-            
+
             graph.create_edge(h4, graph.flip(h4));
-            
+
             // DeletableHandleGraph has correct structure after creating a reversing self-loop
             {
                 assert(graph.get_edge_count() == 3);
-                
+
                 graph.follow_edges(h4, false, [&](const handle_t& next) {
                     if (next == graph.flip(h4)) {
                         found1 = true;
@@ -386,21 +386,21 @@ void test_deletable_handle_graphs() {
                 assert(count2 == 1);
                 assert(found1);
                 assert(found2);
-                
+
                 count1 = count2 = 0;
                 found1 = found2 = false;
             }
-            
+
             graph.create_edge(h, graph.flip(h4));
             graph.create_edge(graph.flip(h3), h4);
 
             assert(graph.get_edge_count() == 5);
-            
+
             graph.destroy_edge(h, graph.flip(h4));
             graph.destroy_edge(graph.flip(h3), h4);
 
             assert(graph.get_edge_count() == 3);
-            
+
             // DeletableHandleGraph has correct structure after creating and deleting edges
             {
                 graph.follow_edges(h, false, [&](const handle_t& next) {
@@ -465,10 +465,10 @@ void test_deletable_handle_graphs() {
                 assert(found6);
                 assert(found7);
                 assert(found8);
-                
+
                 count1 = count2 = count3 = count4 = count5 = count6 = 0;
                 found1 = found2 = found3 = found4 = found5 = found6 = found7 = found8 = false;
-                
+
                 graph.follow_edges(h4, false, [&](const handle_t& next) {
                     if (next == graph.flip(h4)) {
                         found1 = true;
@@ -487,13 +487,13 @@ void test_deletable_handle_graphs() {
                 assert(count2 == 1);
                 assert(found1);
                 assert(found2);
-                
+
                 count1 = count2 = 0;
                 found1 = found2 = false;
             }
-            
+
             handle_t h5 = graph.create_handle("GGACC");
-            
+
             // make some edges to ensure that deleting is difficult
             graph.create_edge(h, h5);
             graph.create_edge(h5, h);
@@ -501,12 +501,12 @@ void test_deletable_handle_graphs() {
             graph.create_edge(h3, graph.flip(h5));
             graph.create_edge(h3, h5);
             graph.create_edge(h5, h4);
-            
+
             graph.destroy_handle(h5);
-            
+
             // DeletableHandleGraph has correct structure after creating and deleting a node
             {
-                
+
                 graph.follow_edges(h, false, [&](const handle_t& next) {
                     if (next == h2) {
                         found1 = true;
@@ -569,10 +569,10 @@ void test_deletable_handle_graphs() {
                 assert(found6);
                 assert(found7);
                 assert(found8);
-                
+
                 count1 = count2 = count3 = count4 = count5 = count6 = 0;
                 found1 = found2 = found3 = found4 = found5 = found6 = found7 = found8 = false;
-                
+
                 graph.follow_edges(h4, false, [&](const handle_t& next) {
                     if (next == graph.flip(h4)) {
                         found1 = true;
@@ -591,14 +591,14 @@ void test_deletable_handle_graphs() {
                 assert(count2 == 1);
                 assert(found1);
                 assert(found2);
-                
+
                 count1 = count2 = 0;
                 found1 = found2 = false;
             }
-            
+
             // DeletableHandleGraph has correct structure after swapping nodes
             {
-                
+
                 graph.follow_edges(h, false, [&](const handle_t& next) {
                     if (next == h2) {
                         found1 = true;
@@ -661,10 +661,10 @@ void test_deletable_handle_graphs() {
                 assert(found6);
                 assert(found7);
                 assert(found8);
-                
+
                 count1 = count2 = count3 = count4 = count5 = count6 = 0;
                 found1 = found2 = found3 = found4 = found5 = found6 = found7 = found8 = false;
-                
+
                 graph.follow_edges(h4, false, [&](const handle_t& next) {
                     if (next == graph.flip(h4)) {
                         found1 = true;
@@ -683,11 +683,11 @@ void test_deletable_handle_graphs() {
                 assert(count2 == 1);
                 assert(found1);
                 assert(found2);
-                
+
                 count1 = count2 = 0;
                 found1 = found2 = false;
             }
-            
+
             // DeletableHandleGraph visits all nodes with for_each_handle
             {
                 graph.for_each_handle([&](const handle_t& handle) {
@@ -708,15 +708,15 @@ void test_deletable_handle_graphs() {
                     }
                     return true;
                 });
-                
+
                 assert(found1);
                 assert(found2);
                 assert(found3);
                 assert(found4);
-                
+
                 found1 = found2 = found3 = found4 = false;
             }
-            
+
             // to make sure the sequence reverse complemented correctly
             int i = 0;
             auto check_rev_comp = [&](const std::string& seq1, const std::string& seq2) {
@@ -743,26 +743,26 @@ void test_deletable_handle_graphs() {
                     else {
                         assert(false);
                     }
-                    
+
                     rit++;
                 }
             };
-            
-            
+
+
             int count7 = 0, count8 = 0;
-            
+
             // DeletableHandleGraph correctly reverses a node
             {
-                
+
                 string seq1 = graph.get_sequence(h);
                 h = graph.apply_orientation(graph.flip(h));
-                
+
                 // check the sequence
                 string rev_seq1 = graph.get_sequence(h);
                 check_rev_comp(seq1, rev_seq1);
-                
+
                 // check that the edges are what we expect
-                
+
                 graph.follow_edges(h, false, [&](const handle_t& next) {
                     count1++;
                     return true;
@@ -835,15 +835,15 @@ void test_deletable_handle_graphs() {
                 assert(found6);
                 assert(found7);
                 assert(found8);
-                
+
                 count1 = count2 = count3 = count4 = count5 = count6 = count7 = count8 = 0;
                 found1 = found2 = found3 = found4 = found5 = found6 = found7 = found8 = false;
-                
-                
+
+
                 // and now switch it back to the same orientation and repeat the topology checks
-                
+
                 h = graph.apply_orientation(graph.flip(h));
-                
+
                 graph.follow_edges(h, false, [&](const handle_t& next) {
                     if (next == h2) {
                         found1 = true;
@@ -906,10 +906,10 @@ void test_deletable_handle_graphs() {
                 assert(found6);
                 assert(found7);
                 assert(found8);
-                
+
                 count1 = count2 = count3 = count4 = count5 = count6 = 0;
                 found1 = found2 = found3 = found4 = found5 = found6 = found7 = found8 = false;
-                
+
                 graph.follow_edges(h4, false, [&](const handle_t& next) {
                     if (next == graph.flip(h4)) {
                         found1 = true;
@@ -928,29 +928,29 @@ void test_deletable_handle_graphs() {
                 assert(count2 == 1);
                 assert(found1);
                 assert(found2);
-                
+
                 count1 = count2 = 0;
                 found1 = found2 = false;
             }
 
             vector<handle_t> parts = graph.divide_handle(h, vector<size_t>{1, 2});
-            
+
             int count9 = 0, count10 = 0, count11 = 0, count12 = 0;
             bool found9 = false, found10 = false, found11 = false, found12 = false, found13 = false, found14 = false;
-            
+
             // DeletableHandleGraph can correctly divide a node
             {
-                
+
                 assert(parts.size() == 3);
-                
+
                 assert(graph.get_sequence(parts[0]) == "A");
                 assert(graph.get_length(parts[0]) == 1);
                 assert(graph.get_sequence(parts[1]) == "T");
                 assert(graph.get_length(parts[1]) == 1);
                 assert(graph.get_sequence(parts[2]) == "G");
                 assert(graph.get_length(parts[2]) == 1);
-                
-                
+
+
                 graph.follow_edges(parts[0], false, [&](const handle_t& next) {
                     if (next == parts[1]) {
                         found1 = true;
@@ -973,7 +973,7 @@ void test_deletable_handle_graphs() {
                     count4++;
                     return true;
                 });
-                
+
                 graph.follow_edges(parts[1], false, [&](const handle_t& next) {
                     if (next == parts[2]) {
                         found3 = true;
@@ -1002,7 +1002,7 @@ void test_deletable_handle_graphs() {
                     count8++;
                     return true;
                 });
-                
+
                 graph.follow_edges(parts[2], false, [&](const handle_t& next) {
                     if (next == h2) {
                         found7 = true;
@@ -1049,7 +1049,7 @@ void test_deletable_handle_graphs() {
                     }
                     return true;
                 });
-                
+
                 assert(count1 == 1);
                 assert(count2 == 0);
                 assert(count3 == 1);
@@ -1076,23 +1076,23 @@ void test_deletable_handle_graphs() {
                 assert(found12);
                 assert(found13);
                 assert(found14);
-                
+
                 count1 = count2 = count3 = count4 = count5 = count6 = count7 = count8 = count9 = count10 = count11 = count12 = 0;
                 found1 = found2 = found3 = found4 = found5 = found6 = found7 = found8 = found9 = found10 = found11 = found12 = false;
             }
-            
+
             vector<handle_t> rev_parts = graph.divide_handle(graph.flip(h3), vector<size_t>{1});
-            
+
             // DeletableHandleGraph can correctly divide a node on the reverse strand
             {
-                
+
                 assert(graph.get_sequence(rev_parts[0]) == "G");
                 assert(graph.get_length(rev_parts[0]) == 1);
                 assert(graph.get_is_reverse(rev_parts[0]));
                 assert(graph.get_sequence(rev_parts[1]) == "TC");
                 assert(graph.get_length(rev_parts[1]) == 2);
                 assert(graph.get_is_reverse(rev_parts[1]));
-                
+
                 graph.follow_edges(rev_parts[0], false, [&](const handle_t& next) {
                     if (next == rev_parts[1]) {
                         found1 = true;
@@ -1132,7 +1132,7 @@ void test_deletable_handle_graphs() {
                     count6++;
                     return true;
                 });
-                
+
                 assert(count1 == 1);
                 assert(count2 == 1);
                 assert(count3 == 1);
@@ -1145,21 +1145,21 @@ void test_deletable_handle_graphs() {
                 assert(found4);
                 assert(found5);
             }
-            
+
             auto h6 = graph.create_handle("ACGT");
             auto h7 = graph.create_handle("GCGG");
             auto h8 = graph.create_handle("TTCA");
-            
+
             graph.create_edge(h6, h7);
             graph.create_edge(h7, h8);
-            
+
             h7 = graph.truncate_handle(h7, true, 1);
             assert(graph.get_sequence(h7) == "CGG");
             assert(graph.get_degree(h7, true) == 0);
             assert(graph.get_degree(h7, false) == 1);
             assert(graph.get_degree(h6, false) == 0);
             assert(graph.get_degree(h8, true) == 1);
-            
+
             h7 = graph.truncate_handle(h7, false, 2);
             assert(graph.get_sequence(h7) == "CG");
             assert(graph.get_degree(h7, true) == 0);
@@ -1168,36 +1168,36 @@ void test_deletable_handle_graphs() {
             assert(graph.get_degree(h8, true) == 0);
         }
     }
-    
+
     // second batch of test involving self loops
     {
         vector<DeletableHandleGraph*> implementations;
-        
+
         PackedGraph pg;
         implementations.push_back(&pg);
-        
+
         HashGraph hg;
         implementations.push_back(&hg);
-        
+
         ODGI og;
         implementations.push_back(&og);
-        
+
         for (DeletableHandleGraph* implementation : implementations) {
-            
+
             DeletableHandleGraph& graph = *implementation;
-            
+
             // initialize the graph
-            
+
             handle_t h1 = graph.create_handle("A");
             handle_t h2 = graph.create_handle("C");
-            
+
             graph.create_edge(h1, h2);
             graph.create_edge(graph.flip(h1), h2);
-            
+
             // test for the right initial topology
             bool found1 = false, found2 = false, found3 = false, found4 = false, found5 = false, found6 = false;
             int count1 = 0, count2 = 0, count3 = 0, count4 = 0;
-            
+
             graph.follow_edges(h1, false, [&](const handle_t& other) {
                 if (other == h2) {
                     found1 = true;
@@ -1232,10 +1232,10 @@ void test_deletable_handle_graphs() {
             assert(count4 == 2);
             found1 = found2 = found3 = found4 = found5 = found6 = false;
             count1 = count2 = count3 = count4 = 0;
-            
+
             // flip a node and check if the orientation is correct
             h1 = graph.apply_orientation(graph.flip(h1));
-            
+
             graph.follow_edges(h1, false, [&](const handle_t& other) {
                 if (other == h2) {
                     found1 = true;
@@ -1270,13 +1270,13 @@ void test_deletable_handle_graphs() {
             assert(count4 == 2);
             found1 = found2 = found3 = found4 = found5 = found6 = false;
             count1 = count2 = count3 = count4 = 0;
-            
+
             // create a new edge
-            
+
             graph.create_edge(h1, graph.flip(h2));
-            
+
             // check the topology
-            
+
             graph.follow_edges(h1, false, [&](const handle_t& other) {
                 if (other == h2) {
                     found1 = true;
@@ -1319,11 +1319,11 @@ void test_deletable_handle_graphs() {
             assert(count4 == 2);
             found1 = found2 = found3 = found4 = found5 = found6 = false;
             count1 = count2 = count3 = count4 = 0;
-            
+
             // now another node and check to make sure that the edges are updated appropriately
-            
+
             h2 = graph.apply_orientation(graph.flip(h2));
-            
+
             graph.follow_edges(h1, false, [&](const handle_t& other) {
                 if (other == h2) {
                     found1 = true;
@@ -1366,44 +1366,126 @@ void test_deletable_handle_graphs() {
             assert(count4 == 1);
         }
     }
-    
+
     // another batch of tests involving divide handle and reversing
     // self edges
     {
         vector<DeletableHandleGraph*> implementations;
-        
+
         HashGraph hg;
         implementations.push_back(&hg);
-        
+
         PackedGraph pg;
         implementations.push_back(&pg);
-        
+
         //ODGI og;
         //implementations.push_back(&og);
-        
+
         for (DeletableHandleGraph* implementation : implementations) {
             DeletableHandleGraph& graph = *implementation;
-            
+
             handle_t h1 = graph.create_handle("ATGAA");
             handle_t h2 = graph.create_handle("ATGAA");
-            
+
             graph.create_edge(h1, graph.flip(h1));
             graph.create_edge(graph.flip(h2), h2);
-            
+
             auto parts1 = graph.divide_handle(h1, {2, 4});
             auto parts2 = graph.divide_handle(h2, {2, 4});
-            
+
             assert(parts1.size() == 3);
             assert(parts2.size() == 3);
-            
+
             assert(graph.has_edge(parts1[0], parts1[1]));
             assert(graph.has_edge(parts1[1], parts1[2]));
             assert(graph.has_edge(parts1[2], graph.flip(parts1[2])));
-            
+
             assert(graph.has_edge(parts2[0], parts2[1]));
             assert(graph.has_edge(parts2[1], parts2[2]));
             assert(graph.has_edge(graph.flip(parts2[0]), parts2[0]));
+
+        }
+    }
+    
+    // another batch of tests that deal with deleting after dividing
+    {
+        vector<pair<MutablePathDeletableHandleGraph*, MutablePathDeletableHandleGraph*>> implementations;
+        
+        // Add implementations
+        
+        PackedGraph pg, pg2;
+        implementations.push_back(make_pair(&pg, &pg2));
+        
+        ODGI og, og2;
+        implementations.push_back(make_pair(&og, &og2));
+
+        HashGraph hg, hg2;
+        implementations.push_back(make_pair(&hg, &hg2));
+        
+        // And test them
+        for (int imp = 0; imp < implementations.size(); ++imp) {
             
+            for (bool backwards : {false, true}) {
+                
+                MutablePathDeletableHandleGraph* g = backwards ? implementations[imp].first : implementations[imp].second;
+                
+                assert(g->get_node_count() == 0);
+                
+                handle_t handle1 = g->create_handle("CAAATAAGGCTTGGAAATTTTCTGGAGTTCTA");
+                handle_t handle2 = g->create_handle("TTATATTCCAACTCTCTG");
+                path_handle_t path_handle = g->create_path_handle("x");
+                g->create_edge(handle1, handle2);
+                
+                if (backwards) {
+                    handle1 = g->flip(handle1);
+                    handle2 = g->flip(handle2);
+                    g->append_step(path_handle, handle2);
+                    g->append_step(path_handle, handle1);
+                } else {
+                    g->append_step(path_handle, handle1);
+                    g->append_step(path_handle, handle2);
+                }
+                                
+                auto parts1 = g->divide_handle(handle1, vector<size_t>({2, 7, 22, 31}));
+                auto parts2 = g->divide_handle(handle2, vector<size_t>({1, 5, 10}));
+                                
+                vector<handle_t> steps;
+                g->for_each_step_in_path(path_handle, [&](step_handle_t step_handle) {
+                    steps.push_back(g->get_handle_of_step(step_handle));
+                });
+                                
+                assert(steps.size() == 9);
+                int i = 0;
+                vector<handle_t> to_delete;
+                g->append_step(g->create_path_handle(to_string(i)), steps[i]);
+                ++i;
+                to_delete.push_back(steps[i++]);
+                g->append_step(g->create_path_handle(to_string(i)), steps[i]);
+                ++i;
+                to_delete.push_back(steps[i++]);
+                to_delete.push_back(steps[i++]);
+                to_delete.push_back(steps[i++]);
+                g->append_step(g->create_path_handle(to_string(i)), steps[i]);
+                ++i;
+                to_delete.push_back(steps[i++]);
+                g->append_step(g->create_path_handle(to_string(i)), steps[i]);
+                ++i;
+                
+                g->destroy_path(path_handle);
+                                
+                for (auto handle : to_delete) {
+                    g->destroy_handle(handle);
+                }
+                
+                g->for_each_path_handle([&](const path_handle_t& p) {
+                    g->for_each_step_in_path(p, [&](const step_handle_t& s) {
+                        auto h = g->get_handle_of_step(s);
+                    });
+                });
+                
+                assert(g->get_node_count() == 4);
+                assert(g->get_path_count() == 4);
+            }
         }
     }
     

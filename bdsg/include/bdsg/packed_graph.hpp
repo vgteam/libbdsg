@@ -586,6 +586,10 @@ private:
     
 public:
     
+    /// Debugging function, prints a text representation of the internal coding
+    /// to an ostream
+    void print_graph(ostream& out) const;
+    
     /// Debugging function, measures memory and prints a report to an ostream.
     /// Optionally reports memory usage for every path individually.
     void report_memory(ostream& out, bool individual_paths = false) const;
