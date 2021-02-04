@@ -4,16 +4,12 @@
 // Contains implementations of classic data structures for use in a memory-mapped area.
 //
 
-#ifndef BDSG_PACKED_STRUCTS_HPP_INCLUDED
-#define BDSG_PACKED_STRUCTS_HPP_INCLUDED
+#ifndef BDSG_MAPPED_STRUCTS_HPP_INCLUDED
+#define BDSG_MAPPED_STRUCTS_HPP_INCLUDED
 
 #include <cstdio>
 #include <cstdint>
-#include <algorithm>
 #include <iostream>
-#include <vector>
-#include <random>
-#include <sdsl/int_vector.hpp>
 
 namespace bdsg {
     
