@@ -45,11 +45,20 @@ protected:
 
 
 /**
+ * Wrapper that stores a number in a defined endian-ness.
+ */
+class big_endian<T> {
+    // TODO
+};
+
+/**
  * Offset pointer to a primitive type, in the memory mapping.
  * Exists in the memory mapping.
  */
 template<typename T>
 class offset_ptr {
+private:
+    big_endian<size_t> offset;
 public:
     T& operator*();
     const T& operator*() const;
@@ -79,7 +88,7 @@ template<typename item_ref_t>
 class MappedVector : public base_ref_t {
 public:
     struct body_t {
-        size_t length;
+        big_endian<size_t> length;
         offset_to<item_ref_t> first;
     };
     
