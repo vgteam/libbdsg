@@ -24,6 +24,7 @@ class MappingContext {
     // TODO
 };
 
+
 // We work with "reference" types which have a ::body_t that exists in the
 // memory mapping, an offset, and possibly other fields that exist outside it.
 // The reference type can have members that e.g. allocate, while the body
@@ -95,6 +96,7 @@ public:
     size_t size() const;
     void resize(size_t new_size);
     item_ref_t at(size_t index);
+    const item_ref_t at(size_t index) const;
 };
 
 class IntVectorRef : public base_ref_t {
@@ -107,6 +109,37 @@ class PackedVectorRef : public base_ref_t {
 
 class PagedVectorRef : public base_ref_t {
     // TODO
+};
+
+// Then on top of a PagedVector or something we might have:
+
+/**
+ * Context for accessing ref_t type things that live inside an int vector isntead of inside a memory mapping.
+ */
+class ArrayContext {
+public:
+    /// What is the int vector a vector of?
+    using entry_t = size_t;
+    
+    /**
+     * Our numbers may be compressed, so accesses to indices use these instead of real references.
+     * See: std::vector<bool>
+     */
+    class ArrayEntryRef {
+        friend class ArrayContext;
+    private:
+        ArrayContext& context;
+        size_t offset;
+    public:
+        operator entry_t () const;
+        ArrayEntryRef& operator= (const entry_t x);
+        ArrayEntryRef& operator= (const ArrayEntryRef& x);
+    };
+    
+    size_t size() const;
+    void resize(size_t new_size);
+    ArrayEntryRef at(size_t index);
+    const ArrayEntryRef at(size_t index) const;
 };
 
 }
