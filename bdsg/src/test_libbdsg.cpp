@@ -22,6 +22,7 @@
 #include "bdsg/packed_graph.hpp"
 #include "bdsg/hash_graph.hpp"
 #include "bdsg/internal/packed_structs.hpp"
+#include "bdsg/internal/mapped_structs.hpp"
 #include "bdsg/internal/mmap_backend.hpp"
 #include "bdsg/overlays/path_position_overlays.hpp"
 #include "bdsg/overlays/packed_path_position_overlay.hpp"
@@ -90,13 +91,15 @@ public:
 
 // Have helpers to store and check some test data
 
-void fill_to(MmapArray<int64_t>& data, size_t count, int64_t nonce) {
+template<typename Vectorish>
+void fill_to(Vectorish& data, size_t count, int64_t nonce) {
     for (size_t i = 0; i < count; i++) {
         data.at(i) = ((i * i + (i << 2)) ^ nonce);
     }
 }
 
-void verify_to(const MmapArray<int64_t>& data, size_t count, int64_t nonce) {
+template<typename Vectorish>
+void verify_to(const Vectorish& data, size_t count, int64_t nonce) {
     if (count > data.size()) {
         throw std::runtime_error("Trying to check " + std::to_string(count) + " items but only " + std::to_string(data.size()) + " are available");
     }
@@ -388,6 +391,77 @@ void test_mmap_backend() {
     
     cerr << "MmapBackend tests successful!" << endl;
 }
+
+/**
+ * We define this template to test the mmap-backed structs
+ */
+template<typename Item>
+class MmapContainer : public MmapBackend {
+public:
+
+    MappingContext context;
+
+    MmapContainer() : MmapBackend() {
+        // TODO: can we make the context abstraction better match the backend one?
+        context.base_address = serialized_data();
+        context.size = serialized_data_size();
+        context.resize = [this](size_t new_size) -> char* {
+            serialized_data_resize(new_size);
+            return serialized_data();
+        };
+    };
+    
+    uint32_t get_magic_number() const {
+        // We must define a magic number for this type.
+        return 0xCAFE1234;
+    }
+    
+    MappedVectorRef<Item> get_collection() {
+        // First make the allocator, which will resize the context if not big enough for its structures.
+        ArenaAllocatorRef<typename MappedVectorRef<Item>::body_t> alloc(context);
+        
+        if (serialized_data_size() > sizeof(typename decltype(alloc)::body_t)) {
+            // There's something in there already. Assume it's the right thing and connect to it
+            return MappedVectorRef<Item>(context, sizeof(typename decltype(alloc)::body_t));
+        } else {
+            // Make an empty vector. We assume it lands right after the allocator.
+            return MappedVectorRef<Item>(context);
+        }
+    }
+};
+
+void test_mapped_structs() {
+    {
+        // Make a test array
+        MmapContainer<big_endian<int64_t>> numbers_arena;
+        
+        // Connect to it (should allocate)
+        MappedVectorRef<big_endian<int64_t>> vec1 = numbers_arena.get_collection();
+        
+        // Connect to it again (should not allocate)
+        MappedVectorRef<big_endian<int64_t>> vec2 = numbers_arena.get_collection();
+        
+        // We should start empty
+        assert(vec1.size() == 0);
+        assert(vec2.size() == 0);
+        
+        // We should be able to expand.
+        vec1.resize(100);
+        assert(vec1.size() == 100);
+        assert(vec2.size() == 100);
+        
+        // We can actually hold data
+        vec1.resize(10);
+        assert(vec1.size() == 100);
+        assert(vec2.size() == 100);
+        
+        fill_to(vec1, 10, 0);
+        verify_to(vec1, 10, 0);
+        verify_to(vec2, 10, 0);
+    }
+}
+        
+
 
 void test_serializable_handle_graphs() {
     
@@ -3609,6 +3683,7 @@ void test_packed_subgraph_overlay() {
 
 int main(void) {
     test_mmap_backend();
+    test_mapped_structs();
     test_packed_vector();
     test_paged_vector();
     test_packed_deque();
