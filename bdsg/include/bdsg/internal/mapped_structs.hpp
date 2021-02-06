@@ -24,6 +24,7 @@ struct MappingContext {
     char* base_address;
     size_t size;
     /// When we're trying to allocate and we can't, resize. Might move the whole thing.
+    /// Must throw if allocation did not happen.
     std::function<char*(size_t)> resize;
     // TODO: stick a mutex in here?
 };
@@ -50,6 +51,18 @@ public:
     /// Allocate and construct a new body at some available offset and get a
     /// reference object to it.
     base_ref_t(MappingContext& context);
+    
+    // TODO: we can't have helpers that return Dervied::body_t, even as a
+    // pointer, because Derived inherits us and C++ thinks it isn't ready to be
+    // used when we're doing our types. So we template.
+    
+    /// Get the body; will need to be called as body<body_t>().
+    template<typename DerivedBody>
+    DerivedBody& get_body();
+    
+    /// Get the body; will need to be called as body<body_t>().
+    template<typename DerivedBody>
+    const DerivedBody& get_body() const;
 };
 
 /**
@@ -73,10 +86,12 @@ class offset_ptr {
 private:
     big_endian<size_t> offset;
 public:
-    // Be constructable
-    offset_ptr() = default;
+    /// Be constructable.
+    /// Constructs as a pointer that equals nullptr.
+    offset_ptr();
 
     // Be a good pointer
+    operator bool () const; // TODO: why doesn't this work as an implicit conversion?
     T& operator*();
     const T& operator*() const;
     T* operator->();
@@ -100,6 +115,8 @@ public:
 template<typename ref_t>
 class offset_to : offset_ptr<typename ref_t::body_t> {
 public:
+    operator bool () const;
+
     /// Get a ref_t to the body pointed to.
     ref_t get(MappingContext& context);
     
@@ -118,8 +135,14 @@ public:
     struct body_t {
         offset_to<ArenaAllocatorBlockRef> prev;
         offset_to<ArenaAllocatorBlockRef> next;
-        big_endian<bool> is_free;
+        big_endian<size_t> size;
     };
+    
+    offset_to<ArenaAllocatorBlockRef>& prev();
+    offset_to<ArenaAllocatorBlockRef>& next();
+    big_endian<size_t>& size();
+    
+    using base_ref_t<ArenaAllocatorBlockRef>::base_ref_t;
 };
 
 /**
@@ -145,16 +168,6 @@ public:
     static const size_t reserved_bytes = sizeof(body_t);
     
     /**
-     * Allocate the given number of items. Ought to be near the hint.
-     */
-    pointer allocate(size_type n, const_pointer hint = 0);
-    
-    /**
-     * Deallocate the given number of items. Must be the same number as were allocated.
-     */
-    void deallocate(pointer p, size_type n);
-    
-    /**
      * Make an allocator in the given MappingContext, or connect to the existing one.
      * Resizes the context to be big enough to hold the allocator, if it isn't already.
      * We assume allocators are only allowed at 0, one per context.
@@ -171,6 +184,18 @@ public:
      */
     template<typename U>
     ArenaAllocatorRef(const ArenaAllocatorRef<U>& alloc);
+    
+    /**
+     * Allocate the given number of items. Ought to be near the hint.
+     */
+    pointer allocate(size_type n, const_pointer hint = 0);
+    
+    /**
+     * Deallocate the given number of items. Must be the same number as were allocated.
+     */
+    void deallocate(pointer p, size_type n);
+    
+    
 };
 
 /**
@@ -231,6 +256,90 @@ public:
     };
     // TODO
 };
+
+
+///////////////////////////////////////////////////////////////////////////////////
+
+
+// Implementations
+
+template<typename T>
+ArenaAllocatorRef<T>::ArenaAllocatorRef(MappingContext& context) : base_ref_t<ArenaAllocatorRef<T>>(context, 0) {
+    // We declared ourselves to be at 0.
+    if (context.size < reserved_bytes) {
+        // The body didn't exist yet.
+        // Make room for the body
+        context.base_address = context.resize(reserved_bytes);
+        context.size = reserved_bytes;
+        // Run its constructor
+        new ((void*) context.base_address) body_t;
+    }
+    // Otherwise we assume the allocator was already there.
+    // We totally ignore the different template parameters.
+    // TODO: be a base class of all the templated derived classes?
+}
+
+template<typename T>
+template<typename U>
+ArenaAllocatorRef<T>::ArenaAllocatorRef(const ArenaAllocatorRef<U>& alloc): base_ref_t<ArenaAllocatorRef<T>>(alloc.context, alloc.offset) {
+    // Nothing to do to change the type; just steal the state.
+}
+
+template<typename T>
+auto ArenaAllocatorRef<T>::allocate(size_type n, const_pointer hint) -> pointer {
+    // Find our body
+    auto& body = this->get_body();
+    
+    // How much user space do we need?
+    // TODO: alignment???
+    size_t user_bytes = n * sizeof(T);
+    // And how much space do we need with block overhead?
+    size_t block_bytes = user_bytes + sizeof(ArenaAllocatorBlockRef::body_t);
+    
+    // This will hold a ref to the free block we found or made that is big enough to hold this item.
+    // TODO: should refs be able to be null???
+    unique_ptr<ArenaAllocatorBlockRef> found;
+   
+    if (body.first_free) {
+        // Start at the first free block
+        found = make_unique(body.first_free.get(this->context));
+        
+        while (found->size() < user_bytes) {
+            // Won't fit here
+            if ((bool)found->next) {
+                // But there's another free block to check. Look at it.
+                found = make_unique(found->next().get(this->context));
+            } else {
+                // End of list
+                found.reset();
+            }
+        }
+    }
+   
+    if ((bool)found) {
+        // We have no free memory big enough.
+        
+        // Work out where new free memory will start
+        size_t new_free = this->context.size;
+        
+        // Double the arena, or add space for the data we need to allocate, whichever is bigger.
+        size_t new_bytes = max(this->context.size, block_bytes);
+        this->context.base_address = this->context.resize(this->context.size + new_bytes);
+        this->context.size += new_bytes;
+        
+        // Create a new block
+        new ((void*) (this->context.base_address + new_free)) ArenaAllocatorBlockRef::body_t;
+        
+        // Refer to it and say we found it.
+        found = make_unique<ArenaAllocatorBlockRef>(this->context, new_free);
+        
+        // Initialize it. Leave prev and next pointers null because it is the only free block.
+        found->size() = user_bytes;
+    }
+    
+    // TODO: allocate memory from the found block.
+}
+
 
 }
 
