@@ -133,7 +133,12 @@ public:
     ref_t get_at(MappingContext* context, size_t index);
     
     /// Set this pointer to point to the body of the given ref_t
-    offset_to<ref_t>& operator=(const ref_t other);
+    offset_to<ref_t>& operator=(const& ref_t other);
+    
+    /// Determine if this pointer points to the body of the given ref.
+    bool operator==(const& ref_t other) const;
+    /// Determine if this pointer does not point to the body of the given ref.
+    bool operator!=(const& ref_t other) const;
 };
 
 /**
@@ -142,16 +147,48 @@ public:
 class ArenaAllocatorBlockRef : public base_ref_t<ArenaAllocatorBlockRef> {
 public:
     struct body_t {
+        /// Next block. Only used when block is free.
         offset_to<ArenaAllocatorBlockRef> prev;
+        /// Previous block. Only used when block is free.
         offset_to<ArenaAllocatorBlockRef> next;
+        /// Size fo the block in bytes, not counting this header. Used for free
+        /// and allocated blocks.
         big_endian<size_t> size;
     };
     
-    offset_to<ArenaAllocatorBlockRef>& prev();
-    offset_to<ArenaAllocatorBlockRef>& next();
-    big_endian<size_t>& size();
-    
     using base_ref_t<ArenaAllocatorBlockRef>::base_ref_t;
+    
+    /// Get or set the previous entry in the free list.
+    offset_to<ArenaAllocatorBlockRef>& prev();
+    /// Get or set the next entry in the free list.
+    offset_to<ArenaAllocatorBlockRef>& next();
+    /// Get or set the size of the block, after the header.
+    big_endian<size_t>& size();
+    /// Get the offset in the context of the first byte of memory we manage.
+    size_t get_user_data() const;
+    /// Get a ref to the block managing the data starting at the given byte.
+    static ArenaAllocatorBlockRef get_from_data(MappingContext* context, size_t user_data);
+    
+    /// Split the block, keeping first_bytes bytes and giving the rest to a new
+    /// subsequent block, which is wired up and returned. Assumes the block is
+    /// free.
+    ArenaAllocatorBlockRef split(size_t first_bytes);
+    
+    /// Remove this block from the free list. Returns the blocks before and
+    /// after it, which is has wired together. If this was the first or last
+    /// block (or both), the appropriate return value will be a null ref.
+    pair<ArenaAllocatorBlockRef, ArenaAllocatorBlockRef> detach();
+    
+    /// Attach this block to the free list, between the given blocks, which may
+    /// be null.
+    void attach(ArenaAllocatorBlockRef& left, ArenaAllocatorBlockRef& right);
+    
+    /// Defragment and coalesce adjacent free blocks in the contiguous run this
+    /// block is part of, if any. Returns the first and last blocks in the run;
+    /// the last block's header will be in the free space of the first block,
+    /// unless the last block is the first block.
+    pair<ArenaAllocatorBlockRef, ArenaAllocatorBlockRef> coalesce();
+    
 };
 
 /**
@@ -164,8 +201,6 @@ public:
     struct body_t {
         offset_to<ArenaAllocatorBlockRef> first_free;
         offset_to<ArenaAllocatorBlockRef> last_free;
-        offset_to<ArenaAllocatorBlockRef> first_used;
-        offset_to<ArenaAllocatorBlockRef> last_used;
     };
 
     using pointer = size_t;
@@ -203,7 +238,6 @@ public:
      * Deallocate the given number of items. Must be the same number as were allocated.
      */
     void deallocate(pointer p, size_type n);
-    
     
 };
 
@@ -332,9 +366,83 @@ auto ArenaAllocatorRef<T>::allocate(size_type n, const_pointer hint) -> pointer 
         
         // Initialize it. Leave prev and next pointers null because it is the only free block.
         found.size() = user_bytes;
+        
+        // Put it in the linked list as head and tail.
+        body.first_free = found;
+        body.last_free = found;
     }
     
-    // TODO: allocate memory from the found block.
+    // Now we can allocate memory.
+    
+    if (found.size() > block_bytes) {
+        // We could break the user data off of this block and have some space left over.
+        // TODO: use a min block size here instead.
+        
+        // So split the block.
+        ArenaAllocatorBlockRef second = found.split(user_bytes);
+        if (body().last_free == found) {
+            // And fix up the end of the linked list
+            last_free = second;
+        }
+    }
+    
+    // Now we have a free block of the right size. Make it not free.
+    auto connected = found.detach();
+    if (body.first_free == found) {
+        // This was the first free block
+        body.first_free = connected.first;
+    }
+    if (body.last_free == found) {
+        // This was the last free block 
+        body.last_free = connected.second;
+    }
+    
+    // Give out the address of its data
+    return found.get_data();
+}
+
+
+template<typename T>
+void ArenaAllocatorRef<T>::deallocate(pointer p, size_type n) {
+    // Find our body
+    auto& body = this->get_body();
+    
+    // Find the block
+    ArenaAllocatorBlockRef found = ArenaAllocatorBlockRef::get_from_data(this->context, p);
+    
+    // Find the block in the free list after it, if any
+    ArenaAllocatorBlockRef right = body.first_free;
+    while(right && right.offset < found.offset) {
+        right = right.next();
+    }
+    ArenaAllocatorBlockRef left;
+    if (!right) {
+        // The new block should be the last block in the list.
+        // So it comes after the existing last block, if any.
+        left = body.last_free;
+    } else {
+        // The new block comes between right and its predecessor, if any
+        left = right.prev();
+    }
+    
+    // Wire in the block
+    found.attach(left, right);
+    
+    // Update haed and tail
+    if (body.last_free == left) {
+        body.last_free = found;
+    }
+    if (body.first_free == right) {
+        body.first_free = found;
+    }
+    
+    // Defragment.
+    auto bounds = found.coalesce();
+    // We can't need to update the first free when defragmenting, but we may
+    // need to update the last free.
+    if (body.last_free == bounds.second) {
+        body.last_free = bounds.first;
+    }
 }
 
 
