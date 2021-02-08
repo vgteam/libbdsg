@@ -10,6 +10,7 @@
 #include <cstdio>
 #include <cstdint>
 #include <iostream>
+#include <functional>
 
 namespace bdsg {
     
@@ -133,12 +134,12 @@ public:
     ref_t get_at(MappingContext* context, size_t index);
     
     /// Set this pointer to point to the body of the given ref_t
-    offset_to<ref_t>& operator=(const& ref_t other);
+    offset_to<ref_t>& operator=(const ref_t& other);
     
     /// Determine if this pointer points to the body of the given ref.
-    bool operator==(const& ref_t other) const;
+    bool operator==(const ref_t& other) const;
     /// Determine if this pointer does not point to the body of the given ref.
-    bool operator!=(const& ref_t other) const;
+    bool operator!=(const ref_t& other) const;
 };
 
 /**
@@ -380,9 +381,9 @@ auto ArenaAllocatorRef<T>::allocate(size_type n, const_pointer hint) -> pointer 
         
         // So split the block.
         ArenaAllocatorBlockRef second = found.split(user_bytes);
-        if (body().last_free == found) {
+        if (body.last_free == found) {
             // And fix up the end of the linked list
-            last_free = second;
+            body.last_free = second;
         }
     }
     
@@ -398,7 +399,7 @@ auto ArenaAllocatorRef<T>::allocate(size_type n, const_pointer hint) -> pointer 
     }
     
     // Give out the address of its data
-    return found.get_data();
+    return found.get_user_data();
 }
 
 
