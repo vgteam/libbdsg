@@ -63,15 +63,9 @@ public:
     
     // TODO: we can't have helpers that return Dervied::body_t, even as a
     // pointer, because Derived inherits us and C++ thinks it isn't ready to be
-    // used when we're doing our types. So we template.
-    
-    /// Get the body; will need to be called as body<body_t>().
-    template<typename DerivedBody>
-    DerivedBody& get_body();
-    
-    /// Get the body; will need to be called as body<body_t>().
-    template<typename DerivedBody>
-    const DerivedBody& get_body() const;
+    // used when we're doing our types. So we use a void pointer
+    void* get_body();
+    const void* get_body() const;
 };
 
 /**
@@ -98,7 +92,7 @@ public:
     /// Be constructable.
     /// Constructs as a pointer that equals nullptr.
     offset_ptr();
-
+    
     // Be a good pointer
     operator bool () const; // TODO: why doesn't this work as an implicit conversion?
     T& operator*();
@@ -244,12 +238,15 @@ public:
 
 /**
  * Reference type for a vector of primitive items, directly stored in the mapping.
+ * Note that destructors won't run when things are just unmapped, and
+ * constructors won't run when things are mapped in.
  */
 template<typename item_t>
 class MappedVectorRef : public base_ref_t<MappedVectorRef<item_t>> {
 public:
     struct body_t {
         big_endian<size_t> length;
+        big_endian<size_t> reserved_length;
         offset_ptr<item_t> first;
     };
     
@@ -259,6 +256,8 @@ public:
     void resize(size_t new_size);
     item_t& at(size_t index);
     const item_t& at(size_t index) const;
+    
+    // TODO: reserve(), push_back()
 };
 
 /**
@@ -332,7 +331,7 @@ ArenaAllocatorRef<T>::ArenaAllocatorRef(const ArenaAllocatorRef<U>& alloc): base
 template<typename T>
 auto ArenaAllocatorRef<T>::allocate(size_type n, const_pointer hint) -> pointer {
     // Find our body
-    auto& body = this->get_body();
+    auto& body = *reinterpret_cast<body_t*>(this->get_body());
     
     // How much user space do we need?
     // TODO: alignment???
@@ -360,7 +359,7 @@ auto ArenaAllocatorRef<T>::allocate(size_type n, const_pointer hint) -> pointer 
         this->context->size += new_bytes;
         
         // Create a new block
-        new ((void*) (this->context.base_address + new_free)) ArenaAllocatorBlockRef::body_t;
+        new ((void*) (this->context->base_address + new_free)) ArenaAllocatorBlockRef::body_t;
         
         // Refer to it and say we found it.
         found = ArenaAllocatorBlockRef(this->context, new_free);
@@ -406,7 +405,7 @@ auto ArenaAllocatorRef<T>::allocate(size_type n, const_pointer hint) -> pointer 
 template<typename T>
 void ArenaAllocatorRef<T>::deallocate(pointer p, size_type n) {
     // Find our body
-    auto& body = this->get_body();
+    auto& body = *reinterpret_cast<body_t*>(this->get_body());
     
     // Find the block
     ArenaAllocatorBlockRef found = ArenaAllocatorBlockRef::get_from_data(this->context, p);
@@ -445,6 +444,96 @@ void ArenaAllocatorRef<T>::deallocate(pointer p, size_type n) {
         body.last_free = bounds.first;
     }
 }
+
+template<typename item_t>
+size_t MappedVectorRef<item_t>::size() const {
+    auto& body = *reinterpret_cast<const body_t*>(this->get_body());
+    return body.length;
+}
+
+template<typename item_t>
+void MappedVectorRef<item_t>::resize(size_t new_size) {
+    if (new_size == size()) {
+        // Nothing to do!
+        return;
+    }
+
+    // Get the body
+    auto& body = *reinterpret_cast<body_t*>(this->get_body());
+    
+    // Where is the vector going?
+    item_t* new_first = nullptr;
+    
+    if (new_size > body.reserved_length) {
+        // Get the allocator
+        // TODO: if we put a mutex in the ref, this won't work.
+        ArenaAllocatorRef<item_t> alloc(this->context);
+
+        // TODO: we can't deal with a simultaneous reallocation/move of the context
+        // while we're working.
+
+        // Allocate space for the new data, and get the position in the context
+        size_t new_first_pos = alloc.allocate(new_size);
+        
+        // Convert to memory address
+        new_first = (item_t*) (this->context->base_address + new_first_pos);
+        
+        if (size() > 0) {
+            // Get memory address of old data
+            item_t* old_first = &*body.first;
+            
+            for (size_t i = 0; i < size() && i < new_size; i++) {
+                // Run move constructors
+                new (new_first + i) item_t(std::move(*(old_first + i)));
+                // And destructors
+                (old_first + i)->~item_t();
+            }
+        }
+        
+        // Record the new reserved length
+        body.reserved_length = new_size;
+    } else {
+        // Just run in place
+        new_first = &*body.first;
+    }
+    
+    for (size_t i = size(); i < new_size; i++) {
+        // For anything aded on, just run constructor
+        new (new_first + i) item_t();
+    }
+    
+    if (new_size < size()) {
+        // We shrank, and we had at least one item.
+        item_t* old_first = &*body.first;
+        for (size_t i = new_size; i < size(); i++) {
+            // For anything trimmed off, just run destructors.
+            (old_first + i)->~item_t();
+        }
+    }
+    
+    // Record the new length
+    body.length = new_size;
+}
+
+template<typename item_t>
+item_t& MappedVectorRef<item_t>::at(size_t index) {
+    auto& body = *reinterpret_cast<body_t*>(this->get_body());
+    
+    if (index <= size()) {
+        // TODO: throw the right type here.
+        throw std::runtime_error("Cannot get " + std::to_string(index) +
+                                 " in vector of length " + std::to_string(size()));
+    }
+    
+    return *(body.first + index);
+}
+
+template<typename item_t>
+const item_t& MappedVectorRef<item_t>::at(size_t index) const {
+    // Just run non-const at and constify result
+    return const_cast<MappedVectorRef<item_t>*>(this)->at(index);
+}
+
 
 
 }
