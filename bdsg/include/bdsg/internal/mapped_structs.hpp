@@ -32,25 +32,33 @@ struct MappingContext {
 // We work with "reference" types which have a ::body_t that exists in the
 // memory mapping, an offset, and possibly other fields that exist outside it.
 // The reference type can have members that e.g. allocate, while the body
-// cannot.
-// These are meant to be value types, and should expose some accessor methods
-// that operate on the body.
+// cannot. The reference can be null.
+// These are meant to be passed around as values, and should expose some
+// accessor methods that operate on the body.
 
 template<typename Derived>
 class base_ref_t {
 public:
-    MappingContext& context;
+    /// The MappingContext that the referenced object lives in, or nullptr if we are null. 
+    MappingContext* context;
+    /// The offset in the context that the referenced object exists at.
     size_t offset;
     
     // Derived must provide a body_t.
     // Also we can't inherit multiple levels.
     
     /// Get a reference object to the existing body at the given offset.
-    base_ref_t(MappingContext& context, size_t offset);
+    base_ref_t(MappingContext* context, size_t offset);
     
     /// Allocate and construct a new body at some available offset and get a
     /// reference object to it.
-    base_ref_t(MappingContext& context);
+    base_ref_t(MappingContext* context);
+    
+    /// Get a null reference.
+    base_ref_t();
+    
+    /// Be truthy if not null, and false otherwise
+    operator bool () const;
     
     // TODO: we can't have helpers that return Dervied::body_t, even as a
     // pointer, because Derived inherits us and C++ thinks it isn't ready to be
@@ -118,10 +126,10 @@ public:
     operator bool () const;
 
     /// Get a ref_t to the body pointed to.
-    ref_t get(MappingContext& context);
+    ref_t get(MappingContext* context);
     
     /// Get a ref_t to the body pointed to, plus a given offset in bodies of the same size.
-    ref_t get_at(MappingContext& context, size_t index);
+    ref_t get_at(MappingContext* context, size_t index);
     
     /// Set this pointer to point to the body of the given ref_t
     offset_to<ref_t>& operator=(const ref_t other);
@@ -172,7 +180,7 @@ public:
      * Resizes the context to be big enough to hold the allocator, if it isn't already.
      * We assume allocators are only allowed at 0, one per context.
      */
-    ArenaAllocatorRef(MappingContext& context);
+    ArenaAllocatorRef(MappingContext* context);
     
     /**
      * Copy an allocator.
@@ -264,15 +272,15 @@ public:
 // Implementations
 
 template<typename T>
-ArenaAllocatorRef<T>::ArenaAllocatorRef(MappingContext& context) : base_ref_t<ArenaAllocatorRef<T>>(context, 0) {
+ArenaAllocatorRef<T>::ArenaAllocatorRef(MappingContext* context) : base_ref_t<ArenaAllocatorRef<T>>(context, 0) {
     // We declared ourselves to be at 0.
-    if (context.size < reserved_bytes) {
+    if (context->size < reserved_bytes) {
         // The body didn't exist yet.
         // Make room for the body
-        context.base_address = context.resize(reserved_bytes);
-        context.size = reserved_bytes;
+        context->base_address = context->resize(reserved_bytes);
+        context->size = reserved_bytes;
         // Run its constructor
-        new ((void*) context.base_address) body_t;
+        new ((void*) context->base_address) body_t;
     }
     // Otherwise we assume the allocator was already there.
     // We totally ignore the different template parameters.
@@ -320,12 +328,12 @@ auto ArenaAllocatorRef<T>::allocate(size_type n, const_pointer hint) -> pointer 
         // We have no free memory big enough.
         
         // Work out where new free memory will start
-        size_t new_free = this->context.size;
+        size_t new_free = this->context->size;
         
         // Double the arena, or add space for the data we need to allocate, whichever is bigger.
-        size_t new_bytes = max(this->context.size, block_bytes);
-        this->context.base_address = this->context.resize(this->context.size + new_bytes);
-        this->context.size += new_bytes;
+        size_t new_bytes = max(this->context->size, block_bytes);
+        this->context->base_address = this->context->resize(this->context->size + new_bytes);
+        this->context->size += new_bytes;
         
         // Create a new block
         new ((void*) (this->context.base_address + new_free)) ArenaAllocatorBlockRef::body_t;

@@ -400,6 +400,12 @@ class MmapContainer : public MmapBackend {
 public:
 
     MappingContext context;
+    
+    MmapContainer(const MmapContainer& other) = delete;
+    MmapContainer(MmapContainer&& other) = delete;
+    MmapContainer& operator=(const MmapContainer& other) = delete;
+    MmapContainer& operator=(MmapContainer&& other) = delete;
+    // If we kept the context on the heap we could be movable.
 
     MmapContainer() : MmapBackend() {
         // TODO: can we make the context abstraction better match the backend one?
@@ -418,14 +424,14 @@ public:
     
     MappedVectorRef<Item> get_collection() {
         // First make the allocator, which will resize the context if not big enough for its structures.
-        ArenaAllocatorRef<typename MappedVectorRef<Item>::body_t> alloc(context);
+        ArenaAllocatorRef<typename MappedVectorRef<Item>::body_t> alloc(&context);
         
         if (serialized_data_size() > sizeof(typename decltype(alloc)::body_t)) {
             // There's something in there already. Assume it's the right thing and connect to it
-            return MappedVectorRef<Item>(context, sizeof(typename decltype(alloc)::body_t));
+            return MappedVectorRef<Item>(&context, sizeof(typename decltype(alloc)::body_t));
         } else {
             // Make an empty vector. We assume it lands right after the allocator.
-            return MappedVectorRef<Item>(context);
+            return MappedVectorRef<Item>(&context);
         }
     }
 };
