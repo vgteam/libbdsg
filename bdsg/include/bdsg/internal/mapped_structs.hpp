@@ -125,10 +125,11 @@ class offset_to : offset_ptr<typename ref_t::body_t> {
 public:
     operator bool () const;
 
-    /// Get a ref_t to the body pointed to.
+    /// Get a ref_t to the body pointed to. If the pointer is null, the ref is also null.
     ref_t get(MappingContext* context);
     
     /// Get a ref_t to the body pointed to, plus a given offset in bodies of the same size.
+    /// If the pointer is null, the ref is also null.
     ref_t get_at(MappingContext* context, size_t index);
     
     /// Set this pointer to point to the body of the given ref_t
@@ -305,26 +306,14 @@ auto ArenaAllocatorRef<T>::allocate(size_type n, const_pointer hint) -> pointer 
     size_t block_bytes = user_bytes + sizeof(ArenaAllocatorBlockRef::body_t);
     
     // This will hold a ref to the free block we found or made that is big enough to hold this item.
-    // TODO: should refs be able to be null???
-    unique_ptr<ArenaAllocatorBlockRef> found;
-   
-    if (body.first_free) {
-        // Start at the first free block
-        found = make_unique(body.first_free.get(this->context));
-        
-        while (found->size() < user_bytes) {
-            // Won't fit here
-            if ((bool)found->next) {
-                // But there's another free block to check. Look at it.
-                found = make_unique(found->next().get(this->context));
-            } else {
-                // End of list
-                found.reset();
-            }
-        }
+    // Starts null if there is no first_free.
+    ArenaAllocatorBlockRef found = body.first_free.get(this->context);
+    while (found && found.size() < user_bytes) {
+        // Won't fit here. Try the next place.
+        found = found.next().get(this->context);
     }
    
-    if ((bool)found) {
+    if (!found) {
         // We have no free memory big enough.
         
         // Work out where new free memory will start
@@ -339,10 +328,10 @@ auto ArenaAllocatorRef<T>::allocate(size_type n, const_pointer hint) -> pointer 
         new ((void*) (this->context.base_address + new_free)) ArenaAllocatorBlockRef::body_t;
         
         // Refer to it and say we found it.
-        found = make_unique<ArenaAllocatorBlockRef>(this->context, new_free);
+        found = ArenaAllocatorBlockRef(this->context, new_free);
         
         // Initialize it. Leave prev and next pointers null because it is the only free block.
-        found->size() = user_bytes;
+        found.size() = user_bytes;
     }
     
     // TODO: allocate memory from the found block.
