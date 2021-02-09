@@ -30,10 +30,14 @@ struct MappingContext {
     /// Must throw if allocation did not happen.
     std::function<char*(size_t)> resize;
     // TODO: stick a mutex in here?
+    // If so we'd also need to protect any math involving base_address, or even
+    // the addresses of any things in the arena, or even accesses to any things
+    // in the arena...
 };
 
 // We work with "reference" types which have a ::body_t that exists in the
-// memory mapping, an offset, and possibly other fields that exist outside it.
+// memory mapping at a certain context-relative position, and possibly other
+// fields that exist outside it.
 // The reference type can have members that e.g. allocate, while the body
 // cannot. The reference can be null.
 // These are meant to be passed around as values, and should expose some
@@ -44,18 +48,18 @@ class base_ref_t {
 public:
     /// The MappingContext that the referenced object lives in, or nullptr if we are null. 
     MappingContext* context;
-    /// The offset in the context that the referenced object exists at.
-    size_t offset;
+    /// The position in the context that the referenced object exists at.
+    size_t position;
     
     // Derived must provide a body_t.
     // Also we can't inherit multiple levels.
     
     // Pointer templates expect implementations fo these constructors:
     
-    /// Get a reference object to the existing body at the given offset.
-    base_ref_t(MappingContext* context, size_t offset);
+    /// Get a reference object to the existing body at the given position.
+    base_ref_t(MappingContext* context, size_t position);
     
-    /// Allocate and construct a new body at some available offset and get a
+    /// Allocate and construct a new body at some available position and get a
     /// reference object to it.
     base_ref_t(MappingContext* context);
     
@@ -174,7 +178,7 @@ public:
     offset_to<ArenaAllocatorBlockRef>& next();
     /// Get or set the size of the block, after the header.
     big_endian<size_t>& size();
-    /// Get the offset in the context of the first byte of memory we manage.
+    /// Get the position in the context of the first byte of memory we manage.
     size_t get_user_data() const;
     /// Get a ref to the block managing the data starting at the given byte.
     static ArenaAllocatorBlockRef get_from_data(MappingContext* context, size_t user_data);
@@ -217,7 +221,7 @@ public:
     using const_pointer = size_t;
     using size_type = size_t;
     
-    /// When using an ArenaAllocator, where should we expect the offset of the first thing allocated to be?
+    /// When using an ArenaAllocator, where should we expect the position of the first thing allocated to be?
     /// Some header space might be necessary before it for the allocator to work.
     static const size_t reserved_bytes = sizeof(body_t);
     
@@ -322,7 +326,9 @@ public:
 // Implementations
 
 template<typename Derived>
-base_ref_t<Derived>::base_ref_t(MappingContext* context, size_t offset) : context(context), offset(offset) {
+base_ref_t<Derived>::base_ref_t(MappingContext* context, size_t position) : 
+    context(context), position(position) {
+    
     // Nothing to do
 };
 
@@ -332,11 +338,11 @@ base_ref_t<Derived>::base_ref_t(MappingContext* context) : context(context) {
     ArenaAllocatorRef<typename Derived::body_t> alloc(context);
     
     // Allocate one body
-    offset = alloc.allocate(1);
+    position = alloc.allocate(1);
 };
 
 template<typename Derived>
-base_ref_t<Derived>::base_ref_t() : context(nullptr), offset(0) {
+base_ref_t<Derived>::base_ref_t() : context(nullptr), position(0) {
     // Nothing to do
 }
 
@@ -345,7 +351,7 @@ void* base_ref_t<Derived>::get_body() {
     if (!context) {
         throw std::runtime_error("Trying to follow a null reference");
     }
-    return (void*)(context->base_address + offset);
+    return (void*)(context->base_address + position);
 }
 
 template<typename Derived>
@@ -353,7 +359,7 @@ void* base_ref_t<Derived>::get_body() const {
     if (!context) {
         throw std::runtime_error("Trying to follow a null reference");
     }
-    return (const void*)(context->base_address + offset);
+    return (const void*)(context->base_address + position);
 }
 
 template<typename Derived>
@@ -500,18 +506,29 @@ template<typename ref_t>
 offset_to<ref_t>& offset_ptr<T>::operator=(const ref_t& other) {
     if (other) {
         // Not null
+        size_t our_position = ((char*) this) - context->base_address;
+        offset = other.position - our_position;
     } else {
+        // Become null
+        ofset = std::numeric_limits<size_t>::max();
     }
 }
 
 template<typename ref_t>
 bool offset_ptr<T>::operator==(const ref_t& other) const {
-    // TODO
+    if (!*this) {
+        // If we're null, we're only equal when they're null.
+        return !other;
+    }
+    
+    // Otherwise, we're equal if we point at equal places.
+    size_t dest_position = (((char*) this) - context->base_address) + offset;
+    return dest_position == other.position;
 }
 
 template<typename ref_t>
 bool offset_ptr<T>::operator!=(const ref_t& other) const {
-    // TODO
+    return !(this == other);
 }
 
 ////////////////////
@@ -538,7 +555,7 @@ ArenaAllocatorRef<T>::ArenaAllocatorRef(MappingContext* context) : base_ref_t<Ar
 
 template<typename T>
 template<typename U>
-ArenaAllocatorRef<T>::ArenaAllocatorRef(const ArenaAllocatorRef<U>& alloc): base_ref_t<ArenaAllocatorRef<T>>(alloc.context, alloc.offset) {
+ArenaAllocatorRef<T>::ArenaAllocatorRef(const ArenaAllocatorRef<U>& alloc): base_ref_t<ArenaAllocatorRef<T>>(alloc.context, alloc.position) {
     // Nothing to do to change the type; just steal the state.
 }
 
@@ -626,7 +643,7 @@ void ArenaAllocatorRef<T>::deallocate(pointer p, size_type n) {
     
     // Find the block in the free list after it, if any
     ArenaAllocatorBlockRef right = body.first_free;
-    while(right && right.offset < found.offset) {
+    while(right && right.position < found.position) {
         right = right.next();
     }
     ArenaAllocatorBlockRef left;
