@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <iostream>
 #include <functional>
+#include <limits>
 
 #include <endian.h>
 
@@ -102,7 +103,7 @@ protected:
  */
 template<typename T>
 class offset_ptr {
-private:
+protected:
     /// Offset from our own storage location to what we point to, or max
     /// possible value if null.
     big_endian<size_t> offset;
@@ -137,14 +138,21 @@ public:
  * Makes it easy to wrap the body back up in a reference type.
  */
 template<typename ref_t>
-class offset_to : offset_ptr<typename ref_t::body_t> {
+class offset_to : public offset_ptr<typename ref_t::body_t> {
 public:
     /// Get a ref_t to the body pointed to. If the pointer is null, the ref is also null.
     ref_t get(MappingContext* context);
     
+    /// Get a ref_t to the body pointed to. If the pointer is null, the ref is also null.
+    const ref_t get(MappingContext* context) const;
+    
     /// Get a ref_t to the body pointed to, plus a given offset in bodies of the same size.
     /// If the pointer is null, the ref is also null.
     ref_t get_at(MappingContext* context, size_t index);
+    
+    /// Get a ref_t to the body pointed to, plus a given offset in bodies of the same size.
+    /// If the pointer is null, the ref is also null.
+    const ref_t get_at(MappingContext* context, size_t index) const;
     
     /// Set this pointer to point to the body of the given ref_t
     offset_to<ref_t>& operator=(const ref_t& other);
@@ -173,12 +181,31 @@ public:
     
     using base_ref_t<ArenaAllocatorBlockRef>::base_ref_t;
     
-    /// Get or set the previous entry in the free list. You can assign to the result.
-    offset_to<ArenaAllocatorBlockRef>& prev();
-    /// Get or set the next entry in the free list. You can assign to the result.
-    offset_to<ArenaAllocatorBlockRef>& next();
+    // Body member accessors
+    
+    // I tried to give out references to the backing fields, but getting const
+    // correctness on the fields was difficult, and providing the context to
+    // use the fields was awkward. So we just pass around refs by value for
+    // anything that's a pointer.
+    
+    /// Get the previous entry in the free list.
+    ArenaAllocatorBlockRef get_prev() const;
+    
+    /// Set the previous entry in the free list.
+    void set_prev(const ArenaAllocatorBlockRef& prev);
+    
+    /// Get the next entry in the free list.
+    ArenaAllocatorBlockRef get_next() const;
+    
+    /// Set the next entry in the free list.
+    void set_next(const ArenaAllocatorBlockRef& next);
+    
+    /// Get the size of the block, after the header.
+    const big_endian<size_t>& size() const;
+    
     /// Get or set the size of the block, after the header. You can assign to the result.
     big_endian<size_t>& size();
+    
     /// Get the position in the context of the first byte of memory we manage.
     size_t get_user_data() const;
     /// Get a ref to the block managing the data starting at the given byte.
@@ -203,6 +230,12 @@ public:
     /// the last block's header will be in the free space of the first block,
     /// unless the last block is the first block.
     pair<ArenaAllocatorBlockRef, ArenaAllocatorBlockRef> coalesce();
+    
+protected:
+    
+    /// Return true if this block comes immediately before the other one, with
+    /// no space between them.
+    bool immediately_before(const ArenaAllocatorBlockRef& other) const;
     
 };
 
@@ -356,7 +389,7 @@ void* base_ref_t<Derived>::get_body() {
 }
 
 template<typename Derived>
-void* base_ref_t<Derived>::get_body() const {
+const void* base_ref_t<Derived>::get_body() const {
     if (!context) {
         throw std::runtime_error("Trying to follow a null reference");
     }
@@ -371,7 +404,7 @@ base_ref_t<Derived>::operator bool () const {
 ////////////////////
 
 template<typename T>
-size_t big_endian<T>::big_endian(const T& value) {
+big_endian<T>::big_endian(const T& value) {
     *this = value;
 }
 
@@ -379,13 +412,13 @@ size_t big_endian<T>::big_endian(const T& value) {
 // TODO: pick conversion functions based on constexpr if on bit count
 
 template<>
-size_t big_endian<size_t>::operator size_t () const {
+big_endian<size_t>::operator size_t () const {
     static_assert(sizeof(size_t) == sizeof(uint64_t), "Endian conversion still assumes 64 bit size_t");
     return (size_t)be64toh(*((const size_t*)storage));
 }
 
 template<>
-size_t big_endian<size_t>::operator=(const size_t& x) {
+big_endian<size_t>& big_endian<size_t>::operator=(const size_t& x) {
     static_assert(sizeof(size_t) == sizeof(uint64_t), "Endian conversion still assumes 64 bit size_t");
      *((size_t*)storage) = (size_t)htobe64(x);
      return *this;
@@ -483,7 +516,7 @@ ref_t offset_to<ref_t>::get(MappingContext* context) {
         // Get our position in the context
         size_t our_position = ((char*) this) - context->base_address;
         // Apply our offset and create a reference in the context
-        return ref_t(context, our_position + offset);
+        return ref_t(context, our_position + this->offset);
     } else {
         // Return a null ref. Null refs need no context.
         return ref_t();
@@ -491,12 +524,39 @@ ref_t offset_to<ref_t>::get(MappingContext* context) {
 }
 
 template<typename ref_t>
-ref_t offset_ptr<T>::get_at(MappingContext* context, size_t index) {
+const ref_t offset_to<ref_t>::get(MappingContext* context) const {
+    if (*this) {
+        // We aren't null.
+        // Get our position in the context
+        size_t our_position = ((const char*) this) - context->base_address;
+        // Apply our offset and create a reference in the context
+        return ref_t(context, our_position + this->offset);
+    } else {
+        // Return a null ref. Null refs need no context.
+        return ref_t();
+    }
+}
+
+template<typename ref_t>
+ref_t offset_to<ref_t>::get_at(MappingContext* context, size_t index) {
     if (*this) {
         // Get our position in the context
         size_t our_position = ((char*) this) - context->base_address;
         // Apply our offset and the index offset and create a reference in the context
-        return ref_t(context, our_position + offset + index * sizeof(typename ref_t::body_t));
+        return ref_t(context, our_position + this->offset + index * sizeof(typename ref_t::body_t));
+    } else {
+        // Return a null ref. Null refs need no context.
+        return ref_t();
+    }
+}
+
+template<typename ref_t>
+const ref_t offset_to<ref_t>::get_at(MappingContext* context, size_t index) const {
+    if (*this) {
+        // Get our position in the context
+        size_t our_position = ((const char*) this) - context->base_address;
+        // Apply our offset and the index offset and create a reference in the context
+        return ref_t(context, our_position + this->offset + index * sizeof(typename ref_t::body_t));
     } else {
         // Return a null ref. Null refs need no context.
         return ref_t();
@@ -504,31 +564,33 @@ ref_t offset_ptr<T>::get_at(MappingContext* context, size_t index) {
 }
     
 template<typename ref_t>
-offset_to<ref_t>& offset_ptr<T>::operator=(const ref_t& other) {
+offset_to<ref_t>& offset_to<ref_t>::operator=(const ref_t& other) {
     if (other) {
         // Not null
-        size_t our_position = ((char*) this) - context->base_address;
-        offset = other.position - our_position;
+        size_t our_position = ((char*) this) - other.context->base_address;
+        this->offset = other.position - our_position;
     } else {
         // Become null
-        ofset = std::numeric_limits<size_t>::max();
+        this->offset = std::numeric_limits<size_t>::max();
     }
+    
+    return *this;
 }
 
 template<typename ref_t>
-bool offset_ptr<T>::operator==(const ref_t& other) const {
-    if (!*this) {
-        // If we're null, we're only equal when they're null.
-        return !other;
+bool offset_to<ref_t>::operator==(const ref_t& other) const {
+    if (!*this || !other) {
+        // If either is null, they're only equal if they're both null
+        return !*this && !other;
     }
     
     // Otherwise, we're equal if we point at equal places.
-    size_t dest_position = (((char*) this) - context->base_address) + offset;
+    size_t dest_position = (((char*) this) - other.context->base_address) + this->offset;
     return dest_position == other.position;
 }
 
 template<typename ref_t>
-bool offset_ptr<T>::operator!=(const ref_t& other) const {
+bool offset_to<ref_t>::operator!=(const ref_t& other) const {
     return !(this == other);
 }
 
@@ -576,7 +638,7 @@ auto ArenaAllocatorRef<T>::allocate(size_type n, const_pointer hint) -> pointer 
     ArenaAllocatorBlockRef found = body.first_free.get(this->context);
     while (found && found.size() < user_bytes) {
         // Won't fit here. Try the next place.
-        found = found.next().get(this->context);
+        found = found.get_next();
     }
    
     if (!found) {
@@ -645,7 +707,7 @@ void ArenaAllocatorRef<T>::deallocate(pointer p, size_type n) {
     // Find the block in the free list after it, if any
     ArenaAllocatorBlockRef right = body.first_free;
     while(right && right.position < found.position) {
-        right = right.next();
+        right = right.get_next();
     }
     ArenaAllocatorBlockRef left;
     if (!right) {
@@ -654,7 +716,7 @@ void ArenaAllocatorRef<T>::deallocate(pointer p, size_type n) {
         left = body.last_free;
     } else {
         // The new block comes between right and its predecessor, if any
-        left = right.prev();
+        left = right.get_prev();
     }
     
     // Wire in the block
