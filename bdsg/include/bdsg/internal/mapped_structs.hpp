@@ -86,15 +86,53 @@ public:
 /**
  * Wrapper that stores a number in a defined endian-ness.
  */
-template<typename T>
+template<typename T, int BitWidth = std::numeric_limits<T>::digits>
 class big_endian {
 public:
     big_endian() = default;
     big_endian(const T& value);
     operator T () const;
-    big_endian<T>& operator=(const T& x);
+    big_endian& operator=(const T& x);
 protected:
     char storage[sizeof(T)];
+};
+
+template<typename T, int BitWidth>
+big_endian<T, BitWidth>::big_endian(const T& value) {
+    *this = value;
+}
+
+// Implement endian converters templated for all integral types of the
+// appropriate size for the conversion functions.
+
+// We can't partially specialize the members any way that I can work out; we
+// have to do the whole class, and we have to do it before the template is
+// instantiated.
+
+template<typename T>
+class big_endian<T, 64> {
+public:
+    operator T () const {
+        return (T)be64toh(*((const T*)this->storage));
+    }
+    
+    big_endian& operator=(const T& x) {
+        *((T*)this->storage) = (T)htobe64(x);
+        return *this;
+    }   
+};
+
+template<typename T>
+class big_endian<T, 32> {
+public:
+    operator T () const {
+        return (T)be32toh(*((const T*)this->storage));
+    }
+    
+    big_endian& operator=(const T& x) {
+        *((T*)this->storage) = (T)htobe32(x);
+        return *this;
+    }   
 };
 
 /**
@@ -400,30 +438,6 @@ template<typename Derived>
 base_ref_t<Derived>::operator bool () const {
     return (context != nullptr);
 }
-
-////////////////////
-
-template<typename T>
-big_endian<T>::big_endian(const T& value) {
-    *this = value;
-}
-
-// TODO: big_endian implementations for other types.
-// TODO: pick conversion functions based on constexpr if on bit count
-
-template<>
-big_endian<size_t>::operator size_t () const {
-    static_assert(sizeof(size_t) == sizeof(uint64_t), "Endian conversion still assumes 64 bit size_t");
-    return (size_t)be64toh(*((const size_t*)storage));
-}
-
-template<>
-big_endian<size_t>& big_endian<size_t>::operator=(const size_t& x) {
-    static_assert(sizeof(size_t) == sizeof(uint64_t), "Endian conversion still assumes 64 bit size_t");
-     *((size_t*)storage) = (size_t)htobe64(x);
-     return *this;
-}
-
 
 ////////////////////
 
