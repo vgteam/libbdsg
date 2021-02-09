@@ -392,6 +392,27 @@ void test_mmap_backend() {
     cerr << "MmapBackend tests successful!" << endl;
 }
 
+void test_mapping_context() {
+
+    char data[128];
+
+    MappingContext context;
+    
+    context.base_address = data;
+    context.size = 128;
+    context.resize = [](size_t new_size) -> char* {
+        throw std::runtime_error("Out of space!");
+    };
+    
+    ArenaAllocatorRef<char> alloc(&context);
+    
+    // Grab some ints.
+    size_t offset = alloc.allocate(3);
+    
+    cerr << "MappingContext tests successful!" << endl;
+
+}
+
 /**
  * We define this template to test the mmap-backed structs
  */
@@ -3689,6 +3710,7 @@ void test_packed_subgraph_overlay() {
 
 int main(void) {
     test_mmap_backend();
+    test_mapping_context();
     test_mapped_structs();
     test_packed_vector();
     test_paged_vector();
