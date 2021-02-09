@@ -156,7 +156,8 @@ public:
 };
 
 /**
- * Entry in the list of allocated or free blocks in the arena allocator.
+ * Entry in the list of free blocks in the arena allocator. Also sits before
+ * allocated blocks, to remember the blocks' sizes.
  */
 class ArenaAllocatorBlockRef : public base_ref_t<ArenaAllocatorBlockRef> {
 public:
@@ -172,11 +173,11 @@ public:
     
     using base_ref_t<ArenaAllocatorBlockRef>::base_ref_t;
     
-    /// Get or set the previous entry in the free list.
+    /// Get or set the previous entry in the free list. You can assign to the result.
     offset_to<ArenaAllocatorBlockRef>& prev();
-    /// Get or set the next entry in the free list.
+    /// Get or set the next entry in the free list. You can assign to the result.
     offset_to<ArenaAllocatorBlockRef>& next();
-    /// Get or set the size of the block, after the header.
+    /// Get or set the size of the block, after the header. You can assign to the result.
     big_endian<size_t>& size();
     /// Get the position in the context of the first byte of memory we manage.
     size_t get_user_data() const;
@@ -533,7 +534,7 @@ bool offset_ptr<T>::operator!=(const ref_t& other) const {
 
 ////////////////////
 
-// TODO: ArenaAllocatorBlockRef
+// ArenaAllocatorBlockRef isn't a template so it lives in the CPP.
 
 ////////////////////
 
