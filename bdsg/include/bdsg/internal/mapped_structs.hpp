@@ -86,53 +86,15 @@ public:
 /**
  * Wrapper that stores a number in a defined endian-ness.
  */
-template<typename T, int BitWidth = std::numeric_limits<T>::digits>
+template<typename T>
 class big_endian {
 public:
     big_endian() = default;
     big_endian(const T& value);
     operator T () const;
-    big_endian& operator=(const T& x);
+    big_endian<T>& operator=(const T& x);
 protected:
     char storage[sizeof(T)];
-};
-
-template<typename T, int BitWidth>
-big_endian<T, BitWidth>::big_endian(const T& value) {
-    *this = value;
-}
-
-// Implement endian converters templated for all integral types of the
-// appropriate size for the conversion functions.
-
-// We can't partially specialize the members any way that I can work out; we
-// have to do the whole class, and we have to do it before the template is
-// instantiated.
-
-template<typename T>
-class big_endian<T, 64> {
-public:
-    operator T () const {
-        return (T)be64toh(*((const T*)this->storage));
-    }
-    
-    big_endian& operator=(const T& x) {
-        *((T*)this->storage) = (T)htobe64(x);
-        return *this;
-    }   
-};
-
-template<typename T>
-class big_endian<T, 32> {
-public:
-    operator T () const {
-        return (T)be32toh(*((const T*)this->storage));
-    }
-    
-    big_endian& operator=(const T& x) {
-        *((T*)this->storage) = (T)htobe32(x);
-        return *this;
-    }   
 };
 
 /**
@@ -437,6 +399,56 @@ const void* base_ref_t<Derived>::get_body() const {
 template<typename Derived>
 base_ref_t<Derived>::operator bool () const {
     return (context != nullptr);
+}
+
+////////////////////
+
+template<typename T>
+big_endian<T>::big_endian(const T& value) {
+    *this = value;
+}
+
+template<typename T>
+big_endian<T>::operator T () const {
+    
+    static_assert(std::numeric_limits<T>::is_integer);
+
+    // I had no luck partially specializing the conversion operator for all
+    // integral types of a given width, so we switch and call only the
+    // conversion that will work.
+    // TODO: manually write all the specializations?
+    switch (std::numeric_limits<T>::digits) {
+    case 64:
+        return (T)be64toh(*((const T*)storage));
+    case 32:
+        return (T)be32toh(*((const T*)storage));
+    case 16:
+        return (T)be16toh(*((const T*)storage));
+    default:
+        throw runtime_error("Unimplemented conversion");
+    }
+}
+
+template<typename T>
+big_endian<T>& big_endian<T>::operator=(const T& x) {
+
+    static_assert(std::numeric_limits<T>::is_integer);
+
+    switch (std::numeric_limits<T>::digits) {
+    case 64:
+        *((T*)storage) = (T)htobe64(x);
+        break;
+    case 32:
+        *((T*)storage) = (T)htobe32(x);
+        break;
+    case 16:
+        *((T*)storage) = (T)htobe16(x);
+        break;
+    default:
+        throw runtime_error("Unimplemented conversion");
+    }
+    
+    return *this;
 }
 
 ////////////////////
