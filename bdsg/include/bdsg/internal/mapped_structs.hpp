@@ -12,6 +12,8 @@
 #include <iostream>
 #include <functional>
 
+#include <endian.h>
+
 namespace bdsg {
     
 using namespace std;
@@ -48,6 +50,8 @@ public:
     // Derived must provide a body_t.
     // Also we can't inherit multiple levels.
     
+    // Pointer templates expect implementations fo these constructors:
+    
     /// Get a reference object to the existing body at the given offset.
     base_ref_t(MappingContext* context, size_t offset);
     
@@ -57,6 +61,12 @@ public:
     
     /// Get a null reference.
     base_ref_t();
+    
+    // Copy and move
+    base_ref_t(const base_ref_t<Derived>& other) = default;
+    base_ref_t(base_ref_t<Derived>&& other) = default;
+    base_ref_t<Derived>& operator=(const base_ref_t<Derived>& other) = default;
+    base_ref_t<Derived>& operator=(base_ref_t<Derived>&& other) = default;
     
     /// Be truthy if not null, and false otherwise
     operator bool () const;
@@ -74,6 +84,8 @@ public:
 template<typename T>
 class big_endian {
 public:
+    big_endian() = default;
+    big_endian(const T& value);
     operator T () const;
     big_endian<T>& operator=(const T& x);
 protected:
@@ -87,6 +99,8 @@ protected:
 template<typename T>
 class offset_ptr {
 private:
+    /// Offset from our own storage location to what we point to, or max
+    /// possible value if null.
     big_endian<size_t> offset;
 public:
     /// Be constructable.
@@ -99,7 +113,10 @@ public:
     const T& operator*() const;
     T* operator->();
     const T* operator->() const;
-    offset_ptr& operator=(T* addr);
+    offset_ptr<T>& operator=(const T* addr);
+    // TODO: how do we make the const version of us a pointer to a const thing
+    // that we can set to a const pointer? FOr now assignment vanishes away
+    // constness.
     T* operator+(size_t items);
     const T* operator+(size_t items) const;
     
@@ -118,8 +135,6 @@ public:
 template<typename ref_t>
 class offset_to : offset_ptr<typename ref_t::body_t> {
 public:
-    operator bool () const;
-
     /// Get a ref_t to the body pointed to. If the pointer is null, the ref is also null.
     ref_t get(MappingContext* context);
     
@@ -306,6 +321,205 @@ public:
 
 // Implementations
 
+template<typename Derived>
+base_ref_t<Derived>::base_ref_t(MappingContext* context, size_t offset) : context(context), offset(offset) {
+    // Nothing to do
+};
+
+template<typename Derived>
+base_ref_t<Derived>::base_ref_t(MappingContext* context) : context(context) {
+    // Grab an allocator
+    ArenaAllocatorRef<typename Derived::body_t> alloc(context);
+    
+    // Allocate one body
+    offset = alloc.allocate(1);
+};
+
+template<typename Derived>
+base_ref_t<Derived>::base_ref_t() : context(nullptr), offset(0) {
+    // Nothing to do
+}
+
+template<typename Derived>
+void* base_ref_t<Derived>::get_body() {
+    if (!context) {
+        throw std::runtime_error("Trying to follow a null reference");
+    }
+    return (void*)(context->base_address + offset);
+}
+
+template<typename Derived>
+void* base_ref_t<Derived>::get_body() const {
+    if (!context) {
+        throw std::runtime_error("Trying to follow a null reference");
+    }
+    return (const void*)(context->base_address + offset);
+}
+
+template<typename Derived>
+base_ref_t<Derived>::operator bool () const {
+    return (context != nullptr);
+}
+
+////////////////////
+
+template<typename T>
+size_t big_endian<T>::big_endian(const T& value) {
+    *this = value;
+}
+
+// TODO: big_endian implementations for other types.
+// TODO: pick conversion functions based on constexpr if on bit count
+
+template<>
+size_t big_endian<size_t>::operator size_t () const {
+    static_assert(sizeof(size_t) == sizeof(uint64_t), "Endian conversion still assumes 64 bit size_t");
+    return (size_t)be64toh(*((const size_t*)storage));
+}
+
+template<>
+size_t big_endian<size_t>::operator=(const size_t& x) {
+    static_assert(sizeof(size_t) == sizeof(uint64_t), "Endian conversion still assumes 64 bit size_t");
+     *((size_t*)storage) = (size_t)htobe64(x);
+     return *this;
+}
+
+
+////////////////////
+
+template<typename T>
+offset_ptr<T>::offset_ptr() : offset(std::numeric_limits<size_t>::max()) {
+    // Nothing to do!
+}
+
+template<typename T>
+offset_ptr<T>::operator bool () const {
+    return (offset != std::numeric_limits<size_t>::max());
+}
+
+template<typename T>
+T& offset_ptr<T>::operator*() {
+    return *(this->operator->());
+}
+
+template<typename T>
+const T& offset_ptr<T>::operator*() const {
+    return *(this->operator->());
+}
+
+template<typename T>
+T* offset_ptr<T>::operator->() {
+    if (offset == std::numeric_limits<size_t>::max()) {
+        throw std::runtime_error("Null pointer dereference");
+    }
+    return (T*) (((char*) this) + offset);
+}
+
+template<typename T>
+const T* offset_ptr<T>::operator->() const {
+    if (offset == std::numeric_limits<size_t>::max()) {
+        throw std::runtime_error("Null pointer dereference");
+    }
+    return (const T*) (((const char*) this) + offset);
+}
+
+template<typename T>
+offset_ptr<T>& offset_ptr<T>::operator=(const T* addr) {
+    if (addr) {
+        // Represent real value as as a difference
+        offset = (size_t) (((const char*) addr) - ((const char*) this));
+    } else {
+        // Represent null specially
+        offset = std::numeric_limits<size_t>::max();
+    }
+}
+
+template<typename T>
+T* offset_ptr<T>::operator+(size_t items) {
+    return this->operator->() + items;
+}
+
+template<typename T>
+const T* offset_ptr<T>::operator+(size_t items) const {
+    return this->operator->() + items;
+}
+
+template<typename T>
+offset_ptr<T>& offset_ptr<T>::operator=(const offset_ptr<T>& other) {
+    // Delegate to assignment based on cuttent absolute memory address of the
+    // destination.
+    *this = other.operator->();
+}
+
+template<typename T>
+offset_ptr<T>& offset_ptr<T>::operator=(offset_ptr<T>&& other) {
+    *this = other.operator->();
+}
+
+template<typename T>
+offset_ptr<T>::offset_ptr(const offset_ptr<T>& other) {
+    *this = other.operator->();
+}
+
+template<typename T>
+offset_ptr<T>::offset_ptr(offset_ptr<T>&& other) {
+    *this = other.operator->();
+}
+
+////////////////////
+
+
+template<typename ref_t>
+ref_t offset_to<ref_t>::get(MappingContext* context) {
+    if (*this) {
+        // We aren't null.
+        // Get our position in the context
+        size_t our_position = ((char*) this) - context->base_address;
+        // Apply our offset and create a reference in the context
+        return ref_t(context, our_position + offset);
+    } else {
+        // Return a null ref. Null refs need no context.
+        return ref_t();
+    }
+}
+
+template<typename ref_t>
+ref_t offset_ptr<T>::get_at(MappingContext* context, size_t index) {
+    if (*this) {
+        // Get our position in the context
+        size_t our_position = ((char*) this) - context->base_address;
+        // Apply our offset and the index offset and create a reference in the context
+        return ref_t(context, our_position + offset + index * sizeof(typename ref_t::body_t));
+    } else {
+        // Return a null ref. Null refs need no context.
+        return ref_t();
+    }
+}
+    
+template<typename ref_t>
+offset_to<ref_t>& offset_ptr<T>::operator=(const ref_t& other) {
+    if (other) {
+        // Not null
+    } else {
+    }
+}
+
+template<typename ref_t>
+bool offset_ptr<T>::operator==(const ref_t& other) const {
+    // TODO
+}
+
+template<typename ref_t>
+bool offset_ptr<T>::operator!=(const ref_t& other) const {
+    // TODO
+}
+
+////////////////////
+
+// TODO: ArenaAllocatorBlockRef
+
+////////////////////
+
 template<typename T>
 ArenaAllocatorRef<T>::ArenaAllocatorRef(MappingContext* context) : base_ref_t<ArenaAllocatorRef<T>>(context, 0) {
     // We declared ourselves to be at 0.
@@ -444,6 +658,8 @@ void ArenaAllocatorRef<T>::deallocate(pointer p, size_type n) {
         body.last_free = bounds.first;
     }
 }
+
+////////////////////
 
 template<typename item_t>
 size_t MappedVectorRef<item_t>::size() const {
