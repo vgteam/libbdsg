@@ -104,7 +104,12 @@ void verify_to(const Vectorish& data, size_t count, int64_t nonce) {
         throw std::runtime_error("Trying to check " + std::to_string(count) + " items but only " + std::to_string(data.size()) + " are available");
     }
     for (size_t i = 0; i < count; i++) {
-        assert(data.at(i) == (((i * i + (i << 2))) ^ nonce));
+        auto correct_value = ((i * i + (i << 2))) ^ nonce;
+        auto observed_value = data.at(i);
+        if (observed_value != correct_value) {
+            cerr << "At index " << i << " observed " << observed_value << " at " << &data.at(i) << " but expected " << correct_value << endl;
+        }
+        assert(observed_value == correct_value);
     }
 }
 
@@ -399,9 +404,12 @@ void test_mapping_context() {
     MappingContext context;
     
     context.base_address = data;
-    context.size = 128;
-    context.resize = [](size_t new_size) -> char* {
-        throw std::runtime_error("Out of space!");
+    context.size = 0;
+    context.resize = [&](size_t new_size) -> char* {
+        if (new_size > 128) {
+            throw std::runtime_error("Out of space!");
+        }
+        return data;
     };
     
     ArenaAllocatorRef<char> alloc(&context);
@@ -433,6 +441,7 @@ public:
         context.base_address = serialized_data();
         context.size = serialized_data_size();
         context.resize = [this](size_t new_size) -> char* {
+            cerr << "Resizing context to " << new_size << endl;
             serialized_data_resize(new_size);
             return serialized_data();
         };
@@ -444,16 +453,13 @@ public:
     }
     
     MappedVectorRef<Item> get_collection() {
-        // First make the allocator, which will resize the context if not big enough for its structures.
-        ArenaAllocatorRef<typename MappedVectorRef<Item>::body_t> alloc(&context);
+        // First make the allocator, which will resize the context if not big
+        // enough for its structures, and is also responsible for creating or
+        // connecting to the root object.
+        ArenaRefAllocatorRef<MappedVectorRef<Item>> alloc(&context);
         
-        if (serialized_data_size() > sizeof(typename decltype(alloc)::body_t)) {
-            // There's something in there already. Assume it's the right thing and connect to it
-            return MappedVectorRef<Item>(&context, sizeof(typename decltype(alloc)::body_t));
-        } else {
-            // Make an empty vector. We assume it lands right after the allocator.
-            return MappedVectorRef<Item>(&context);
-        }
+        // Connect to or create the root object.
+        return alloc.connect_or_create_root();
     }
 };
 
@@ -467,7 +473,13 @@ void test_mapped_structs() {
         
         // Connect to it again (should not allocate)
         MappedVectorRef<big_endian<int64_t>> vec2 = numbers_arena.get_collection();
-        
+       
+        cerr << "Connection 1: vector is at " << vec1.position << " and has size " << vec1.size() << endl;
+        cerr << "Connection 1: vector is at " << vec2.position << " and has size " << vec2.size() << endl;
+       
+        // Both vectors should be the same vector
+        assert(vec1 == vec2);
+       
         // We should start empty
         assert(vec1.size() == 0);
         assert(vec2.size() == 0);
@@ -477,15 +489,41 @@ void test_mapped_structs() {
         assert(vec1.size() == 100);
         assert(vec2.size() == 100);
         
-        // We can actually hold data
+        // And contract
         vec1.resize(10);
-        assert(vec1.size() == 100);
-        assert(vec2.size() == 100);
+        assert(vec1.size() == 10);
+        assert(vec2.size() == 10);
         
+        // And hold data
         fill_to(vec1, 10, 0);
         verify_to(vec1, 10, 0);
         verify_to(vec2, 10, 0);
+        
+        // And expand again
+        vec1.resize(100);
+        assert(vec1.size() == 100);
+        assert(vec2.size() == 100);
+        
+        // And see the data
+        verify_to(vec1, 10, 0);
+        verify_to(vec2, 10, 0);
+        
+        // And expand more
+        vec1.resize(1000);
+        assert(vec1.size() == 1000);
+        assert(vec2.size() == 1000);
+        
+        // And see the data
+        verify_to(vec1, 10, 0);
+        verify_to(vec2, 10, 0);
+        
+        // And hold more data
+        fill_to(vec1, 1000, 1);
+        verify_to(vec1, 1000, 1);
+        verify_to(vec2, 1000, 1);
     }
+    
+    cerr << "Mapped Structs tests successful!" << endl;
 }
         
 

@@ -28,7 +28,7 @@ struct MappingContext {
     char* base_address;
     size_t size;
     /// When we're trying to allocate and we can't, resize. Might move the whole thing.
-    /// Must throw if allocation did not happen.
+    /// Must throw if allocation did not happen. Does not update the context's size.
     std::function<char*(size_t)> resize;
     // TODO: stick a mutex in here?
     // If so we'd also need to protect any math involving base_address, or even
@@ -255,10 +255,6 @@ public:
     using const_pointer = size_t;
     using size_type = size_t;
     
-    /// When using an ArenaAllocator, where should we expect the position of the first thing allocated to be?
-    /// Some header space might be necessary before it for the allocator to work.
-    static const size_t reserved_bytes = sizeof(body_t);
-    
     /**
      * Make an allocator in the given MappingContext, or connect to the existing one.
      * Resizes the context to be big enough to hold the allocator, if it isn't already.
@@ -287,6 +283,31 @@ public:
      */
     void deallocate(pointer p, size_type n);
     
+protected:
+    
+    /// How much space is reserved at the start of the context for the
+    /// allocator's data structures?
+    static const size_t reserved_space = sizeof(body_t) + sizeof(ArenaAllocatorBlockRef::body_t); 
+    
+};
+
+/**
+ * Allocator specifically for types referenced by refs.
+ * Allows connecting to the root object if present, and creating it if not.
+ */
+template<typename ref_t>
+class ArenaRefAllocatorRef : public ArenaAllocatorRef<typename ref_t::body_t> {
+public:
+    // Inherit constructors
+    using ArenaAllocatorRef<typename ref_t::body_t>::ArenaAllocatorRef;
+    
+    /// Boost has a whole system to connect to allocated objects; we have just
+    /// a root object we can connect to, which is the first object allocated.
+    /// We assume it is never freed.
+    /// Connect to the existing root object, which is assumed to be of the
+    /// appropriate type if memory exists for it in the context. Otherwise,
+    /// creates it. Either eay, returns a ref to it.
+    ref_t connect_or_create_root();
 };
 
 /**
@@ -320,8 +341,8 @@ template<typename item_ref_t>
 class MappedRefVectorRef : public base_ref_t<MappedRefVectorRef<item_ref_t>> {
 public:
     struct body_t {
-        big_endian<size_t> length;
-        offset_to<item_ref_t> first;
+        big_endian<size_t> length = 0;
+        offset_to<item_ref_t> first = nullptr;
     };
     
     using base_ref_t<MappedRefVectorRef<item_ref_t>>::base_ref_t;
@@ -417,15 +438,22 @@ big_endian<T>::operator T () const {
     // integral types of a given width, so we switch and call only the
     // conversion that will work.
     // TODO: manually write all the specializations?
+    // Note that signed types report 1 fewer bits (i.e. 63)
     switch (std::numeric_limits<T>::digits) {
     case 64:
+    case 63:
         return (T)be64toh(*((const T*)storage));
+        break;
     case 32:
+    case 31:
         return (T)be32toh(*((const T*)storage));
+        break;
     case 16:
+    case 15:
         return (T)be16toh(*((const T*)storage));
+        break;
     default:
-        throw runtime_error("Unimplemented conversion");
+        throw runtime_error("Unimplemented bit width: " + std::to_string(std::numeric_limits<T>::digits));
     }
 }
 
@@ -436,16 +464,19 @@ big_endian<T>& big_endian<T>::operator=(const T& x) {
 
     switch (std::numeric_limits<T>::digits) {
     case 64:
+    case 63:
         *((T*)storage) = (T)htobe64(x);
         break;
     case 32:
+    case 31:
         *((T*)storage) = (T)htobe32(x);
         break;
     case 16:
+    case 15:
         *((T*)storage) = (T)htobe16(x);
         break;
     default:
-        throw runtime_error("Unimplemented conversion");
+        throw runtime_error("Unimplemented bit width: " + std::to_string(std::numeric_limits<T>::digits));
     }
     
     return *this;
@@ -498,6 +529,9 @@ offset_ptr<T>& offset_ptr<T>::operator=(const T* addr) {
         // Represent null specially
         offset = std::numeric_limits<size_t>::max();
     }
+    cerr << "Pointer to address " << addr << " is at offset " << offset << " from " << this << " producing " << this->operator->() << endl;
+    
+    return *this;
 }
 
 template<typename T>
@@ -629,12 +663,12 @@ bool offset_to<ref_t>::operator!=(const ref_t& other) const {
 template<typename T>
 ArenaAllocatorRef<T>::ArenaAllocatorRef(MappingContext* context) : base_ref_t<ArenaAllocatorRef<T>>(context, 0) {
     // We declared ourselves to be at 0.
-    if (context->size < reserved_bytes) {
+    if (context->size < sizeof(body_t)) {
         // The body didn't exist yet.
         // Make room for the body
-        context->base_address = context->resize(reserved_bytes);
-        context->size = reserved_bytes;
-        // Run its constructor
+        context->base_address = context->resize(sizeof(body_t));
+        context->size = sizeof(body_t);
+        // Run the body's constructor.
         new ((void*) context->base_address) body_t;
     }
     // Otherwise we assume the allocator was already there.
@@ -650,8 +684,10 @@ ArenaAllocatorRef<T>::ArenaAllocatorRef(const ArenaAllocatorRef<U>& alloc): base
 
 template<typename T>
 auto ArenaAllocatorRef<T>::allocate(size_type n, const_pointer hint) -> pointer {
-    // Find our body
-    auto& body = *reinterpret_cast<body_t*>(this->get_body());
+    cerr << "Allocate " << n << " items of size " << sizeof(T) << " from allocator at " << this->position << " in context " << this->context << endl;
+    
+    // Find our body. Note that it WILL MOVE when we reallocate.
+    body_t* body = reinterpret_cast<body_t*>(this->get_body());
     
     // How much user space do we need?
     // TODO: alignment???
@@ -661,7 +697,7 @@ auto ArenaAllocatorRef<T>::allocate(size_type n, const_pointer hint) -> pointer 
     
     // This will hold a ref to the free block we found or made that is big enough to hold this item.
     // Starts null if there is no first_free.
-    ArenaAllocatorBlockRef found = body.first_free.get(this->context);
+    ArenaAllocatorBlockRef found = body->first_free.get(this->context);
     while (found && found.size() < user_bytes) {
         // Won't fit here. Try the next place.
         found = found.get_next();
@@ -678,6 +714,9 @@ auto ArenaAllocatorRef<T>::allocate(size_type n, const_pointer hint) -> pointer 
         this->context->base_address = this->context->resize(this->context->size + new_bytes);
         this->context->size += new_bytes;
         
+        // Find our body again
+        body = reinterpret_cast<body_t*>(this->get_body());
+        
         // Create a new block
         new ((void*) (this->context->base_address + new_free)) ArenaAllocatorBlockRef::body_t;
         
@@ -688,8 +727,8 @@ auto ArenaAllocatorRef<T>::allocate(size_type n, const_pointer hint) -> pointer 
         found.size() = user_bytes;
         
         // Put it in the linked list as head and tail.
-        body.first_free = found;
-        body.last_free = found;
+        body->first_free = found;
+        body->last_free = found;
     }
     
     // Now we can allocate memory.
@@ -700,22 +739,25 @@ auto ArenaAllocatorRef<T>::allocate(size_type n, const_pointer hint) -> pointer 
         
         // So split the block.
         ArenaAllocatorBlockRef second = found.split(user_bytes);
-        if (body.last_free == found) {
+        if (body->last_free == found) {
             // And fix up the end of the linked list
-            body.last_free = second;
+            body->last_free = second;
         }
     }
     
     // Now we have a free block of the right size. Make it not free.
     auto connected = found.detach();
-    if (body.first_free == found) {
+    if (body->first_free == found) {
         // This was the first free block
-        body.first_free = connected.first;
+        body->first_free = connected.first;
     }
-    if (body.last_free == found) {
+    if (body->last_free == found) {
         // This was the last free block 
-        body.last_free = connected.second;
+        body->last_free = connected.second;
     }
+    
+    cerr << "Allocated at " << found.get_user_data() << " = "
+        << (void*)(this->context->base_address + found.get_user_data()) << endl;
     
     // Give out the address of its data
     return found.get_user_data();
@@ -724,6 +766,8 @@ auto ArenaAllocatorRef<T>::allocate(size_type n, const_pointer hint) -> pointer 
 
 template<typename T>
 void ArenaAllocatorRef<T>::deallocate(pointer p, size_type n) {
+    cerr << "Deallocate " << n << " items of size " << sizeof(T) << " at " << p << " from allocator at " << this->position << " in context " << this->context << endl;
+    
     // Find our body
     auto& body = *reinterpret_cast<body_t*>(this->get_body());
     
@@ -767,6 +811,39 @@ void ArenaAllocatorRef<T>::deallocate(pointer p, size_type n) {
 
 ////////////////////
 
+template<typename ref_t>
+ref_t ArenaRefAllocatorRef<ref_t>::connect_or_create_root() {
+    // We expect to find the root right after the allocator's reserved space
+    // (overall header and first block header)
+    size_t root_position = ArenaAllocatorRef<typename ref_t::body_t>::reserved_space;
+
+    cerr << "Looking for root at " << root_position 
+        << " in context of size " << this->context->size << endl;
+
+    if (this->context->size < root_position) {
+        // Root object needs to be made.
+        cerr << "Creating root..." << endl;
+        size_t got_position = this->allocate(1);
+        if (got_position != root_position) {
+            throw std::runtime_error("Allocated root at " + std::to_string(got_position) +
+                " instead of " + std::to_string(root_position));
+        }
+    }
+    if (this->context->size >= root_position + sizeof(typename ref_t::body_t)) {
+        // Root object (now) exists. Connect and return.
+        cerr << "Found root at " << root_position 
+            << " in context of size " << this->context->size << endl;
+        return ref_t(this->context, root_position);
+    }
+    // Otherwise there's something else smaller here.
+    throw std::runtime_error("Could not find root object of size " +
+        std::to_string(sizeof(typename ref_t::body_t)) + " in context of size " +
+        std::to_string(this->context->size) + " after header of size " +
+        std::to_string(root_position));
+}
+
+////////////////////
+
 template<typename item_t>
 size_t MappedVectorRef<item_t>::size() const {
     auto& body = *reinterpret_cast<const body_t*>(this->get_body());
@@ -780,13 +857,13 @@ void MappedVectorRef<item_t>::resize(size_t new_size) {
         return;
     }
 
-    // Get the body
-    auto& body = *reinterpret_cast<body_t*>(this->get_body());
+    // Get the body. Note that it WILL MOVE when we resize
+    body_t* body = reinterpret_cast<body_t*>(this->get_body());
     
     // Where is the vector going?
     item_t* new_first = nullptr;
     
-    if (new_size > body.reserved_length) {
+    if (new_size > body->reserved_length) {
         // Get the allocator
         // TODO: if we put a mutex in the ref, this won't work.
         ArenaAllocatorRef<item_t> alloc(this->context);
@@ -797,26 +874,31 @@ void MappedVectorRef<item_t>::resize(size_t new_size) {
         // Allocate space for the new data, and get the position in the context
         size_t new_first_pos = alloc.allocate(new_size);
         
+        // Re-find our body
+        body = reinterpret_cast<body_t*>(this->get_body());
+        
         // Convert to memory address
         new_first = (item_t*) (this->context->base_address + new_first_pos);
         
         if (size() > 0) {
             // Get memory address of old data
-            item_t* old_first = &*body.first;
+            item_t* old_first = &*body->first;
             
             for (size_t i = 0; i < size() && i < new_size; i++) {
                 // Run move constructors
+                cerr << "From index " << i << " at " << (old_first + i) << " move " << *(old_first + i);
                 new (new_first + i) item_t(std::move(*(old_first + i)));
+                cerr << " so it becomes " << *(new_first + i) << " at " << (new_first + i) << endl;
                 // And destructors
                 (old_first + i)->~item_t();
             }
         }
         
         // Record the new reserved length
-        body.reserved_length = new_size;
+        body->reserved_length = new_size;
     } else {
         // Just run in place
-        new_first = &*body.first;
+        new_first = &*body->first;
     }
     
     for (size_t i = size(); i < new_size; i++) {
@@ -826,7 +908,7 @@ void MappedVectorRef<item_t>::resize(size_t new_size) {
     
     if (new_size < size()) {
         // We shrank, and we had at least one item.
-        item_t* old_first = &*body.first;
+        item_t* old_first = &*body->first;
         for (size_t i = new_size; i < size(); i++) {
             // For anything trimmed off, just run destructors.
             (old_first + i)->~item_t();
@@ -834,14 +916,16 @@ void MappedVectorRef<item_t>::resize(size_t new_size) {
     }
     
     // Record the new length
-    body.length = new_size;
+    body->length = new_size;
+    // And position
+    body->first = new_first;
 }
 
 template<typename item_t>
 item_t& MappedVectorRef<item_t>::at(size_t index) {
     auto& body = *reinterpret_cast<body_t*>(this->get_body());
     
-    if (index <= size()) {
+    if (index >= size()) {
         // TODO: throw the right type here.
         throw std::runtime_error("Cannot get " + std::to_string(index) +
                                  " in vector of length " + std::to_string(size()));
