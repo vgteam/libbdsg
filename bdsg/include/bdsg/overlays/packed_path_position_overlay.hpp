@@ -247,7 +247,7 @@ protected:
     boomphf::mphf<step_handle_t, StepHash>* step_hash = nullptr;
     
     /// The position of the step that hashes to a given index
-    PackedVector step_positions;
+    PackedVector<> step_positions;
 };
 
 /*

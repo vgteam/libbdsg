@@ -2429,7 +2429,7 @@ void test_packed_vector() {
         uint64_t next_val = 0;
         
         vector<uint64_t> std_vec;
-        PackedVector dyn_vec;
+        PackedVector<> dyn_vec;
         
         for (size_t j = 0; j < num_ops; j++) {
             
@@ -2483,7 +2483,7 @@ void test_packed_vector() {
                     
                     dyn_vec.serialize(strm);
                     strm.seekg(0);
-                    PackedVector copy_vec(strm);
+                    PackedVector<> copy_vec(strm);
                     
                     assert(copy_vec.size() == dyn_vec.size());
                     for (size_t i = 0; i < copy_vec.size(); i++) {
@@ -2782,7 +2782,7 @@ void test_packed_set() {
 //
 //                    dyn_vec.serialize(strm);
 //                    strm.seekg(0);
-//                    PackedVector copy_vec(strm);
+//                    PackedVector<> copy_vec(strm);
 //
 //                    assert(copy_vec.size() == dyn_vec.size());
 //                    for (size_t i = 0; i < copy_vec.size(); i++) {

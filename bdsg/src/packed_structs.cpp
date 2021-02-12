@@ -7,36 +7,9 @@
 
 namespace bdsg {
     
-const double PackedVector::factor = 1.25;
+
 const double PackedDeque::factor = 1.25;
 
-PackedVector::PackedVector() {
-    vec.width(1); // by default we start as a bitvector
-}
-    
-PackedVector::PackedVector(istream& in) {
-    deserialize(in);
-}
-    
-PackedVector::~PackedVector() {
-    
-}
-    
-void PackedVector::deserialize(istream& in) {
-    sdsl::read_member(filled, in);
-    vec.load(in);
-}
-    
-void PackedVector::serialize(ostream& out) const {
-    sdsl::write_member(filled, out);
-    vec.serialize(out);
-}
-    
-size_t PackedVector::memory_usage() const {
-    // sdsl vectors return the number of bits, but we want bytes
-    return sizeof(filled) + sizeof(vec) + vec.capacity() / 8;
-}
-    
 PagedVector::PagedVector(size_t page_size) : page_size(page_size) {
     
 }

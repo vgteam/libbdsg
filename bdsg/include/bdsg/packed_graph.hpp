@@ -382,11 +382,11 @@ private:
     void defragment_path(const int64_t& path_idx, bool force = false);
     
     /// Convert a path name into an integer vector, assigning new chars as necessary.
-    PackedVector encode_and_assign_path_name(const string& path_name);
+    PackedVector<> encode_and_assign_path_name(const string& path_name);
     
     /// Convert a path name into an integer vector using only existing char assignments
     /// If the path name contains previously unseen characters, returns an empty vector.
-    PackedVector encode_path_name(const string& path_name) const;
+    PackedVector<> encode_path_name(const string& path_name) const;
     
     /// Encode the path name into the internal representation and append it to the master
     /// list of path names.
@@ -396,7 +396,7 @@ private:
     string decode_path_name(const int64_t& path_idx) const;
     
     /// Extract the internal representation of a path name, but do not decode it.
-    PackedVector extract_encoded_path_name(const int64_t& path_idx) const;
+    PackedVector<> extract_encoded_path_name(const int64_t& path_idx) const;
     
     /// Defragment data structures when the orphaned records are this fraction of the whole.
     const static double defrag_factor;
@@ -427,7 +427,7 @@ private:
     const static size_t SEQ_START_RECORD_SIZE;
     
     /// Encodes the length of a node's sequence in seq_iv. Matches the order of graph_iv.
-    PackedVector seq_length_iv;
+    PackedVector<> seq_length_iv;
     const static size_t SEQ_LENGTH_RECORD_SIZE;
 
     // TODO: split up the edge lists into separate vectors
@@ -449,7 +449,7 @@ private:
     PackedDeque nid_to_graph_iv;
 
     /// Encodes all of the sequences of all nodes in the graph.
-    PackedVector seq_iv;
+    PackedVector<> seq_iv;
     
     /// Encodes the membership of a node in all paths. In the same order as graph_iv.
     /// Consists of 1-based offset to the corresponding heads of linked lists in
@@ -478,20 +478,20 @@ private:
     
     /// All path names, encoded according to the char assignments and concatenated in
     /// a single vector
-    PackedVector path_names_iv;
+    PackedVector<> path_names_iv;
     
     /// The starting index of the path's name in path_names_iv for the path with the
     /// same index in paths
     PagedVector path_name_start_iv;
     
     /// The length of the path's name for the path with the same index in paths
-    PackedVector path_name_length_iv;
+    PackedVector<> path_name_length_iv;
     
     /// Bit-vector that marks whether the path at the same index has been deleted
-    PackedVector path_is_deleted_iv;
+    PackedVector<> path_is_deleted_iv;
     
     /// Bit-vector that marks whether the path at the same index is circular
-    PackedVector path_is_circular_iv;
+    PackedVector<> path_is_circular_iv;
     
     /// The 1-based index of the head of the linked list in steps_iv of the path
     /// with the same index in paths
@@ -502,7 +502,7 @@ private:
     PagedVector path_tail_iv;
     
     /// The number of steps that have have deleted from the path at the same index
-    PackedVector path_deleted_steps_iv;
+    PackedVector<> path_deleted_steps_iv;
     
     /*
      * A struct to package the data associated with a path through the graph.
@@ -525,7 +525,7 @@ private:
     const static size_t STEP_RECORD_SIZE;
     
     /// Map from path names to index in the paths vector.
-    string_hash_map<PackedVector, int64_t> path_id;
+    string_hash_map<PackedVector<>, int64_t> path_id;
     
     /// Vector of the embedded paths in the graph
     vector<PackedPath> paths;

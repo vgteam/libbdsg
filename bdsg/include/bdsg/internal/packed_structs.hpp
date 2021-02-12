@@ -19,15 +19,30 @@
 namespace bdsg {
     
 using namespace std;
+
+/**
+ * Create the given type of object, associated with the given allocator, if possible.
+ * Can be defined for classes that don't have allocator-using constructors, for
+ * std::allocator.
+ *
+ * Don't actually allocate the object with the allocator; just give it the
+ * allocator for its own allocations.
+ */
+template<typename Wanted, typename Allocator>
+inline Wanted make_with_allocator(const Allocator& allocator);
     
 /*
  * A dynamic integer vector that maintains integers in bit-compressed form.
  * Automatically adjusts bit-width for entries depending on input data.
  */
+template<typename IntVector=sdsl::int_vector<>, template<typename T> typename Allocator=std::allocator>
 class PackedVector {
 public:
     /// Constructor (starts empty)
     PackedVector();
+    
+    /// Constructor with allocator (starts empty)
+    PackedVector(const Allocator<IntVector>& alloc);
     
     /// Construct from contents in a stream
     PackedVector(istream& in);
@@ -88,9 +103,8 @@ public:
     inline bool operator==(const PackedVector& other) const;
         
 private:
-        
     // the underlying vector representation
-    sdsl::int_vector<> vec;
+    IntVector vec;
     // tracker for number of values
     size_t filled = 0;
     // geometric expansion factor
@@ -180,9 +194,9 @@ private:
     size_t filled = 0;
     
     // Evenly spaced entries from the vector
-    PackedVector anchors;
+    PackedVector<> anchors;
     // All entries in the vector expressed as a difference from the preceding page value
-    vector<PackedVector> pages;
+    vector<PackedVector<>> pages;
 };
 
 /*
@@ -257,7 +271,7 @@ private:
     RobustPagedVector();
     
     /// The first page_size entries go in this vector
-    PackedVector first_page;
+    PackedVector<> first_page;
     
     /// All entries beyond page_size go in this vector
     PagedVector latter_pages;
@@ -333,7 +347,7 @@ private:
     
     inline size_t internal_index(const size_t& i) const;
     
-    PackedVector vec;
+    PackedVector<> vec;
     
     size_t begin_idx = 0;
     size_t filled = 0;
@@ -428,13 +442,13 @@ private:
     
     /// Internal function that returns the index of either either the null seninel
     /// or the diff, whichever comes first in linear probing
-    inline size_t locate(const uint64_t& diff, const PackedVector& _table) const;
+    inline size_t locate(const uint64_t& diff, const PackedVector<>& _table) const;
     
     /// Move up or down to the next size in the size schedule and rehash entries
     void rehash(bool shrink);
     
     /// Execute hash function for a given table
-    inline size_t hash(const uint64_t& diff, const PackedVector& table) const;
+    inline size_t hash(const uint64_t& diff, const PackedVector<>& table) const;
     
     /// Convert a value to a difference from an anchor
     inline uint64_t to_diff(const uint64_t& value, const uint64_t& _anchor) const;
@@ -446,7 +460,7 @@ private:
     inline uint64_t optimal_anchor() const;
     
     /// The table where the entries are stored
-    PackedVector table;
+    PackedVector<> table;
     
     /// PRNG used to generate universal hash functions
     default_random_engine gen;
@@ -474,13 +488,37 @@ private:
 };
     
     
-/// Inline functions
+/// Inline and template functions
+
+/////////////////////
+/// General
+/////////////////////
+
+template<>
+inline sdsl::int_vector<> make_with_allocator(const std::allocator<sdsl::int_vector<>>& allocator) {
+    // The SDSL int vector can't actually hold the allocator, but since it's
+    // the default allocator it doesn't really need to.
+    sdsl::int_vector<> made;
+    return made;
+}
+
+// Usually we expect to be able to construct by passing the allocator alone
+template<typename Wanted, typename Allocator>
+inline Wanted make_with_allocator(const Allocator& allocator) {
+    Wanted made(allocator);
+    return made;
+}
+
     
 /////////////////////
 /// PackedVector
 /////////////////////
-    
-inline void PackedVector::set(const size_t& i, const uint64_t& value) {
+
+template<typename IntVector, template<typename T> typename Allocator>
+const double PackedVector<IntVector, Allocator>::factor = 1.25;
+
+template<typename IntVector, template<typename T> typename Allocator>
+inline void PackedVector<IntVector, Allocator>::set(const size_t& i, const uint64_t& value) {
     assert(i < filled);
         
     uint8_t width = vec.width();
@@ -503,21 +541,25 @@ inline void PackedVector::set(const size_t& i, const uint64_t& value) {
     vec[i] = value;
 }
     
-inline uint64_t PackedVector::get(const size_t& i) const {
+template<typename IntVector, template<typename T> typename Allocator>
+inline uint64_t PackedVector<IntVector, Allocator>::get(const size_t& i) const {
     assert(i < filled);
     return vec[i];
 }
-    
-inline void PackedVector::append(const uint64_t& value) {
+
+template<typename IntVector, template<typename T> typename Allocator>
+inline void PackedVector<IntVector, Allocator>::append(const uint64_t& value) {
     resize(filled + 1);
     set(filled - 1, value);
 }
-    
-inline void PackedVector::pop() {
+
+template<typename IntVector, template<typename T> typename Allocator>
+inline void PackedVector<IntVector, Allocator>::pop() {
     resize(filled - 1);
 }
     
-inline void PackedVector::resize(const size_t& new_size) {
+template<typename IntVector, template<typename T> typename Allocator>
+inline void PackedVector<IntVector, Allocator>::resize(const size_t& new_size) {
     if (new_size < filled) {
         size_t shrink_capacity = vec.size() / (factor * factor);
         if (new_size < shrink_capacity) {
@@ -540,8 +582,9 @@ inline void PackedVector::resize(const size_t& new_size) {
     }
     filled = new_size;
 }
-    
-inline void PackedVector::reserve(const size_t& future_size) {
+
+template<typename IntVector, template<typename T> typename Allocator>
+inline void PackedVector<IntVector, Allocator>::reserve(const size_t& future_size) {
     if (future_size > vec.size()) {
         sdsl::int_vector<> tmp;
         tmp.width(vec.width());
@@ -552,22 +595,26 @@ inline void PackedVector::reserve(const size_t& future_size) {
         vec = std::move(tmp);
     }
 }
-    
-inline size_t PackedVector::size() const {
+
+template<typename IntVector, template<typename T> typename Allocator>
+inline size_t PackedVector<IntVector, Allocator>::size() const {
     return filled;
 }
-    
-inline bool PackedVector::empty() const {
+
+template<typename IntVector, template<typename T> typename Allocator>
+inline bool PackedVector<IntVector, Allocator>::empty() const {
     return filled == 0;
 }
 
-inline void PackedVector::clear() {
+template<typename IntVector, template<typename T> typename Allocator>
+inline void PackedVector<IntVector, Allocator>::clear() {
     vec.resize(0);
     vec.width(1);
     filled = 0;
 }
-    
-inline bool PackedVector::operator==(const PackedVector& other) const {
+
+template<typename IntVector, template<typename T> typename Allocator>
+inline bool PackedVector<IntVector, Allocator>::operator==(const PackedVector& other) const {
     if (size() != other.size()) {
         return false;
     }
@@ -578,6 +625,44 @@ inline bool PackedVector::operator==(const PackedVector& other) const {
     }
     
     return true;
+}
+
+template<typename IntVector, template<typename T> typename Allocator>
+PackedVector<IntVector, Allocator>::PackedVector() : PackedVector(Allocator<IntVector>()) {
+    // Nothing to do!
+}
+
+template<typename IntVector, template<typename T> typename Allocator>
+PackedVector<IntVector, Allocator>::PackedVector(const Allocator<IntVector>& alloc) : vec(make_with_allocator<IntVector>(alloc)) {
+    vec.width(1); // by default we start as a bitvector
+}
+
+template<typename IntVector, template<typename T> typename Allocator>
+PackedVector<IntVector, Allocator>::PackedVector(istream& in) {
+    deserialize(in);
+}
+
+template<typename IntVector, template<typename T> typename Allocator>
+PackedVector<IntVector, Allocator>::~PackedVector() {
+    
+}
+
+template<typename IntVector, template<typename T> typename Allocator>
+void PackedVector<IntVector, Allocator>::deserialize(istream& in) {
+    sdsl::read_member(filled, in);
+    vec.load(in);
+}
+
+template<typename IntVector, template<typename T> typename Allocator>
+void PackedVector<IntVector, Allocator>::serialize(ostream& out) const {
+    sdsl::write_member(filled, out);
+    vec.serialize(out);
+}
+
+template<typename IntVector, template<typename T> typename Allocator>
+size_t PackedVector<IntVector, Allocator>::memory_usage() const {
+    // sdsl vectors return the number of bits, but we want bytes
+    return sizeof(filled) + sizeof(vec) + vec.capacity() / 8;
 }
     
 /////////////////////
@@ -600,7 +685,7 @@ inline uint64_t PackedDeque::get(const size_t& i) const {
     
 inline void PackedDeque::reserve(const size_t& future_size) {
     if (future_size > vec.size()) {
-        PackedVector new_vec;
+        PackedVector<> new_vec;
         new_vec.resize(future_size);
         
         for (size_t i = 0; i < filled; i++) {
@@ -649,7 +734,7 @@ inline void PackedDeque::append_back(const uint64_t& value) {
 inline void PackedDeque::contract() {
     size_t shrink_capacity = vec.size() / (factor * factor);
     if (filled <= shrink_capacity) {
-        PackedVector new_vec;
+        PackedVector<> new_vec;
         new_vec.resize(filled);
         for (size_t i = 0; i < filled; i++) {
             new_vec.set(i, get(i));
@@ -901,7 +986,7 @@ inline size_t RobustPagedVector::page_width() const {
 
 
 
-inline size_t PackedSet::hash(const uint64_t& diff, const PackedVector& _table) const {
+inline size_t PackedSet::hash(const uint64_t& diff, const PackedVector<>& _table) const {
     // do a degree-4 mod polynomial with random coefficients, which is a 5-wise
     // independent hash function
     size_t p = _table.size();
@@ -1012,7 +1097,7 @@ inline void PackedSet::rehash(bool shrink) {
     
     // find the value that will be the best anchor to the current entries
     uint64_t new_anchor = optimal_anchor();
-    PackedVector new_table;
+    PackedVector<> new_table;
     new_table.resize(bdsg_packed_set_size_schedule[schedule_val]);
     
     std::uniform_int_distribution<uint64_t> distr(0, new_table.size() - 1);
@@ -1034,7 +1119,7 @@ inline void PackedSet::rehash(bool shrink) {
     table = move(new_table);
 }
 
-inline size_t PackedSet::locate(const uint64_t& diff, const PackedVector& _table) const {
+inline size_t PackedSet::locate(const uint64_t& diff, const PackedVector<>& _table) const {
     // linear probing until finding the diff or a null sentinel
     size_t p = _table.size();
     size_t i = hash(diff, _table);

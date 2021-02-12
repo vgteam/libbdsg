@@ -982,7 +982,7 @@ namespace bdsg {
             }
             
             // make a new path name vector that we can fill with the remaining path names
-            PackedVector new_path_names_iv;
+            PackedVector<> new_path_names_iv;
             new_path_names_iv.resize(path_names_iv.size() - path_name_length_deleted);
             
             // transfer over path names and update pointers on paths into the vector
@@ -1014,21 +1014,21 @@ namespace bdsg {
         }
         path_name_start_iv = move(new_path_name_start_iv);
         
-        PackedVector new_path_name_length_iv;
+        PackedVector<> new_path_name_length_iv;
         new_path_name_length_iv.reserve(paths.size());
         for (size_t i = 0; i < paths.size(); ++i) {
             new_path_name_length_iv.append(path_name_length_iv.get(i));
         }
         path_name_length_iv = move(new_path_name_length_iv);
         
-        PackedVector new_path_is_deleted_iv;
+        PackedVector<> new_path_is_deleted_iv;
         new_path_is_deleted_iv.reserve(paths.size());
         for (size_t i = 0; i < paths.size(); ++i) {
             new_path_is_deleted_iv.append(path_is_deleted_iv.get(i));
         }
         path_is_deleted_iv = move(new_path_is_deleted_iv);
         
-        PackedVector new_path_is_circular_iv;
+        PackedVector<> new_path_is_circular_iv;
         new_path_is_circular_iv.reserve(paths.size());
         for (size_t i = 0; i < paths.size(); ++i) {
             new_path_is_circular_iv.append(path_is_circular_iv.get(i));
@@ -1049,7 +1049,7 @@ namespace bdsg {
         }
         path_tail_iv = move(new_path_tail_iv);
         
-        PackedVector new_path_deleted_steps_iv;
+        PackedVector<> new_path_deleted_steps_iv;
         new_path_deleted_steps_iv.reserve(paths.size());
         for (size_t i = 0; i < paths.size(); ++i) {
             new_path_deleted_steps_iv.append(path_deleted_steps_iv.get(i));
@@ -1109,7 +1109,7 @@ namespace bdsg {
         size_t total_seq_len = seq_iv.size() - deleted_bases;
         
         // make a new seq_iv of exactly the right size
-        PackedVector new_seq_iv;
+        PackedVector<> new_seq_iv;
         new_seq_iv.reserve(total_seq_len);
         static_assert(SEQ_START_RECORD_SIZE == SEQ_LENGTH_RECORD_SIZE,
                       "This loop will need to be rewritten if we change the record sizes");
@@ -1150,7 +1150,7 @@ namespace bdsg {
             
             // initialize new vectors to construct defragged copies in
             PagedVector new_graph_iv(graph_iv.page_width());
-            PackedVector new_seq_length_iv;
+            PackedVector<> new_seq_length_iv;
             PagedVector new_seq_start_iv(seq_start_iv.page_width());
             PagedVector new_path_membership_node_iv(path_membership_node_iv.page_width());
             
@@ -1482,8 +1482,8 @@ namespace bdsg {
         return true;
     }
     
-    PackedVector PackedGraph::encode_and_assign_path_name(const string& path_name) {
-        PackedVector encoded;
+    PackedVector<> PackedGraph::encode_and_assign_path_name(const string& path_name) {
+        PackedVector<> encoded;
         encoded.resize(path_name.size());
         for (size_t i = 0; i < path_name.size(); ++i) {
             encoded.set(i, get_or_make_assignment(path_name.at(i)));
@@ -1491,8 +1491,8 @@ namespace bdsg {
         return encoded;
     }
     
-    PackedVector PackedGraph::encode_path_name(const string& path_name) const {
-        PackedVector encoded;
+    PackedVector<> PackedGraph::encode_path_name(const string& path_name) const {
+        PackedVector<> encoded;
         encoded.resize(path_name.size());
         for (size_t i = 0; i < path_name.size(); ++i) {
             uint64_t encoded_char = get_assignment(path_name.at(i));
@@ -1512,9 +1512,9 @@ namespace bdsg {
         }
     }
     
-    PackedVector PackedGraph::extract_encoded_path_name(const int64_t& path_idx) const {
+    PackedVector<> PackedGraph::extract_encoded_path_name(const int64_t& path_idx) const {
         size_t name_start = path_name_start_iv.get(path_idx);
-        PackedVector name;
+        PackedVector<> name;
         name.resize(path_name_length_iv.get(path_idx));
         for (size_t i = 0; i < name.size(); ++i) {
             name.set(i, path_names_iv.get(name_start + i));
@@ -1586,7 +1586,7 @@ namespace bdsg {
             throw std::runtime_error("[PackedGraph] error: cannot create paths with no name");
         }
         
-        PackedVector encoded = encode_and_assign_path_name(name);
+        PackedVector<> encoded = encode_and_assign_path_name(name);
         if (path_id.count(encoded)) {
             throw std::runtime_error("[PackedGraph] error: path of name " + name + " already exists, cannot create again");
         }
