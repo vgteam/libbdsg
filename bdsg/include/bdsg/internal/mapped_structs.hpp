@@ -19,6 +19,11 @@ namespace bdsg {
     
 using namespace std;
 
+// TODO: If we allocate as part of a method on an object in memory that's part
+// of the mapping we might need to move to allocate, then when we unmap the
+// memory, the object won't exist anymore and its method won't be able to
+// finish running.
+
 /**
  * Context in which memory mapping happens. Needs to be passed down through all
  * the reference object constructors so that more reference objects can be
@@ -34,6 +39,13 @@ struct MappingContext {
     // If so we'd also need to protect any math involving base_address, or even
     // the addresses of any things in the arena, or even accesses to any things
     // in the arena...
+};
+
+/**
+ * An allocator that allocates from a MappingContext that covers the address at which it is located.
+ * Stores no actual data.
+ */
+class LocalContextAllocator {
 };
 
 // We work with "reference" types which have a ::body_t that exists in the
