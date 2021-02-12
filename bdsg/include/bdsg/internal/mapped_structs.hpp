@@ -19,6 +19,177 @@ namespace bdsg {
     
 using namespace std;
 
+/**
+ * You Only Map Once: mapped memory with safe allocation by objects in the mapped memory.
+ *
+ * YOMO provides an interconnected system for file-backed memory mapping and
+ * allocation, so that objects whose *this is in a mapped memory segment can
+ * safely allocate more memory backed by the file the object exists in.
+ * Allocating more memory will not unmap memory already allocated.
+ */
+namespace yomo {
+
+/**
+ * Global manager of mapped memory segments. Talked to by pointers in memory
+ * segments to figure out where they actually point to.
+ *
+ * The manager manages one or more "chains", each potentially corresponding to
+ * a file. The chains are made up of mapped memory "segments", and each segment
+ * can be mapped at a different base address.
+ *
+ * When a file is initially mapped, it is mapped as a single segment.
+ * Additional segments may be mapped later to fulfill allocations from
+ * yomo::Allocator<T> instances stored in the chain.
+ */
+class Manager {
+
+public:
+
+    using chain_id = size_t;
+    static const chain_id NO_CHAIN = 0;
+
+    /**
+     * Create a chain not backed by any file. The given prefix data will occur
+     * before the chain allocator data structures.
+     */
+    static chain_id create_chain(const std::string& prefix = "");
+    
+    /**
+     * Create a chain by mapping all of the given open file.
+     *
+     * Modifications to the chain will affect the file, and it will grow as
+     * necessary.
+     *
+     * The Manager will not take ownership of the file descriptor.
+     *
+     * If the file is nonempty, data after the length of the passed prefix must
+     * contain the chain allocator data structures. If it is empty, the prefix
+     * and the chain allocator data structures will be written to it.
+     */
+    static chain_id create_chain(int fd, const std::string& prefix = "");
+    
+    /**
+     * Return a chain which has the same stored data as the given chain, but
+     * for which modification of the chain will not modify any backing file on
+     * disk. The chain returned may be the same chain as the given chain.
+     */
+    static size_t get_dissociated_chain(chain_id chain);
+    
+    /**
+     * Return a chain which has the same stored data as the given chain, but
+     * for which modification of the chain will modify the open file with the
+     * given file descriptor. The chain returned may be the same chain as the
+     * given chain.
+     *
+     * The Manager will not take ownership of the file descriptor.
+     */
+    static size_t get_associated_chain(chain_id chain, int fd); 
+    
+    /**
+     * Destroy the given chain and unmap all of its memory, and close any
+     * associated file.
+     */
+    static void destroy_chain(chain_id chain);
+    
+    /**
+     * Get the chain that contains the given address, or NO_CHAIN if the
+     * address is outside all current chains.
+     */
+    static chain_id get_chain(const void* address);
+    
+    /**
+     * Allocate the given number of bytes from the given chain.
+     */
+    static void* allocate_from(chain_id chain, size_t bytes);
+    
+    /**
+     * Free the given allocated block in the chain to which it belongs.
+     */
+    static void deallocate(void* address);
+    
+    /**
+     * Find the mapped address of the first thing allocated in the chain, given
+     * that it was allocated with the given size.
+     */
+    void* find_first_allocation(chain_id chain, size_t bytes);
+
+};
+
+/**
+ * Allocator that allocates via the yomo::Manager from the chain in which it itself occurs.
+ */
+template<typename T>
+class Allocator {
+};
+
+/**
+ * Pointer to an object of type T, which lives at an address mapped by a
+ * yomo::Allocator, and is itself stored at an address mapped by a
+ * yomo::Allocator.
+ */
+template<typename T>
+class Pointer {
+};
+
+/**
+ * Interface between normally allocated objects and chain-allocated objects.
+ * Pointer to an object that is allocated at the beginning of a chain, and
+ * which should allocate, if it allocates, from the chain.
+ * Itself lives outside the chain. Can be null.
+ */
+template<typename T>
+class UniqueMappedPtr {
+public:
+    UniqueMappedPtr() = default;
+    UniqueMappedPtr(const UniqueMappedPtr& other) = delete;
+    UniqueMappedPtr(UniqueMappedPtr&& other) = default;
+    UniqueMappedPtr& operator=(const UniqueMappedPtr& other) = delete;
+    UniqueMappedPtr& operator=(UniqueMappedPtr&& other) = default;
+    
+    operator bool () const;
+    T& operator*();
+    const T& operator*() const;
+    T* operator->();
+    const T* operator->() const;
+
+    /**
+     * Make a new default-constructed T in its own new memory chain, preceeded by the given prefix.
+     */
+    void construct(const std::string& prefix = "");
+    
+    /**
+     * Point to the already-constructed T saved to the file at fd by a previous associate() call.
+     */
+    void connect(const std::string& prefix = "", int fd);
+    
+    /**
+     * Break any write-back association with a backing file.
+     */
+    void dissociate();
+    
+    /**
+     * Move the stored item and all associated memory into memory mapped in the
+     * given file. The pointer must not be null. No move constructors are
+     * called.
+     */
+    void associate(int fd);
+    
+    /**
+     * Free any associated memory and become empty.
+     */
+    void reset();
+private:
+    Manager::chain_id chain = Manager::NO_CHAIN;
+};
+
+/**
+ * Default-construct a T in the given file, or connect to one previously so constructed.
+ */
+template<typename T>
+UniqueMappedPtr<T> make_mapped(const std::string& prefix, int fd);
+
+};
+
 // TODO: If we allocate as part of a method on an object in memory that's part
 // of the mapping we might need to move to allocate, then when we unmap the
 // memory, the object won't exist anymore and its method won't be able to
