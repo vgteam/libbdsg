@@ -13,258 +13,15 @@
 #include <functional>
 #include <limits>
 
+#include <map>
+#include <vector>
+#include <shared_mutex>
+
 #include <endian.h>
 
 namespace bdsg {
     
 using namespace std;
-
-/**
- * You Only Map Once: mapped memory with safe allocation by objects in the mapped memory.
- *
- * YOMO provides an interconnected system for file-backed memory mapping and
- * allocation, so that objects whose *this is in a mapped memory segment can
- * safely allocate more memory backed by the file the object exists in.
- * Allocating more memory will not unmap memory already allocated.
- */
-namespace yomo {
-
-/**
- * Global manager of mapped memory segments. Talked to by pointers in memory
- * segments to figure out where they actually point to.
- *
- * The manager manages one or more "chains", each potentially corresponding to
- * a file. The chains are made up of mapped memory "segments", and each segment
- * can be mapped at a different base address.
- *
- * When a file is initially mapped, it is mapped as a single segment.
- * Additional segments may be mapped later to fulfill allocations from
- * yomo::Allocator<T> instances stored in the chain.
- */
-class Manager {
-
-public:
-
-    using chain_id = size_t;
-    static const chain_id NO_CHAIN = 0;
-
-    /**
-     * Create a chain not backed by any file. The given prefix data will occur
-     * before the chain allocator data structures.
-     */
-    static chain_id create_chain(const std::string& prefix = "");
-    
-    /**
-     * Create a chain by mapping all of the given open file.
-     *
-     * Modifications to the chain will affect the file, and it will grow as
-     * necessary.
-     *
-     * The Manager will not take ownership of the file descriptor.
-     *
-     * If the file is nonempty, data after the length of the passed prefix must
-     * contain the chain allocator data structures. If it is empty, the prefix
-     * and the chain allocator data structures will be written to it.
-     */
-    static chain_id create_chain(int fd, const std::string& prefix = "");
-    
-    /**
-     * Return a chain which has the same stored data as the given chain, but
-     * for which modification of the chain will not modify any backing file on
-     * disk. The chain returned may be the same chain as the given chain.
-     */
-    static size_t get_dissociated_chain(chain_id chain);
-    
-    /**
-     * Return a chain which has the same stored data as the given chain, but
-     * for which modification of the chain will modify the open file with the
-     * given file descriptor. The chain returned may be the same chain as the
-     * given chain.
-     *
-     * The Manager will not take ownership of the file descriptor.
-     */
-    static size_t get_associated_chain(chain_id chain, int fd); 
-    
-    /**
-     * Destroy the given chain and unmap all of its memory, and close any
-     * associated file.
-     */
-    static void destroy_chain(chain_id chain);
-    
-    /**
-     * Get the chain that contains the given address, or NO_CHAIN if the
-     * address is outside all current chains.
-     */
-    static chain_id get_chain(const void* address);
-    
-    /**
-     * Allocate the given number of bytes from the given chain.
-     */
-    static void* allocate_from(chain_id chain, size_t bytes);
-    
-    /**
-     * Free the given allocated block in the chain to which it belongs.
-     */
-    static void deallocate(void* address);
-    
-    /**
-     * Find the mapped address of the first thing allocated in the chain, given
-     * that it was allocated with the given size.
-     */
-    void* find_first_allocation(chain_id chain, size_t bytes);
-
-};
-
-/**
- * Allocator that allocates via the yomo::Manager from the chain in which it itself occurs.
- */
-template<typename T>
-class Allocator {
-};
-
-/**
- * Pointer to an object of type T, which lives at an address mapped by a
- * yomo::Allocator, and is itself stored at an address mapped by a
- * yomo::Allocator.
- */
-template<typename T>
-class Pointer {
-};
-
-/**
- * Interface between normally allocated objects and chain-allocated objects.
- * Pointer to an object that is allocated at the beginning of a chain, and
- * which should allocate, if it allocates, from the chain.
- * Itself lives outside the chain. Can be null.
- */
-template<typename T>
-class UniqueMappedPtr {
-public:
-    UniqueMappedPtr() = default;
-    UniqueMappedPtr(const UniqueMappedPtr& other) = delete;
-    UniqueMappedPtr(UniqueMappedPtr&& other) = default;
-    UniqueMappedPtr& operator=(const UniqueMappedPtr& other) = delete;
-    UniqueMappedPtr& operator=(UniqueMappedPtr&& other) = default;
-    
-    operator bool () const;
-    T& operator*();
-    const T& operator*() const;
-    T* operator->();
-    const T* operator->() const;
-
-    /**
-     * Make a new default-constructed T in its own new memory chain, preceeded by the given prefix.
-     */
-    void construct(const std::string& prefix = "");
-    
-    /**
-     * Point to the already-constructed T saved to the file at fd by a previous associate() call.
-     */
-    void connect(const std::string& prefix = "", int fd);
-    
-    /**
-     * Break any write-back association with a backing file.
-     */
-    void dissociate();
-    
-    /**
-     * Move the stored item and all associated memory into memory mapped in the
-     * given file. The pointer must not be null. No move constructors are
-     * called.
-     */
-    void associate(int fd);
-    
-    /**
-     * Free any associated memory and become empty.
-     */
-    void reset();
-private:
-    Manager::chain_id chain = Manager::NO_CHAIN;
-};
-
-/**
- * Default-construct a T in the given file, or connect to one previously so constructed.
- */
-template<typename T>
-UniqueMappedPtr<T> make_mapped(const std::string& prefix, int fd);
-
-};
-
-// TODO: If we allocate as part of a method on an object in memory that's part
-// of the mapping we might need to move to allocate, then when we unmap the
-// memory, the object won't exist anymore and its method won't be able to
-// finish running.
-
-/**
- * Context in which memory mapping happens. Needs to be passed down through all
- * the reference object constructors so that more reference objects can be
- * made.
- */
-struct MappingContext {
-    char* base_address;
-    size_t size;
-    /// When we're trying to allocate and we can't, resize. Might move the whole thing.
-    /// Must throw if allocation did not happen. Does not update the context's size.
-    std::function<char*(size_t)> resize;
-    // TODO: stick a mutex in here?
-    // If so we'd also need to protect any math involving base_address, or even
-    // the addresses of any things in the arena, or even accesses to any things
-    // in the arena...
-};
-
-/**
- * An allocator that allocates from a MappingContext that covers the address at which it is located.
- * Stores no actual data.
- */
-class LocalContextAllocator {
-};
-
-// We work with "reference" types which have a ::body_t that exists in the
-// memory mapping at a certain context-relative position, and possibly other
-// fields that exist outside it.
-// The reference type can have members that e.g. allocate, while the body
-// cannot. The reference can be null.
-// These are meant to be passed around as values, and should expose some
-// accessor methods that operate on the body.
-
-template<typename Derived>
-class base_ref_t {
-public:
-    /// The MappingContext that the referenced object lives in, or nullptr if we are null. 
-    MappingContext* context;
-    /// The position in the context that the referenced object exists at.
-    size_t position;
-    
-    // Derived must provide a body_t.
-    // Also we can't inherit multiple levels.
-    
-    // Pointer templates expect implementations fo these constructors:
-    
-    /// Get a reference object to the existing body at the given position.
-    base_ref_t(MappingContext* context, size_t position);
-    
-    /// Allocate and construct a new body at some available position and get a
-    /// reference object to it.
-    base_ref_t(MappingContext* context);
-    
-    /// Get a null reference.
-    base_ref_t();
-    
-    // Copy and move
-    base_ref_t(const base_ref_t<Derived>& other) = default;
-    base_ref_t(base_ref_t<Derived>&& other) = default;
-    base_ref_t<Derived>& operator=(const base_ref_t<Derived>& other) = default;
-    base_ref_t<Derived>& operator=(base_ref_t<Derived>&& other) = default;
-    
-    /// Be truthy if not null, and false otherwise
-    operator bool () const;
-    
-    // TODO: we can't have helpers that return Dervied::body_t, even as a
-    // pointer, because Derived inherits us and C++ thinks it isn't ready to be
-    // used when we're doing our types. So we use a void pointer
-    void* get_body();
-    const void* get_body() const;
-};
 
 /**
  * Wrapper that stores a number in a defined endian-ness.
@@ -313,6 +70,354 @@ public:
     offset_ptr<T>& operator=(offset_ptr<T>&& other);
     offset_ptr(const offset_ptr<T>& other);
     offset_ptr(offset_ptr<T>&& other);
+};
+
+/**
+ * You Only Map Once: mapped memory with safe allocation by objects in the mapped memory.
+ *
+ * YOMO provides an interconnected system for file-backed memory mapping and
+ * allocation, so that objects whose *this is in a mapped memory segment can
+ * safely allocate more memory backed by the file the object exists in.
+ * Allocating more memory will not unmap memory already allocated.
+ */
+namespace yomo {
+
+/**
+ * Global manager of mapped memory segments. Talked to by pointers in memory
+ * segments to figure out where they actually point to.
+ *
+ * The manager manages one or more "chains", each potentially corresponding to
+ * a file. The chains are made up of mapped memory "segments", and each segment
+ * can be mapped at a different base address.
+ *
+ * When a file is initially mapped, it is mapped as a single segment.
+ * Additional segments may be mapped later to fulfill allocations from
+ * yomo::Allocator<T> instances stored in the chain.
+ */
+class Manager {
+
+public:
+
+    using chainid_t = intptr_t;
+    static const chainid_t NO_CHAIN = 0;
+
+    /**
+     * Create a chain not backed by any file. The given prefix data will occur
+     * before the chain allocator data structures.
+     */
+    static chainid_t create_chain(const std::string& prefix = "");
+    
+    /**
+     * Create a chain by mapping all of the given open file.
+     *
+     * Modifications to the chain will affect the file, and it will grow as
+     * necessary.
+     *
+     * The Manager will not take ownership of the file descriptor.
+     *
+     * If the file is nonempty, data after the length of the passed prefix must
+     * contain the chain allocator data structures. If it is empty, the prefix
+     * and the chain allocator data structures will be written to it.
+     */
+    static chainid_t create_chain(int fd, const std::string& prefix = "");
+    
+    /**
+     * Return a chain which has the same stored data as the given chain, but
+     * for which modification of the chain will not modify any backing file on
+     * disk. The chain returned may be the same chain as the given chain.
+     */
+    static size_t get_dissociated_chain(chainid_t chain);
+    
+    /**
+     * Return a chain which has the same stored data as the given chain, but
+     * for which modification of the chain will modify the open file with the
+     * given file descriptor. The chain returned may be the same chain as the
+     * given chain.
+     *
+     * The Manager will not take ownership of the file descriptor.
+     */
+    static size_t get_associated_chain(chainid_t chain, int fd); 
+    
+    /**
+     * Destroy the given chain and unmap all of its memory, and close any
+     * associated file.
+     */
+    static void destroy_chain(chainid_t chain);
+    
+    /**
+     * Get the chain that contains the given address, or NO_CHAIN if the
+     * address is outside all current chains.
+     */
+    static chainid_t get_chain(const void* address);
+    
+    /**
+     * Get the address of the given byte from the start of the chain.
+     */
+    static void* get_address_in_chain(chainid_t chain, size_t position);
+    
+    /**
+     * Get the address of the given byte from the start of the chain.
+     */
+    static size_t get_position_in_chain(chainid_t chain, size_t position);
+    
+    /**
+     * Allocate the given number of bytes from the given chain.
+     */
+    static void* allocate_from(chainid_t chain, size_t bytes);
+    
+    /**
+     * Free the given allocated block in the chain to which it belongs.
+     */
+    static void deallocate(void* address);
+    
+    /**
+     * Find the mapped address of the first thing allocated in the chain, given
+     * that it was allocated with the given size.
+     */
+    void* find_first_allocation(chainid_t chain, size_t bytes);
+    
+protected:
+
+    /**
+     * This describes a link in a chain, which is a single contiguous memory
+     * mapping. Mapping address is the key in address_space_index.
+     */
+    struct LinkRecord {
+        /// Offset of the start of the mapping in the chain (cumulative sum)
+        size_t offset;
+        /// Number of bytes in the mapping.
+        size_t length;
+        /// Mapping start address of the next link in the chain, or 0 if this is the last one.
+        intptr_t next;
+        /// Mapping start address of the first link in the chain.
+        intptr_t first;
+        
+        // Then we have per-chain state only used in the first link.
+        
+        /// If this is the first link in the chain, stores the file descriptor
+        /// associated with the chain, or 0 if no FD is associated.
+        int fd;
+        /// If this is the first link in the chain, stores the start of the
+        /// last link in the chain, for fast append of new mappings.
+        intptr_t last;
+    };
+    
+    /**
+     * For each chain, stores each mapping's start address by chain offset position.
+     * Useful for bound queries.
+     */
+    static vector<map<size_t, intptr_t>> chain_space_index;
+    
+    /**
+     * For each memory start address, what mapping does it start?
+     * Useful for bound queries.
+     */
+    static map<intptr_t, LinkRecord> address_space_index;
+    
+    /**
+     * Mutex for a readers-writer lock on the indexes, for allocating.
+     */
+    static shared_timed_mutex mutex;
+
+};
+
+/**
+ * Allocator that allocates via the yomo::Manager from the chain in which it
+ * itself occurs.
+ * Still deals in normal pointers, which are safe to use when not storing them
+ * in the allocated memory. Pointers in the allocated memory should be
+ * yomo::Pointer<T>.
+ */
+template<typename T>
+class Allocator {
+
+public:
+    using pointer = T*;
+    using const_pointer = const T*;
+    using size_type = size_t;
+    
+    Allocator() = default;
+    Allocator(const Allocator& other) = default;
+    Allocator(Allocator&& other) = default;
+    Allocator& operator=(const Allocator& other) = default;
+    Allocator& operator=(Allocator&& other) = default;
+    
+    /**
+     * Copy an allocator, but change the allocated type.
+     */
+    template<typename U>
+    Allocator(const Allocator<U>& alloc);
+    
+    /**
+     * Allocate the given number of items. Ought to be near the hint.
+     */
+    pointer allocate(size_type n, const_pointer hint = 0);
+    
+    /**
+     * Deallocate the given number of items. Must be the same number as were allocated.
+     */
+    void deallocate(pointer p, size_type n);
+
+};
+
+/**
+ * Pointer to an object of type T, which lives at an address mapped by a
+ * yomo::Allocator, and is itself stored at an address mapped by a
+ * yomo::Allocator.
+ */
+template<typename T>
+class Pointer {
+public:
+    /// Be constructable.
+    /// Constructs as a pointer that equals nullptr.
+    Pointer();
+    
+    // Be a good pointer
+    operator bool () const; // TODO: why doesn't this work as an implicit conversion?
+    T& operator*();
+    const T& operator*() const;
+    T* operator->();
+    const T* operator->() const;
+    offset_ptr<T>& operator=(const T* addr);
+    T* operator+(size_t items);
+    const T* operator+(size_t items) const;
+    
+protected:
+    /// Stores the destination position in the chain, or max size_t for null.
+    big_endian<size_t> position;
+};
+
+/**
+ * Interface between normally allocated objects and chain-allocated objects.
+ * Pointer to an object that is allocated at the beginning of a chain, and
+ * which should allocate, if it allocates, from the chain.
+ * Itself lives outside the chain. Can be null.
+ *
+ * T must use yomo::Pointer as its pointer type and yomo::Allocator as its
+ * allocator type.
+ */
+template<typename T>
+class UniqueMappedPtr {
+public:
+    UniqueMappedPtr() = default;
+    UniqueMappedPtr(const UniqueMappedPtr& other) = delete;
+    UniqueMappedPtr(UniqueMappedPtr&& other) = default;
+    UniqueMappedPtr& operator=(const UniqueMappedPtr& other) = delete;
+    UniqueMappedPtr& operator=(UniqueMappedPtr&& other) = default;
+    
+    operator bool () const;
+    T& operator*();
+    const T& operator*() const;
+    T* operator->();
+    const T* operator->() const;
+
+    /**
+     * Make a new default-constructed T in its own new memory chain, preceeded
+     * by the given prefix.
+     */
+    void construct(const std::string& prefix = "");
+    
+    /**
+     * Point to the already-constructed T saved to the file at fd by a previous
+     * associate() call.
+     */
+    void connect(int fd, const std::string& prefix = "");
+    
+    /**
+     * Break any write-back association with a backing file.
+     */
+    void dissociate();
+    
+    /**
+     * Move the stored item and all associated memory into memory mapped in the
+     * given file. The pointer must not be null. No move constructors are
+     * called.
+     */
+    void associate(int fd);
+    
+    /**
+     * Free any associated memory and become empty.
+     */
+    void reset();
+private:
+    Manager::chainid_t chain = Manager::NO_CHAIN;
+};
+
+/**
+ * Default-construct a T in the given file, or connect to one previously so constructed.
+ */
+template<typename T>
+UniqueMappedPtr<T> make_mapped(const std::string& prefix, int fd);
+
+};
+
+// TODO: If we allocate as part of a method on an object in memory that's part
+// of the mapping we might need to move to allocate, then when we unmap the
+// memory, the object won't exist anymore and its method won't be able to
+// finish running.
+
+/**
+ * Context in which memory mapping happens. Needs to be passed down through all
+ * the reference object constructors so that more reference objects can be
+ * made.
+ */
+struct MappingContext {
+    char* base_address;
+    size_t size;
+    /// When we're trying to allocate and we can't, resize. Might move the whole thing.
+    /// Must throw if allocation did not happen. Does not update the context's size.
+    std::function<char*(size_t)> resize;
+    // TODO: stick a mutex in here?
+    // If so we'd also need to protect any math involving base_address, or even
+    // the addresses of any things in the arena, or even accesses to any things
+    // in the arena...
+};
+
+// We work with "reference" types which have a ::body_t that exists in the
+// memory mapping at a certain context-relative position, and possibly other
+// fields that exist outside it.
+// The reference type can have members that e.g. allocate, while the body
+// cannot. The reference can be null.
+// These are meant to be passed around as values, and should expose some
+// accessor methods that operate on the body.
+
+template<typename Derived>
+class base_ref_t {
+public:
+    /// The MappingContext that the referenced object lives in, or nullptr if we are null. 
+    MappingContext* context;
+    /// The position in the context that the referenced object exists at.
+    size_t position;
+    
+    // Derived must provide a body_t.
+    // Also we can't inherit multiple levels.
+    
+    // Pointer templates expect implementations fo these constructors:
+    
+    /// Get a reference object to the existing body at the given position.
+    base_ref_t(MappingContext* context, size_t position);
+    
+    /// Allocate and construct a new body at some available position and get a
+    /// reference object to it.
+    base_ref_t(MappingContext* context);
+    
+    /// Get a null reference.
+    base_ref_t();
+    
+    // Copy and move
+    base_ref_t(const base_ref_t<Derived>& other) = default;
+    base_ref_t(base_ref_t<Derived>&& other) = default;
+    base_ref_t<Derived>& operator=(const base_ref_t<Derived>& other) = default;
+    base_ref_t<Derived>& operator=(base_ref_t<Derived>&& other) = default;
+    
+    /// Be truthy if not null, and false otherwise
+    operator bool () const;
+    
+    // TODO: we can't have helpers that return Dervied::body_t, even as a
+    // pointer, because Derived inherits us and C++ thinks it isn't ready to be
+    // used when we're doing our types. So we use a void pointer
+    void* get_body();
+    const void* get_body() const;
 };
 
 /**
