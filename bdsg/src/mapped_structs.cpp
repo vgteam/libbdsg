@@ -4,6 +4,8 @@
 
 #include "bdsg/internal/mapped_structs.hpp"
 
+#include <mio/mmap.hpp>
+
 
 namespace bdsg {
 

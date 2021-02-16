@@ -118,6 +118,9 @@ target_include_directories(bbhash INTERFACE "${bdsg_DIR}/deps/BBHash/")
 add_library(sparsepp INTERFACE)
 target_include_directories(sparsepp INTERFACE "${bdsg_DIR}/deps/sparsepp/")
 
+# mio (header only)
+add_subdirectory("${bdsg_DIR}/deps/mio")
+
 if (BUILD_PYTHON_BINDINGS)
     # Binder (because some generated bindings depend on headers packaged with Binder)
     ExternalProject_Add(binder
@@ -230,7 +233,8 @@ set(bdsg_TARGET_DEPS
   dynamic
   handlegraph_shared
   bbhash
-  sparsepp)
+  sparsepp
+  mio::mio)
 
 set(bdsg_LIBS
   ${bdsg_TARGET_DEPS}
