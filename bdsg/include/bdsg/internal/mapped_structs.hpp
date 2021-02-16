@@ -14,6 +14,7 @@
 #include <limits>
 
 #include <map>
+#include <unordered_map>
 #include <vector>
 #include <shared_mutex>
 
@@ -174,39 +175,17 @@ public:
      * Find the mapped address of the first thing allocated in the chain, given
      * that it was allocated with the given size.
      */
-    void* find_first_allocation(chainid_t chain, size_t bytes);
+    static void* find_first_allocation(chainid_t chain, size_t bytes);
     
 protected:
 
-    /**
-     * This describes a link in a chain, which is a single contiguous memory
-     * mapping. Mapping address is the key in address_space_index.
-     */
-    struct LinkRecord {
-        /// Offset of the start of the mapping in the chain (cumulative sum)
-        size_t offset;
-        /// Number of bytes in the mapping.
-        size_t length;
-        /// Mapping start address of the next link in the chain, or 0 if this is the last one.
-        intptr_t next;
-        /// Mapping start address of the first link in the chain.
-        intptr_t first;
-        
-        // Then we have per-chain state only used in the first link.
-        
-        /// If this is the first link in the chain, stores the file descriptor
-        /// associated with the chain, or 0 if no FD is associated.
-        int fd;
-        /// If this is the first link in the chain, stores the start of the
-        /// last link in the chain, for fast append of new mappings.
-        intptr_t last;
-    };
+    struct LinkRecord; 
     
     /**
      * For each chain, stores each mapping's start address by chain offset position.
-     * Useful for bound queries.
+     * Each entry is useful for bound queries.
      */
-    static vector<map<size_t, intptr_t>> chain_space_index;
+    static unordered_map<chainid_t, map<size_t, intptr_t>> chain_space_index;
     
     /**
      * For each memory start address, what mapping does it start?
@@ -218,6 +197,16 @@ protected:
      * Mutex for a readers-writer lock on the indexes, for allocating.
      */
     static shared_timed_mutex mutex;
+    
+    /**
+     * How big should a block be to start with.
+     */
+    static constexpr size_t BASE_SIZE = 1024;
+    
+    /**
+     * Set up the allocator data structures in the first link, assuming they aren't present.
+     */
+    static void set_up_allocator(chainid_t chain);
 
 };
 
