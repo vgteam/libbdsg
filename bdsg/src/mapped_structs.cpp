@@ -128,45 +128,90 @@ Manager::chainid_t Manager::create_chain(int fd, const std::string& prefix) {
     return chain;
 }
 
-size_t Manager::get_dissociated_chain(chainid_t chain) {
-    // First we need to grab the prefix length, so we know where to site the new allocator.
-    size_t prefix_size;
-    // And the total size of the data in the source chain
-    size_t total_size;
-    {
-        // Get read access to manager data structures
-        std::shared_lock<std::shared_timed_mutex> lock(Manager::mutex);
-        
-        // Find the record for this chain
-        auto& record = Manager::address_space_index.at(chain);
-        
-        // Steal its stats
-        prefix_size = record.prefix_size;
-        total_size = record.total_size;
-    }
-    
-    // Then grab the prefix string
-    std::string prefix(prefix_size, 0);
-    char* start = (char*)get_address_in_chain(chain, 0, prefix_size);
-    std::copy(start, start + prefix_size, prefix.begin());
-    
-    // Make the new chain with the appropriate size hint.
-    chainid_t new_chain = open_chain(0, total_size).first;
-    
-    // Extend it to the required total size if it isn't long enough already
-    extend_chain_to(new_chain, total_size);
-    
-    // Copy all the data
-    // TODO
+Manager::chainid_t Manager::get_dissociated_chain(chainid_t chain) {
+    // Copy to a chain associated with no FD
+    return copy_chain(chain, 0);
 }
 
-size_t Manager::get_associated_chain(chainid_t chain, int fd) {
+Manager::chainid_t Manager::get_associated_chain(chainid_t chain, int fd) {
+    // Copy to a chain associated with the given FD
+    return copy_chain(chain, fd);
 }
 
 void Manager::destroy_chain(chainid_t chain) {
+
+    // Remember the FD of the chain for closing the file.
+    int fd;
+    
+    // Remember any MIO mappings to unmap
+    std::vector<std::unique_ptr<mio::mmap_sink>> mio_clean;
+    // Remember any normal memory to clean up
+    std::vector<char*> normal_clean;
+
+    {
+        // Get write access to manager data structures
+        std::unique_lock<std::shared_timed_mutex> lock(Manager::mutex);
+        
+        auto head_entry = Manager::address_space_index.find((intptr_t) chain);
+        
+        if (head_entry == Manager::address_space_index.end()) {
+            throw std::runtime_error("Trying to destroy nonexistent chain");
+        }
+        
+        fd = head_entry->second.fd;
+        
+        auto link_entry = head_entry;
+        
+        while(link_entry != Manager::address_space_index.end()) {
+            // Clean up each link
+            if (link_entry->second.mapping) {
+                // Clear up any MIO mapping
+                // Note that we're allowed to modify the actual record with "read" access, just not the maps.
+                mio_clean.emplace_back(std::move(link_entry->second.mapping));
+            } else {
+                // This is just a normal char array allocation.
+                normal_clean.emplace_back((char*)link_entry->first);
+            }
+            
+            // Work out where we are going to look next
+            intptr_t next_link_addr = link_entry->second.next;
+            
+            // Delete where we are
+            Manager::address_space_index.erase(link_entry);
+            
+            if (next_link_addr) {
+                // Look for the next link in the chain.
+                link_entry = Manager::address_space_index.find(next_link_addr);
+            } else {
+                // Stop
+                link_entry = Manager::address_space_index.end();
+            }
+        }
+        
+        // Also clean up the chain position index
+        Manager::chain_space_index.erase(chain);
+    }
+    
+    // Now that we aren't holding locks, free the memory
+    
+    for (auto& mapping : mio_clean) {
+        mapping.reset();
+    }
+    
+    for (auto& mapping : normal_clean) {
+        delete[] mapping;
+    }
+    
+    if (fd) {
+        // Close the backing file
+        if (close(fd)) {
+            throw std::runtime_error("Could not close file: " + std::string(strerror(errno)));
+        }
+    }
 }
 
 Manager::chainid_t Manager::get_chain(const void* address) {
+    
 }
 
 void* Manager::get_address_in_chain(chainid_t chain, size_t position, size_t length) {
@@ -341,12 +386,100 @@ Manager::LinkRecord& Manager::add_link(LinkRecord& head, size_t new_bytes) {
     // Save the new link
     auto& where = Manager::address_space_index[mapping_address];
     where = std::move(new_tail);
+    chain_space_index[(chainid_t) head.first][old_end] = mapping_address;
     
     // And hook it up.
     old_tail.next = mapping_address;
     head.last = mapping_address;
     
     return where;
+}
+
+Manager::chainid_t Manager::copy_chain(chainid_t chain, int fd) {
+    // First we need to grab the prefix length, so we know where to site the new allocator.
+    size_t prefix_size;
+    // And the total size of the data in the source chain
+    size_t total_size;
+    {
+        // Get read access to manager data structures
+        std::shared_lock<std::shared_timed_mutex> lock(Manager::mutex);
+        
+        // Find the record for this chain
+        auto& record = Manager::address_space_index.at(chain);
+        
+        // Steal its stats
+        prefix_size = record.prefix_size;
+        total_size = record.total_size;
+    }
+    
+    // Make the new chain with the appropriate size hint.
+    chainid_t new_chain = open_chain(fd, total_size).first;
+    
+    // Extend it to the required total size if it isn't long enough already
+    extend_chain_to(new_chain, total_size);
+    
+    // Copy all the data
+    
+    // We already know the addresses of the first links
+    intptr_t from_link_adddr = (intptr_t) chain;
+    intptr_t to_link_addr = (intptr_t) new_chain;
+    // We can walk pointers to the link records along as we copy. The owning
+    // map is guaranteed not to move them.
+    LinkRecord* from_link = nullptr;
+    LinkRecord* to_link = nullptr;
+    
+    // Track how many bytes we have copied
+    size_t cursor = 0;
+    
+    while (cursor < total_size) {
+        // Until we are done, we need to copy an overlapping range between the two chains' links, as a block.
+        // The block will reach to the end of a link in one or both chains.
+        
+        // Make sure we have mapping addresses of an dpointers to records for
+        // the current links.
+        {
+            // Get read access to manager data structures
+            std::shared_lock<std::shared_timed_mutex> lock(Manager::mutex);
+        
+            if (from_link && (cursor - from_link->offset) == from_link->length) {
+                // Advance out of old from link
+                from_link_adddr = from_link->next;
+                from_link = nullptr;
+            }
+            if (to_link && (cursor - to_link->offset) == to_link->length) {
+                // Advance out of old to link
+                to_link_addr = to_link->next;
+                to_link = nullptr;
+            }
+            
+            if (!from_link) {
+                // We aren't using the same from link as last time
+                from_link = &Manager::address_space_index.at(from_link_adddr);
+            }
+            if (!to_link) {
+                // We aren't using the same to link as last time
+                to_link = &Manager::address_space_index.at(to_link_addr);
+            }
+        }
+        
+        // Pull out block ranges
+        size_t from_link_cursor = cursor - from_link->offset;
+        size_t to_link_cursor = cursor - to_link->offset;
+        size_t from_link_available = from_link->length - from_link_cursor;
+        size_t to_link_available = to_link->length - to_link_cursor;
+        
+        // Do the copy of the minimum overlap
+        size_t to_copy = std::min(from_link_available, to_link_available);
+        memcpy((void*)(to_link_addr + to_link_cursor), (void*)(from_link_adddr + from_link_cursor), to_copy);
+        
+        // Record the copy
+        cursor += to_copy;
+    }
+    
+    // Set up the allocator data structures.
+    connect_allocator_at(new_chain, prefix_size);
+    
+    return new_chain;
 }
 
 void Manager::set_up_allocator_at(chainid_t chain, size_t offset) {

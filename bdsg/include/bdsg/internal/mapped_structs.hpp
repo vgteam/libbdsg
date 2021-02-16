@@ -129,7 +129,7 @@ public:
      *
      * Not thread safe with concurrent modificatons to the source chain.
      */
-    static size_t get_dissociated_chain(chainid_t chain);
+    static chainid_t get_dissociated_chain(chainid_t chain);
     
     /**
      * Return a chain which has the same stored data as the given chain, but
@@ -141,7 +141,7 @@ public:
      *
      * Not thread safe with concurrent modificatons to the source chain.
      */
-    static size_t get_associated_chain(chainid_t chain, int fd); 
+    static chainid_t get_associated_chain(chainid_t chain, int fd); 
     
     /**
      * Destroy the given chain and unmap all of its memory, and close any
@@ -224,7 +224,7 @@ protected:
      * Block will either be the entire size of an existing file, or the given starting size.
      * Returns the chain ID and a flag for if there was data in an open file to read.
      */
-    static std::pair<Manager::chainid_t, bool> open_chain(int fd = 0, size_t start_size = BASE_SIZE);
+    static std::pair<chainid_t, bool> open_chain(int fd = 0, size_t start_size = BASE_SIZE);
     
     /**
      * Extend the given chain to the given new total size.
@@ -236,6 +236,12 @@ protected:
      * The number of bytes must be nonzero.
      */
     static LinkRecord& add_link(LinkRecord& head, size_t new_bytes);
+    
+    /**
+     * Create a new chain, using the given file if set, and copy data from the
+     * given existing chain.
+     */
+    static chainid_t copy_chain(chainid_t chain, int fd = 0);
    
     /**
      * Set up the allocator data structures in the first link, assuming they aren't present.
