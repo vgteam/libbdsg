@@ -211,13 +211,82 @@ void Manager::destroy_chain(chainid_t chain) {
 }
 
 Manager::chainid_t Manager::get_chain(const void* address) {
-    
+    return get_chain_and_position(address).first;
 }
 
 void* Manager::get_address_in_chain(chainid_t chain, size_t position, size_t length) {
+    // Get read access to manager data structures
+    std::shared_lock<std::shared_timed_mutex> lock(Manager::mutex);
+    
+    // Find the index over this chain's space
+    auto& chain_map = Manager::chain_space_index.at(chain);
+    
+    // Find the first chain link starting after our position 
+    auto found = chain_map.upper_bound(position);
+    
+    if (found == chain_map.begin() || chain_map.empty()) {
+        // There won't be a link covering the position
+        // We really should never end up with no link over position 0, though,
+        // so this should mostly mean empty.
+        throw std::runtime_error("Attempted to find address for position that has no link.");
+    }
+    
+    // Look left and find the link we are looking for
+    --found;
+    
+    if (length) {
+        // We need to do extra error checking, for which we need the LinkRecord.
+        // TODO: should we waste some memory and save a lookup here?
+        LinkRecord& link = Manager::address_space_index.at(found->second);
+        
+        if (link.offset + link.length < position + length) {
+            // Whatever it is we're interested in would cross link boundaries.
+            throw std::runtime_error("Attempted to find address for position range that does not fit completely within any link");
+        }
+    }
+    
+    // Convert to address by offsetting from address of containing block.
+    return (void*)(found->second + (position - found->first));
+   
 }
 
-std::pair<Manager::chainid_t, size_t> Manager::get_chain_and_position(const void* address) {
+std::pair<Manager::chainid_t, size_t> Manager::get_chain_and_position(const void* address, size_t length) {
+    // Determine what we're looking for
+    intptr_t sought = (intptr_t) address;
+    
+    // Fill these in with link info
+    intptr_t link_base;
+    size_t link_offset;
+    size_t link_length;
+    chainid_t chain;
+    {
+        // Get read access to manager data structures
+        std::shared_lock<std::shared_timed_mutex> lock(Manager::mutex);
+        
+        // Find the earliest block starting after the address
+        auto found = Manager::address_space_index.upper_bound((intptr_t)address);
+        
+        if (found == Manager::address_space_index.begin() || Manager::address_space_index.empty()) {
+            // There won't be a link covering the address
+            throw std::runtime_error("Attempted to place address that is before all chains.");
+        }
+        
+        // Go left to the block that must include the address if any does.
+        --found;
+        
+        // Copy out link info
+        link_base = found->first;
+        link_offset = found->second.offset;
+        link_length = found->second.length;
+        chain = (chainid_t) found->second.first;
+    }
+    
+    if (link_base + link_length < sought + length) {
+        throw std::runtime_error("Attempted to place address range that does not fit completely within any link");
+    }
+    
+    // Translate first link's address to chain ID, and address to link local offset to chain position.
+    return std::make_pair(chain, link_offset + (sought - link_base));
 }
 
 void* Manager::allocate_from(chainid_t chain, size_t bytes) {

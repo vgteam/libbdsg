@@ -165,8 +165,13 @@ public:
     /**
      * Get the position of the given byte in the chain it is in, along with the
      * identifier for that chain.
+     * If a length is provided, throws if the given length of bytes from
+     * position are not contiguous in memory.
      */
-    static std::pair<chainid_t, size_t> get_chain_and_position(const void* address);
+    static std::pair<chainid_t, size_t> get_chain_and_position(const void* address, size_t length = 0);
+    
+    // TODO: have a way to glom the above two together to accelerate an offset
+    // pointer dereference that might be in the same link.
     
     /**
      * Allocate the given number of bytes from the given chain.
