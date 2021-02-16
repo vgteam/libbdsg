@@ -126,6 +126,8 @@ public:
      * Return a chain which has the same stored data as the given chain, but
      * for which modification of the chain will not modify any backing file on
      * disk. The chain returned may be the same chain as the given chain.
+     *
+     * Not thread safe with concurrent modificatons to the source chain.
      */
     static size_t get_dissociated_chain(chainid_t chain);
     
@@ -136,6 +138,8 @@ public:
      * given chain.
      *
      * The Manager will not take ownership of the file descriptor.
+     *
+     * Not thread safe with concurrent modificatons to the source chain.
      */
     static size_t get_associated_chain(chainid_t chain, int fd); 
     
@@ -153,27 +157,33 @@ public:
     
     /**
      * Get the address of the given byte from the start of the chain.
+     * If a length is provided, throws if the given length of bytes from
+     * position are not contiguous in memory.
      */
-    static void* get_address_in_chain(chainid_t chain, size_t position);
+    static void* get_address_in_chain(chainid_t chain, size_t position, size_t length = 0);
     
     /**
-     * Get the address of the given byte from the start of the chain.
+     * Get the position of the given byte in the chain it is in, along with the
+     * identifier for that chain.
      */
-    static size_t get_position_in_chain(chainid_t chain, size_t position);
+    static std::pair<chainid_t, size_t> get_chain_and_position(const void* address);
     
     /**
      * Allocate the given number of bytes from the given chain.
+     * Not thread safe within a chain.
      */
     static void* allocate_from(chainid_t chain, size_t bytes);
     
     /**
      * Free the given allocated block in the chain to which it belongs.
+     * Not thread safe within a chain.
      */
     static void deallocate(void* address);
     
     /**
      * Find the mapped address of the first thing allocated in the chain, given
      * that it was allocated with the given size.
+     * Not thread safe within concurrent allocations and deallocations within a chain.
      */
     static void* find_first_allocation(chainid_t chain, size_t bytes);
     
@@ -199,14 +209,43 @@ protected:
     static shared_timed_mutex mutex;
     
     /**
-     * How big should a block be to start with.
+     * How big should a link be to start with.
      */
     static constexpr size_t BASE_SIZE = 1024;
     
     /**
+     * Of that, how many bytes should we allow the prefix to possibly use?
+     * The allocator has to be able to keep its header within the rest of the first link.
+     */
+    static constexpr size_t MAX_PREFIX_SIZE = 16;
+   
+    /**
+     * Create a chain with one link and no allocator setup.
+     * Block will either be the entire size of an existing file, or the given starting size.
+     * Returns the chain ID and a flag for if there was data in an open file to read.
+     */
+    static std::pair<Manager::chainid_t, bool> open_chain(int fd = 0, size_t start_size = BASE_SIZE);
+    
+    /**
+     * Extend the given chain to the given new total size.
+     */
+    static void extend_chain_to(chainid_t chain, size_t new_total_size);
+    
+    /**
+     * Add a link into a chain. The caller must hold a write lock on the manager data structures.
+     * The number of bytes must be nonzero.
+     */
+    static LinkRecord& add_link(LinkRecord& head, size_t new_bytes);
+   
+    /**
      * Set up the allocator data structures in the first link, assuming they aren't present.
      */
-    static void set_up_allocator(chainid_t chain);
+    static void set_up_allocator_at(chainid_t chain, size_t offset);
+    
+    /**
+     * Connect to the allocator data structures in the first link, assuming they are present.
+     */
+    static void connect_allocator_at(chainid_t chain, size_t offset);
 
 };
 
