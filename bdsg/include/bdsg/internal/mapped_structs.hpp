@@ -39,41 +39,6 @@ protected:
 };
 
 /**
- * Offset pointer to a primitive type, in the memory mapping.
- * Exists in the memory mapping.
- */
-template<typename T>
-class offset_ptr {
-protected:
-    /// Offset from our own storage location to what we point to, or max
-    /// possible value if null.
-    big_endian<size_t> offset;
-public:
-    /// Be constructable.
-    /// Constructs as a pointer that equals nullptr.
-    offset_ptr();
-    
-    // Be a good pointer
-    operator bool () const; // TODO: why doesn't this work as an implicit conversion?
-    T& operator*();
-    const T& operator*() const;
-    T* operator->();
-    const T* operator->() const;
-    offset_ptr<T>& operator=(const T* addr);
-    // TODO: how do we make the const version of us a pointer to a const thing
-    // that we can set to a const pointer? FOr now assignment vanishes away
-    // constness.
-    T* operator+(size_t items);
-    const T* operator+(size_t items) const;
-    
-    // Make sure to account for offset changes when copying or moving
-    offset_ptr<T>& operator=(const offset_ptr<T>& other);
-    offset_ptr<T>& operator=(offset_ptr<T>&& other);
-    offset_ptr(const offset_ptr<T>& other);
-    offset_ptr(offset_ptr<T>&& other);
-};
-
-/**
  * You Only Map Once: mapped memory with safe allocation by objects in the mapped memory.
  *
  * YOMO provides an interconnected system for file-backed memory mapping and
@@ -82,6 +47,34 @@ public:
  * Allocating more memory will not unmap memory already allocated.
  */
 namespace yomo {
+
+/**
+ * Pointer to an object of type T, which lives at an address mapped by a
+ * yomo::Allocator (or otherwise in a yomo::Manager's chain), and is itself
+ * stored at an address mapped by a yomo::Allocator (or otherwise in the same
+ * yomo::Manager chain).
+ */
+template<typename T>
+class Pointer {
+public:
+    /// Be constructable.
+    /// Constructs as a pointer that equals nullptr.
+    Pointer();
+    
+    // Be a good pointer
+    operator bool () const; // TODO: why doesn't this work as an implicit conversion?
+    T& operator*();
+    const T& operator*() const;
+    T* operator->();
+    const T* operator->() const;
+    Pointer<T>& operator=(const T* addr);
+    T* operator+(size_t items);
+    const T* operator+(size_t items) const;
+    
+protected:
+    /// Stores the destination position in the chain, or max size_t for null.
+    big_endian<size_t> position;
+};
 
 /**
  * Global manager of mapped memory segments. Talked to by pointers in memory
@@ -196,8 +189,62 @@ protected:
     
     
     struct LinkRecord;
-    struct AllocatorBlock;
-    struct AllocatorHeader;
+    
+    /**
+     * This occurs inside the chains and represents the header of some free or
+     * allocated memory.
+     */
+    struct AllocatorBlock {
+        /// Next block. Only used when block is free.
+        Pointer<AllocatorBlock> prev;
+        /// Previous block. Only used when block is free.
+        Pointer<AllocatorBlock> next;
+        /// Size fo the block in bytes, not counting this header. Used for free
+        /// and allocated blocks.
+        big_endian<size_t> size;
+        
+        /// Get the address of the first byte of memory we manage.
+        void* get_user_data() const;
+        /// Get the address of the block managing the data starting at the given byte.
+        static AllocatorBlock* get_from_data(void* user_data);
+        
+        /// Split the block, keeping first_bytes bytes and giving the rest to a new
+        /// subsequent block, which is wired up and returned. Assumes the block is
+        /// free.
+        AllocatorBlock* split(size_t first_bytes);
+        
+        /// Remove this block from the free list. Returns the blocks before and
+        /// after it, which is has wired together. If this was the first or last
+        /// block (or both), the appropriate return value will be null.
+        std::pair<AllocatorBlock*, AllocatorBlock*> detach();
+        
+        /// Attach this block to the free list, between the given blocks, which may
+        /// be null.
+        void attach(AllocatorBlock* left, AllocatorBlock* right);
+        
+        /// Defragment and coalesce adjacent free blocks in the contiguous run this
+        /// block is part of, if any. Returns the first and last blocks in the run;
+        /// the last block's header will be in the free space of the first block,
+        /// unless the last block is the first block.
+        std::pair<AllocatorBlock*, AllocatorBlock*> coalesce();
+        
+    protected:
+        
+        /// Return true if this block comes immediately before the other one, with
+        /// no space between them.
+        bool immediately_before(const AllocatorBlock* other) const;
+    };
+
+    /**
+     * This occurs at the start of a chain, after any prefix, and lets us find the free list.
+     */
+    struct AllocatorHeader {
+        /// Where is the first free block of memory?
+        Pointer<AllocatorBlock> first_free;
+        /// Where is the last free block of memory?
+        Pointer<AllocatorBlock> last_free;
+    };
+    
     
     /**
      * For each chain, stores each mapping's start address by chain offset position.
@@ -252,9 +299,11 @@ protected:
     static chainid_t copy_chain(chainid_t chain, int fd = 0);
    
     /**
-     * Set up the allocator data structures in the first link, assuming they aren't present.
+     * Set up the allocator data structures in the first link, assuming they
+     * aren't present. Put them at the given offset, and carve them out of the
+     * given amoutn of remaining space in the link. 
      */
-    static void set_up_allocator_at(chainid_t chain, size_t offset);
+    static void set_up_allocator_at(chainid_t chain, size_t offset, size_t space);
     
     /**
      * Connect to the allocator data structures in the first link, assuming they are present.
@@ -300,33 +349,6 @@ public:
      */
     void deallocate(pointer p, size_type n);
 
-};
-
-/**
- * Pointer to an object of type T, which lives at an address mapped by a
- * yomo::Allocator, and is itself stored at an address mapped by a
- * yomo::Allocator.
- */
-template<typename T>
-class Pointer {
-public:
-    /// Be constructable.
-    /// Constructs as a pointer that equals nullptr.
-    Pointer();
-    
-    // Be a good pointer
-    operator bool () const; // TODO: why doesn't this work as an implicit conversion?
-    T& operator*();
-    const T& operator*() const;
-    T* operator->();
-    const T* operator->() const;
-    offset_ptr<T>& operator=(const T* addr);
-    T* operator+(size_t items);
-    const T* operator+(size_t items) const;
-    
-protected:
-    /// Stores the destination position in the chain, or max size_t for null.
-    big_endian<size_t> position;
 };
 
 /**
@@ -391,6 +413,41 @@ private:
 template<typename T>
 UniqueMappedPtr<T> make_mapped(const std::string& prefix, int fd);
 
+};
+
+/**
+ * Offset pointer to a primitive type, in the memory mapping.
+ * Exists in the memory mapping.
+ */
+template<typename T>
+class offset_ptr {
+protected:
+    /// Offset from our own storage location to what we point to, or max
+    /// possible value if null.
+    big_endian<size_t> offset;
+public:
+    /// Be constructable.
+    /// Constructs as a pointer that equals nullptr.
+    offset_ptr();
+    
+    // Be a good pointer
+    operator bool () const; // TODO: why doesn't this work as an implicit conversion?
+    T& operator*();
+    const T& operator*() const;
+    T* operator->();
+    const T* operator->() const;
+    offset_ptr<T>& operator=(const T* addr);
+    // TODO: how do we make the const version of us a pointer to a const thing
+    // that we can set to a const pointer? FOr now assignment vanishes away
+    // constness.
+    T* operator+(size_t items);
+    const T* operator+(size_t items) const;
+    
+    // Make sure to account for offset changes when copying or moving
+    offset_ptr<T>& operator=(const offset_ptr<T>& other);
+    offset_ptr<T>& operator=(offset_ptr<T>&& other);
+    offset_ptr(const offset_ptr<T>& other);
+    offset_ptr(offset_ptr<T>&& other);
 };
 
 // TODO: If we allocate as part of a method on an object in memory that's part
