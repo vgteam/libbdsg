@@ -193,8 +193,11 @@ public:
     static void* find_first_allocation(chainid_t chain, size_t bytes);
     
 protected:
-
-    struct LinkRecord; 
+    
+    
+    struct LinkRecord;
+    struct AllocatorBlock;
+    struct AllocatorHeader;
     
     /**
      * For each chain, stores each mapping's start address by chain offset position.

@@ -55,6 +55,61 @@ struct Manager::LinkRecord {
     size_t total_size;
 };
 
+/**
+ * This occurs inside the chains and represents the header of some free or
+ * allocated memory.
+ */
+struct Manager::AllocatorBlock {
+    /// Next block. Only used when block is free.
+    Pointer<AllocatorBlock> prev;
+    /// Previous block. Only used when block is free.
+    Pointer<AllocatorBlock> next;
+    /// Size fo the block in bytes, not counting this header. Used for free
+    /// and allocated blocks.
+    big_endian<size_t> size;
+    
+    /// Get the address of the first byte of memory we manage.
+    void* get_user_data() const;
+    /// Get the address of the block managing the data starting at the given byte.
+    static AllocatorBlock* get_from_data(void* user_data);
+    
+    /// Split the block, keeping first_bytes bytes and giving the rest to a new
+    /// subsequent block, which is wired up and returned. Assumes the block is
+    /// free.
+    AllocatorBlock* split(size_t first_bytes);
+    
+    /// Remove this block from the free list. Returns the blocks before and
+    /// after it, which is has wired together. If this was the first or last
+    /// block (or both), the appropriate return value will be null.
+    std::pair<AllocatorBlock*, AllocatorBlock*> detach();
+    
+    /// Attach this block to the free list, between the given blocks, which may
+    /// be null.
+    void attach(AllocatorBlock* left, AllocatorBlock* right);
+    
+    /// Defragment and coalesce adjacent free blocks in the contiguous run this
+    /// block is part of, if any. Returns the first and last blocks in the run;
+    /// the last block's header will be in the free space of the first block,
+    /// unless the last block is the first block.
+    std::pair<AllocatorBlock*, AllocatorBlock*> coalesce();
+    
+protected:
+    
+    /// Return true if this block comes immediately before the other one, with
+    /// no space between them.
+    bool immediately_before(const AllocatorBlock* other) const;
+};
+
+/**
+ * This occurs at the start of a chain, after any prefix, and lets us find the free list.
+ */
+struct Manager::AllocatorHeader {
+    /// Where is the first free block of memory?
+    Pointer<AllocatorBlock> first_free;
+    /// Where is the last free block of memory?
+    Pointer<AllocatorBlock> last_free;
+};
+
 // Give the static members a compilation unit
 std::unordered_map<Manager::chainid_t, std::map<size_t, intptr_t>> Manager::chain_space_index;
 std::map<intptr_t, Manager::LinkRecord> Manager::address_space_index;
