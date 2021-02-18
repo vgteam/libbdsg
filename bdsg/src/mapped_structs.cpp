@@ -314,15 +314,18 @@ void* Manager::allocate_from(chainid_t chain, size_t bytes) {
             // Get write access to chain data structures.
             std::unique_lock<std::shared_timed_mutex> lock(Manager::mutex);
             
+            // Find the first link in the chain
+            LinkRecord& first = address_space_index.at((intptr_t) chain);
+            
             // Find the last link in the chain
-            LinkRecord& last = *((LinkRecord*)chain)->last;
+            LinkRecord& last = address_space_index.at(first.last);
             
             // We need our factor as much memory as last time, or enough for
             // the thing we want to allocate
-            size_t new_link_size = std::max(last->size * SCALE_FACTOR, block_bytes);
+            size_t new_link_size = std::max(last.length * SCALE_FACTOR, block_bytes);
             
             // Go get the new link
-            new_link = &add_link(chain, new_link_size); 
+            new_link = &add_link(first, new_link_size); 
         }
         
         // Work out where new free memory will start
@@ -363,7 +366,7 @@ void* Manager::allocate_from(chainid_t chain, size_t bytes) {
     }
     
     // Now we have a free block of the right size. Make it not free.
-    auto connected = found.detach();
+    auto connected = found->detach();
     if (header->first_free == found) {
         // This was the first free block
         header->first_free = connected.first;
@@ -376,7 +379,7 @@ void* Manager::allocate_from(chainid_t chain, size_t bytes) {
     cerr << "Allocated at " << found->get_user_data() << endl;
     
     // Give out the address of its data
-    return found.get_user_data();
+    return found->get_user_data();
 }
 
 
@@ -395,12 +398,12 @@ void Manager::deallocate(void* address) {
     // Find the block in the free list after it, if any
     // TODO: leave a link to it in the block so we don't need to scan for it.
     // We know it can't move, although it might allocate.
-    AllocatorHeader* right = header->next;
+    AllocatorBlock* right = found->next;
     while(right && !right->prev) {
         // The block exists, but it isn't free (linked into the free list)
         right = right->next;
     }
-    ArenaAllocatorBlockRef left;
+    AllocatorBlock* left;
     if (!right) {
         // The new block should be the last block in the list.
         // So it comes after the existing last block, if any.
@@ -411,7 +414,7 @@ void Manager::deallocate(void* address) {
     }
     
     // Wire in the block
-    found.attach(left, right);
+    found->attach(left, right);
     
     // Update haed and tail
     if (header->last_free == left) {
@@ -422,7 +425,7 @@ void Manager::deallocate(void* address) {
     }
     
     // Defragment.
-    auto bounds = found.coalesce();
+    auto bounds = found->coalesce();
     // We can't need to update the first free when defragmenting, but we may
     // need to update the last free.
     if (header->last_free == bounds.second) {
@@ -431,6 +434,34 @@ void Manager::deallocate(void* address) {
 }
 
 void* Manager::find_first_allocation(chainid_t chain, size_t bytes) {
+
+    if (bytes > (BASE_SIZE - MAX_PREFIX_SIZE - sizeof(AllocatorBlock) - sizeof(AllocatorHeader))) {
+        // Too big to fit in the first block. Can't find it.
+        throw std::runtime_error("Could not find first allocation of " + std::to_string(bytes) +
+            " because it is too big for the first block");
+        // TODO: can we predict the behavior of the allocator to find bigger things?
+        // TODO: what if the thing or allocator changes?
+    }
+    
+    // The first allocated item is just in the first block, after the prefix and allocator stuff.
+    return (void*)(((char*)find_allocator_header(chain)) + sizeof(AllocatorHeader) + sizeof(AllocatorBlock));
+}
+
+Manager::AllocatorHeader* Manager::find_allocator_header(chainid_t chain) {
+    // We know the header is always in the first link.
+
+    LinkRecord* first;
+    
+    {
+        // Get read access to manager data structures
+        std::shared_lock<std::shared_timed_mutex> lock(Manager::mutex);
+        
+        // Find the first link
+        first = &address_space_index.at((intptr_t) chain);
+    }
+    
+    // The header lives after the prefix.
+    return (AllocatorHeader*)(((char*) chain) + first->prefix_size);
 }
 
 std::pair<Manager::chainid_t, bool> Manager::open_chain(int fd, size_t start_size) {
