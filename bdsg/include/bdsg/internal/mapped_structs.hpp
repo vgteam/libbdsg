@@ -67,9 +67,16 @@ public:
     const T& operator*() const;
     T* operator->();
     const T* operator->() const;
+    operator T* ();
+    operator const T* () const;
     Pointer<T>& operator=(const T* addr);
     T* operator+(size_t items);
     const T* operator+(size_t items) const;
+    
+    // Expose the address of the pointed-to object not through manual operator
+    // calling.
+    T* get();
+    const T* get() const;
     
 protected:
     /// Stores the destination position in the chain, or max size_t for null.

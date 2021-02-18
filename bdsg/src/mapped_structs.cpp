@@ -584,6 +584,120 @@ void Manager::connect_allocator_at(chainid_t chain, size_t offset) {
     }
 }
 
+void* Manager::AllocatorBlock::get_user_data() const {
+    return (void*)(((char*)this) + sizeof(AllocatorBlock));
+}
+
+Manager::AllocatorBlock* Manager::AllocatorBlock::get_from_data(void* user_data) {
+    return (AllocatorBlock*)(((char*)user_data) - sizeof(AllocatorBlock));
+}
+
+Manager::AllocatorBlock* Manager::AllocatorBlock::split(size_t first_bytes) {
+    size_t available_bytes = size;
+    
+    if (available_bytes - first_bytes < sizeof(AllocatorBlock)) {
+        throw std::runtime_error("Insufficient free space for block header");
+    }
+    
+    // Resize down 
+    size = first_bytes;
+    
+    // Construct and define the new block
+    AllocatorBlock* new_next = (AllocatorBlock*)(((char*)get_user_data()) + first_bytes);
+    new (new_next) AllocatorBlock();
+    new_next->size = available_bytes - first_bytes - sizeof(AllocatorBlock);
+    
+    // Wire it in
+    new_next->prev = this;
+    new_next->next = next;
+    next = new_next;
+    
+    // Return it
+    return new_next;
+}
+
+std::pair<Manager::AllocatorBlock*, Manager::AllocatorBlock*> Manager::AllocatorBlock::detach() {
+    // Grab out initial neighbors
+    pair<AllocatorBlock*, AllocatorBlock*> old_neighbors = make_pair(prev.get(), next.get());
+    
+    if (prev) {
+        // Attach the thing before us to whatever is after us instead of us.
+        prev->next =old_neighbors.second;
+        prev = nullptr;
+    }
+    
+    if (next) {
+        // Attach the thing after us to whatever was before us instead of us
+        next->prev = old_neighbors.first;
+        next = nullptr;
+    }
+    
+    return old_neighbors;
+}
+
+void Manager::AllocatorBlock::attach(AllocatorBlock* left, AllocatorBlock* right) {
+    prev = left;
+    if (left) {
+        left->next = this;
+    }
+    next = right;
+    if (right) {
+        right->prev = this;
+    }
+}
+
+std::pair<Manager::AllocatorBlock*, Manager::AllocatorBlock*> Manager::AllocatorBlock::coalesce() {
+    // We need to make sure we don't try and coalesce across link boundaries.
+    // We rely on the adjacency check to operate in memory space.
+    
+    // Start here
+    pair<AllocatorBlock*, AllocatorBlock*> contiguous = make_pair(this, this);
+    while (contiguous.first->prev &&
+           contiguous.first->prev->immediately_before(contiguous.first)) {
+        // Walk left until neighbor is null or not abutting
+        contiguous.first = contiguous.first->prev;
+    }
+    while (contiguous.second->next &&
+           contiguous.second->immediately_before(contiguous.second->next)) {
+        // Walk right until neighbor is null or not abutting
+        contiguous.second = contiguous.second->next;
+    }
+    
+    if (contiguous.first != contiguous.second) {
+        // Something to coalesce
+    
+        // Compute size if first eats through end of second
+        size_t total_bytes = ((char*)contiguous.second->get_user_data() -
+                              (char*)contiguous.first->get_user_data()) +
+                             contiguous.second->size;
+        
+        // Expand leftmost thing to cover theough end of rightmost thing
+        contiguous.first->size = total_bytes;
+        
+        // Connect to right neighbor of rightmost thing
+        contiguous.first->next = contiguous.second->next;
+        if (contiguous.first->next) {
+            contiguous.first->next->prev = contiguous.first;
+        }
+        
+        // Clear out rightmost adjacencies in case we wander off the rails somehow.
+        contiguous.second->next = nullptr;
+        contiguous.second->prev = nullptr;
+        
+        // Destruct header
+        contiguous.second->~AllocatorBlock();
+    }
+    
+    // Return leftmost and rightmost things so caller can update list ends.
+    return contiguous;
+    
+}
+
+bool Manager::AllocatorBlock::immediately_before(const AllocatorBlock* other) const {
+    // We are adjacent if we abut in memory, regardless of chain positioning.
+    return ((char*)get_user_data()) + size == (char*)other;
+}
+
 }
 
 ArenaAllocatorBlockRef ArenaAllocatorBlockRef::get_prev() const {
