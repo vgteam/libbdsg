@@ -202,9 +202,9 @@ protected:
      * allocated memory.
      */
     struct AllocatorBlock {
-        /// Next block. Only used when block is free.
-        Pointer<AllocatorBlock> prev;
         /// Previous block. Only used when block is free.
+        Pointer<AllocatorBlock> prev;
+        /// Next block. Only used when block is free.
         Pointer<AllocatorBlock> next;
         /// Size fo the block in bytes, not counting this header. Used for free
         /// and allocated blocks.
@@ -280,6 +280,11 @@ protected:
      * The allocator has to be able to keep its header within the rest of the first link.
      */
     static constexpr size_t MAX_PREFIX_SIZE = 16;
+    
+    /**
+     * How much should we expand each new link by?
+     */
+    static constexpr size_t SCALE_FACTOR = 2;
    
     /**
      * Create a chain with one link and no allocator setup.
@@ -316,6 +321,11 @@ protected:
      * Connect to the allocator data structures in the first link, assuming they are present.
      */
     static void connect_allocator_at(chainid_t chain, size_t offset);
+    
+    /**
+     * Find the allocator header in a chain that has had its allocator connected.
+     */
+    static AllocatorHeader* find_allocator_header(chainid_t chain);
 
 };
 
