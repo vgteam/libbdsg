@@ -398,34 +398,46 @@ public:
  * allocator type.
  */
 template<typename T>
-class UniqueMappedPtr {
+class UniqueMappedPointer {
 public:
-    UniqueMappedPtr() = default;
-    UniqueMappedPtr(const UniqueMappedPtr& other) = delete;
-    UniqueMappedPtr(UniqueMappedPtr&& other) = default;
-    UniqueMappedPtr& operator=(const UniqueMappedPtr& other) = delete;
-    UniqueMappedPtr& operator=(UniqueMappedPtr&& other) = default;
+    UniqueMappedPointer() = default;
+    UniqueMappedPointer(const UniqueMappedPointer& other) = delete;
+    UniqueMappedPointer(UniqueMappedPointer&& other) = default;
+    UniqueMappedPointer& operator=(const UniqueMappedPointer& other) = delete;
+    UniqueMappedPointer& operator=(UniqueMappedPointer&& other) = default;
     
     operator bool () const;
     T& operator*();
     const T& operator*() const;
     T* operator->();
     const T* operator->() const;
+    operator T*();
+    operator const T*() const;
+    
+    /**
+     * Get the memory address of the referenced object, or nullptr.
+     */
+    T* get();
+    const T* get() const;
 
     /**
-     * Make a new default-constructed T in its own new memory chain, preceeded
-     * by the given prefix.
+     * Make a new default-constructed T in memory, preceeded by the given
+     * prefix. Forward other arguments to the constructor.
      */
-    void construct(const std::string& prefix = "");
+    template <typename... Args>
+    void construct(const std::string& prefix = "", Args&&... constructor_args);
     
     /**
      * Point to the already-constructed T saved to the file at fd by a previous
-     * associate() call.
+     * save() call.
      */
-    void connect(int fd, const std::string& prefix = "");
+    void load(int fd, const std::string& prefix = "");
     
     /**
-     * Break any write-back association with a backing file.
+     * Break any write-back association with a backing file and move the object
+     * to non-file-backed memory.
+     *
+     * TODO: Allow private COW mappings by adding features to MIO, to avoid a copy.
      */
     void dissociate();
     
@@ -434,7 +446,7 @@ public:
      * given file. The pointer must not be null. No move constructors are
      * called.
      */
-    void associate(int fd);
+    void save(int fd);
     
     /**
      * Free any associated memory and become empty.
@@ -448,7 +460,7 @@ private:
  * Default-construct a T in the given file, or connect to one previously so constructed.
  */
 template<typename T>
-UniqueMappedPtr<T> make_mapped(const std::string& prefix, int fd);
+UniqueMappedPointer<T> make_mapped(const std::string& prefix, int fd);
 
 };
 
@@ -1446,6 +1458,118 @@ auto Allocator<T>::allocate(size_type n, const_pointer hint) -> pointer {
 template<typename T>
 void Allocator<T>::deallocate(pointer p, size_type n) {
     Manager::deallocate(p);
+}
+
+
+template<typename T>
+UniqueMappedPointer<T>::operator bool () const {
+    return chain != Manager::NO_CHAIN;
+}
+
+template<typename T>
+T& UniqueMappedPointer<T>::operator*() {
+    return *get();
+}
+
+template<typename T>
+const T& UniqueMappedPointer<T>::operator*() const {
+    return *get();
+}
+
+template<typename T>
+T* UniqueMappedPointer<T>::operator->() {
+    return get();
+}
+
+template<typename T>
+const T* UniqueMappedPointer<T>::operator->() const {
+    return get();
+}
+
+template<typename T>
+UniqueMappedPointer<T>::operator T*() {
+    return get();
+}
+
+template<typename T>
+UniqueMappedPointer<T>::operator const T*() const {
+    return get();
+}
+
+template<typename T>
+T* UniqueMappedPointer<T>::get() {
+    if (!*this) {
+        return nullptr;
+    } else {
+        return Manager::find_first_allocation(chain, sizeof(T));
+    }
+}
+
+template<typename T>
+const T* UniqueMappedPointer<T>::get() const {
+    if (!*this) {
+        return nullptr;
+    } else {
+        return Manager::find_first_allocation(chain, sizeof(T));
+    }
+}
+
+template<typename T>
+template<typename... Args>
+void UniqueMappedPointer<T>::construct(const std::string& prefix, Args&&... constructor_args) {
+    // Drop any existing chain.
+    reset();
+    
+    // Make a new chain
+    chain = Manager::create_chain(prefix);
+    // Allocate space in the cahin for the item.
+    // Can't use the Allocator because we don't have a place in the chain to
+    // store one.
+    T* item = (T*) Manager::allocate_from(chain, sizeof(T));
+    // Run the constructor.
+    new (item) T(std::forward<Args>(constructor_args)...);
+}
+
+template<typename T>
+void UniqueMappedPointer<T>::load(int fd, const std::string& prefix) {
+    // Drop any existing chain.
+    reset();
+
+    chain = Manager::create_chain(fd, prefix);
+}
+
+template<typename T>
+void UniqueMappedPointer<T>::dissociate() {
+    if (chain == Manager::NO_CHAIN) {
+        throw runtime_error("Cannot dissociate a null object");
+    }
+    // Copy the chain
+    Manager::chainid_t new_chain = Manager::get_dissociated_chain(chain);
+    // Get rid of the old chain
+    Manager::destroy_chain(chain);
+    // Adopt the new chain
+    chain = new_chain;
+}
+
+template<typename T>
+void UniqueMappedPointer<T>::save(int fd) {
+    if (chain == Manager::NO_CHAIN) {
+        throw runtime_error("Cannot save a null object");
+    }
+    // Copy the chain
+    Manager::chainid_t new_chain = Manager::get_associated_chain(chain, fd);
+    // Get rid of the old chain
+    Manager::destroy_chain(chain);
+    // Adopt the new chain
+    chain = new_chain;
+}
+
+template<typename T>
+void UniqueMappedPointer<T>::reset() {
+    if (chain != Manager::NO_CHAIN) {
+        Manager::destroy_chain(chain);
+        chain = Manager::NO_CHAIN;
+    }
 }
 
 }
