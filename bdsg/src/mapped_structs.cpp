@@ -289,6 +289,25 @@ std::pair<Manager::chainid_t, size_t> Manager::get_chain_and_position(const void
     return std::make_pair(chain, link_offset + (sought - link_base));
 }
 
+void* Manager::get_address_in_same_chain(const void* here, size_t position) {
+    // TODO: accelerate with some kind of alignment and mod scheme
+    chainid_t chain = get_chain(here);
+    return get_address_in_chain(chain, position);
+}
+    
+size_t Manager::get_position_in_same_chain(const void* here, const void* address) {
+    // TODO: accelerate with some kind of alignment and mod scheme
+
+    std::pair<chainid_t, size_t> chain_and_pos = get_chain_and_position(address);
+    
+    // TODO: skip the check for speed?
+    if (chain_and_pos.first != get_chain(here)) {
+        throw std::runtime_error("Attempted to refer across chains!");
+    }
+    
+    return chain_and_pos.second;
+}
+
 void* Manager::allocate_from(chainid_t chain, size_t bytes) {
     cerr << "Allocate " << bytes << "bytes from chain " << chain << endl;
     

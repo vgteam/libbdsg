@@ -59,7 +59,7 @@ class Pointer {
 public:
     /// Be constructable.
     /// Constructs as a pointer that equals nullptr.
-    Pointer();
+    Pointer() = default;
     
     // Be a good pointer
     operator bool () const; // TODO: why doesn't this work as an implicit conversion?
@@ -80,7 +80,7 @@ public:
     
 protected:
     /// Stores the destination position in the chain, or max size_t for null.
-    big_endian<size_t> position;
+    big_endian<size_t> position = std::numeric_limits<size_t>::max();
 };
 
 /**
@@ -141,7 +141,7 @@ public:
      *
      * Not thread safe with concurrent modificatons to the source chain.
      */
-    static chainid_t get_associated_chain(chainid_t chain, int fd); 
+    static chainid_t get_associated_chain(chainid_t chain, int fd);
     
     /**
      * Destroy the given chain and unmap all of its memory, and close any
@@ -170,17 +170,34 @@ public:
      */
     static std::pair<chainid_t, size_t> get_chain_and_position(const void* address, size_t length = 0);
     
-    // TODO: have a way to glom the above two together to accelerate an offset
-    // pointer dereference that might be in the same link.
+    /**
+     * Find the address of the given position in the chain that the given address exists in.
+     */
+    static void* get_address_in_same_chain(const void* here, size_t position);
+    
+    /**
+     * Find the position of the given address in the chain that here exists in.
+     */
+    static size_t get_position_in_same_chain(const void* here, const void* address);
     
     /**
      * Allocate the given number of bytes from the given chain.
+     *
      * Not thread safe within a chain.
      */
     static void* allocate_from(chainid_t chain, size_t bytes);
     
     /**
+     * Allocate the given number of bytes from the chain containing the given
+     * address.
+     *
+     * Not thread safe within a chain.
+     */
+    static void* allocate_from_same_chain(void* here, size_t bytes);
+    
+    /**
      * Free the given allocated block in the chain to which it belongs.
+     *
      * Not thread safe within a chain.
      */
     static void deallocate(void* address);
@@ -202,9 +219,9 @@ protected:
      * allocated memory.
      */
     struct AllocatorBlock {
-        /// Previous block. Only used when block is free.
+        /// Previous block. Only used when block is free. Null if allocated.
         Pointer<AllocatorBlock> prev;
-        /// Next block. Only used when block is free.
+        /// Next block. Used when block is free or allocated.
         Pointer<AllocatorBlock> next;
         /// Size fo the block in bytes, not counting this header. Used for free
         /// and allocated blocks.
@@ -1344,6 +1361,91 @@ const item_t& MappedVectorRef<item_t>::at(size_t index) const {
     return const_cast<MappedVectorRef<item_t>*>(this)->at(index);
 }
 
+
+namespace yomo {
+
+template<typename T>
+operator bool () const {
+    return position != std::numeric_limits<size_t>::max();
+}
+
+template<typename T>
+T& Pointer<T>::operator*() {
+    return *get();
+}
+
+template<typename T>
+const T& Pointer<T>::operator*() const {
+    return *get();
+}
+
+template<typename T>
+T* Pointer<T>::operator->() {
+    return get();
+}
+
+template<typename T>
+const T* Pointer<T>::operator->() const {
+    return get();
+}
+
+template<typename T>
+Pointer<T>::operator T* () {
+    return get();
+}
+
+template<typename T>
+Pointer<T>::operator const T* () const {
+    return get();
+}
+
+template<typename T>
+Pointer<T>& Pointer<T>::operator=(const T* addr) {
+    position = Manager::get_position_in_same_chain(this, addr);
+    return *this;
+}
+
+template<typename T>
+T* Pointer<T>::operator+(size_t items) {
+    return this.get() + items;
+}
+
+template<typename T>
+const T* Pointer<T>::operator+(size_t items) const {
+    return this.get() + items;
+}
+
+// Expose the address of the pointed-to object not through manual operator
+// calling.
+template<typename T>
+T* Pointer<T>::get() {
+    return (T*) Manager::get_address_in_same_chain((const void*) this, position); 
+}
+
+template<typename T>
+const T* Pointer<T>::get() const {
+    return (const T*) Manager::get_address_in_same_chain((const void*) this, position);
+}
+
+
+
+template<typename T>
+template<typename U>
+Allocator<T>::Allocator(const Allocator<U>& alloc) {
+    // Nothing to do!
+}
+
+template<typename T>
+auto Allocator<T>::allocate(size_type n, const_pointer hint) -> pointer {
+    return Manager::allocate_from_same_chain((void*) this, n * sizeof(T));
+}
+
+template<typename T>
+void Allocator<T>::deallocate(pointer p, size_type n) {
+    Manager::deallocate(p);
+}
+
+}
 
 
 }
