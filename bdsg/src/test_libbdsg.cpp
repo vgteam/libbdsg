@@ -91,10 +91,14 @@ public:
 
 // Have helpers to store and check some test data
 
+size_t mix(size_t in, size_t salt = 0) {
+    return ((in * in + (in << 2)) ^ salt) + 1;
+}
+
 template<typename Vectorish>
 void fill_to(Vectorish& data, size_t count, int64_t nonce) {
     for (size_t i = 0; i < count; i++) {
-        data.at(i) = ((i * i + (i << 2)) ^ nonce);
+        data.at(i) = mix(i, nonce);
     }
 }
 
@@ -104,12 +108,79 @@ void verify_to(const Vectorish& data, size_t count, int64_t nonce) {
         throw std::runtime_error("Trying to check " + std::to_string(count) + " items but only " + std::to_string(data.size()) + " are available");
     }
     for (size_t i = 0; i < count; i++) {
-        auto correct_value = ((i * i + (i << 2))) ^ nonce;
+        auto correct_value = mix(i, nonce);
         auto observed_value = data.at(i);
         if (observed_value != correct_value) {
             cerr << "At index " << i << " observed " << observed_value << " at " << &data.at(i) << " but expected " << correct_value << endl;
         }
         assert(observed_value == correct_value);
+    }
+}
+
+/**
+ * Given a resizeable two-level container of numbers, vigorously resize it and
+ * its members and make sure they have the right values.
+ */
+template<typename TwoLevel>
+void bother_vector(TwoLevel& storage) {
+
+    vector<vector<int>> truth;
+    
+    auto check = [&]() {
+        // Make sure the structure under test is holding the correct data.
+        assert(storage.size() == truth.size());
+        for (size_t i = 0; i < truth.size(); i++) {
+            assert(storage.at(i).size() == truth.at(i).size());
+            for (size_t j = 0; j < truth.at(i).size(); j++) {
+                assert(storage.at(i).at(j) == truth.at(i).at(j));
+            }
+        }
+    };
+
+    size_t seed = 0;
+
+    for (size_t iteration = 0; iteration < 10; iteration++) {
+        truth.resize(0);
+        storage.resize(0);
+        check();
+        
+        for (size_t parent_size = 0; parent_size < 100; parent_size++) {
+            truth.resize(parent_size);
+            storage.resize(parent_size);
+            check();
+            
+            for (size_t child = 0; child < parent_size; child++) {
+                auto& truth_child = truth.at(child);
+                auto& storage_child = storage.at(child);
+                
+                size_t child_size = seed % 100;
+                seed = mix(seed);
+                
+                for (size_t i = 0; i < child_size; i++) {
+                    // Resize 1 bigger a bunch
+                    truth_child.resize(i);
+                    storage_child.resize(i);
+                }
+                
+                for (size_t i = 0; i < child_size; i++) {
+                    // Fill in with data
+                    truth_child.at(i) = seed % 10000;
+                    storage_child.at(i) = seed % 10000;
+                    seed = mix(seed);
+                }
+                
+                // Cut in half
+                truth_child.resize(child_size/2);
+                storage_child.resize(child_size/2);
+                
+                // And increase by 10 with empty slots
+                truth_child.resize(truth_child.size() + 10);
+                storage_child.resize(child_size + 10);
+            }
+            
+            // Now make sure that after all that the structures are equal.
+            check();
+        }
     }
 }
 
@@ -510,6 +581,23 @@ void test_mapped_structs() {
         // And hold more data
         fill_to(vec1, 1000, 1);
         verify_to(vec1, 1000, 1);
+    }
+    
+    
+    {
+    
+        using T = big_endian<int64_t>;
+        using A = bdsg::yomo::Allocator<T>;
+        using V1 = CompatVector<T, A>;
+        using A2 = bdsg::yomo::Allocator<V1>;
+        using V2 = CompatVector<V1, A2>;
+        // Make a thing to hold onto a test array of arrays.
+        bdsg::yomo::UniqueMappedPointer<V2> numbers_holder_holder;
+        
+        numbers_holder_holder.construct();
+    
+        // Now do a vigorous test comparing to a normal vector
+        bother_vector(*numbers_holder_holder);
     }
     
     cerr << "Mapped Structs tests successful!" << endl;
