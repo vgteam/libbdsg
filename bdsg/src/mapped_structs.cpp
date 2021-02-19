@@ -274,7 +274,9 @@ std::pair<Manager::chainid_t, size_t> Manager::get_chain_and_position(const void
         
         if (found == Manager::address_space_index.begin() || Manager::address_space_index.empty()) {
             // There won't be a link covering the address
-            throw std::runtime_error("Attempted to place address that is before all chains.");
+            throw std::runtime_error("Attempted to place address " +
+                std::to_string((intptr_t)address) + " that is before all " +
+                std::to_string(Manager::address_space_index.size()) + " chain links.");
         }
         
         // Go left to the block that must include the address if any does.
@@ -298,7 +300,10 @@ std::pair<Manager::chainid_t, size_t> Manager::get_chain_and_position(const void
 void* Manager::get_address_in_same_chain(const void* here, size_t position) {
     // TODO: accelerate with some kind of alignment and mod scheme
     chainid_t chain = get_chain(here);
-    return get_address_in_chain(chain, position);
+    void* result = get_address_in_chain(chain, position);
+    std::cerr << "In chain of " << (intptr_t)here << " which is " << chain
+        << " we find position " << position << " at " << (intptr_t) result << std::endl;
+    return result;
 }
     
 size_t Manager::get_position_in_same_chain(const void* here, const void* address) {
@@ -315,7 +320,7 @@ size_t Manager::get_position_in_same_chain(const void* here, const void* address
 }
 
 void* Manager::allocate_from(chainid_t chain, size_t bytes) {
-    cerr << "Allocate " << bytes << "bytes from chain " << chain << endl;
+    cerr << "Allocate " << bytes << " bytes from chain " << chain << endl;
     
     // How much space do we need with block overhead, if we need a new block?
     size_t block_bytes = bytes + sizeof(AllocatorBlock);
@@ -330,6 +335,7 @@ void* Manager::allocate_from(chainid_t chain, size_t bytes) {
         found = header->first_free;
         while (found && found->size < bytes) {
             // Won't fit here. Try the next place.
+            std::cerr << "Skip block of " << found->size << " bytes" << std::endl;
             found = found->next;
         }
        
@@ -352,12 +358,16 @@ void* Manager::allocate_from(chainid_t chain, size_t bytes) {
                 // the thing we want to allocate
                 size_t new_link_size = std::max(last.length * SCALE_FACTOR, block_bytes);
                 
+                std::cerr << "Create new link of size " << new_link_size << " bytes" << std::endl;
+                
                 // Go get the new link
-                new_link = &add_link(first, new_link_size); 
+                new_link = &add_link(first, new_link_size);
             }
             
             // Work out where new free memory will start
             found = (AllocatorBlock*) get_address_in_chain(chain, new_link->offset, block_bytes);
+            
+            std::cerr << "New link starts at " << (intptr_t)found << std::endl;
             
             // Construct the block
             new (found) AllocatorBlock();
@@ -385,6 +395,8 @@ void* Manager::allocate_from(chainid_t chain, size_t bytes) {
             // We could break the user data off of this block and have some space left over.
             // TODO: use a min block size here instead.
             
+            std::cerr << "Split block of " << found->size << " bytes at " << (intptr_t)found << std::endl;
+            
             // So split the block.
             AllocatorBlock* second = found->split(bytes);
             if (header->last_free == found) {
@@ -394,6 +406,7 @@ void* Manager::allocate_from(chainid_t chain, size_t bytes) {
         }
         
         // Now we have a free block of the right size. Make it not free.
+        std::cerr << "Detach block of " << found->size << " bytes at " << (intptr_t)found << std::endl;
         auto connected = found->detach();
         if (header->first_free == found) {
             // This was the first free block
@@ -849,6 +862,7 @@ std::pair<Manager::AllocatorBlock*, Manager::AllocatorBlock*> Manager::Allocator
     pair<AllocatorBlock*, AllocatorBlock*> old_neighbors = make_pair(prev.get(), next.get());
     
     if (prev) {
+        std::cerr << "Detach from prev at " << (intptr_t)prev.get() << std::endl;
         // Attach the thing before us to whatever is after us instead of us.
         prev->next = old_neighbors.second;
         // Null out our prev; if we aren't the first block this means we're
@@ -857,6 +871,7 @@ std::pair<Manager::AllocatorBlock*, Manager::AllocatorBlock*> Manager::Allocator
     }
     
     if (next) {
+        std::cerr << "Detach from next at " << (intptr_t)next.get() << std::endl;
         // Attach the thing after us to whatever was before us instead of us
         next->prev = old_neighbors.first;
         // Leave our next set for finding a free successor.

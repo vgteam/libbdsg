@@ -360,9 +360,14 @@ template<typename T>
 class Allocator {
 
 public:
-    using pointer = T*;
-    using const_pointer = const T*;
+    // TODO: If we want to template these like this, we need to make them able
+    // to work from the stack and be the types that allocate and deallocate
+    // use, if we really want to be standard-compliant.
+    using pointer = Pointer<T>;
+    using const_pointer = Pointer<const T>;
     using size_type = size_t;
+    using value_type = T;
+    
     
     Allocator() = default;
     Allocator(const Allocator& other) = default;
@@ -379,12 +384,12 @@ public:
     /**
      * Allocate the given number of items. Ought to be near the hint.
      */
-    pointer allocate(size_type n, const_pointer hint = 0);
+    T* allocate(size_type n, const T* hint = nullptr);
     
     /**
      * Deallocate the given number of items. Must be the same number as were allocated.
      */
-    void deallocate(pointer p, size_type n);
+    void deallocate(T* p, size_type n);
 
 };
 
@@ -787,6 +792,28 @@ public:
     void resize(size_t new_size);
     item_ref_t at(size_t index);
     const item_ref_t at(size_t index) const;
+};
+
+/**
+ * A vector of primitive items, with guaranteed ABI compatibility across
+ * compilers and platforms.
+ */
+template<typename T, typename Alloc = std::allocator<T>>
+class CompatVector {
+public:
+    size_t size() const;
+    void resize(size_t new_size);
+    T& at(size_t index);
+    const T& at(size_t index) const;
+    
+    // TODO: reserve(), push_back()
+protected:
+    // We keep the allocator in ourselves, so if working in a chain we allocate
+    // in the right chain.
+    Alloc alloc;
+    big_endian<size_t> length;
+    big_endian<size_t> reserved_length;
+    typename std::allocator_traits<Alloc>::pointer first;
 };
 
 class IntVectorRef : public base_ref_t<IntVectorRef> {
@@ -1376,6 +1403,89 @@ const item_t& MappedVectorRef<item_t>::at(size_t index) const {
     return const_cast<MappedVectorRef<item_t>*>(this)->at(index);
 }
 
+////////////////////
+
+template<typename T, typename Alloc>
+size_t CompatVector<T, Alloc>::size() const {
+    return length;
+}
+
+template<typename T, typename Alloc>
+void CompatVector<T, Alloc>::resize(size_t new_size) {
+    // Find where the data is. Note that this may be null.
+    T* old_first = first;
+    
+    std::cerr << "Resizing vector at " << (intptr_t)this
+        << " with " << size() << " items at "
+        << (intptr_t) old_first << " to size " << new_size << std::endl;
+    
+    if (new_size == size()) {
+        // Nothing to do!
+        return;
+    }
+
+    // Where is the vector going?
+    T* new_first = nullptr;
+    
+    if (new_size > reserved_length) {
+        // Allocate space for the new data, and get the position in the context
+        new_first = alloc.allocate(new_size);
+        
+        if (size() > 0) {
+            for (size_t i = 0; i < size() && i < new_size; i++) {
+                // Run move constructors
+                new (new_first + i) T(std::move(*(old_first + i)));
+                // And destructors
+                (old_first + i)->~T();
+            }
+        }
+        
+        // Record the new reserved length
+        reserved_length = new_size;
+    } else {
+        // Just run in place
+        new_first = first;
+    }
+    
+    std::cerr << "Vector data moving from " << (intptr_t) old_first
+        << " to " << (intptr_t) new_first << std::endl;
+    
+    for (size_t i = size(); i < new_size; i++) {
+        // For anything aded on, just run constructor
+        new (new_first + i) T();
+    }
+    
+    if (new_size < size()) {
+        // We shrank, and we had at least one item.
+        for (size_t i = new_size; i < size(); i++) {
+            // For anything trimmed off, just run destructors.
+            (old_first + i)->~T();
+        }
+    }
+    
+    // Record the new length
+    length = new_size;
+    // And position
+    first = new_first;
+}
+
+template<typename T, typename Alloc>
+T& CompatVector<T, Alloc>::at(size_t index) {
+    if (index >= size()) {
+        // TODO: throw the right type here.
+        throw std::runtime_error("Cannot get " + std::to_string(index) +
+                                 " in vector of length " + std::to_string(size()));
+    }
+    
+    return *(first + index);
+}
+
+template<typename T, typename Alloc>
+const T& CompatVector<T, Alloc>::at(size_t index) const {
+    // Just run non-const at and constify result
+    return const_cast<CompatVector<T, Alloc>*>(this)->at(index);
+}
+
 
 namespace yomo {
 
@@ -1416,30 +1526,44 @@ Pointer<T>::operator const T* () const {
 
 template<typename T>
 Pointer<T>& Pointer<T>::operator=(const T* addr) {
-    position = Manager::get_position_in_same_chain(this, addr);
+    if (addr == nullptr) {
+        // Adopt our special null value
+        position = std::numeric_limits<size_t>::max();
+    } else {
+        // Get the position, requiring that it is in the same chain as us.
+        position = Manager::get_position_in_same_chain(this, addr);
+    }
     return *this;
 }
 
 template<typename T>
 T* Pointer<T>::operator+(size_t items) {
-    return this.get() + items;
+    return get() + items;
 }
 
 template<typename T>
 const T* Pointer<T>::operator+(size_t items) const {
-    return this.get() + items;
+    return get() + items;
 }
 
 // Expose the address of the pointed-to object not through manual operator
 // calling.
 template<typename T>
 T* Pointer<T>::get() {
-    return (T*) Manager::get_address_in_same_chain((const void*) this, position); 
+    if (position == std::numeric_limits<size_t>::max()) {
+        return nullptr;
+    } else {
+        return (T*) Manager::get_address_in_same_chain((const void*) this, position);
+    }
 }
 
 template<typename T>
 const T* Pointer<T>::get() const {
-    return (const T*) Manager::get_address_in_same_chain((const void*) this, position);
+    if (position == std::numeric_limits<size_t>::max()) {
+        return nullptr;
+    } else {
+        return (const T*) Manager::get_address_in_same_chain((const void*) this, position);
+    }
 }
 
 
@@ -1451,13 +1575,13 @@ Allocator<T>::Allocator(const Allocator<U>& alloc) {
 }
 
 template<typename T>
-auto Allocator<T>::allocate(size_type n, const_pointer hint) -> pointer {
-    return Manager::allocate_from_same_chain((void*) this, n * sizeof(T));
+auto Allocator<T>::allocate(size_type n, const T* hint) -> T* {
+    return (T*) Manager::allocate_from_same_chain((void*) this, n * sizeof(T));
 }
 
 template<typename T>
-void Allocator<T>::deallocate(pointer p, size_type n) {
-    Manager::deallocate(p);
+void Allocator<T>::deallocate(T* p, size_type n) {
+    Manager::deallocate((void*) p);
 }
 
 
@@ -1498,19 +1622,19 @@ UniqueMappedPointer<T>::operator const T*() const {
 
 template<typename T>
 T* UniqueMappedPointer<T>::get() {
-    if (!*this) {
+    if (chain == Manager::NO_CHAIN) {
         return nullptr;
     } else {
-        return Manager::find_first_allocation(chain, sizeof(T));
+        return (T*) Manager::find_first_allocation(chain, sizeof(T));
     }
 }
 
 template<typename T>
 const T* UniqueMappedPointer<T>::get() const {
-    if (!*this) {
+    if (chain == Manager::NO_CHAIN) {
         return nullptr;
     } else {
-        return Manager::find_first_allocation(chain, sizeof(T));
+        return (T*) Manager::find_first_allocation(chain, sizeof(T));
     }
 }
 

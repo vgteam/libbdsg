@@ -465,62 +465,51 @@ public:
 
 void test_mapped_structs() {
     {
-        // Make a test array
-        MmapContainer<big_endian<int64_t>> numbers_arena;
+    
+        using T = big_endian<int64_t>;
+        using A = bdsg::yomo::Allocator<T>;
+        using V = CompatVector<T, A>;
+        // Make a thing to hold onto a test array.
+        bdsg::yomo::UniqueMappedPointer<V> numbers_holder;
         
-        // Connect to it (should allocate)
-        MappedVectorRef<big_endian<int64_t>> vec1 = numbers_arena.get_collection();
+        // Construct it
+        numbers_holder.construct();
         
-        // Connect to it again (should not allocate)
-        MappedVectorRef<big_endian<int64_t>> vec2 = numbers_arena.get_collection();
-       
-        cerr << "Connection 1: vector is at " << vec1.position << " and has size " << vec1.size() << endl;
-        cerr << "Connection 1: vector is at " << vec2.position << " and has size " << vec2.size() << endl;
-       
-        // Both vectors should be the same vector
-        assert(vec1 == vec2);
-       
+        // Get a reference to it, which will be valid unless we save() or something
+        auto& vec1 = *numbers_holder;
+        
         // We should start empty
         assert(vec1.size() == 0);
-        assert(vec2.size() == 0);
         
         // We should be able to expand.
         vec1.resize(100);
         assert(vec1.size() == 100);
-        assert(vec2.size() == 100);
         
         // And contract
         vec1.resize(10);
         assert(vec1.size() == 10);
-        assert(vec2.size() == 10);
         
         // And hold data
         fill_to(vec1, 10, 0);
         verify_to(vec1, 10, 0);
-        verify_to(vec2, 10, 0);
         
         // And expand again
         vec1.resize(100);
         assert(vec1.size() == 100);
-        assert(vec2.size() == 100);
         
         // And see the data
         verify_to(vec1, 10, 0);
-        verify_to(vec2, 10, 0);
         
         // And expand more
         vec1.resize(1000);
         assert(vec1.size() == 1000);
-        assert(vec2.size() == 1000);
         
         // And see the data
         verify_to(vec1, 10, 0);
-        verify_to(vec2, 10, 0);
         
         // And hold more data
         fill_to(vec1, 1000, 1);
         verify_to(vec1, 1000, 1);
-        verify_to(vec2, 1000, 1);
     }
     
     cerr << "Mapped Structs tests successful!" << endl;
