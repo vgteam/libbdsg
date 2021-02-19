@@ -182,30 +182,25 @@ public:
     
     /**
      * Allocate the given number of bytes from the given chain.
-     *
-     * Not thread safe within a chain.
      */
     static void* allocate_from(chainid_t chain, size_t bytes);
     
     /**
      * Allocate the given number of bytes from the chain containing the given
      * address.
-     *
-     * Not thread safe within a chain.
      */
     static void* allocate_from_same_chain(void* here, size_t bytes);
     
     /**
      * Free the given allocated block in the chain to which it belongs.
-     *
-     * Not thread safe within a chain.
      */
     static void deallocate(void* address);
     
     /**
      * Find the mapped address of the first thing allocated in the chain, given
      * that it was allocated with the given size.
-     * Not thread safe within concurrent allocations and deallocations within a chain.
+     *
+     * That first allocated thing must exist and not be deallocated.
      */
     static void* find_first_allocation(chainid_t chain, size_t bytes);
     
@@ -343,6 +338,14 @@ protected:
      * Find the allocator header in a chain that has had its allocator connected.
      */
     static AllocatorHeader* find_allocator_header(chainid_t chain);
+    
+    /**
+     * Run the given callback with the allocator header for the given chain.
+     * The allocator will be locked; only one function will be run on a given
+     * chain's allocator at a time.
+     */
+    static void with_allocator_header(chainid_t chain,
+                                      const std::function<void(AllocatorHeader*)>& callback);
 
 };
 
@@ -1365,7 +1368,7 @@ const item_t& MappedVectorRef<item_t>::at(size_t index) const {
 namespace yomo {
 
 template<typename T>
-operator bool () const {
+Pointer<T>::operator bool () const {
     return position != std::numeric_limits<size_t>::max();
 }
 

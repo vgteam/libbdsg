@@ -38,7 +38,7 @@ struct Manager::LinkRecord {
     intptr_t first;
     
     /// MIO-managed memory mapping, if any.
-    unique_ptr<mio::mmap_sink> mapping;
+    std::unique_ptr<mio::mmap_sink> mapping;
     
     // Then we have per-chain state only used in the first link.
     
@@ -53,6 +53,12 @@ struct Manager::LinkRecord {
     size_t prefix_size;
     /// If this is the first link in the chain, how many bytes in the chain exist overall?
     size_t total_size;
+    /// If this is the first link in the chain, use this mutex to synchromize
+    /// access to the allocator data structures across threads.
+    /// MUST NEVER be acquired if the thread is holding a lock on the chain
+    /// info data structures; always acquire this mutex *BEFORE* LOCKING CHAIN
+    /// INFO, if you are going to hold both simultaneously.
+    std::unique_ptr<std::mutex> allocator_mutex;
 };
 
 // Give the static members a compilation unit
@@ -311,89 +317,93 @@ size_t Manager::get_position_in_same_chain(const void* here, const void* address
 void* Manager::allocate_from(chainid_t chain, size_t bytes) {
     cerr << "Allocate " << bytes << "bytes from chain " << chain << endl;
     
-    AllocatorHeader* header = find_allocator_header(chain);
-    
     // How much space do we need with block overhead, if we need a new block?
-    size_t block_bytes = bytes + sizeof(ArenaAllocatorBlockRef::body_t);
+    size_t block_bytes = bytes + sizeof(AllocatorBlock);
     
-    // This will hold a ref to the free block we found or made that is big enough to hold this item.
-    // Starts null if there is no first_free.
-    AllocatorBlock* found = header->first_free;
-    while (found && found->size < bytes) {
-        // Won't fit here. Try the next place.
-        found = found->next;
-    }
-   
-    if (!found) {
-        // We have no free memory big enough.
-        // We will make a new link.
-        LinkRecord* new_link;
-        
-        {
-            // Get write access to chain data structures.
-            std::unique_lock<std::shared_timed_mutex> lock(Manager::mutex);
+    AllocatorBlock* found;
+    
+    with_allocator_header(chain, [&](AllocatorHeader* header) {
+        // With exclusive use of the free list
+    
+        // This will hold a ref to the free block we found or made that is big enough to hold this item.
+        // Starts null if there is no first_free.
+        found = header->first_free;
+        while (found && found->size < bytes) {
+            // Won't fit here. Try the next place.
+            found = found->next;
+        }
+       
+        if (!found) {
+            // We have no free memory big enough.
+            // We will make a new link.
+            LinkRecord* new_link;
             
-            // Find the first link in the chain
-            LinkRecord& first = address_space_index.at((intptr_t) chain);
+            {
+                // Get write access to chain data structures.
+                std::unique_lock<std::shared_timed_mutex> lock(Manager::mutex);
+                
+                // Find the first link in the chain
+                LinkRecord& first = address_space_index.at((intptr_t) chain);
+                
+                // Find the last link in the chain
+                LinkRecord& last = address_space_index.at(first.last);
+                
+                // We need our factor as much memory as last time, or enough for
+                // the thing we want to allocate
+                size_t new_link_size = std::max(last.length * SCALE_FACTOR, block_bytes);
+                
+                // Go get the new link
+                new_link = &add_link(first, new_link_size); 
+            }
             
-            // Find the last link in the chain
-            LinkRecord& last = address_space_index.at(first.last);
+            // Work out where new free memory will start
+            found = (AllocatorBlock*) get_address_in_chain(chain, new_link->offset, block_bytes);
             
-            // We need our factor as much memory as last time, or enough for
-            // the thing we want to allocate
-            size_t new_link_size = std::max(last.length * SCALE_FACTOR, block_bytes);
+            // Construct the block
+            new (found) AllocatorBlock();
             
-            // Go get the new link
-            new_link = &add_link(first, new_link_size); 
+            // Set up its size.
+            found->size = block_bytes - sizeof(AllocatorBlock);
+            
+            // Put it in the linked list
+            found->next = nullptr;
+            if (header->last_free) {
+                header->last_free->next = found;
+                found->prev = header->last_free;
+            } else {
+                found->prev = nullptr;
+            }
+            header->last_free = found;
+            if (!header->first_free) {
+                header->first_free = found;
+            }
         }
         
-        // Work out where new free memory will start
-        found = (AllocatorBlock*) get_address_in_chain(chain, new_link->offset, block_bytes);
+        // Now we can allocate (part of) this block.
         
-        // Construct the block
-        new (found) AllocatorBlock();
-        
-        // Set up its size.
-        found->size = block_bytes - sizeof(AllocatorBlock);
-        
-        // Put it in the linked list
-        found->next = nullptr;
-        if (header->last_free) {
-            header->last_free->next = found;
-            found->prev = header->last_free;
-        } else {
-            found->prev = nullptr;
+        if (found->size > block_bytes) {
+            // We could break the user data off of this block and have some space left over.
+            // TODO: use a min block size here instead.
+            
+            // So split the block.
+            AllocatorBlock* second = found->split(bytes);
+            if (header->last_free == found) {
+                // And fix up the end of the linked list
+                header->last_free = second;
+            }
         }
-        header->last_free = found;
-        if (!header->first_free) {
-            header->first_free = found;
-        }
-    }
-    
-    // Now we can allocate memory.
-    
-    if (found->size > block_bytes) {
-        // We could break the user data off of this block and have some space left over.
-        // TODO: use a min block size here instead.
         
-        // So split the block.
-        AllocatorBlock* second = found->split(bytes);
+        // Now we have a free block of the right size. Make it not free.
+        auto connected = found->detach();
+        if (header->first_free == found) {
+            // This was the first free block
+            header->first_free = connected.first;
+        }
         if (header->last_free == found) {
-            // And fix up the end of the linked list
-            header->last_free = second;
+            // This was the last free block 
+            header->last_free = connected.second;
         }
-    }
-    
-    // Now we have a free block of the right size. Make it not free.
-    auto connected = found->detach();
-    if (header->first_free == found) {
-        // This was the first free block
-        header->first_free = connected.first;
-    }
-    if (header->last_free == found) {
-        // This was the last free block 
-        header->last_free = connected.second;
-    }
+    });
     
     cerr << "Allocated at " << found->get_user_data() << endl;
     
@@ -401,6 +411,10 @@ void* Manager::allocate_from(chainid_t chain, size_t bytes) {
     return found->get_user_data();
 }
 
+void* Manager::allocate_from_same_chain(void* here, size_t bytes) {
+    // TODO: accelerate by coalescing locks?
+    return allocate_from(get_chain(here), bytes);
+}
 
 void Manager::deallocate(void* address) {
     cerr << "Deallocate at " << address << endl;
@@ -410,46 +424,47 @@ void Manager::deallocate(void* address) {
     
     // Find the chain
     chainid_t chain = get_chain(address);
-    
-    // Find the header for the allocator
-    AllocatorHeader* header = find_allocator_header(chain);
-    
-    // Find the block in the free list after it, if any
-    // TODO: leave a link to it in the block so we don't need to scan for it.
-    // We know it can't move, although it might allocate.
-    AllocatorBlock* right = found->next;
-    while(right && !right->prev) {
-        // The block exists, but it isn't free (linked into the free list)
-        right = right->next;
-    }
-    AllocatorBlock* left;
-    if (!right) {
-        // The new block should be the last block in the list.
-        // So it comes after the existing last block, if any.
-        left = header->last_free;
-    } else {
-        // The new block comes between right and its free predecessor, if any
-        left = right->prev;
-    }
-    
-    // Wire in the block
-    found->attach(left, right);
-    
-    // Update haed and tail
-    if (header->last_free == left) {
-        header->last_free = found;
-    }
-    if (header->first_free == right) {
-        header->first_free = found;
-    }
-    
-    // Defragment.
-    auto bounds = found->coalesce();
-    // We can't need to update the first free when defragmenting, but we may
-    // need to update the last free.
-    if (header->last_free == bounds.second) {
-        header->last_free = bounds.first;
-    }
+   
+    with_allocator_header(chain, [&](AllocatorHeader* header) {
+        // With exclusive use of the free list
+       
+        // Find the block in the free list after it, if any
+        // TODO: leave a link to it in the block so we don't need to scan for it.
+        // We know it can't move, although it might allocate.
+        AllocatorBlock* right = found->next;
+        while(right && !right->prev) {
+            // The block exists, but it isn't free (linked into the free list)
+            right = right->next;
+        }
+        AllocatorBlock* left;
+        if (!right) {
+            // The new block should be the last block in the list.
+            // So it comes after the existing last block, if any.
+            left = header->last_free;
+        } else {
+            // The new block comes between right and its free predecessor, if any
+            left = right->prev;
+        }
+        
+        // Wire in the block
+        found->attach(left, right);
+        
+        // Update haed and tail
+        if (header->last_free == left) {
+            header->last_free = found;
+        }
+        if (header->first_free == right) {
+            header->first_free = found;
+        }
+        
+        // Defragment.
+        auto bounds = found->coalesce();
+        // We can't need to update the first free when defragmenting, but we may
+        // need to update the last free.
+        if (header->last_free == bounds.second) {
+            header->last_free = bounds.first;
+        }
+    });
 }
 
 void* Manager::find_first_allocation(chainid_t chain, size_t bytes) {
@@ -463,6 +478,7 @@ void* Manager::find_first_allocation(chainid_t chain, size_t bytes) {
     }
     
     // The first allocated item is just in the first block, after the prefix and allocator stuff.
+    // Doesn't actually use the allocator header so doesn't need to synchronize.
     return (void*)(((char*)find_allocator_header(chain)) + sizeof(AllocatorHeader) + sizeof(AllocatorBlock));
 }
 
@@ -483,6 +499,32 @@ Manager::AllocatorHeader* Manager::find_allocator_header(chainid_t chain) {
     return (AllocatorHeader*)(((char*) chain) + first->prefix_size);
 }
 
+void Manager::with_allocator_header(chainid_t chain,
+    const std::function<void(AllocatorHeader*)>& callback) {
+    
+    LinkRecord* first;
+    
+    {
+        // Get read access to manager data structures
+        std::shared_lock<std::shared_timed_mutex> lock(Manager::mutex);
+        
+        // Find the first link
+        first = &address_space_index.at((intptr_t) chain);
+    }
+    
+    // Find the header
+    AllocatorHeader* header = (AllocatorHeader*)(((char*) chain) + first->prefix_size);
+    
+    {
+        // Get exclusive access to the allocator
+        std::unique_lock<std::mutex> lock(*(first->allocator_mutex));
+        
+        // Run the callback with lock protection
+        callback(header);
+        
+    }
+}
+
 std::pair<Manager::chainid_t, bool> Manager::open_chain(int fd, size_t start_size) {
 
     // Set up our return value
@@ -493,12 +535,13 @@ std::pair<Manager::chainid_t, bool> Manager::open_chain(int fd, size_t start_siz
     // Have a place to write down where we put the link's memory.
     intptr_t mapping_address;
 
-    // Make a record for the link
+    // Make a record for the first link
     LinkRecord record;
     
     // Fill in the shared fields.
     record.offset = 0;
     record.next = 0;
+    record.allocator_mutex = std::make_unique<std::mutex>();
     
     if (fd) {
         // Use file-mapped memory
