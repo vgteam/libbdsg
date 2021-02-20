@@ -346,6 +346,8 @@ void* Manager::allocate_from(chainid_t chain, size_t bytes) {
             // We have no free memory big enough.
             // We will make a new link.
             LinkRecord* new_link;
+            // How big will it be? At least as big as the block we need from it.
+            size_t new_link_size = block_bytes;
             
             {
                 // Get write access to chain data structures.
@@ -359,7 +361,7 @@ void* Manager::allocate_from(chainid_t chain, size_t bytes) {
                 
                 // We need our factor as much memory as last time, or enough for
                 // the thing we want to allocate
-                size_t new_link_size = std::max(last.length * SCALE_FACTOR, block_bytes);
+                new_link_size = std::max(last.length * SCALE_FACTOR, new_link_size);
                 
                 std::cerr << "Create new link of size " << new_link_size << " bytes" << std::endl;
                 
@@ -375,8 +377,8 @@ void* Manager::allocate_from(chainid_t chain, size_t bytes) {
             // Construct the block
             new (found) AllocatorBlock();
             
-            // Set up its size.
-            found->size = block_bytes - sizeof(AllocatorBlock);
+            // Set up its size (all of the new link except the block header)
+            found->size = new_link_size - sizeof(AllocatorBlock);
             
             // Put it in the linked list
             found->next = nullptr;

@@ -128,11 +128,20 @@ void bother_vector(TwoLevel& storage) {
     
     auto check = [&]() {
         // Make sure the structure under test is holding the correct data.
-        assert(storage.size() == truth.size());
+        if (storage.size() != truth.size()) {
+            std::cerr << "Structure under test has " << storage.size() << " items but should have " << truth.size() << std::endl;
+            assert(storage.size() == truth.size());
+        }
         for (size_t i = 0; i < truth.size(); i++) {
-            assert(storage.at(i).size() == truth.at(i).size());
+            if (storage.at(i).size() != truth.at(i).size()) {
+                std::cerr << "Structure under test has " << storage.at(i).size() << " items in item " << i << " but should have " << truth.size() << std::endl;
+                assert(storage.at(i).size() == truth.at(i).size());
+            }
             for (size_t j = 0; j < truth.at(i).size(); j++) {
-                assert(storage.at(i).at(j) == truth.at(i).at(j));
+                if (storage.at(i).at(j) != truth.at(i).at(j)) {
+                    std::cerr << "Structure under test has " << storage.at(i).at(j) << " at " << j << " in item " << i << " but should have " << truth.at(i).at(j) << std::endl;
+                    assert(storage.at(i).at(j) == truth.at(i).at(j));
+                }
             }
         }
     };
@@ -145,6 +154,7 @@ void bother_vector(TwoLevel& storage) {
         check();
         
         for (size_t parent_size = 0; parent_size < 100; parent_size++) {
+            std::cerr << "Resize parent to " << parent_size << endl;
             truth.resize(parent_size);
             storage.resize(parent_size);
             check();
@@ -158,24 +168,33 @@ void bother_vector(TwoLevel& storage) {
                 
                 for (size_t i = 0; i <= child_size; i++) {
                     // Resize 1 bigger a bunch
+                    std::cerr << "Resize child " << child << " of " << parent_size << " to " << i << endl;
                     truth_child.resize(i);
                     storage_child.resize(i);
+                    check();
                 }
+                
+                std::cerr << "Fill in " << child_size << " items in child " << child << endl;
                 
                 for (size_t i = 0; i < child_size; i++) {
                     // Fill in with data
                     truth_child.at(i) = seed % 10000;
                     storage_child.at(i) = seed % 10000;
                     seed = mix(seed);
+                    check();
                 }
                 
                 // Cut in half
+                std::cerr << "Resize child " << child << " of " << parent_size << " to " << child_size/2 << endl;
                 truth_child.resize(child_size/2);
                 storage_child.resize(child_size/2);
+                check();
                 
                 // And increase by 10 with empty slots
+                std::cerr << "Resize child " << child << " of " << parent_size << " to " << (truth_child.size() + 10) << endl;
                 truth_child.resize(truth_child.size() + 10);
-                storage_child.resize(child_size + 10);
+                storage_child.resize(storage_child.size() + 10);
+                check();
             }
             
             // Now make sure that after all that the structures are equal.
