@@ -156,7 +156,7 @@ void bother_vector(TwoLevel& storage) {
                 size_t child_size = seed % 100;
                 seed = mix(seed);
                 
-                for (size_t i = 0; i < child_size; i++) {
+                for (size_t i = 0; i <= child_size; i++) {
                     // Resize 1 bigger a bunch
                     truth_child.resize(i);
                     storage_child.resize(i);

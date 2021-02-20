@@ -301,8 +301,10 @@ void* Manager::get_address_in_same_chain(const void* here, size_t position) {
     // TODO: accelerate with some kind of alignment and mod scheme
     chainid_t chain = get_chain(here);
     void* result = get_address_in_chain(chain, position);
+#ifdef debug_pointers
     std::cerr << "In chain of " << (intptr_t)here << " which is " << chain
         << " we find position " << position << " at " << (intptr_t) result << std::endl;
+#endif
     return result;
 }
     
@@ -333,9 +335,10 @@ void* Manager::allocate_from(chainid_t chain, size_t bytes) {
         // This will hold a ref to the free block we found or made that is big enough to hold this item.
         // Starts null if there is no first_free.
         found = header->first_free;
+        std::cerr << "Start at " << (intptr_t) found << std::endl;
         while (found && found->size < bytes) {
             // Won't fit here. Try the next place.
-            std::cerr << "Skip block of " << found->size << " bytes" << std::endl;
+            std::cerr << "Skip block of " << found->size << " bytes at " << (intptr_t) found << std::endl;
             found = found->next;
         }
        
@@ -399,6 +402,9 @@ void* Manager::allocate_from(chainid_t chain, size_t bytes) {
             
             // So split the block.
             AllocatorBlock* second = found->split(bytes);
+            
+            std::cerr << "Created block of " << second->size << " bytes at " << (intptr_t)second << std::endl;
+            
             if (header->last_free == found) {
                 // And fix up the end of the linked list
                 header->last_free = second;
@@ -409,16 +415,20 @@ void* Manager::allocate_from(chainid_t chain, size_t bytes) {
         std::cerr << "Detach block of " << found->size << " bytes at " << (intptr_t)found << std::endl;
         auto connected = found->detach();
         if (header->first_free == found) {
-            // This was the first free block
-            header->first_free = connected.first;
+            // This was the first free block.
+            // The first free block is now the right neighbor, if any.
+            header->first_free = connected.second;
+            std::cerr << "\tWas first free block; now that's " << (intptr_t)header->first_free.get() << std::endl;
         }
         if (header->last_free == found) {
-            // This was the last free block 
-            header->last_free = connected.second;
+            // This was the last free block
+            // The last free block is now the left neighbor, if any.
+            header->last_free = connected.first;
+            std::cerr << "\tWas last free block; now that's " << (intptr_t)header->last_free.get() << std::endl;
         }
     });
     
-    cerr << "Allocated at " << found->get_user_data() << endl;
+    std::cerr << "Allocated at " << found->get_user_data() << std::endl;
     
     // Give out the address of its data
     return found->get_user_data();
@@ -430,7 +440,7 @@ void* Manager::allocate_from_same_chain(void* here, size_t bytes) {
 }
 
 void Manager::deallocate(void* address) {
-    cerr << "Deallocate at " << address << endl;
+    std::cerr << "Deallocate at " << address << std::endl;
     
     // Find the block
     AllocatorBlock* found = AllocatorBlock::get_from_data(address);
@@ -459,14 +469,18 @@ void Manager::deallocate(void* address) {
             left = right->prev;
         }
         
+        std::cerr << "Freeing block at " << (intptr_t)found << std::endl;
+        
         // Wire in the block
         found->attach(left, right);
         
         // Update haed and tail
         if (header->last_free == left) {
+            std::cerr << "\tIs new last free block, replacing " << (intptr_t)header->last_free.get() << std::endl;
             header->last_free = found;
         }
         if (header->first_free == right) {
+            std::cerr << "\tIs new first free block, replacing " << (intptr_t)header->first_free.get() << std::endl;
             header->first_free = found;
         }
         
@@ -861,8 +875,10 @@ std::pair<Manager::AllocatorBlock*, Manager::AllocatorBlock*> Manager::Allocator
     // Grab out initial neighbors
     pair<AllocatorBlock*, AllocatorBlock*> old_neighbors = make_pair(prev.get(), next.get());
     
+    std::cerr << "\tOriginal neighbors: " << (intptr_t)old_neighbors.first << " and " << (intptr_t)old_neighbors.second << std::endl;
+    
     if (prev) {
-        std::cerr << "Detach from prev at " << (intptr_t)prev.get() << std::endl;
+        std::cerr << "\tDetach from prev at " << (intptr_t)prev.get() << std::endl;
         // Attach the thing before us to whatever is after us instead of us.
         prev->next = old_neighbors.second;
         // Null out our prev; if we aren't the first block this means we're
@@ -871,7 +887,7 @@ std::pair<Manager::AllocatorBlock*, Manager::AllocatorBlock*> Manager::Allocator
     }
     
     if (next) {
-        std::cerr << "Detach from next at " << (intptr_t)next.get() << std::endl;
+        std::cerr << "\tDetach from next at " << (intptr_t)next.get() << std::endl;
         // Attach the thing after us to whatever was before us instead of us
         next->prev = old_neighbors.first;
         // Leave our next set for finding a free successor.
@@ -881,6 +897,9 @@ std::pair<Manager::AllocatorBlock*, Manager::AllocatorBlock*> Manager::Allocator
 }
 
 void Manager::AllocatorBlock::attach(AllocatorBlock* left, AllocatorBlock* right) {
+    std::cerr << "\tAttach block at " << (intptr_t)this << " between "
+        << (intptr_t)left << " and " << (intptr_t)right << std::endl;
+    
     prev = left;
     if (left) {
         left->next = this;
