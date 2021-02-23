@@ -53,6 +53,10 @@ namespace yomo {
  * yomo::Allocator (or otherwise in a yomo::Manager's chain), and is itself
  * stored at an address mapped by a yomo::Allocator (or otherwise in the same
  * yomo::Manager chain).
+ *
+ * We interpret constness as applying to the value of the pointer and not the
+ * pointed-to object. If you want a pointer to a const object, you need a
+ * Pointer<const T>.
  */
 template<typename T>
 class Pointer {
@@ -65,20 +69,15 @@ public:
     
     // Be a good pointer
     operator bool () const;
-    T& operator*();
-    const T& operator*() const;
-    T* operator->();
-    const T* operator->() const;
-    operator T* ();
-    operator const T* () const;
-    Pointer<T>& operator=(const T* addr);
-    T* operator+(size_t items);
-    const T* operator+(size_t items) const;
+    T& operator*() const;
+    T* operator->() const;
+    operator T* () const;
+    Pointer<T>& operator=(T* addr);
+    T* operator+(size_t items) const;
     
     // Expose the address of the pointed-to object not through manual operator
     // calling.
-    T* get();
-    const T* get() const;
+    T* get() const;
     
 protected:
     /// Stores the destination position in the chain, or max size_t for null.
@@ -1520,37 +1519,22 @@ Pointer<T>::operator bool () const {
 }
 
 template<typename T>
-T& Pointer<T>::operator*() {
+T& Pointer<T>::operator*() const {
     return *get();
 }
 
 template<typename T>
-const T& Pointer<T>::operator*() const {
-    return *get();
-}
-
-template<typename T>
-T* Pointer<T>::operator->() {
+T* Pointer<T>::operator->() const {
     return get();
 }
 
 template<typename T>
-const T* Pointer<T>::operator->() const {
+Pointer<T>::operator T* () const {
     return get();
 }
 
 template<typename T>
-Pointer<T>::operator T* () {
-    return get();
-}
-
-template<typename T>
-Pointer<T>::operator const T* () const {
-    return get();
-}
-
-template<typename T>
-Pointer<T>& Pointer<T>::operator=(const T* addr) {
+Pointer<T>& Pointer<T>::operator=(T* addr) {
     if (addr == nullptr) {
         // Adopt our special null value
         position = std::numeric_limits<size_t>::max();
@@ -1562,32 +1546,16 @@ Pointer<T>& Pointer<T>::operator=(const T* addr) {
 }
 
 template<typename T>
-T* Pointer<T>::operator+(size_t items) {
+T* Pointer<T>::operator+(size_t items) const {
     return get() + items;
 }
 
 template<typename T>
-const T* Pointer<T>::operator+(size_t items) const {
-    return get() + items;
-}
-
-// Expose the address of the pointed-to object not through manual operator
-// calling.
-template<typename T>
-T* Pointer<T>::get() {
+T* Pointer<T>::get() const {
     if (position == std::numeric_limits<size_t>::max()) {
         return nullptr;
     } else {
         return (T*) Manager::get_address_in_same_chain((const void*) this, position);
-    }
-}
-
-template<typename T>
-const T* Pointer<T>::get() const {
-    if (position == std::numeric_limits<size_t>::max()) {
-        return nullptr;
-    } else {
-        return (const T*) Manager::get_address_in_same_chain((const void*) this, position);
     }
 }
 
