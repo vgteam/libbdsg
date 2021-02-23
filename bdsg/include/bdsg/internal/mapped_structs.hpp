@@ -61,8 +61,10 @@ public:
     /// Constructs as a pointer that equals nullptr.
     Pointer() = default;
     
+    Pointer(T* destination);
+    
     // Be a good pointer
-    operator bool () const; // TODO: why doesn't this work as an implicit conversion?
+    operator bool () const;
     T& operator*();
     const T& operator*() const;
     T* operator->();
@@ -801,6 +803,9 @@ public:
 template<typename T, typename Alloc = std::allocator<T>>
 class CompatVector {
 public:
+
+    ~CompatVector();
+
     size_t size() const;
     void resize(size_t new_size);
     T& at(size_t index);
@@ -811,9 +816,9 @@ protected:
     // We keep the allocator in ourselves, so if working in a chain we allocate
     // in the right chain.
     Alloc alloc;
-    big_endian<size_t> length;
-    big_endian<size_t> reserved_length;
-    typename std::allocator_traits<Alloc>::pointer first;
+    big_endian<size_t> length = 0;
+    big_endian<size_t> reserved_length = 0;
+    typename std::allocator_traits<Alloc>::pointer first = nullptr;
 };
 
 class IntVectorRef : public base_ref_t<IntVectorRef> {
@@ -1406,6 +1411,14 @@ const item_t& MappedVectorRef<item_t>::at(size_t index) const {
 ////////////////////
 
 template<typename T, typename Alloc>
+CompatVector<T, Alloc>::~CompatVector() {
+    if (first) {
+        // We have some memory allocated to us. Get rid of it.
+        alloc.deallocate(first, reserved_length);
+    }
+}
+
+template<typename T, typename Alloc>
 size_t CompatVector<T, Alloc>::size() const {
     return length;
 }
@@ -1414,6 +1427,8 @@ template<typename T, typename Alloc>
 void CompatVector<T, Alloc>::resize(size_t new_size) {
     // Find where the data is. Note that this may be null.
     T* old_first = first;
+    // And how much there is
+    size_t old_reserved_length = reserved_length;
     
     std::cerr << "Resizing vector at " << (intptr_t)this
         << " with " << size() << " items at "
@@ -1467,6 +1482,11 @@ void CompatVector<T, Alloc>::resize(size_t new_size) {
     length = new_size;
     // And position
     first = new_first;
+    
+    if (old_first && new_first != old_first) {
+        // Free old memory if we moved
+        alloc.deallocate(old_first, old_reserved_length);
+    }
 }
 
 template<typename T, typename Alloc>
@@ -1488,6 +1508,11 @@ const T& CompatVector<T, Alloc>::at(size_t index) const {
 
 
 namespace yomo {
+
+template<typename T>
+Pointer<T>::Pointer(T* destination) {
+    *this = destination;
+}
 
 template<typename T>
 Pointer<T>::operator bool () const {

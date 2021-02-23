@@ -339,7 +339,13 @@ void* Manager::allocate_from(chainid_t chain, size_t bytes) {
         while (found && found->size < bytes) {
             // Won't fit here. Try the next place.
             std::cerr << "Skip block of " << found->size << " bytes at " << (intptr_t) found << std::endl;
+            AllocatorBlock* old = found;
             found = found->next;
+            if (found && found->prev != old) {
+                throw std::runtime_error("Free block " + std::to_string((intptr_t) found) +
+                    " must point back to " + std::to_string((intptr_t) old) + " but instead points to " +
+                    std::to_string((intptr_t) found->prev));
+            }
         }
        
         if (!found) {
