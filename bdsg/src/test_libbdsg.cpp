@@ -134,12 +134,16 @@ void bother_vector(TwoLevel& storage) {
         }
         for (size_t i = 0; i < truth.size(); i++) {
             if (storage.at(i).size() != truth.at(i).size()) {
-                std::cerr << "Structure under test has " << storage.at(i).size() << " items in item " << i << " but should have " << truth.size() << std::endl;
+                std::cerr << "Structure under test has " << storage.at(i).size()
+                    << " items in item " << i << " but should have " << truth.size() << std::endl;
                 assert(storage.at(i).size() == truth.at(i).size());
             }
             for (size_t j = 0; j < truth.at(i).size(); j++) {
                 if (storage.at(i).at(j) != truth.at(i).at(j)) {
-                    std::cerr << "Structure under test has " << storage.at(i).at(j) << " at " << j << " in item " << i << " but should have " << truth.at(i).at(j) << std::endl;
+                    std::cerr << "Structure under test has " << storage.at(i).at(j)
+                        << " at " << j << " address " << ((intptr_t) &storage.at(i).at(j))
+                        << " in item " << i << " address " << ((intptr_t) &storage.at(i))
+                        << " but should have " << truth.at(i).at(j) << std::endl;
                     assert(storage.at(i).at(j) == truth.at(i).at(j));
                 }
             }
@@ -171,7 +175,9 @@ void bother_vector(TwoLevel& storage) {
                     std::cerr << "Resize child " << child << " of " << parent_size << " to " << i << endl;
                     truth_child.resize(i);
                     storage_child.resize(i);
+                    std::cerr << "Check after resize to " << i << endl;
                     check();
+                    std::cerr << "Completed check after resize to " << i << endl;
                 }
                 
                 std::cerr << "Fill in " << child_size << " items in child " << child << endl;
@@ -554,6 +560,7 @@ public:
 };
 
 void test_mapped_structs() {
+    /*
     {
     
         using T = big_endian<int64_t>;
@@ -601,6 +608,7 @@ void test_mapped_structs() {
         fill_to(vec1, 1000, 1);
         verify_to(vec1, 1000, 1);
     }
+    */
     
     
     {

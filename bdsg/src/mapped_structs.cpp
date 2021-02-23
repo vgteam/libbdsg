@@ -130,7 +130,9 @@ Manager::chainid_t Manager::create_chain(int fd, const std::string& prefix) {
         
         throw e;
     }
-        
+    
+    dump(chain);
+    
     return chain;
 }
 
@@ -321,8 +323,60 @@ size_t Manager::get_position_in_same_chain(const void* here, const void* address
     return chain_and_pos.second;
 }
 
+void Manager::dump(chainid_t chain) {
+    
+    auto& chain_space = chain_space_index.at(chain);
+    
+    std::cerr << "Chain " << chain << std::endl;
+    
+    for (auto it = chain_space.begin(); it != chain_space.end(); ++it) {
+        size_t chain_offset = it->first;
+        intptr_t link_id = it->second;
+        
+        LinkRecord* link = &address_space_index.at(link_id);
+        assert(link->offset == chain_offset);
+        
+        std::cerr << "\tLink " << link_id << " offset " << link->offset
+            << " length " << link->length << std::endl;
+        
+        AllocatorHeader* header;
+        
+        size_t link_cursor = 0;
+        if (it == chain_space.begin()) {
+            // In the first link we have a prefix and an allocator header
+            std::cerr << "\t\t" << link_cursor + link->offset << "\t"
+                << "Prefix: " << link->prefix_size << " bytes" << std::endl;
+            link_cursor += link->prefix_size;
+            std::cerr << "\t\t" << link_cursor + link->offset << "\t"
+                << "AllocatorHeader: " << sizeof(AllocatorHeader) << " bytes" << std::endl;
+            header = (AllocatorHeader*)get_address_in_chain(chain, link_cursor + link->offset, sizeof(AllocatorHeader));
+            std::cerr << "\t\t\tFirst free: " << (header->first_free ? get_chain_and_position(header->first_free).second : 0) << std::endl;
+            std::cerr << "\t\t\tLast free: " << (header->last_free ? get_chain_and_position(header->last_free).second : 0) << std::endl;
+            link_cursor += sizeof(AllocatorHeader);
+        }
+        // Now we know the cursor is at an allocator block.
+        while (link_cursor < link->length) {
+            AllocatorBlock* block = (AllocatorBlock*)get_address_in_chain(chain, link_cursor + link->offset, sizeof(AllocatorBlock));
+            
+            bool is_free = (!block->prev && !block->next && header->first_free != block);
+            
+            std::cerr << "\t\t" << link_cursor + link->offset << "\t"
+                << "AllocatorBlock" << (is_free ? " (FREE)" : "") << ": "
+                    << sizeof(AllocatorBlock) << " bytes" << std::endl;
+            std::cerr << "\t\t\tPrev free: " << (block->prev ? get_chain_and_position(block->prev).second : 0) << std::endl;
+            std::cerr << "\t\t\tNext free: " << (block->prev ? get_chain_and_position(block->prev).second : 0) << std::endl;
+            link_cursor += sizeof(AllocatorBlock);
+            std::cerr << "\t\t" << link_cursor + link->offset << "\t"
+                << (is_free ? "Free Space" : "Payload") << ": " << block->size << std::endl;
+                
+            link_cursor += block->size;
+        }
+    }
+}
+
 void* Manager::allocate_from(chainid_t chain, size_t bytes) {
     cerr << "Allocate " << bytes << " bytes from chain " << chain << endl;
+    dump(chain);
     
     // How much space do we need with block overhead, if we need a new block?
     size_t block_bytes = bytes + sizeof(AllocatorBlock);
@@ -437,6 +491,7 @@ void* Manager::allocate_from(chainid_t chain, size_t bytes) {
     });
     
     std::cerr << "Allocated at " << found->get_user_data() << std::endl;
+    dump(chain);
     
     // Give out the address of its data
     return found->get_user_data();
@@ -453,18 +508,23 @@ void Manager::deallocate(void* address) {
     // Find the block
     AllocatorBlock* found = AllocatorBlock::get_from_data(address);
     
+    std::cerr << "Freeing block at " << (intptr_t)found << std::endl;
+    
     // Find the chain
     chainid_t chain = get_chain(address);
+    dump(chain);
    
     with_allocator_header(chain, [&](AllocatorHeader* header) {
         // With exclusive use of the free list
        
         // Find the block in the free list after it, if any
-        // TODO: leave a link to it in the block so we don't need to scan for it.
-        // We know it can't move, although it might allocate.
-        AllocatorBlock* right = found->next;
-        while(right && !right->prev) {
-            // The block exists, but it isn't free (linked into the free list)
+        AllocatorBlock* right = header->first_free;
+        
+        while(right && Manager::get_chain_and_position(right).second < Manager::get_chain_and_position(found).second) {
+            // We have a free block, but it occurs before the block being freed in the chain.
+            // TODO: can we save chain lookups here somehow?
+            // Go to the next free block, or off the end if that was the last one.
+            std::cerr << "\tComes after block " << (intptr_t)right << " in chain space" << std::endl;
             right = right->next;
         }
         AllocatorBlock* left;
@@ -476,8 +536,6 @@ void Manager::deallocate(void* address) {
             // The new block comes between right and its free predecessor, if any
             left = right->prev;
         }
-        
-        std::cerr << "Freeing block at " << (intptr_t)found << std::endl;
         
         // Wire in the block
         found->attach(left, right);
@@ -500,6 +558,9 @@ void Manager::deallocate(void* address) {
             header->last_free = bounds.first;
         }
     });
+    
+    std::cerr << "Deallocated." << std::endl;
+    dump(chain);
 }
 
 void* Manager::find_first_allocation(chainid_t chain, size_t bytes) {
@@ -889,8 +950,7 @@ std::pair<Manager::AllocatorBlock*, Manager::AllocatorBlock*> Manager::Allocator
         std::cerr << "\tDetach from prev at " << (intptr_t)prev.get() << std::endl;
         // Attach the thing before us to whatever is after us instead of us.
         prev->next = old_neighbors.second;
-        // Null out our prev; if we aren't the first block this means we're
-        // allocated.
+        // Null out our prev; it can't be relied on to point anywhere safe.
         prev = nullptr;
     }
     
@@ -898,7 +958,8 @@ std::pair<Manager::AllocatorBlock*, Manager::AllocatorBlock*> Manager::Allocator
         std::cerr << "\tDetach from next at " << (intptr_t)next.get() << std::endl;
         // Attach the thing after us to whatever was before us instead of us
         next->prev = old_neighbors.first;
-        // Leave our next set for finding a free successor.
+        // Null out our next; it can't be relied on to point anywhere safe.
+        next = nullptr;
     }
     
     return old_neighbors;

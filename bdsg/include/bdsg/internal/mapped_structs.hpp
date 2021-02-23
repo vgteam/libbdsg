@@ -9,6 +9,7 @@
 
 #include <cstdio>
 #include <cstdint>
+#include <cassert>
 #include <iostream>
 #include <functional>
 #include <limits>
@@ -30,7 +31,7 @@ using namespace std;
 template<typename T>
 class big_endian {
 public:
-    big_endian() = default;
+    big_endian();
     big_endian(const T& value);
     operator T () const;
     big_endian<T>& operator=(const T& x);
@@ -217,7 +218,7 @@ protected:
     struct AllocatorBlock {
         /// Previous block. Only used when block is free. Null if allocated.
         Pointer<AllocatorBlock> prev;
-        /// Next block. Used when block is free or allocated.
+        /// Next block. Only used when block is free. Null if allocated.
         Pointer<AllocatorBlock> next;
         /// Size fo the block in bytes, not counting this header. Used for free
         /// and allocated blocks.
@@ -265,6 +266,10 @@ protected:
         Pointer<AllocatorBlock> last_free;
     };
     
+    
+    /// Dump information about free and allocated memory.
+    /// Not thread safe!
+    static void dump(chainid_t chain);  
     
     /**
      * For each chain, stores each mapping's start address by chain offset position.
@@ -892,6 +897,15 @@ base_ref_t<Derived>::operator bool () const {
 ////////////////////
 
 template<typename T>
+big_endian<T>::big_endian() {
+    for (auto& byte : storage) {
+        byte = 0;
+    }
+    std::cerr << "Zeroed " << sizeof(T) << " bytes for a big_endian at " << (intptr_t) this << std::endl;
+    assert(*this == 0);
+}
+
+template<typename T>
 big_endian<T>::big_endian(const T& value) {
     *this = value;
 }
@@ -945,6 +959,8 @@ big_endian<T>& big_endian<T>::operator=(const T& x) {
     default:
         throw runtime_error("Unimplemented bit width: " + std::to_string(std::numeric_limits<T>::digits));
     }
+    
+    std::cerr << "Set a big_endian at " << (intptr_t) this << " to " << x << std::endl;
     
     return *this;
 }
@@ -1461,11 +1477,23 @@ void CompatVector<T, Alloc>::resize(size_t new_size) {
         new_first = first;
     }
     
-    std::cerr << "Vector data moving from " << (intptr_t) old_first
-        << " to " << (intptr_t) new_first << std::endl;
+    if (old_first == new_first) {
+        std::cerr << "Vector data stationary at " << (intptr_t) old_first << std::endl;
+    } else {
+        std::cerr << "Vector data moving from " << (intptr_t) old_first
+            << " to " << (intptr_t) new_first << std::endl;
+        
+        for (size_t i = 0; i < size() && i < new_size; i++) {
+            // Move over the preserved values.
+            new (new_first + i) T(std::move(*(old_first + i)));
+        }
+    }
     
     for (size_t i = size(); i < new_size; i++) {
-        // For anything aded on, just run constructor
+        // For anything aded on, just run constructor.
+        // This will use value initialization
+        // <https://stackoverflow.com/a/2418195> and zero everything if a
+        // default constructor is not defined.
         new (new_first + i) T();
     }
     
@@ -1479,8 +1507,10 @@ void CompatVector<T, Alloc>::resize(size_t new_size) {
     
     // Record the new length
     length = new_size;
-    // And position
-    first = new_first;
+    if (old_first != new_first) {
+        // And position
+        first = new_first;
+    }
     
     if (old_first && new_first != old_first) {
         // Free old memory if we moved

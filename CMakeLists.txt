@@ -23,8 +23,8 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_BUILD_RPATH_USE_ORIGIN ON)
 
 # Use all standard-compliant optimizations
-set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -g")
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -g")
+set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -g")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -g")
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
   # assumes clang build
