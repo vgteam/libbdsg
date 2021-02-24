@@ -152,13 +152,15 @@ void bother_vector(TwoLevel& storage) {
 
     size_t seed = 0;
 
-    for (size_t iteration = 0; iteration < 10; iteration++) {
+    for (size_t iteration = 0; iteration < 2; iteration++) {
         truth.resize(0);
         storage.resize(0);
         check();
         
         for (size_t parent_size = 0; parent_size < 100; parent_size++) {
+#ifdef debug_bother
             std::cerr << "Resize parent to " << parent_size << endl;
+#endif
             truth.resize(parent_size);
             storage.resize(parent_size);
             check();
