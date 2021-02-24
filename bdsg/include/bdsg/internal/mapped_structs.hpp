@@ -808,10 +808,24 @@ template<typename T, typename Alloc = std::allocator<T>>
 class CompatVector {
 public:
 
+    CompatVector() = default;
+    
+    // Because we contain a pointer, we need a destructor and copy and move
+    // constructors and assignment operators.
     ~CompatVector();
+    
+    CompatVector(const CompatVector& other);
+    CompatVector(CompatVector&& other);
+    
+    CompatVector& operator=(const CompatVector& other);
+    CompatVector& operator=(CompatVector&& other);
 
     size_t size() const;
     void resize(size_t new_size);
+    /**
+     * Empty out the vector and free any allocated memory.
+     */
+    void clear();
     T& at(size_t index);
     const T& at(size_t index) const;
     
@@ -1428,9 +1442,81 @@ const item_t& MappedVectorRef<item_t>::at(size_t index) const {
 template<typename T, typename Alloc>
 CompatVector<T, Alloc>::~CompatVector() {
     if (first) {
-        // We have some memory allocated to us. Get rid of it.
+        // We have some memory allocated to us.
+        
+        for (size_t i = 0; i < length; i++) {
+            // Destroy everything in it.
+            (first + i)->~T();
+        }
+        
+        // Get rid of it.
         alloc.deallocate(first, reserved_length);
     }
+}
+
+template<typename T, typename Alloc>
+CompatVector<T, Alloc>::CompatVector(const CompatVector& other) {
+    std::cerr << "Copy-constructing a vector of size " << other.size() << " from " << (intptr_t)&other << " to " << (intptr_t)this << std::endl;
+    if (other.size() != 0) {
+        first = alloc.allocate(other.size());
+        reserved_length = other.size();
+        length = other.size();
+        
+        for (size_t i = 0; i < other.size(); i++) {
+            // Copy each item
+            new (first + i) T(other.at(i));
+        }
+    }
+    std::cerr << "Result is of size " << size() << std::endl;
+}
+
+template<typename T, typename Alloc>
+CompatVector<T, Alloc>::CompatVector(CompatVector&& other) :
+    length(other.length), reserved_length(other.reserved_length), first(other.first) {
+    
+    std::cerr << "Move-constructing a vector of size " << other.size() << " from " << (intptr_t)&other << " to " << (intptr_t)this << std::endl;
+    
+    // And say they have no items or memory.
+    other.length = 0;
+    other.reserved_length = 0;
+    other.first = nullptr;
+    std::cerr << "Result is of size " << size() << std::endl;
+}
+
+template<typename T, typename Alloc>
+CompatVector<T, Alloc>& CompatVector<T, Alloc>::operator=(const CompatVector& other) {
+    std::cerr << "Copy-assigning a vector of size " << other.size() << " from " << (intptr_t)&other << " to " << (intptr_t)this << std::endl;
+    if (this != &other) {
+        // TODO: can we economize and use copy constructors instead of
+        // assignment here sometimes?
+        resize(other.size);
+        for (size_t i = 0; i < other.size(); i++) {
+            this.at(i) = other.at(i);
+        }
+    }
+    std::cerr << "Result is of size " << size() << std::endl;
+    return *this;
+}
+
+template<typename T, typename Alloc>
+CompatVector<T, Alloc>& CompatVector<T, Alloc>::operator=(CompatVector&& other) {
+    std::cerr << "Move-assigning a vector of size " << other.size() << " from " << (intptr_t)&other << " to " << (intptr_t)this << std::endl;
+    if (this != &other) {
+        // Get rid of our memory
+        clear();
+        
+        // Steal their memory
+        length = other.length;
+        reserved_length = other.reserved_length;
+        first = other.first;
+        
+        // And say they have no items or memory.
+        other.length = 0;
+        other.reserved_length = 0;
+        other.first = nullptr;
+    }
+    std::cerr << "Result is of size " << size() << std::endl;
+    return *this;
 }
 
 template<typename T, typename Alloc>
@@ -1461,15 +1547,6 @@ void CompatVector<T, Alloc>::resize(size_t new_size) {
         // Allocate space for the new data, and get the position in the context
         new_first = alloc.allocate(new_size);
         
-        if (size() > 0) {
-            for (size_t i = 0; i < size() && i < new_size; i++) {
-                // Run move constructors
-                new (new_first + i) T(std::move(*(old_first + i)));
-                // And destructors
-                (old_first + i)->~T();
-            }
-        }
-        
         // Record the new reserved length
         reserved_length = new_size;
     } else {
@@ -1479,6 +1556,15 @@ void CompatVector<T, Alloc>::resize(size_t new_size) {
     
     if (old_first == new_first) {
         std::cerr << "Vector data stationary at " << (intptr_t) old_first << std::endl;
+        
+        if (new_size < size()) {
+            // We shrank, and we had at least one item.
+            for (size_t i = new_size; i < size(); i++) {
+                // For anything trimmed off, just run destructors.
+                (old_first + i)->~T();
+            }
+        }
+        
     } else {
         std::cerr << "Vector data moving from " << (intptr_t) old_first
             << " to " << (intptr_t) new_first << std::endl;
@@ -1486,6 +1572,11 @@ void CompatVector<T, Alloc>::resize(size_t new_size) {
         for (size_t i = 0; i < size() && i < new_size; i++) {
             // Move over the preserved values.
             new (new_first + i) T(std::move(*(old_first + i)));
+        }
+        
+        for (size_t i = 0; i < size(); i++) {
+            // Destroy all the original values
+            (old_first + i)->~T();
         }
     }
     
@@ -1497,13 +1588,7 @@ void CompatVector<T, Alloc>::resize(size_t new_size) {
         new (new_first + i) T();
     }
     
-    if (new_size < size()) {
-        // We shrank, and we had at least one item.
-        for (size_t i = new_size; i < size(); i++) {
-            // For anything trimmed off, just run destructors.
-            (old_first + i)->~T();
-        }
-    }
+    
     
     // Record the new length
     length = new_size;
@@ -1516,6 +1601,18 @@ void CompatVector<T, Alloc>::resize(size_t new_size) {
         // Free old memory if we moved
         alloc.deallocate(old_first, old_reserved_length);
     }
+}
+
+template<typename T, typename Alloc>
+void CompatVector<T, Alloc>::clear() {
+    // Deconstruct anything we have.
+    resize(0);
+    if (first) {
+        // We have some memory allocated to us.
+        // Get rid of it.
+        alloc.deallocate(first, reserved_length);
+    }
+    reserved_length = 0;
 }
 
 template<typename T, typename Alloc>

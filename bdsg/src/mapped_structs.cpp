@@ -5,6 +5,8 @@
 #include "bdsg/internal/mapped_structs.hpp"
 
 #include <mutex>
+#include <sstream>
+#include <iomanip>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -350,24 +352,42 @@ void Manager::dump(chainid_t chain) {
             std::cerr << "\t\t" << link_cursor + link->offset << "\t"
                 << "AllocatorHeader: " << sizeof(AllocatorHeader) << " bytes" << std::endl;
             header = (AllocatorHeader*)get_address_in_chain(chain, link_cursor + link->offset, sizeof(AllocatorHeader));
-            std::cerr << "\t\t\tFirst free: " << (header->first_free ? get_chain_and_position(header->first_free).second : 0) << std::endl;
-            std::cerr << "\t\t\tLast free: " << (header->last_free ? get_chain_and_position(header->last_free).second : 0) << std::endl;
+            std::cerr << "\t\t\t\tFirst free: " << (header->first_free ? get_chain_and_position(header->first_free).second : 0) << std::endl;
+            std::cerr << "\t\t\t\tLast free: " << (header->last_free ? get_chain_and_position(header->last_free).second : 0) << std::endl;
             link_cursor += sizeof(AllocatorHeader);
         }
         // Now we know the cursor is at an allocator block.
         while (link_cursor < link->length) {
             AllocatorBlock* block = (AllocatorBlock*)get_address_in_chain(chain, link_cursor + link->offset, sizeof(AllocatorBlock));
             
-            bool is_free = (!block->prev && !block->next && header->first_free != block);
+            bool is_free = (block->prev || block->next || (header->first_free == block && header->last_free == block));
             
             std::cerr << "\t\t" << link_cursor + link->offset << "\t"
                 << "AllocatorBlock" << (is_free ? " (FREE)" : "") << ": "
-                    << sizeof(AllocatorBlock) << " bytes" << std::endl;
-            std::cerr << "\t\t\tPrev free: " << (block->prev ? get_chain_and_position(block->prev).second : 0) << std::endl;
-            std::cerr << "\t\t\tNext free: " << (block->prev ? get_chain_and_position(block->prev).second : 0) << std::endl;
+                    << sizeof(AllocatorBlock) << " bytes (" << (intptr_t)block << ")" << std::endl;
+            std::cerr << "\t\t\t\tPrev free: " << (block->prev ? get_chain_and_position(block->prev).second : 0) << std::endl;
+            std::cerr << "\t\t\t\tNext free: " << (block->next ? get_chain_and_position(block->next).second : 0) << std::endl;
             link_cursor += sizeof(AllocatorBlock);
             std::cerr << "\t\t" << link_cursor + link->offset << "\t"
-                << (is_free ? "Free Space" : "Payload") << ": " << block->size << std::endl;
+                << (is_free ? "Free Space" : "Payload") << ": " << block->size << " bytes (" << (intptr_t)block->get_user_data() << ")" << std::endl;
+                
+            if (!is_free) {
+                // Dump the block
+                std::stringstream ss;
+                for (size_t i = 0; i < block->size; i++) {
+                    if (i % 8 == 0) {
+                        if (i != 0) {
+                            ss << std::endl;
+                        }
+                        ss << "\t\t\t\t";
+                    } else {
+                        ss << " ";
+                    }
+                    ss << std::hex << std::setw(2) << std::setfill('0') << (int)*((uint8_t*)block->get_user_data() + i);
+                }
+                ss << std::endl;
+                std::cerr << ss.str();
+            }
                 
             link_cursor += block->size;
         }
@@ -935,8 +955,12 @@ Manager::AllocatorBlock* Manager::AllocatorBlock::split(size_t first_bytes) {
     new_next->prev = this;
     new_next->next = next;
     next = new_next;
+    if (new_next->next) {
+        // We had an old successor that needs to point to our new successor.
+        new_next->next->prev = new_next;
+    }
     
-    // Return it
+    // Return the new block
     return new_next;
 }
 
