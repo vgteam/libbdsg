@@ -133,7 +133,9 @@ Manager::chainid_t Manager::create_chain(int fd, const std::string& prefix) {
         throw e;
     }
     
+#ifdef debug_manager
     dump(chain);
+#endif
     
     return chain;
 }
@@ -395,7 +397,9 @@ void Manager::dump(chainid_t chain) {
 }
 
 void* Manager::allocate_from(chainid_t chain, size_t bytes) {
+#ifdef debug_manager
     cerr << "Allocate " << bytes << " bytes from chain " << chain << endl;
+#endif
     dump(chain);
     
     // How much space do we need with block overhead, if we need a new block?
@@ -409,10 +413,14 @@ void* Manager::allocate_from(chainid_t chain, size_t bytes) {
         // This will hold a ref to the free block we found or made that is big enough to hold this item.
         // Starts null if there is no first_free.
         found = header->first_free;
+#ifdef debug_manager
         std::cerr << "Start at " << (intptr_t) found << std::endl;
+#endif
         while (found && found->size < bytes) {
             // Won't fit here. Try the next place.
+#ifdef debug_manager
             std::cerr << "Skip block of " << found->size << " bytes at " << (intptr_t) found << std::endl;
+#endif
             AllocatorBlock* old = found;
             found = found->next;
             if (found && found->prev != old) {
@@ -443,7 +451,9 @@ void* Manager::allocate_from(chainid_t chain, size_t bytes) {
                 // the thing we want to allocate
                 new_link_size = std::max(last.length * SCALE_FACTOR, new_link_size);
                 
+#ifdef debug_manager
                 std::cerr << "Create new link of size " << new_link_size << " bytes" << std::endl;
+#endif
                 
                 // Go get the new link
                 new_link = &add_link(first, new_link_size);
@@ -452,7 +462,9 @@ void* Manager::allocate_from(chainid_t chain, size_t bytes) {
             // Work out where new free memory will start
             found = (AllocatorBlock*) get_address_in_chain(chain, new_link->offset, block_bytes);
             
+#ifdef debug_manager
             std::cerr << "New link starts at " << (intptr_t)found << std::endl;
+#endif
             
             // Construct the block
             new (found) AllocatorBlock();
@@ -480,12 +492,16 @@ void* Manager::allocate_from(chainid_t chain, size_t bytes) {
             // We could break the user data off of this block and have some space left over.
             // TODO: use a min block size here instead.
             
+#ifdef debug_manager
             std::cerr << "Split block of " << found->size << " bytes at " << (intptr_t)found << std::endl;
+#endif
             
             // So split the block.
             AllocatorBlock* second = found->split(bytes);
             
+#ifdef debug_manager
             std::cerr << "Created block of " << second->size << " bytes at " << (intptr_t)second << std::endl;
+#endif
             
             if (header->last_free == found) {
                 // And fix up the end of the linked list
@@ -494,24 +510,32 @@ void* Manager::allocate_from(chainid_t chain, size_t bytes) {
         }
         
         // Now we have a free block of the right size. Make it not free.
+#ifdef debug_manager
         std::cerr << "Detach block of " << found->size << " bytes at " << (intptr_t)found << std::endl;
+#endif
         auto connected = found->detach();
         if (header->first_free == found) {
             // This was the first free block.
             // The first free block is now the right neighbor, if any.
             header->first_free = connected.second;
+#ifdef debug_manager
             std::cerr << "\tWas first free block; now that's " << (intptr_t)header->first_free.get() << std::endl;
+#endif
         }
         if (header->last_free == found) {
             // This was the last free block
             // The last free block is now the left neighbor, if any.
             header->last_free = connected.first;
+#ifdef debug_manager
             std::cerr << "\tWas last free block; now that's " << (intptr_t)header->last_free.get() << std::endl;
+#endif
         }
     });
     
+#ifdef debug_manager
     std::cerr << "Allocated at " << found->get_user_data() << std::endl;
     dump(chain);
+#endif
     
     // Give out the address of its data
     return found->get_user_data();
@@ -523,12 +547,16 @@ void* Manager::allocate_from_same_chain(void* here, size_t bytes) {
 }
 
 void Manager::deallocate(void* address) {
+#ifdef debug_manager
     std::cerr << "Deallocate at " << address << std::endl;
+#endif
     
     // Find the block
     AllocatorBlock* found = AllocatorBlock::get_from_data(address);
     
+#ifdef debug_manager
     std::cerr << "Freeing block at " << (intptr_t)found << std::endl;
+#endif
     
     // Find the chain
     chainid_t chain = get_chain(address);
@@ -544,7 +572,9 @@ void Manager::deallocate(void* address) {
             // We have a free block, but it occurs before the block being freed in the chain.
             // TODO: can we save chain lookups here somehow?
             // Go to the next free block, or off the end if that was the last one.
+#ifdef debug_manager
             std::cerr << "\tComes after block " << (intptr_t)right << " in chain space" << std::endl;
+#endif
             right = right->next;
         }
         AllocatorBlock* left;
@@ -562,11 +592,15 @@ void Manager::deallocate(void* address) {
         
         // Update haed and tail
         if (header->last_free == left) {
+#ifdef debug_manager
             std::cerr << "\tIs new last free block, replacing " << (intptr_t)header->last_free.get() << std::endl;
+#endif
             header->last_free = found;
         }
         if (header->first_free == right) {
+#ifdef debug_manager
             std::cerr << "\tIs new first free block, replacing " << (intptr_t)header->first_free.get() << std::endl;
+#endif
             header->first_free = found;
         }
         
@@ -579,7 +613,9 @@ void Manager::deallocate(void* address) {
         }
     });
     
+#ifdef debug_manager
     std::cerr << "Deallocated." << std::endl;
+#endif
     dump(chain);
 }
 
@@ -968,10 +1004,14 @@ std::pair<Manager::AllocatorBlock*, Manager::AllocatorBlock*> Manager::Allocator
     // Grab out initial neighbors
     pair<AllocatorBlock*, AllocatorBlock*> old_neighbors = make_pair(prev.get(), next.get());
     
+#ifdef debug_manager
     std::cerr << "\tOriginal neighbors: " << (intptr_t)old_neighbors.first << " and " << (intptr_t)old_neighbors.second << std::endl;
+#endif
     
     if (prev) {
+#ifdef debug_manager
         std::cerr << "\tDetach from prev at " << (intptr_t)prev.get() << std::endl;
+#endif
         // Attach the thing before us to whatever is after us instead of us.
         prev->next = old_neighbors.second;
         // Null out our prev; it can't be relied on to point anywhere safe.
@@ -979,7 +1019,9 @@ std::pair<Manager::AllocatorBlock*, Manager::AllocatorBlock*> Manager::Allocator
     }
     
     if (next) {
+#ifdef debug_manager
         std::cerr << "\tDetach from next at " << (intptr_t)next.get() << std::endl;
+#endif
         // Attach the thing after us to whatever was before us instead of us
         next->prev = old_neighbors.first;
         // Null out our next; it can't be relied on to point anywhere safe.
@@ -990,8 +1032,10 @@ std::pair<Manager::AllocatorBlock*, Manager::AllocatorBlock*> Manager::Allocator
 }
 
 void Manager::AllocatorBlock::attach(AllocatorBlock* left, AllocatorBlock* right) {
+#ifdef debug_manager
     std::cerr << "\tAttach block at " << (intptr_t)this << " between "
         << (intptr_t)left << " and " << (intptr_t)right << std::endl;
+#endif
     
     prev = left;
     if (left) {

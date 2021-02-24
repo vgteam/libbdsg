@@ -915,7 +915,9 @@ big_endian<T>::big_endian() {
     for (auto& byte : storage) {
         byte = 0;
     }
+#ifdef debug_big_endian
     std::cerr << "Zeroed " << sizeof(T) << " bytes for a big_endian at " << (intptr_t) this << std::endl;
+#endif
     assert(*this == 0);
 }
 
@@ -974,7 +976,9 @@ big_endian<T>& big_endian<T>::operator=(const T& x) {
         throw runtime_error("Unimplemented bit width: " + std::to_string(std::numeric_limits<T>::digits));
     }
     
+#ifdef debug_big_endian
     std::cerr << "Set a big_endian at " << (intptr_t) this << " to " << x << std::endl;
+#endif
     
     return *this;
 }
@@ -1026,7 +1030,11 @@ offset_ptr<T>& offset_ptr<T>::operator=(const T* addr) {
         // Represent null specially
         offset = std::numeric_limits<size_t>::max();
     }
-    cerr << "Pointer to address " << addr << " is at offset " << offset << " from " << this << " producing " << this->operator->() << endl;
+    
+#ifdef debug_offset_ptr
+    cerr << "Pointer to address " << addr << " is at offset " << offset
+        << " from " << this << " producing " << this->operator->() << endl;
+#endif
     
     return *this;
 }
@@ -1181,7 +1189,11 @@ ArenaAllocatorRef<T>::ArenaAllocatorRef(const ArenaAllocatorRef<U>& alloc): base
 
 template<typename T>
 auto ArenaAllocatorRef<T>::allocate(size_type n, const_pointer hint) -> pointer {
-    cerr << "Allocate " << n << " items of size " << sizeof(T) << " from allocator at " << this->position << " in context " << this->context << endl;
+#ifdef debug_arena_allocator_ref
+    cerr << "Allocate " << n << " items of size " << sizeof(T)
+        << " from allocator at " << this->position
+        << " in context " << this->context << endl;
+#endif
     
     // Find our body. Note that it WILL MOVE when we reallocate.
     body_t* body = reinterpret_cast<body_t*>(this->get_body());
@@ -1253,8 +1265,10 @@ auto ArenaAllocatorRef<T>::allocate(size_type n, const_pointer hint) -> pointer 
         body->last_free = connected.second;
     }
     
+#ifdef debug_arena_allocator_ref
     cerr << "Allocated at " << found.get_user_data() << " = "
         << (void*)(this->context->base_address + found.get_user_data()) << endl;
+#endif
     
     // Give out the address of its data
     return found.get_user_data();
@@ -1263,7 +1277,11 @@ auto ArenaAllocatorRef<T>::allocate(size_type n, const_pointer hint) -> pointer 
 
 template<typename T>
 void ArenaAllocatorRef<T>::deallocate(pointer p, size_type n) {
-    cerr << "Deallocate " << n << " items of size " << sizeof(T) << " at " << p << " from allocator at " << this->position << " in context " << this->context << endl;
+#ifdef debug_arena_allocator_ref
+    cerr << "Deallocate " << n << " items of size " << sizeof(T)
+        << " at " << p << " from allocator at " << this->position
+        << " in context " << this->context << endl;
+#endif
     
     // Find our body
     auto& body = *reinterpret_cast<body_t*>(this->get_body());
@@ -1314,12 +1332,16 @@ ref_t ArenaRefAllocatorRef<ref_t>::connect_or_create_root() {
     // (overall header and first block header)
     size_t root_position = ArenaAllocatorRef<typename ref_t::body_t>::reserved_space;
 
+#ifdef debug_arena_allocator_ref
     cerr << "Looking for root at " << root_position 
         << " in context of size " << this->context->size << endl;
+#endif
 
     if (this->context->size < root_position) {
         // Root object needs to be made.
+#ifdef debug_arena_allocator_ref
         cerr << "Creating root..." << endl;
+#endif
         size_t got_position = this->allocate(1);
         if (got_position != root_position) {
             throw std::runtime_error("Allocated root at " + std::to_string(got_position) +
@@ -1328,8 +1350,10 @@ ref_t ArenaRefAllocatorRef<ref_t>::connect_or_create_root() {
     }
     if (this->context->size >= root_position + sizeof(typename ref_t::body_t)) {
         // Root object (now) exists. Connect and return.
+#ifdef debug_arena_allocator_ref
         cerr << "Found root at " << root_position 
             << " in context of size " << this->context->size << endl;
+#endif
         return ref_t(this->context, root_position);
     }
     // Otherwise there's something else smaller here.
@@ -1383,9 +1407,13 @@ void MappedVectorRef<item_t>::resize(size_t new_size) {
             
             for (size_t i = 0; i < size() && i < new_size; i++) {
                 // Run move constructors
+#ifdef debug_mapped_vector_ref
                 cerr << "From index " << i << " at " << (old_first + i) << " move " << *(old_first + i);
+#endif
                 new (new_first + i) item_t(std::move(*(old_first + i)));
+#ifdef debug_mapped_vector_ref
                 cerr << " so it becomes " << *(new_first + i) << " at " << (new_first + i) << endl;
+#endif
                 // And destructors
                 (old_first + i)->~item_t();
             }
@@ -1456,7 +1484,9 @@ CompatVector<T, Alloc>::~CompatVector() {
 
 template<typename T, typename Alloc>
 CompatVector<T, Alloc>::CompatVector(const CompatVector& other) {
+#ifdef debug_compat_vector
     std::cerr << "Copy-constructing a vector of size " << other.size() << " from " << (intptr_t)&other << " to " << (intptr_t)this << std::endl;
+#endif
     if (other.size() != 0) {
         first = alloc.allocate(other.size());
         reserved_length = other.size();
@@ -1467,25 +1497,33 @@ CompatVector<T, Alloc>::CompatVector(const CompatVector& other) {
             new (first + i) T(other.at(i));
         }
     }
+#ifdef debug_compat_vector
     std::cerr << "Result is of size " << size() << std::endl;
+#endif
 }
 
 template<typename T, typename Alloc>
 CompatVector<T, Alloc>::CompatVector(CompatVector&& other) :
     length(other.length), reserved_length(other.reserved_length), first(other.first) {
     
+#ifdef debug_compat_vector
     std::cerr << "Move-constructing a vector of size " << other.size() << " from " << (intptr_t)&other << " to " << (intptr_t)this << std::endl;
+#endif
     
     // And say they have no items or memory.
     other.length = 0;
     other.reserved_length = 0;
     other.first = nullptr;
+#ifdef debug_compat_vector
     std::cerr << "Result is of size " << size() << std::endl;
+#endif
 }
 
 template<typename T, typename Alloc>
 CompatVector<T, Alloc>& CompatVector<T, Alloc>::operator=(const CompatVector& other) {
+#ifdef debug_compat_vector
     std::cerr << "Copy-assigning a vector of size " << other.size() << " from " << (intptr_t)&other << " to " << (intptr_t)this << std::endl;
+#endif
     if (this != &other) {
         // TODO: can we economize and use copy constructors instead of
         // assignment here sometimes?
@@ -1494,13 +1532,17 @@ CompatVector<T, Alloc>& CompatVector<T, Alloc>::operator=(const CompatVector& ot
             this.at(i) = other.at(i);
         }
     }
+#ifdef debug_compat_vector
     std::cerr << "Result is of size " << size() << std::endl;
+#endif
     return *this;
 }
 
 template<typename T, typename Alloc>
 CompatVector<T, Alloc>& CompatVector<T, Alloc>::operator=(CompatVector&& other) {
+#ifdef debug_compat_vector
     std::cerr << "Move-assigning a vector of size " << other.size() << " from " << (intptr_t)&other << " to " << (intptr_t)this << std::endl;
+#endif
     if (this != &other) {
         // Get rid of our memory
         clear();
@@ -1515,7 +1557,9 @@ CompatVector<T, Alloc>& CompatVector<T, Alloc>::operator=(CompatVector&& other) 
         other.reserved_length = 0;
         other.first = nullptr;
     }
+#ifdef debug_compat_vector
     std::cerr << "Result is of size " << size() << std::endl;
+#endif
     return *this;
 }
 
@@ -1531,10 +1575,12 @@ void CompatVector<T, Alloc>::resize(size_t new_size) {
     // And how much there is
     size_t old_reserved_length = reserved_length;
     
+#ifdef debug_compat_vector
     std::cerr << "Resizing vector at " << (intptr_t)this
         << " with " << size() << " items at "
         << (intptr_t) old_first << " to size " << new_size << std::endl;
-    
+#endif
+
     if (new_size == size()) {
         // Nothing to do!
         return;
@@ -1555,7 +1601,9 @@ void CompatVector<T, Alloc>::resize(size_t new_size) {
     }
     
     if (old_first == new_first) {
+#ifdef debug_compat_vector
         std::cerr << "Vector data stationary at " << (intptr_t) old_first << std::endl;
+#endif
         
         if (new_size < size()) {
             // We shrank, and we had at least one item.
@@ -1566,9 +1614,10 @@ void CompatVector<T, Alloc>::resize(size_t new_size) {
         }
         
     } else {
+#ifdef debug_compat_vector
         std::cerr << "Vector data moving from " << (intptr_t) old_first
             << " to " << (intptr_t) new_first << std::endl;
-        
+#endif
         for (size_t i = 0; i < size() && i < new_size; i++) {
             // Move over the preserved values.
             new (new_first + i) T(std::move(*(old_first + i)));
