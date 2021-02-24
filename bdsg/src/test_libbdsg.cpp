@@ -170,34 +170,49 @@ void bother_vector(TwoLevel& storage) {
                 size_t child_size = seed % 100;
                 seed = mix(seed);
                 
-                for (size_t i = 0; i <= child_size; i++) {
+                for (size_t i = 0; i <= std::min(child_size, (size_t)5); i++) {
                     // Resize 1 bigger a bunch
+#ifdef debug_bother
                     std::cerr << "Resize child " << child << " of " << parent_size << " to " << i << endl;
+#endif
                     truth_child.resize(i);
                     storage_child.resize(i);
+#ifdef debug_bother
                     std::cerr << "Check after resize to " << i << endl;
+#endif
                     check();
+#ifdef debug_bother
                     std::cerr << "Completed check after resize to " << i << endl;
+#endif
                 }
                 
+                truth_child.resize(child_size);
+                storage_child.resize(child_size);
+                check();
+                
+#ifdef debug_bother
                 std::cerr << "Fill in " << child_size << " items in child " << child << endl;
+#endif
                 
                 for (size_t i = 0; i < child_size; i++) {
                     // Fill in with data
                     truth_child.at(i) = seed % 10000;
                     storage_child.at(i) = seed % 10000;
                     seed = mix(seed);
-                    check();
                 }
                 
                 // Cut in half
+#ifdef debug_bother
                 std::cerr << "Resize child " << child << " of " << parent_size << " to " << child_size/2 << endl;
+#endif
                 truth_child.resize(child_size/2);
                 storage_child.resize(child_size/2);
                 check();
                 
                 // And increase by 10 with empty slots
+#ifdef debug_bother
                 std::cerr << "Resize child " << child << " of " << parent_size << " to " << (truth_child.size() + 10) << endl;
+#endif
                 truth_child.resize(truth_child.size() + 10);
                 storage_child.resize(storage_child.size() + 10);
                 check();
@@ -560,7 +575,6 @@ public:
 };
 
 void test_mapped_structs() {
-    /*
     {
     
         using T = big_endian<int64_t>;
@@ -608,9 +622,7 @@ void test_mapped_structs() {
         fill_to(vec1, 1000, 1);
         verify_to(vec1, 1000, 1);
     }
-    */
-    
-    
+
     {
     
         using T = big_endian<int64_t>;

@@ -399,8 +399,8 @@ void Manager::dump(chainid_t chain) {
 void* Manager::allocate_from(chainid_t chain, size_t bytes) {
 #ifdef debug_manager
     cerr << "Allocate " << bytes << " bytes from chain " << chain << endl;
-#endif
     dump(chain);
+#endif
     
     // How much space do we need with block overhead, if we need a new block?
     size_t block_bytes = bytes + sizeof(AllocatorBlock);
@@ -560,7 +560,9 @@ void Manager::deallocate(void* address) {
     
     // Find the chain
     chainid_t chain = get_chain(address);
+#ifdef debug_manager
     dump(chain);
+#endif
    
     with_allocator_header(chain, [&](AllocatorHeader* header) {
         // With exclusive use of the free list
@@ -615,8 +617,8 @@ void Manager::deallocate(void* address) {
     
 #ifdef debug_manager
     std::cerr << "Deallocated." << std::endl;
-#endif
     dump(chain);
+#endif
 }
 
 void* Manager::find_first_allocation(chainid_t chain, size_t bytes) {
