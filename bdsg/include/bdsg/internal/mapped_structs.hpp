@@ -822,6 +822,8 @@ public:
 
     size_t size() const;
     void resize(size_t new_size);
+    void reserve(size_t new_reserved_length);
+    
     /**
      * Empty out the vector and free any allocated memory.
      */
@@ -837,6 +839,8 @@ protected:
     big_endian<size_t> length = 0;
     big_endian<size_t> reserved_length = 0;
     typename std::allocator_traits<Alloc>::pointer first = nullptr;
+    
+    static const int RESIZE_FACTOR = 2;
 };
 
 class IntVectorRef : public base_ref_t<IntVectorRef> {
@@ -1569,6 +1573,50 @@ size_t CompatVector<T, Alloc>::size() const {
 }
 
 template<typename T, typename Alloc>
+void CompatVector<T, Alloc>::reserve(size_t new_reserved_length) {
+    // Find where the data is. Note that this may be null.
+    T* old_first = first;
+    // And how much there is
+    size_t old_reserved_length = reserved_length;
+    
+#ifdef debug_compat_vector
+    std::cerr << "Reserving vector at " << (intptr_t)this
+        << " with " << old_reserved_length << " spaces at "
+        << (intptr_t) old_first << " to have " << new_reserved_length  << " spaces" << std::endl;
+#endif
+
+    if (new_reserved_length > old_reserved_length) {
+        // Allocate space for the new data, and get the position in the context
+        T* new_first  = alloc.allocate(new_reserved_length);
+        
+        // Record the new reserved length
+        reserved_length = new_reserved_length;
+        
+#ifdef debug_compat_vector
+        std::cerr << "Vector data moving from " << (intptr_t) old_first
+            << " to " << (intptr_t) new_first << std::endl;
+#endif
+        for (size_t i = 0; i < size(); i++) {
+            // Move over the preserved values.
+            new (new_first + i) T(std::move(*(old_first + i)));
+        }
+        
+        for (size_t i = 0; i < size(); i++) {
+            // Destroy all the original values
+            (old_first + i)->~T();
+        }
+        
+        if (old_first) {
+            // Free old memory if we moved
+            alloc.deallocate(old_first, old_reserved_length);
+        }
+        first = new_first;
+    }
+    
+    // If it isn't growing, ignore it.
+}
+
+template<typename T, typename Alloc>
 void CompatVector<T, Alloc>::resize(size_t new_size) {
     // Find where the data is. Note that this may be null.
     T* old_first = first;
@@ -1586,70 +1634,38 @@ void CompatVector<T, Alloc>::resize(size_t new_size) {
         return;
     }
 
-    // Where is the vector going?
-    T* new_first = nullptr;
-    
     if (new_size > reserved_length) {
-        // Allocate space for the new data, and get the position in the context
-        new_first = alloc.allocate(new_size);
-        
-        // Record the new reserved length
-        reserved_length = new_size;
-    } else {
-        // Just run in place
-        new_first = first;
+        // We will need some more memory, and our data might move.
+        // Make sure repeated calls to be bigger reallocate only a sensible number of times.
+        reserve(std::max(new_size, size() * RESIZE_FACTOR));
     }
-    
-    if (old_first == new_first) {
+   
+    // TODO: throw away excess memory when shrinking
+   
+    if (new_size < size()) {
+        // We shrank, and we had at least one item.
 #ifdef debug_compat_vector
-        std::cerr << "Vector data stationary at " << (intptr_t) old_first << std::endl;
+        std::cerr << "Removing items between " << new_size << " and " << size() << std::endl;
 #endif
-        
-        if (new_size < size()) {
-            // We shrank, and we had at least one item.
-            for (size_t i = new_size; i < size(); i++) {
-                // For anything trimmed off, just run destructors.
-                (old_first + i)->~T();
-            }
+        for (size_t i = new_size; i < size(); i++) {
+            // For anything trimmed off, just run destructors.
+            (first + i)->~T();
         }
-        
     } else {
 #ifdef debug_compat_vector
-        std::cerr << "Vector data moving from " << (intptr_t) old_first
-            << " to " << (intptr_t) new_first << std::endl;
+        std::cerr << "Adding items between " << size() << " and " << new_size << std::endl;
 #endif
-        for (size_t i = 0; i < size() && i < new_size; i++) {
-            // Move over the preserved values.
-            new (new_first + i) T(std::move(*(old_first + i)));
-        }
-        
-        for (size_t i = 0; i < size(); i++) {
-            // Destroy all the original values
-            (old_first + i)->~T();
+        for (size_t i = size(); i < new_size; i++) {
+            // For anything aded on, just run constructor.
+            // This will use value initialization
+            // <https://stackoverflow.com/a/2418195> and zero everything if a
+            // default constructor is not defined.
+            new (first + i) T();
         }
     }
-    
-    for (size_t i = size(); i < new_size; i++) {
-        // For anything aded on, just run constructor.
-        // This will use value initialization
-        // <https://stackoverflow.com/a/2418195> and zero everything if a
-        // default constructor is not defined.
-        new (new_first + i) T();
-    }
-    
-    
     
     // Record the new length
     length = new_size;
-    if (old_first != new_first) {
-        // And position
-        first = new_first;
-    }
-    
-    if (old_first && new_first != old_first) {
-        // Free old memory if we moved
-        alloc.deallocate(old_first, old_reserved_length);
-    }
 }
 
 template<typename T, typename Alloc>
