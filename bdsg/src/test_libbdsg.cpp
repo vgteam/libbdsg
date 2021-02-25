@@ -510,72 +510,6 @@ void test_mmap_backend() {
     cerr << "MmapBackend tests successful!" << endl;
 }
 
-void test_mapping_context() {
-
-    char data[128];
-
-    MappingContext context;
-    
-    context.base_address = data;
-    context.size = 0;
-    context.resize = [&](size_t new_size) -> char* {
-        if (new_size > 128) {
-            throw std::runtime_error("Out of space!");
-        }
-        return data;
-    };
-    
-    ArenaAllocatorRef<char> alloc(&context);
-    
-    // Grab some ints.
-    size_t offset = alloc.allocate(3);
-    
-    cerr << "MappingContext tests successful!" << endl;
-
-}
-
-/**
- * We define this template to test the mmap-backed structs
- */
-template<typename Item>
-class MmapContainer : public MmapBackend {
-public:
-
-    MappingContext context;
-    
-    MmapContainer(const MmapContainer& other) = delete;
-    MmapContainer(MmapContainer&& other) = delete;
-    MmapContainer& operator=(const MmapContainer& other) = delete;
-    MmapContainer& operator=(MmapContainer&& other) = delete;
-    // If we kept the context on the heap we could be movable.
-
-    MmapContainer() : MmapBackend() {
-        // TODO: can we make the context abstraction better match the backend one?
-        context.base_address = serialized_data();
-        context.size = serialized_data_size();
-        context.resize = [this](size_t new_size) -> char* {
-            cerr << "Resizing context to " << new_size << endl;
-            serialized_data_resize(new_size);
-            return serialized_data();
-        };
-    };
-    
-    uint32_t get_magic_number() const {
-        // We must define a magic number for this type.
-        return 0xCAFE1234;
-    }
-    
-    MappedVectorRef<Item> get_collection() {
-        // First make the allocator, which will resize the context if not big
-        // enough for its structures, and is also responsible for creating or
-        // connecting to the root object.
-        ArenaRefAllocatorRef<MappedVectorRef<Item>> alloc(&context);
-        
-        // Connect to or create the root object.
-        return alloc.connect_or_create_root();
-    }
-};
-
 void test_mapped_structs() {
     {
     
@@ -3917,7 +3851,6 @@ void test_packed_subgraph_overlay() {
 
 int main(void) {
     test_mmap_backend();
-    test_mapping_context();
     test_mapped_structs();
     test_packed_vector();
     test_paged_vector();
