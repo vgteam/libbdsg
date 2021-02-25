@@ -206,6 +206,12 @@ public:
      */
     static void* find_first_allocation(chainid_t chain, size_t bytes);
     
+    /**
+     * Dump information about free and allocated memory.
+     * Not thread safe!
+     */
+    static void dump(chainid_t chain);  
+    
 protected:
     
     
@@ -266,10 +272,6 @@ protected:
         Pointer<AllocatorBlock> last_free;
     };
     
-    
-    /// Dump information about free and allocated memory.
-    /// Not thread safe!
-    static void dump(chainid_t chain);  
     
     /**
      * For each chain, stores each mapping's start address by chain offset position.

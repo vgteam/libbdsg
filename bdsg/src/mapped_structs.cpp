@@ -842,6 +842,7 @@ Manager::LinkRecord& Manager::add_link(LinkRecord& head, size_t new_bytes) {
     // And hook it up.
     old_tail.next = mapping_address;
     head.last = mapping_address;
+    head.total_size += new_bytes;
     
     return where;
 }
@@ -863,6 +864,10 @@ Manager::chainid_t Manager::copy_chain(chainid_t chain, int fd) {
         total_size = record.total_size;
     }
     
+#ifdef debug_manager
+    std::cerr << "Duplicating chain of total size " << total_size << " bytes" << std::endl;
+#endif
+    
     // Make the new chain with the appropriate size hint.
     chainid_t new_chain = open_chain(fd, total_size).first;
     
@@ -872,7 +877,7 @@ Manager::chainid_t Manager::copy_chain(chainid_t chain, int fd) {
     // Copy all the data
     
     // We already know the addresses of the first links
-    intptr_t from_link_adddr = (intptr_t) chain;
+    intptr_t from_link_addr = (intptr_t) chain;
     intptr_t to_link_addr = (intptr_t) new_chain;
     // We can walk pointers to the link records along as we copy. The owning
     // map is guaranteed not to move them.
@@ -894,7 +899,7 @@ Manager::chainid_t Manager::copy_chain(chainid_t chain, int fd) {
         
             if (from_link && (cursor - from_link->offset) == from_link->length) {
                 // Advance out of old from link
-                from_link_adddr = from_link->next;
+                from_link_addr = from_link->next;
                 from_link = nullptr;
             }
             if (to_link && (cursor - to_link->offset) == to_link->length) {
@@ -905,7 +910,7 @@ Manager::chainid_t Manager::copy_chain(chainid_t chain, int fd) {
             
             if (!from_link) {
                 // We aren't using the same from link as last time
-                from_link = &Manager::address_space_index.at(from_link_adddr);
+                from_link = &Manager::address_space_index.at(from_link_addr);
             }
             if (!to_link) {
                 // We aren't using the same to link as last time
@@ -921,7 +926,15 @@ Manager::chainid_t Manager::copy_chain(chainid_t chain, int fd) {
         
         // Do the copy of the minimum overlap
         size_t to_copy = std::min(from_link_available, to_link_available);
-        memcpy((void*)(to_link_addr + to_link_cursor), (void*)(from_link_adddr + from_link_cursor), to_copy);
+
+#ifdef debug_manager
+        std::cerr << "Copying " << to_copy << " bytes at offset " << from_link_cursor
+            << " in link " << from_link_addr << " of length " << from_link->length
+            << " to offset " << to_link_cursor
+            << " in link " << to_link_addr << " of length " << to_link->length << std::endl;
+#endif
+        
+        memcpy((void*)(to_link_addr + to_link_cursor), (void*)(from_link_addr + from_link_cursor), to_copy);
         
         // Record the copy
         cursor += to_copy;

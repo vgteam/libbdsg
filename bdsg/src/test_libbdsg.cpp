@@ -586,45 +586,96 @@ void test_mapped_structs() {
         bdsg::yomo::UniqueMappedPointer<V> numbers_holder;
         
         // Construct it
-        numbers_holder.construct();
+        numbers_holder.construct("GATTACA");
         
-        // Get a reference to it, which will be valid unless we save() or something
-        auto& vec1 = *numbers_holder;
+        { 
         
-        // We should start empty
-        assert(vec1.size() == 0);
+            // Get a reference to it, which will be valid unless we save() or something
+            auto& vec1 = *numbers_holder;
+            
+            // We should start empty
+            assert(vec1.size() == 0);
+            
+            // We should be able to expand.
+            vec1.resize(100);
+            assert(vec1.size() == 100);
+            
+            // And contract
+            vec1.resize(10);
+            assert(vec1.size() == 10);
+            
+            // And hold data
+            fill_to(vec1, 10, 0);
+            verify_to(vec1, 10, 0);
+            
+            // And expand again
+            vec1.resize(100);
+            assert(vec1.size() == 100);
+            
+            // And see the data
+            verify_to(vec1, 10, 0);
+            
+            // And expand more
+            vec1.resize(1000);
+            assert(vec1.size() == 1000);
+            
+            // And see the data
+            verify_to(vec1, 10, 0);
+            
+            // And hold more data
+            fill_to(vec1, 1000, 1);
+            verify_to(vec1, 1000, 1);
+            
+        }
+            
+        // We're going to need a temporary file
+        // This filename fill be filled in with the actual filename.
+        char filename[] = "tmpXXXXXX";
+        int tmpfd = mkstemp(filename);
+        assert(tmpfd != -1);
         
-        // We should be able to expand.
-        vec1.resize(100);
-        assert(vec1.size() == 100);
+        numbers_holder.save(tmpfd);
         
-        // And contract
-        vec1.resize(10);
-        assert(vec1.size() == 10);
+        { 
+            auto& vec2 = *numbers_holder;
+            
+            // We should have the same data
+            assert(vec2.size() == 1000);
+            verify_to(vec2, 1000, 1);
+            
+            // We should still be able to modify it.
+            vec2.resize(4000);
+            fill_to(vec2, 4000, 2);
+            verify_to(vec2, 4000, 2);
+        }
         
-        // And hold data
-        fill_to(vec1, 10, 0);
-        verify_to(vec1, 10, 0);
+        numbers_holder.dissociate();
         
-        // And expand again
-        vec1.resize(100);
-        assert(vec1.size() == 100);
+        {
+            auto& vec3 = *numbers_holder;
+            
+            // After dissociating, we should be able to modify the vector
+            vec3.resize(5);
+            fill_to(vec3, 5, 3);
+            verify_to(vec3, 5, 3);
+        }
         
-        // And see the data
-        verify_to(vec1, 10, 0);
+        numbers_holder.reset();
+        numbers_holder.load(tmpfd, "GATTACA");
         
-        // And expand more
-        vec1.resize(1000);
-        assert(vec1.size() == 1000);
+        {
+            auto& vec4 = *numbers_holder;
+            
+            // When we reload we should see the last thing we wrote before dissociating.
+            assert(vec4.size() == 4000);
+            verify_to(vec4, 4000, 2);
+        }
         
-        // And see the data
-        verify_to(vec1, 10, 0);
+        close(tmpfd);
+        unlink(filename);
         
-        // And hold more data
-        fill_to(vec1, 1000, 1);
-        verify_to(vec1, 1000, 1);
     }
-
+    
     {
     
         using T = big_endian<int64_t>;
