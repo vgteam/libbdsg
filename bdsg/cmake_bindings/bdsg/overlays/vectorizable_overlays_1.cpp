@@ -6,6 +6,7 @@
 #include <handlegraph/mutable_handle_graph.hpp>
 #include <handlegraph/path_handle_graph.hpp>
 #include <handlegraph/path_position_handle_graph.hpp>
+#include <handlegraph/serializable.hpp>
 #include <handlegraph/types.hpp>
 #include <ios>
 #include <istream>
@@ -1514,6 +1515,32 @@ struct PyCallBack_bdsg_PackedGraph : public bdsg::PackedGraph {
 			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		return DeletableHandleGraph::truncate_handle(a0, a1, a2);
+	}
+	void deserialize(const std::string & a0) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedGraph *>(this), "deserialize");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
+				static pybind11::detail::overload_caster_t<void> caster;
+				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<void>(std::move(o));
+		}
+		return Serializable::deserialize(a0);
+	}
+	void serialize(const std::string & a0) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedGraph *>(this), "serialize");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
+				static pybind11::detail::overload_caster_t<void> caster;
+				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<void>(std::move(o));
+		}
+		return Serializable::serialize(a0);
 	}
 };
 

@@ -1,7 +1,10 @@
 #include <bdsg/internal/packed_structs.hpp>
 #include <ios>
 #include <istream>
+#include <iterator>
+#include <memory>
 #include <ostream>
+#include <sdsl/int_vector.hpp>
 #include <sstream> // __str__
 #include <streambuf>
 #include <string>
@@ -25,24 +28,7 @@
 
 void bind_bdsg_internal_packed_structs(std::function< pybind11::module &(std::string const &namespace_) > &M)
 {
-	{ // bdsg::PackedVector file:bdsg/internal/packed_structs.hpp line:27
-		pybind11::class_<bdsg::PackedVector, std::shared_ptr<bdsg::PackedVector>> cl(M("bdsg"), "PackedVector", "");
-		cl.def( pybind11::init( [](){ return new bdsg::PackedVector(); } ) );
-		cl.def( pybind11::init( [](bdsg::PackedVector const &o){ return new bdsg::PackedVector(o); } ) );
-		cl.def("assign", (class bdsg::PackedVector & (bdsg::PackedVector::*)(const class bdsg::PackedVector &)) &bdsg::PackedVector::operator=, "Copy assignment operator\n\nC++: bdsg::PackedVector::operator=(const class bdsg::PackedVector &) --> class bdsg::PackedVector &", pybind11::return_value_policy::automatic, pybind11::arg("other"));
-		cl.def("set", (void (bdsg::PackedVector::*)(const unsigned long &, const unsigned long &)) &bdsg::PackedVector::set, "Set the i-th value\n\nC++: bdsg::PackedVector::set(const unsigned long &, const unsigned long &) --> void", pybind11::arg("i"), pybind11::arg("value"));
-		cl.def("get", (unsigned long (bdsg::PackedVector::*)(const unsigned long &) const) &bdsg::PackedVector::get, "Returns the i-th value\n\nC++: bdsg::PackedVector::get(const unsigned long &) const --> unsigned long", pybind11::arg("i"));
-		cl.def("append", (void (bdsg::PackedVector::*)(const unsigned long &)) &bdsg::PackedVector::append, "Add a value to the end\n\nC++: bdsg::PackedVector::append(const unsigned long &) --> void", pybind11::arg("value"));
-		cl.def("pop", (void (bdsg::PackedVector::*)()) &bdsg::PackedVector::pop, "Remove the last value\n\nC++: bdsg::PackedVector::pop() --> void");
-		cl.def("resize", (void (bdsg::PackedVector::*)(const unsigned long &)) &bdsg::PackedVector::resize, "Either shrink the vector or grow the vector to the new size. New\n entries created by growing are filled with 0.\n\nC++: bdsg::PackedVector::resize(const unsigned long &) --> void", pybind11::arg("new_size"));
-		cl.def("reserve", (void (bdsg::PackedVector::*)(const unsigned long &)) &bdsg::PackedVector::reserve, "If necessary, expand capacity so that the given number of entries can\n be included in the vector without reallocating. Never shrinks capacity.\n\nC++: bdsg::PackedVector::reserve(const unsigned long &) --> void", pybind11::arg("future_size"));
-		cl.def("size", (unsigned long (bdsg::PackedVector::*)() const) &bdsg::PackedVector::size, "Returns the number of values.\n\nC++: bdsg::PackedVector::size() const --> unsigned long");
-		cl.def("empty", (bool (bdsg::PackedVector::*)() const) &bdsg::PackedVector::empty, "Returns true if there are no entries and false otherwise.\n\nC++: bdsg::PackedVector::empty() const --> bool");
-		cl.def("clear", (void (bdsg::PackedVector::*)()) &bdsg::PackedVector::clear, "Clears the backing vector.\n\nC++: bdsg::PackedVector::clear() --> void");
-		cl.def("memory_usage", (unsigned long (bdsg::PackedVector::*)() const) &bdsg::PackedVector::memory_usage, "Reports the amount of memory consumed by this object in bytes.\n\nC++: bdsg::PackedVector::memory_usage() const --> unsigned long");
-		cl.def("__eq__", (bool (bdsg::PackedVector::*)(const class bdsg::PackedVector &) const) &bdsg::PackedVector::operator==, "Returns true if the contents are identical (but not necessarily storage\n parameters, such as pointer to data, capacity, bit width, etc.).\n\nC++: bdsg::PackedVector::operator==(const class bdsg::PackedVector &) const --> bool", pybind11::arg("other"));
-	}
-	{ // bdsg::PagedVector file:bdsg/internal/packed_structs.hpp line:106
+	{ // bdsg::PagedVector file:bdsg/internal/packed_structs.hpp line:120
 		pybind11::class_<bdsg::PagedVector, std::shared_ptr<bdsg::PagedVector>> cl(M("bdsg"), "PagedVector", "");
 		cl.def( pybind11::init<unsigned long>(), pybind11::arg("page_size") );
 
@@ -60,7 +46,7 @@ void bind_bdsg_internal_packed_structs(std::function< pybind11::module &(std::st
 		cl.def("page_width", (unsigned long (bdsg::PagedVector::*)() const) &bdsg::PagedVector::page_width, "Returns the page width of the vector\n\nC++: bdsg::PagedVector::page_width() const --> unsigned long");
 		cl.def("memory_usage", (unsigned long (bdsg::PagedVector::*)() const) &bdsg::PagedVector::memory_usage, "Reports the amount of memory consumed by this object in bytes\n\nC++: bdsg::PagedVector::memory_usage() const --> unsigned long");
 	}
-	{ // bdsg::RobustPagedVector file:bdsg/internal/packed_structs.hpp line:193
+	{ // bdsg::RobustPagedVector file:bdsg/internal/packed_structs.hpp line:207
 		pybind11::class_<bdsg::RobustPagedVector, std::shared_ptr<bdsg::RobustPagedVector>> cl(M("bdsg"), "RobustPagedVector", "");
 		cl.def( pybind11::init<unsigned long>(), pybind11::arg("page_size") );
 
@@ -78,7 +64,7 @@ void bind_bdsg_internal_packed_structs(std::function< pybind11::module &(std::st
 		cl.def("page_width", (unsigned long (bdsg::RobustPagedVector::*)() const) &bdsg::RobustPagedVector::page_width, "Returns the page width of the vector\n\nC++: bdsg::RobustPagedVector::page_width() const --> unsigned long");
 		cl.def("memory_usage", (unsigned long (bdsg::RobustPagedVector::*)() const) &bdsg::RobustPagedVector::memory_usage, "Reports the amount of memory consumed by this object in bytes\n\nC++: bdsg::RobustPagedVector::memory_usage() const --> unsigned long");
 	}
-	{ // bdsg::PackedDeque file:bdsg/internal/packed_structs.hpp line:270
+	{ // bdsg::PackedDeque file:bdsg/internal/packed_structs.hpp line:284
 		pybind11::class_<bdsg::PackedDeque, std::shared_ptr<bdsg::PackedDeque>> cl(M("bdsg"), "PackedDeque", "");
 		cl.def( pybind11::init( [](){ return new bdsg::PackedDeque(); } ) );
 		cl.def( pybind11::init( [](bdsg::PackedDeque const &o){ return new bdsg::PackedDeque(o); } ) );
@@ -95,9 +81,9 @@ void bind_bdsg_internal_packed_structs(std::function< pybind11::module &(std::st
 		cl.def("clear", (void (bdsg::PackedDeque::*)()) &bdsg::PackedDeque::clear, "Empty the contents\n\nC++: bdsg::PackedDeque::clear() --> void");
 		cl.def("memory_usage", (unsigned long (bdsg::PackedDeque::*)() const) &bdsg::PackedDeque::memory_usage, "Reports the amount of memory consumed by this object in bytes.\n\nC++: bdsg::PackedDeque::memory_usage() const --> unsigned long");
 	}
-	{ // bdsg::PackedSet file:bdsg/internal/packed_structs.hpp line:349
+	{ // bdsg::PackedSet file:bdsg/internal/packed_structs.hpp line:363
 		pybind11::class_<bdsg::PackedSet, std::shared_ptr<bdsg::PackedSet>> cl(M("bdsg"), "PackedSet", "");
-		{ // bdsg::PackedSet::iterator file:bdsg/internal/packed_structs.hpp line:403
+		{ // bdsg::PackedSet::iterator file:bdsg/internal/packed_structs.hpp line:417
 			auto & enclosing_class = cl;
 			pybind11::class_<bdsg::PackedSet::iterator, std::shared_ptr<bdsg::PackedSet::iterator>> cl(enclosing_class, "iterator", "");
 			cl.def( pybind11::init( [](bdsg::PackedSet::iterator const &o){ return new bdsg::PackedSet::iterator(o); } ) );
@@ -122,4 +108,7 @@ void bind_bdsg_internal_packed_structs(std::function< pybind11::module &(std::st
 		cl.def("begin", (class bdsg::PackedSet::iterator (bdsg::PackedSet::*)() const) &bdsg::PackedSet::begin, "Iterator to the first item in the set\n\nC++: bdsg::PackedSet::begin() const --> class bdsg::PackedSet::iterator");
 		cl.def("end", (class bdsg::PackedSet::iterator (bdsg::PackedSet::*)() const) &bdsg::PackedSet::end, "Iterator to the past-the-last item in the set\n\nC++: bdsg::PackedSet::end() const --> class bdsg::PackedSet::iterator");
 	}
+	// bdsg::make_with_allocator(const class std::allocator<class sdsl::int_vector<'\x00'> > &) file:bdsg/internal/packed_structs.hpp line:498
+	M("bdsg").def("make_with_allocator", (class sdsl::int_vector<'\x00'> (*)(const class std::allocator<class sdsl::int_vector<'\x00'> > &)) &bdsg::make_with_allocator<sdsl::int_vector<'\x00'>,std::allocator<sdsl::int_vector<'\x00'> >>, "//////////////////\n General\n//////////////////\n\nC++: bdsg::make_with_allocator(const class std::allocator<class sdsl::int_vector<'\x00'> > &) --> class sdsl::int_vector<'\x00'>", pybind11::arg("allocator"));
+
 }

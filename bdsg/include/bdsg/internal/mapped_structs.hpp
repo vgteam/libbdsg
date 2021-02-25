@@ -538,7 +538,7 @@ big_endian<T>::big_endian(const T& value) {
 template<typename T>
 big_endian<T>::operator T () const {
     
-    static_assert(std::numeric_limits<T>::is_integer);
+    static_assert(std::numeric_limits<T>::is_integer, "big_endian only works for integers");
 
     // I had no luck partially specializing the conversion operator for all
     // integral types of a given width, so we switch and call only the
@@ -566,7 +566,7 @@ big_endian<T>::operator T () const {
 template<typename T>
 big_endian<T>& big_endian<T>::operator=(const T& x) {
 
-    static_assert(std::numeric_limits<T>::is_integer);
+    static_assert(std::numeric_limits<T>::is_integer, "big_endian only works for integers");
 
     switch (std::numeric_limits<T>::digits) {
     case 64:
@@ -656,7 +656,7 @@ CompatVector<T, Alloc>& CompatVector<T, Alloc>::operator=(const CompatVector& ot
         // assignment here sometimes?
         resize(other.size);
         for (size_t i = 0; i < other.size(); i++) {
-            this.at(i) = other.at(i);
+            this->at(i) = other.at(i);
         }
     }
 #ifdef debug_compat_vector

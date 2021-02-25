@@ -3,12 +3,16 @@ handlegraph/types.cpp
 handlegraph/handle_graph.cpp
 handlegraph/path_handle_graph.cpp
 handlegraph/mutable_path_mutable_handle_graph.cpp
-handlegraph/serializable_handle_graph.cpp
 bdsg/internal/wang_hash.cpp
+sdsl/int_vector.cpp
+sdsl/int_vector_1.cpp
 bdsg/internal/packed_structs.cpp
 bdsg/internal/utility.cpp
 std/bdsg/internal/binder_hook_bind.cpp
 bdsg/internal/is_single_stranded.cpp
+bdsg/internal/mapped_structs.cpp
+handlegraph/trivially_serializable.cpp
+bdsg/internal/mmap_backend.cpp
 bdsg/odgi.cpp
 handlegraph/path_position_handle_graph.cpp
 bdsg/overlays/packed_path_position_overlay.cpp

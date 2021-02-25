@@ -35,7 +35,7 @@ inline Wanted make_with_allocator(const Allocator& allocator);
  * A dynamic integer vector that maintains integers in bit-compressed form.
  * Automatically adjusts bit-width for entries depending on input data.
  */
-template<typename IntVector=sdsl::int_vector<>, template<typename T> typename Allocator=std::allocator>
+template<typename IntVector=sdsl::int_vector<>, template<typename T> class Allocator=std::allocator>
 class PackedVector {
 public:
     /// Constructor (starts empty)
@@ -514,10 +514,10 @@ inline Wanted make_with_allocator(const Allocator& allocator) {
 /// PackedVector
 /////////////////////
 
-template<typename IntVector, template<typename T> typename Allocator>
+template<typename IntVector, template<typename T> class Allocator>
 const double PackedVector<IntVector, Allocator>::factor = 1.25;
 
-template<typename IntVector, template<typename T> typename Allocator>
+template<typename IntVector, template<typename T> class Allocator>
 inline void PackedVector<IntVector, Allocator>::set(const size_t& i, const uint64_t& value) {
     assert(i < filled);
         
@@ -541,24 +541,24 @@ inline void PackedVector<IntVector, Allocator>::set(const size_t& i, const uint6
     vec[i] = value;
 }
     
-template<typename IntVector, template<typename T> typename Allocator>
+template<typename IntVector, template<typename T> class Allocator>
 inline uint64_t PackedVector<IntVector, Allocator>::get(const size_t& i) const {
     assert(i < filled);
     return vec[i];
 }
 
-template<typename IntVector, template<typename T> typename Allocator>
+template<typename IntVector, template<typename T> class Allocator>
 inline void PackedVector<IntVector, Allocator>::append(const uint64_t& value) {
     resize(filled + 1);
     set(filled - 1, value);
 }
 
-template<typename IntVector, template<typename T> typename Allocator>
+template<typename IntVector, template<typename T> class Allocator>
 inline void PackedVector<IntVector, Allocator>::pop() {
     resize(filled - 1);
 }
     
-template<typename IntVector, template<typename T> typename Allocator>
+template<typename IntVector, template<typename T> class Allocator>
 inline void PackedVector<IntVector, Allocator>::resize(const size_t& new_size) {
     if (new_size < filled) {
         size_t shrink_capacity = vec.size() / (factor * factor);
@@ -583,7 +583,7 @@ inline void PackedVector<IntVector, Allocator>::resize(const size_t& new_size) {
     filled = new_size;
 }
 
-template<typename IntVector, template<typename T> typename Allocator>
+template<typename IntVector, template<typename T> class Allocator>
 inline void PackedVector<IntVector, Allocator>::reserve(const size_t& future_size) {
     if (future_size > vec.size()) {
         sdsl::int_vector<> tmp;
@@ -596,24 +596,24 @@ inline void PackedVector<IntVector, Allocator>::reserve(const size_t& future_siz
     }
 }
 
-template<typename IntVector, template<typename T> typename Allocator>
+template<typename IntVector, template<typename T> class Allocator>
 inline size_t PackedVector<IntVector, Allocator>::size() const {
     return filled;
 }
 
-template<typename IntVector, template<typename T> typename Allocator>
+template<typename IntVector, template<typename T> class Allocator>
 inline bool PackedVector<IntVector, Allocator>::empty() const {
     return filled == 0;
 }
 
-template<typename IntVector, template<typename T> typename Allocator>
+template<typename IntVector, template<typename T> class Allocator>
 inline void PackedVector<IntVector, Allocator>::clear() {
     vec.resize(0);
     vec.width(1);
     filled = 0;
 }
 
-template<typename IntVector, template<typename T> typename Allocator>
+template<typename IntVector, template<typename T> class Allocator>
 inline bool PackedVector<IntVector, Allocator>::operator==(const PackedVector& other) const {
     if (size() != other.size()) {
         return false;
@@ -627,39 +627,39 @@ inline bool PackedVector<IntVector, Allocator>::operator==(const PackedVector& o
     return true;
 }
 
-template<typename IntVector, template<typename T> typename Allocator>
+template<typename IntVector, template<typename T> class Allocator>
 PackedVector<IntVector, Allocator>::PackedVector() : PackedVector(Allocator<IntVector>()) {
     // Nothing to do!
 }
 
-template<typename IntVector, template<typename T> typename Allocator>
+template<typename IntVector, template<typename T> class Allocator>
 PackedVector<IntVector, Allocator>::PackedVector(const Allocator<IntVector>& alloc) : vec(make_with_allocator<IntVector>(alloc)) {
     vec.width(1); // by default we start as a bitvector
 }
 
-template<typename IntVector, template<typename T> typename Allocator>
+template<typename IntVector, template<typename T> class Allocator>
 PackedVector<IntVector, Allocator>::PackedVector(istream& in) {
     deserialize(in);
 }
 
-template<typename IntVector, template<typename T> typename Allocator>
+template<typename IntVector, template<typename T> class Allocator>
 PackedVector<IntVector, Allocator>::~PackedVector() {
     
 }
 
-template<typename IntVector, template<typename T> typename Allocator>
+template<typename IntVector, template<typename T> class Allocator>
 void PackedVector<IntVector, Allocator>::deserialize(istream& in) {
     sdsl::read_member(filled, in);
     vec.load(in);
 }
 
-template<typename IntVector, template<typename T> typename Allocator>
+template<typename IntVector, template<typename T> class Allocator>
 void PackedVector<IntVector, Allocator>::serialize(ostream& out) const {
     sdsl::write_member(filled, out);
     vec.serialize(out);
 }
 
-template<typename IntVector, template<typename T> typename Allocator>
+template<typename IntVector, template<typename T> class Allocator>
 size_t PackedVector<IntVector, Allocator>::memory_usage() const {
     // sdsl vectors return the number of bits, but we want bytes
     return sizeof(filled) + sizeof(vec) + vec.capacity() / 8;
