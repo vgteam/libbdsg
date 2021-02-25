@@ -4,8 +4,6 @@ handlegraph/handle_graph.cpp
 handlegraph/path_handle_graph.cpp
 handlegraph/mutable_path_mutable_handle_graph.cpp
 bdsg/internal/wang_hash.cpp
-sdsl/int_vector.cpp
-sdsl/int_vector_1.cpp
 bdsg/internal/packed_structs.cpp
 bdsg/internal/utility.cpp
 std/bdsg/internal/binder_hook_bind.cpp

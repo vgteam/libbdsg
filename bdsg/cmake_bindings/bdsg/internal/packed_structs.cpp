@@ -108,7 +108,4 @@ void bind_bdsg_internal_packed_structs(std::function< pybind11::module &(std::st
 		cl.def("begin", (class bdsg::PackedSet::iterator (bdsg::PackedSet::*)() const) &bdsg::PackedSet::begin, "Iterator to the first item in the set\n\nC++: bdsg::PackedSet::begin() const --> class bdsg::PackedSet::iterator");
 		cl.def("end", (class bdsg::PackedSet::iterator (bdsg::PackedSet::*)() const) &bdsg::PackedSet::end, "Iterator to the past-the-last item in the set\n\nC++: bdsg::PackedSet::end() const --> class bdsg::PackedSet::iterator");
 	}
-	// bdsg::make_with_allocator(const class std::allocator<class sdsl::int_vector<'\x00'> > &) file:bdsg/internal/packed_structs.hpp line:498
-	M("bdsg").def("make_with_allocator", (class sdsl::int_vector<'\x00'> (*)(const class std::allocator<class sdsl::int_vector<'\x00'> > &)) &bdsg::make_with_allocator<sdsl::int_vector<'\x00'>,std::allocator<sdsl::int_vector<'\x00'> >>, "//////////////////\n General\n//////////////////\n\nC++: bdsg::make_with_allocator(const class std::allocator<class sdsl::int_vector<'\x00'> > &) --> class sdsl::int_vector<'\x00'>", pybind11::arg("allocator"));
-
 }

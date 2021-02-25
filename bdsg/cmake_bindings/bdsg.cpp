@@ -13,8 +13,6 @@ void bind_handlegraph_handle_graph(std::function< pybind11::module &(std::string
 void bind_handlegraph_path_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_handlegraph_mutable_path_mutable_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_internal_wang_hash(std::function< pybind11::module &(std::string const &namespace_) > &M);
-void bind_sdsl_int_vector(std::function< pybind11::module &(std::string const &namespace_) > &M);
-void bind_sdsl_int_vector_1(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_internal_packed_structs(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_internal_utility(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_std_bdsg_internal_binder_hook_bind(std::function< pybind11::module &(std::string const &namespace_) > &M);
@@ -48,7 +46,6 @@ PYBIND11_MODULE(bdsg, root_module) {
 		{"bdsg", "algorithms"},
 		{"bdsg", "yomo"},
 		{"", "handlegraph"},
-		{"", "sdsl"},
 		{"", "std"},
 	};
 	for(auto &p : sub_modules ) modules[p.first.size() ? p.first+"::"+p.second : p.second] = modules[p.first].def_submodule(p.second.c_str(), ("Bindings for " + p.first + "::" + p.second + " namespace").c_str() );
@@ -60,8 +57,6 @@ PYBIND11_MODULE(bdsg, root_module) {
 	bind_handlegraph_path_handle_graph(M);
 	bind_handlegraph_mutable_path_mutable_handle_graph(M);
 	bind_bdsg_internal_wang_hash(M);
-	bind_sdsl_int_vector(M);
-	bind_sdsl_int_vector_1(M);
 	bind_bdsg_internal_packed_structs(M);
 	bind_bdsg_internal_utility(M);
 	bind_std_bdsg_internal_binder_hook_bind(M);
