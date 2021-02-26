@@ -864,7 +864,7 @@ namespace bdsg {
                 // now we need to iterate over each node on the path exactly one time to update its membership
                 // records (even if the node occurs multiple times on this path), so we will use a bit deque
                 // indexed by node_id - min_id to flag nodes as either translated or untranslated
-                PackedDeque nid_translated;
+                PackedDeque<> nid_translated;
                 nid_translated.append_back(0);
                 nid_t min_translated_id = get_id(decode_traversal(get_step_trav(path, path_head_iv.get(path_idx))));
                 
@@ -1083,7 +1083,7 @@ namespace bdsg {
         defragment(true);
         
         // make a new nid_to_graph_iv of exactly the right size
-        PackedDeque new_nid_to_graph_iv;
+        decltype(nid_to_graph_iv) new_nid_to_graph_iv;
         new_nid_to_graph_iv.reserve(nid_to_graph_iv.size());
         // transfer of the data
         for (size_t i = 0; i < nid_to_graph_iv.size(); i++) {
@@ -1911,7 +1911,7 @@ namespace bdsg {
         // initialize new ID member variables
         nid_t new_max_id = 0;
         nid_t new_min_id = std::numeric_limits<nid_t>::max();
-        PackedDeque new_nid_to_graph_iv;
+        decltype(nid_to_graph_iv) new_nid_to_graph_iv;
         new_nid_to_graph_iv.reserve(get_node_count());
 
         for (size_t i = 0; i < nid_to_graph_iv.size(); ++i) {

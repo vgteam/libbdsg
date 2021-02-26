@@ -8,36 +8,6 @@
 namespace bdsg {
     
 
-const double PackedDeque::factor = 1.25;
-
-PackedDeque::PackedDeque() {
-    
-}
-    
-PackedDeque::PackedDeque(istream& in) {
-    deserialize(in);
-}
-
-PackedDeque::~PackedDeque() {
-    
-}
-    
-void PackedDeque::deserialize(istream& in) {
-    sdsl::read_member(begin_idx, in);
-    sdsl::read_member(filled, in);
-    vec.deserialize(in);
-}
-
-void PackedDeque::serialize(ostream& out) const  {
-    sdsl::write_member(begin_idx, out);
-    sdsl::write_member(filled, out);
-    vec.serialize(out);
-}
-
-size_t PackedDeque::memory_usage() const {
-    return sizeof(begin_idx) + sizeof(filled) + vec.memory_usage();
-}
-
 PackedSet::PackedSet() : gen(random_device()()) {
     table.resize(bdsg_packed_set_size_schedule[0]);
 }

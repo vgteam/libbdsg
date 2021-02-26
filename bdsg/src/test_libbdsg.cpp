@@ -2719,7 +2719,7 @@ void test_packed_deque() {
         uint64_t next_val = 0;
         
         std::deque<uint64_t> std_deq;
-        PackedDeque suc_deq;
+        PackedDeque<> suc_deq;
         
         for (size_t j = 0; j < num_ops; j++) {
             
@@ -2788,7 +2788,7 @@ void test_packed_deque() {
                     
                     suc_deq.serialize(strm);
                     strm.seekg(0);
-                    PackedDeque copy_deq(strm);
+                    PackedDeque<> copy_deq(strm);
                     
                     assert(copy_deq.size() == suc_deq.size());
                     for (size_t i = 0; i < copy_deq.size(); i++) {

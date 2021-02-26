@@ -285,6 +285,7 @@ using MappedRobustPagedVector = RobustPagedVector<page_size, MappedPackedVector,
  * A deque implementation that maintains integers in bit-compressed form, with the bit
  * width automatically adjusted to the entries.
  */
+template<typename PackedVec = PackedVector<>>
 class PackedDeque {
 public:
     /// Construct empty
@@ -351,11 +352,11 @@ private:
     
     inline size_t internal_index(const size_t& i) const;
     
-    PackedVector<> vec;
+    PackedVec vec;
     
     size_t begin_idx = 0;
     size_t filled = 0;
-    static const double factor;
+    static constexpr double factor = 1.25;
 };
     
 /*
@@ -651,22 +652,59 @@ size_t PackedVector<IntVector>::memory_usage() const {
 /////////////////////
 /// PackedDeque
 /////////////////////
+
+template<typename PackedVec>
+PackedDeque<PackedVec>::PackedDeque() {
     
+}
+
+template<typename PackedVec>
+PackedDeque<PackedVec>::PackedDeque(istream& in) {
+    deserialize(in);
+}
+
+template<typename PackedVec>
+PackedDeque<PackedVec>::~PackedDeque() {
     
-inline size_t PackedDeque::internal_index(const size_t& i) const {
+}
+
+template<typename PackedVec>
+void PackedDeque<PackedVec>::deserialize(istream& in) {
+    sdsl::read_member(begin_idx, in);
+    sdsl::read_member(filled, in);
+    vec.deserialize(in);
+}
+
+template<typename PackedVec>
+void PackedDeque<PackedVec>::serialize(ostream& out) const  {
+    sdsl::write_member(begin_idx, out);
+    sdsl::write_member(filled, out);
+    vec.serialize(out);
+}
+
+template<typename PackedVec>
+size_t PackedDeque<PackedVec>::memory_usage() const {
+    return sizeof(begin_idx) + sizeof(filled) + vec.memory_usage();
+}
+
+template<typename PackedVec>
+inline size_t PackedDeque<PackedVec>::internal_index(const size_t& i) const {
     assert(i < filled);
     return i < vec.size() - begin_idx ? begin_idx + i : i - (vec.size() - begin_idx);
 }
 
-inline void PackedDeque::set(const size_t& i, const uint64_t& value) {
+template<typename PackedVec>
+inline void PackedDeque<PackedVec>::set(const size_t& i, const uint64_t& value) {
     return vec.set(internal_index(i), value);
 }
 
-inline uint64_t PackedDeque::get(const size_t& i) const {
+template<typename PackedVec>
+inline uint64_t PackedDeque<PackedVec>::get(const size_t& i) const {
     return vec.get(internal_index(i));
 }
-    
-inline void PackedDeque::reserve(const size_t& future_size) {
+   
+template<typename PackedVec>
+inline void PackedDeque<PackedVec>::reserve(const size_t& future_size) {
     if (future_size > vec.size()) {
         PackedVector<> new_vec;
         new_vec.resize(future_size);
@@ -679,7 +717,8 @@ inline void PackedDeque::reserve(const size_t& future_size) {
     }
 }
 
-inline void PackedDeque::append_front(const uint64_t& value) {
+template<typename PackedVec>
+inline void PackedDeque<PackedVec>::append_front(const uint64_t& value) {
     // expand capacity if necessary
     if (filled == vec.size()) {
         size_t new_capacity = size_t(factor * vec.size()) + 1;
@@ -700,7 +739,8 @@ inline void PackedDeque::append_front(const uint64_t& value) {
     vec.set(internal_index(0), value);
 }
 
-inline void PackedDeque::append_back(const uint64_t& value) {
+template<typename PackedVec>
+inline void PackedDeque<PackedVec>::append_back(const uint64_t& value) {
     // expand capacity if necessary
     if (filled == vec.size()) {
         size_t new_capacity = size_t(factor * vec.size()) + 1;
@@ -713,8 +753,9 @@ inline void PackedDeque::append_back(const uint64_t& value) {
     // set the value
     vec.set(internal_index(filled - 1), value);
 }
-    
-inline void PackedDeque::contract() {
+
+template<typename PackedVec>
+inline void PackedDeque<PackedVec>::contract() {
     size_t shrink_capacity = vec.size() / (factor * factor);
     if (filled <= shrink_capacity) {
         PackedVector<> new_vec;
@@ -728,7 +769,8 @@ inline void PackedDeque::contract() {
     }
 }
 
-inline void PackedDeque::pop_front() {
+template<typename PackedVec>
+inline void PackedDeque<PackedVec>::pop_front() {
     // update the pointer to the beginning
     begin_idx++;
     if (begin_idx == vec.size()) {
@@ -741,7 +783,8 @@ inline void PackedDeque::pop_front() {
     contract();
 }
 
-inline void PackedDeque::pop_back() {
+template<typename PackedVec>
+inline void PackedDeque<PackedVec>::pop_back() {
     // update the pointer to the end
     filled--;
     
@@ -749,15 +792,18 @@ inline void PackedDeque::pop_back() {
     contract();
 }
 
-inline size_t PackedDeque::size() const {
+template<typename PackedVec>
+inline size_t PackedDeque<PackedVec>::size() const {
     return filled;
 }
 
-inline bool PackedDeque::empty() const {
+template<typename PackedVec>
+inline bool PackedDeque<PackedVec>::empty() const {
     return filled == 0;
 }
-    
-inline void PackedDeque::clear() {
+ 
+template<typename PackedVec>
+inline void PackedDeque<PackedVec>::clear() {
     vec.clear();
     filled = 0;
     begin_idx = 0;

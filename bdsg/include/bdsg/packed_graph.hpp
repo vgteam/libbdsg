@@ -446,7 +446,7 @@ private:
     /// Encodes the 1-based offset of an ID in graph_iv in units of GRAPH_RECORD_SIZE.
     /// If no node with that ID exists, contains a 0. The index of a given ID is
     /// computed by (ID - min ID).
-    PackedDeque nid_to_graph_iv;
+    PackedDeque<> nid_to_graph_iv;
 
     /// Encodes all of the sequences of all nodes in the graph.
     PackedVector<> seq_iv;
