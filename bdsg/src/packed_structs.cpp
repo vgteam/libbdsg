@@ -10,48 +10,6 @@ namespace bdsg {
 
 const double PackedDeque::factor = 1.25;
 
-PagedVector::PagedVector(size_t page_size) : page_size(page_size) {
-    
-}
-
-PagedVector::PagedVector(istream& in) {
-    deserialize(in);
-}
-
-PagedVector::~PagedVector() {
-    
-}
-    
-void PagedVector::deserialize(istream& in) {
-    sdsl::read_member(filled, in);
-    sdsl::read_member(page_size, in);
-    anchors.deserialize(in);
-    for (size_t i = 0; i < anchors.size(); i++) {
-        pages.emplace_back(in);
-    }
-}
-
-void PagedVector::serialize(ostream& out) const  {
-    sdsl::write_member(filled, out);
-    sdsl::write_member(page_size, out);
-    anchors.serialize(out);
-    for (size_t i = 0; i < pages.size(); i++) {
-        pages[i].serialize(out);
-    }
-}
-
-size_t PagedVector::memory_usage() const {
-    size_t total = sizeof(page_size) + sizeof(filled) + sizeof(pages);
-    total += anchors.memory_usage();
-    // add the memory of pages that are filled in the vector
-    for (const auto& page : pages) {
-        total += page.memory_usage();
-    }
-    // add the memory of excess capacity
-    total += (pages.capacity() - pages.size()) * sizeof(decltype(pages)::value_type);
-    return total;
-}
-
 PackedDeque::PackedDeque() {
     
 }

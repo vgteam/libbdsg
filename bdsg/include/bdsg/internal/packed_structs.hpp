@@ -16,6 +16,8 @@
 #include <random>
 #include <sdsl/int_vector.hpp>
 
+#include "mapped_structs.hpp"
+
 namespace bdsg {
     
 using namespace std;
@@ -30,7 +32,7 @@ inline void repack(IntVector& target, size_t new_width, size_t new_size);
  * A dynamic integer vector that maintains integers in bit-compressed form.
  * Automatically adjusts bit-width for entries depending on input data.
  */
-template<typename IntVector=sdsl::int_vector<>>
+template<typename IntVector = sdsl::int_vector<>>
 class PackedVector {
 public:
     /// Constructor (starts empty)
@@ -108,12 +110,15 @@ private:
     static const double factor;
 };
 
+using MappedPackedVector = PackedVector<MappedIntVector>;
+
 /*
  * A dynamic integer vector that provides better compression when values in the
  * integer vector either 1) do not vary much from their neighbors or 2) are 0.
  * Compression is also optimized for vectors that are mostly (but not necessarily
  * exclusively) increasing.
  */
+template<typename Page = PackedVector<>, typename PageHolder = std::vector<Page>>
 class PagedVector {
 public:
     
@@ -191,10 +196,12 @@ private:
     size_t filled = 0;
     
     // Evenly spaced entries from the vector
-    PackedVector<> anchors;
+    Page anchors;
     // All entries in the vector expressed as a difference from the preceding page value
-    vector<PackedVector<>> pages;
+    PageHolder pages;
 };
+
+using MappedPagedVector = PagedVector<MappedPackedVector, MappedVector<MappedPackedVector>>;
 
 /*
  * A dynamic integer vector with similar compression properties to the PagedVector,
@@ -271,7 +278,7 @@ private:
     PackedVector<> first_page;
     
     /// All entries beyond page_size go in this vector
-    PagedVector latter_pages;
+    PagedVector<> latter_pages;
 };
 
 /*
@@ -640,7 +647,7 @@ size_t PackedVector<IntVector>::memory_usage() const {
     // sdsl vectors return the number of bits, but we want bytes
     return sizeof(filled) + sizeof(vec) + vec.capacity() / 8;
 }
-    
+
 /////////////////////
 /// PackedDeque
 /////////////////////
@@ -759,8 +766,57 @@ inline void PackedDeque::clear() {
 /////////////////////
 /// PagedVector
 /////////////////////
+
+template<typename Page, typename PageHolder>
+PagedVector<Page, PageHolder>::PagedVector(size_t page_size) : page_size(page_size) {
     
-inline void PagedVector::set(const size_t& i, const uint64_t& value) {
+}
+
+template<typename Page, typename PageHolder>
+PagedVector<Page, PageHolder>::PagedVector(istream& in) {
+    deserialize(in);
+}
+
+template<typename Page, typename PageHolder>
+PagedVector<Page, PageHolder>::~PagedVector() {
+    
+}
+
+template<typename Page, typename PageHolder>
+void PagedVector<Page, PageHolder>::deserialize(istream& in) {
+    sdsl::read_member(filled, in);
+    sdsl::read_member(page_size, in);
+    anchors.deserialize(in);
+    for (size_t i = 0; i < anchors.size(); i++) {
+        pages.emplace_back(in);
+    }
+}
+
+template<typename Page, typename PageHolder>
+void PagedVector<Page, PageHolder>::serialize(ostream& out) const  {
+    sdsl::write_member(filled, out);
+    sdsl::write_member(page_size, out);
+    anchors.serialize(out);
+    for (size_t i = 0; i < pages.size(); i++) {
+        pages[i].serialize(out);
+    }
+}
+
+template<typename Page, typename PageHolder>
+size_t PagedVector<Page, PageHolder>::memory_usage() const {
+    size_t total = sizeof(page_size) + sizeof(filled) + sizeof(pages);
+    total += anchors.memory_usage();
+    // add the memory of pages that are filled in the vector
+    for (const auto& page : pages) {
+        total += page.memory_usage();
+    }
+    // add the memory of excess capacity
+    total += (pages.capacity() - pages.size()) * sizeof(typename decltype(pages)::value_type);
+    return total;
+}
+    
+template<typename Page, typename PageHolder>
+inline void PagedVector<Page, PageHolder>::set(const size_t& i, const uint64_t& value) {
     assert(i < filled);
     uint64_t anchor = anchors.get(i / page_size);
     if (anchor == 0) {
@@ -771,13 +827,15 @@ inline void PagedVector::set(const size_t& i, const uint64_t& value) {
     pages[i / page_size].set(i % page_size, to_diff(value, anchor));
 }
 
-inline uint64_t PagedVector::get(const size_t& i) const {
+template<typename Page, typename PageHolder>
+inline uint64_t PagedVector<Page, PageHolder>::get(const size_t& i) const {
     assert(i < filled);
     return from_diff(pages[i / page_size].get(i % page_size),
                      anchors.get(i / page_size));
 }
 
-inline void PagedVector::append(const uint64_t& value) {
+template<typename Page, typename PageHolder>
+inline void PagedVector<Page, PageHolder>::append(const uint64_t& value) {
     if (filled == pages.size() * page_size) {
         // init a new page and a new anchor
         pages.emplace_back();
@@ -790,7 +848,8 @@ inline void PagedVector::append(const uint64_t& value) {
     set(filled - 1, value);
 }
 
-inline void PagedVector::pop() {
+template<typename Page, typename PageHolder>
+inline void PagedVector<Page, PageHolder>::pop() {
     filled--;
     while (filled + page_size <= pages.size() * page_size) {
         // the final page is unused now, remove it
@@ -799,7 +858,8 @@ inline void PagedVector::pop() {
     }
 }
 
-inline void PagedVector::resize(const size_t& new_size) {
+template<typename Page, typename PageHolder>
+inline void PagedVector<Page, PageHolder>::resize(const size_t& new_size) {
     if (new_size < filled) {
         // shrink down to the number of pages we would need
         size_t num_pages = new_size == 0 ? 0 : (new_size - 1) / page_size + 1;
@@ -812,8 +872,9 @@ inline void PagedVector::resize(const size_t& new_size) {
     }
     filled = new_size;
 }
-    
-inline void PagedVector::reserve(const size_t& future_size) {
+  
+template<typename Page, typename PageHolder>
+inline void PagedVector<Page, PageHolder>::reserve(const size_t& future_size) {
     if (future_size > pages.size() * page_size) {
         // how many pages does this require?
         size_t num_pages = (future_size - 1) / page_size + 1;
@@ -833,24 +894,30 @@ inline void PagedVector::reserve(const size_t& future_size) {
     }
 }
 
-inline size_t PagedVector::size() const {
+template<typename Page, typename PageHolder>
+inline size_t PagedVector<Page, PageHolder>::size() const {
     return filled;
 }
 
-inline bool PagedVector::empty() const {
+template<typename Page, typename PageHolder>
+inline bool PagedVector<Page, PageHolder>::empty() const {
     return filled == 0;
 }
 
-inline void PagedVector::clear() {
+template<typename Page, typename PageHolder>
+inline void PagedVector<Page, PageHolder>::clear() {
     pages.clear();
     anchors.clear();
     filled = 0;
 }
-inline size_t PagedVector::page_width() const {
+
+template<typename Page, typename PageHolder>
+inline size_t PagedVector<Page, PageHolder>::page_width() const {
     return page_size;
 }
     
-inline uint64_t PagedVector::to_diff(const uint64_t& value, const uint64_t& anchor) const {
+template<typename Page, typename PageHolder>
+inline uint64_t PagedVector<Page, PageHolder>::to_diff(const uint64_t& value, const uint64_t& anchor) const {
     // leaves 0 unchanged, encodes other values as a difference from the anchor value
     // with a reversible mapping into the positive integers as follows:
     // difference  0  1  2  3 -1  4  5  6  7 -2  8  9 10 11 -3 ...
@@ -872,7 +939,8 @@ inline uint64_t PagedVector::to_diff(const uint64_t& value, const uint64_t& anch
     }
 }
 
-inline uint64_t PagedVector::from_diff(const uint64_t& diff, const uint64_t& anchor) const {
+template<typename Page, typename PageHolder>
+inline uint64_t PagedVector<Page, PageHolder>::from_diff(const uint64_t& diff, const uint64_t& anchor) const {
     // convert backward from the transformation described in to_diff
     
     if (diff == 0) {
@@ -885,7 +953,7 @@ inline uint64_t PagedVector::from_diff(const uint64_t& diff, const uint64_t& anc
         return anchor + diff - diff / 5 - 1;
     }
 }
-    
+
 inline void RobustPagedVector::set(const size_t& i, const uint64_t& value) {
     if (i < latter_pages.page_width()) {
         first_page.set(i, value);

@@ -531,6 +531,12 @@ protected:
 };
 
 /**
+ * Vector mapped in from a file.
+ */
+template<typename T>
+using MappedVector = CompatVector<T, yomo::Allocator<T>>; 
+
+/**
  * An int vector that is mostly API-compatible with SDSL's int vectors, but
  * which can exist in a memory mapping and uses the given allocator and its
  * pointers.
@@ -555,6 +561,11 @@ public:
      */
     void repack(size_t new_width, size_t new_size);
 };
+
+/**
+ * Int vector mapped in from a file.
+ */
+using MappedIntVector = CompatIntVector<yomo::Allocator<size_t>>; 
 
 ///////////////////////////////////////////////////////////////////////////////////
 

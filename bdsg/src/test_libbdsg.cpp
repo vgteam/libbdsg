@@ -2627,7 +2627,7 @@ void test_paged_vector() {
         uint64_t next_val = val_distr(prng);
         
         std::vector<uint64_t> std_vec;
-        PagedVector dyn_vec(page_distr(prng));
+        PagedVector<> dyn_vec(page_distr(prng));
         
         for (size_t j = 0; j < num_ops; j++) {
             
@@ -2681,7 +2681,7 @@ void test_paged_vector() {
                     
                     dyn_vec.serialize(strm);
                     strm.seekg(0);
-                    PagedVector copy_vec(strm);
+                    PagedVector<> copy_vec(strm);
                     
                     assert(copy_vec.size() == dyn_vec.size());
                     for (size_t i = 0; i < copy_vec.size(); i++) {
