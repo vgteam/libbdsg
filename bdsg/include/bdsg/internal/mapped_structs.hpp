@@ -402,23 +402,6 @@ public:
 };
 
 /**
- * Allow rebinding our position-dependent "stateful" allocators to allocate new types.
- * Needs to use a callback because the std::allocator version can't necessarily
- * reinterpret and will need to construct a temporary.
- */
-template<typename T, typename Old>
-void with_rebound_allocator(Allocator<Old>& alloc,
-                            const std::function<void(Allocator<T>&)>& callback);
-
-/**
- * Allow rebinding std::allocator in templates in an overload-compatible way
- * with how yomo::Allocator can be rebound. 
- */
-template<typename T, typename Old>
-void with_rebound_allocator(std::allocator<Old>& alloc,
-                            const std::function<void(std::allocator<T>&)>& callback);
-
-/**
  * Interface between normally allocated objects and chain-allocated objects.
  * Pointer to an object that is allocated at the beginning of a chain, and
  * which should allocate, if it allocates, from the chain.
@@ -1005,24 +988,6 @@ template<typename T>
 void Allocator<T>::deallocate(T* p, size_type n) {
     Manager::deallocate((void*) p);
 }
-
-
-template<typename T, typename Old>
-void with_rebound_allocator(Allocator<Old>& alloc,
-                            const std::function<void(Allocator<T>&)>& callback) {
-    // The YOMO allocator can just be reinterpreted in place
-    callback(reinterpret_cast<Allocator<T>&>(alloc));
-}
-
-template<typename T, typename Old>
-void with_rebound_allocator(std::allocator<Old>& alloc,
-                            const std::function<void(std::allocator<T>&)>& callback) {
-                            
-    // std::allocator is stateless so show the callback a temporary
-    std::allocator<T> new_alloc;
-    callback(new_alloc);
-}
-
 
 template<typename T>
 UniqueMappedPointer<T>::operator bool () const {
