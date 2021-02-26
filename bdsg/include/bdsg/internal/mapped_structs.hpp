@@ -502,6 +502,9 @@ public:
     T& at(size_t index);
     const T& at(size_t index) const;
     
+    T& operator[](size_t index);
+    const T& operator[](size_t index) const;
+    
     // TODO: reserve(), push_back()
 protected:
     // We keep the allocator in ourselves, so if working in a chain we allocate
@@ -512,6 +515,20 @@ protected:
     typename std::allocator_traits<Alloc>::pointer first = nullptr;
     
     static const int RESIZE_FACTOR = 2;
+};
+
+/**
+ * An int vector that is mostly API-compatible with SDSL's int vectors, but
+ * which can exist in a memory mapping and uses the given allocator and its
+ * pointers.
+ *
+ * TODO: Actually implement compression and a reference proxy like SDSL does.
+ */
+template<typename Alloc = std::allocator<size_t>>
+class CompatIntVector : public CompatVector<size_t, Alloc> {
+public:
+    size_t width() const;
+    void width(size_t new_width);
 };
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -811,13 +828,26 @@ T& CompatVector<T, Alloc>::at(size_t index) {
                                  " in vector of length " + std::to_string(size()));
     }
     
-    return *(first + index);
+    return (*this)[index];
 }
 
 template<typename T, typename Alloc>
 const T& CompatVector<T, Alloc>::at(size_t index) const {
     // Just run non-const at and constify result
     return const_cast<CompatVector<T, Alloc>*>(this)->at(index);
+}
+
+
+template<typename T, typename Alloc>
+T& CompatVector<T, Alloc>::operator[](size_t index) {
+    return *(first + index);
+}
+ 
+
+template<typename T, typename Alloc>
+const T& CompatVector<T, Alloc>::operator[](size_t index) const {
+    // Just run non-const at and constify result
+    return const_cast<CompatVector<T, Alloc>*>(this)[index];
 }
 
 
