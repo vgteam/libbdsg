@@ -118,12 +118,12 @@ using MappedPackedVector = PackedVector<MappedIntVector>;
  * Compression is also optimized for vectors that are mostly (but not necessarily
  * exclusively) increasing.
  */
-template<typename Page = PackedVector<>, typename PageHolder = std::vector<Page>>
+template<size_t page_size = 64, typename Page = PackedVector<>, typename PageHolder = std::vector<Page>>
 class PagedVector {
 public:
     
-    /// Construct and set page size (starts empty)
-    PagedVector(size_t page_size);
+    /// Construct (starts empty) 
+    PagedVector();
     
     /// Construct from contents in a stream
     PagedVector(istream& in);
@@ -184,13 +184,8 @@ public:
     
 private:
     
-    PagedVector();
-    
     inline uint64_t to_diff(const uint64_t& value, const uint64_t& page) const;
     inline uint64_t from_diff(const uint64_t& diff, const uint64_t& page) const;
-    
-    // TODO: is there a way to const this and still allow copy/move constructors?
-    size_t page_size = 64;
     
     // The number of entries filled so far
     size_t filled = 0;
@@ -201,17 +196,21 @@ private:
     PageHolder pages;
 };
 
-using MappedPagedVector = PagedVector<MappedPackedVector, MappedVector<MappedPackedVector>>;
+template<size_t page_size = 64>
+using MappedPagedVector = PagedVector<page_size, MappedPackedVector, MappedVector<MappedPackedVector>>;
 
 /*
  * A dynamic integer vector with similar compression properties to the PagedVector,
  * but better memory usage if the vector may be very small (relative to the page
  * size.
  */
+template<size_t page_size = 64,
+         typename PackedVec = PackedVector<>,
+         typename PagedVec = PagedVector<page_size, PackedVec>>
 class RobustPagedVector {
 public:
-    /// Construct and set page size (starts empty)
-    RobustPagedVector(size_t page_size);
+    /// Construct (starts empty)
+    RobustPagedVector();
     
     /// Construct from contents in a stream
     RobustPagedVector(istream& in);
@@ -272,14 +271,15 @@ public:
     
 private:
     
-    RobustPagedVector();
-    
     /// The first page_size entries go in this vector
-    PackedVector<> first_page;
+    PackedVec first_page;
     
     /// All entries beyond page_size go in this vector
-    PagedVector<> latter_pages;
+    PagedVec latter_pages;
 };
+
+template<size_t page_size = 64>
+using MappedRobustPagedVector = RobustPagedVector<page_size, MappedPackedVector, MappedPagedVector<page_size>>;
 
 /*
  * A deque implementation that maintains integers in bit-compressed form, with the bit
@@ -767,33 +767,39 @@ inline void PackedDeque::clear() {
 /// PagedVector
 /////////////////////
 
-template<typename Page, typename PageHolder>
-PagedVector<Page, PageHolder>::PagedVector(size_t page_size) : page_size(page_size) {
+template<size_t page_size, typename Page, typename PageHolder>
+PagedVector<page_size, Page, PageHolder>::PagedVector() {
     
 }
 
-template<typename Page, typename PageHolder>
-PagedVector<Page, PageHolder>::PagedVector(istream& in) {
+template<size_t page_size, typename Page, typename PageHolder>
+PagedVector<page_size, Page, PageHolder>::PagedVector(istream& in) {
     deserialize(in);
 }
 
-template<typename Page, typename PageHolder>
-PagedVector<Page, PageHolder>::~PagedVector() {
+template<size_t page_size, typename Page, typename PageHolder>
+PagedVector<page_size, Page, PageHolder>::~PagedVector() {
     
 }
 
-template<typename Page, typename PageHolder>
-void PagedVector<Page, PageHolder>::deserialize(istream& in) {
+template<size_t page_size, typename Page, typename PageHolder>
+void PagedVector<page_size, Page, PageHolder>::deserialize(istream& in) {
     sdsl::read_member(filled, in);
-    sdsl::read_member(page_size, in);
+    size_t stored_page_size;
+    sdsl::read_member(stored_page_size, in);
+    if (stored_page_size != page_size) {
+        // Make sure we have the right page size stored.
+        throw std::runtime_error("Compiled with page size " + std::to_string(page_size) +
+            " but loading vector with page size " + std::to_string(stored_page_size));
+    }
     anchors.deserialize(in);
     for (size_t i = 0; i < anchors.size(); i++) {
         pages.emplace_back(in);
     }
 }
 
-template<typename Page, typename PageHolder>
-void PagedVector<Page, PageHolder>::serialize(ostream& out) const  {
+template<size_t page_size, typename Page, typename PageHolder>
+void PagedVector<page_size, Page, PageHolder>::serialize(ostream& out) const  {
     sdsl::write_member(filled, out);
     sdsl::write_member(page_size, out);
     anchors.serialize(out);
@@ -802,8 +808,8 @@ void PagedVector<Page, PageHolder>::serialize(ostream& out) const  {
     }
 }
 
-template<typename Page, typename PageHolder>
-size_t PagedVector<Page, PageHolder>::memory_usage() const {
+template<size_t page_size, typename Page, typename PageHolder>
+size_t PagedVector<page_size, Page, PageHolder>::memory_usage() const {
     size_t total = sizeof(page_size) + sizeof(filled) + sizeof(pages);
     total += anchors.memory_usage();
     // add the memory of pages that are filled in the vector
@@ -815,8 +821,8 @@ size_t PagedVector<Page, PageHolder>::memory_usage() const {
     return total;
 }
     
-template<typename Page, typename PageHolder>
-inline void PagedVector<Page, PageHolder>::set(const size_t& i, const uint64_t& value) {
+template<size_t page_size, typename Page, typename PageHolder>
+inline void PagedVector<page_size, Page, PageHolder>::set(const size_t& i, const uint64_t& value) {
     assert(i < filled);
     uint64_t anchor = anchors.get(i / page_size);
     if (anchor == 0) {
@@ -827,15 +833,15 @@ inline void PagedVector<Page, PageHolder>::set(const size_t& i, const uint64_t& 
     pages[i / page_size].set(i % page_size, to_diff(value, anchor));
 }
 
-template<typename Page, typename PageHolder>
-inline uint64_t PagedVector<Page, PageHolder>::get(const size_t& i) const {
+template<size_t page_size, typename Page, typename PageHolder>
+inline uint64_t PagedVector<page_size, Page, PageHolder>::get(const size_t& i) const {
     assert(i < filled);
     return from_diff(pages[i / page_size].get(i % page_size),
                      anchors.get(i / page_size));
 }
 
-template<typename Page, typename PageHolder>
-inline void PagedVector<Page, PageHolder>::append(const uint64_t& value) {
+template<size_t page_size, typename Page, typename PageHolder>
+inline void PagedVector<page_size, Page, PageHolder>::append(const uint64_t& value) {
     if (filled == pages.size() * page_size) {
         // init a new page and a new anchor
         pages.emplace_back();
@@ -848,8 +854,8 @@ inline void PagedVector<Page, PageHolder>::append(const uint64_t& value) {
     set(filled - 1, value);
 }
 
-template<typename Page, typename PageHolder>
-inline void PagedVector<Page, PageHolder>::pop() {
+template<size_t page_size, typename Page, typename PageHolder>
+inline void PagedVector<page_size, Page, PageHolder>::pop() {
     filled--;
     while (filled + page_size <= pages.size() * page_size) {
         // the final page is unused now, remove it
@@ -858,8 +864,8 @@ inline void PagedVector<Page, PageHolder>::pop() {
     }
 }
 
-template<typename Page, typename PageHolder>
-inline void PagedVector<Page, PageHolder>::resize(const size_t& new_size) {
+template<size_t page_size, typename Page, typename PageHolder>
+inline void PagedVector<page_size, Page, PageHolder>::resize(const size_t& new_size) {
     if (new_size < filled) {
         // shrink down to the number of pages we would need
         size_t num_pages = new_size == 0 ? 0 : (new_size - 1) / page_size + 1;
@@ -873,8 +879,8 @@ inline void PagedVector<Page, PageHolder>::resize(const size_t& new_size) {
     filled = new_size;
 }
   
-template<typename Page, typename PageHolder>
-inline void PagedVector<Page, PageHolder>::reserve(const size_t& future_size) {
+template<size_t page_size, typename Page, typename PageHolder>
+inline void PagedVector<page_size, Page, PageHolder>::reserve(const size_t& future_size) {
     if (future_size > pages.size() * page_size) {
         // how many pages does this require?
         size_t num_pages = (future_size - 1) / page_size + 1;
@@ -894,30 +900,30 @@ inline void PagedVector<Page, PageHolder>::reserve(const size_t& future_size) {
     }
 }
 
-template<typename Page, typename PageHolder>
-inline size_t PagedVector<Page, PageHolder>::size() const {
+template<size_t page_size, typename Page, typename PageHolder>
+inline size_t PagedVector<page_size, Page, PageHolder>::size() const {
     return filled;
 }
 
-template<typename Page, typename PageHolder>
-inline bool PagedVector<Page, PageHolder>::empty() const {
+template<size_t page_size, typename Page, typename PageHolder>
+inline bool PagedVector<page_size, Page, PageHolder>::empty() const {
     return filled == 0;
 }
 
-template<typename Page, typename PageHolder>
-inline void PagedVector<Page, PageHolder>::clear() {
+template<size_t page_size, typename Page, typename PageHolder>
+inline void PagedVector<page_size, Page, PageHolder>::clear() {
     pages.clear();
     anchors.clear();
     filled = 0;
 }
 
-template<typename Page, typename PageHolder>
-inline size_t PagedVector<Page, PageHolder>::page_width() const {
+template<size_t page_size, typename Page, typename PageHolder>
+inline size_t PagedVector<page_size, Page, PageHolder>::page_width() const {
     return page_size;
 }
     
-template<typename Page, typename PageHolder>
-inline uint64_t PagedVector<Page, PageHolder>::to_diff(const uint64_t& value, const uint64_t& anchor) const {
+template<size_t page_size, typename Page, typename PageHolder>
+inline uint64_t PagedVector<page_size, Page, PageHolder>::to_diff(const uint64_t& value, const uint64_t& anchor) const {
     // leaves 0 unchanged, encodes other values as a difference from the anchor value
     // with a reversible mapping into the positive integers as follows:
     // difference  0  1  2  3 -1  4  5  6  7 -2  8  9 10 11 -3 ...
@@ -939,8 +945,8 @@ inline uint64_t PagedVector<Page, PageHolder>::to_diff(const uint64_t& value, co
     }
 }
 
-template<typename Page, typename PageHolder>
-inline uint64_t PagedVector<Page, PageHolder>::from_diff(const uint64_t& diff, const uint64_t& anchor) const {
+template<size_t page_size, typename Page, typename PageHolder>
+inline uint64_t PagedVector<page_size, Page, PageHolder>::from_diff(const uint64_t& diff, const uint64_t& anchor) const {
     // convert backward from the transformation described in to_diff
     
     if (diff == 0) {
@@ -954,7 +960,44 @@ inline uint64_t PagedVector<Page, PageHolder>::from_diff(const uint64_t& diff, c
     }
 }
 
-inline void RobustPagedVector::set(const size_t& i, const uint64_t& value) {
+/////////////////////
+/// RobustPagedVector
+/////////////////////
+
+template<size_t page_size, typename PackedVec, typename PagedVec>
+RobustPagedVector<page_size, PackedVec, PagedVec>::RobustPagedVector() {
+    // Nothing to do
+}
+
+template<size_t page_size, typename PackedVec, typename PagedVec>
+RobustPagedVector<page_size, PackedVec, PagedVec>::RobustPagedVector(istream& in) {
+    deserialize(in);
+}
+
+template<size_t page_size, typename PackedVec, typename PagedVec>
+RobustPagedVector<page_size, PackedVec, PagedVec>::~RobustPagedVector() {
+    
+}
+
+template<size_t page_size, typename PackedVec, typename PagedVec>
+void RobustPagedVector<page_size, PackedVec, PagedVec>::deserialize(istream& in) {
+    first_page.deserialize(in);
+    latter_pages.deserialize(in);
+}
+
+template<size_t page_size, typename PackedVec, typename PagedVec>
+void RobustPagedVector<page_size, PackedVec, PagedVec>::serialize(ostream& out) const {
+    first_page.serialize(out);
+    latter_pages.serialize(out);
+}
+
+template<size_t page_size, typename PackedVec, typename PagedVec>
+size_t RobustPagedVector<page_size, PackedVec, PagedVec>::memory_usage() const {
+    return first_page.memory_usage() + latter_pages.memory_usage();
+}
+
+template<size_t page_size, typename PackedVec, typename PagedVec>
+inline void RobustPagedVector<page_size, PackedVec, PagedVec>::set(const size_t& i, const uint64_t& value) {
     if (i < latter_pages.page_width()) {
         first_page.set(i, value);
     }
@@ -963,7 +1006,8 @@ inline void RobustPagedVector::set(const size_t& i, const uint64_t& value) {
     }
 }
 
-inline uint64_t RobustPagedVector::get(const size_t& i) const {
+template<size_t page_size, typename PackedVec, typename PagedVec>
+inline uint64_t RobustPagedVector<page_size, PackedVec, PagedVec>::get(const size_t& i) const {
     if (i < latter_pages.page_width()) {
         return first_page.get(i);
     }
@@ -972,7 +1016,8 @@ inline uint64_t RobustPagedVector::get(const size_t& i) const {
     }
 }
 
-inline void RobustPagedVector::append(const uint64_t& value) {
+template<size_t page_size, typename PackedVec, typename PagedVec>
+inline void RobustPagedVector<page_size, PackedVec, PagedVec>::append(const uint64_t& value) {
     if (first_page.size() < latter_pages.page_width()) {
         first_page.append(value);
     }
@@ -981,7 +1026,8 @@ inline void RobustPagedVector::append(const uint64_t& value) {
     }
 }
 
-inline void RobustPagedVector::pop() {
+template<size_t page_size, typename PackedVec, typename PagedVec>
+inline void RobustPagedVector<page_size, PackedVec, PagedVec>::pop() {
     if (latter_pages.empty()) {
         first_page.pop();
     }
@@ -990,7 +1036,8 @@ inline void RobustPagedVector::pop() {
     }
 }
 
-inline void RobustPagedVector::resize(const size_t& new_size) {
+template<size_t page_size, typename PackedVec, typename PagedVec>
+inline void RobustPagedVector<page_size, PackedVec, PagedVec>::resize(const size_t& new_size) {
     if (new_size > latter_pages.page_width()) {
         first_page.resize(latter_pages.page_width());
         latter_pages.resize(new_size - latter_pages.page_width());
@@ -1001,7 +1048,8 @@ inline void RobustPagedVector::resize(const size_t& new_size) {
     }
 }
 
-inline void RobustPagedVector::reserve(const size_t& future_size) {
+template<size_t page_size, typename PackedVec, typename PagedVec>
+inline void RobustPagedVector<page_size, PackedVec, PagedVec>::reserve(const size_t& future_size) {
     if (future_size > latter_pages.page_width()) {
         first_page.reserve(latter_pages.page_width());
         latter_pages.reserve(future_size - latter_pages.page_width());
@@ -1011,20 +1059,24 @@ inline void RobustPagedVector::reserve(const size_t& future_size) {
     }
 }
 
-inline size_t RobustPagedVector::size() const {
+template<size_t page_size, typename PackedVec, typename PagedVec>
+inline size_t RobustPagedVector<page_size, PackedVec, PagedVec>::size() const {
     return first_page.size() + latter_pages.size();
 }
 
-inline bool RobustPagedVector::empty() const {
+template<size_t page_size, typename PackedVec, typename PagedVec>
+inline bool RobustPagedVector<page_size, PackedVec, PagedVec>::empty() const {
     return first_page.empty() && latter_pages.empty();
 }
 
-inline void RobustPagedVector::clear() {
+template<size_t page_size, typename PackedVec, typename PagedVec>
+inline void RobustPagedVector<page_size, PackedVec, PagedVec>::clear() {
     first_page.clear();
     latter_pages.clear();
 }
 
-inline size_t RobustPagedVector::page_width() const {
+template<size_t page_size, typename PackedVec, typename PagedVec>
+inline size_t RobustPagedVector<page_size, PackedVec, PagedVec>::page_width() const {
     return latter_pages.page_width();
 }
 

@@ -2607,15 +2607,15 @@ void test_packed_vector() {
     cerr << "PackedVector (" << typeid(PackedVectorImpl).name() << ") tests successful!" << endl;
 }
 
+template<typename PagedVectorImpl>
 void test_paged_vector() {
     enum vec_op_t {SET = 0, GET = 1, APPEND = 2, POP = 3, SERIALIZE = 4};
     std::random_device rd;
     std::default_random_engine prng(rd());
     std::uniform_int_distribution<int> op_distr(0, 4);
-    std::uniform_int_distribution<int> page_distr(1, 5);
     std::uniform_int_distribution<int> val_distr(0, 100);
     
-    int num_runs = 1000;
+    int num_runs = 200;
     int num_ops = 200;
     int gets_per_op = 5;
     int sets_per_op = 5;
@@ -2627,7 +2627,7 @@ void test_paged_vector() {
         uint64_t next_val = val_distr(prng);
         
         std::vector<uint64_t> std_vec;
-        PagedVector<> dyn_vec(page_distr(prng));
+        PagedVectorImpl dyn_vec;
         
         for (size_t j = 0; j < num_ops; j++) {
             
@@ -2681,7 +2681,7 @@ void test_paged_vector() {
                     
                     dyn_vec.serialize(strm);
                     strm.seekg(0);
-                    PagedVector<> copy_vec(strm);
+                    PagedVectorImpl copy_vec(strm);
                     
                     assert(copy_vec.size() == dyn_vec.size());
                     for (size_t i = 0; i < copy_vec.size(); i++) {
@@ -2698,7 +2698,7 @@ void test_paged_vector() {
             assert(std_vec.size() == dyn_vec.size());
         }
     }
-    cerr << "PagedVector tests successful!" << endl;
+    cerr << "PagedVector (" << typeid(PagedVectorImpl).name() << ") tests successful!" << endl;
 }
 
 void test_packed_deque() {
@@ -3855,7 +3855,12 @@ int main(void) {
     test_mapped_structs();
     test_packed_vector<PackedVector<>>();
     test_packed_vector<PackedVector<CompatIntVector<>>>();
-    test_paged_vector();
+    test_paged_vector<PagedVector<1>>();
+    test_paged_vector<PagedVector<2>>();
+    test_paged_vector<PagedVector<3>>();
+    test_paged_vector<PagedVector<4>>();
+    test_paged_vector<PagedVector<5>>();
+    test_paged_vector<PagedVector<5, PackedVector<CompatIntVector<>>, CompatVector<PackedVector<CompatIntVector<>>>>>();
     test_packed_deque();
     test_packed_set();
     test_deletable_handle_graphs();

@@ -3,11 +3,11 @@
 
 namespace bdsg {
 
-PackedPositionOverlay::PackedPositionOverlay(const PathHandleGraph* graph) : graph(graph), steps_0(1024), steps_1(256), positions(256) {
+PackedPositionOverlay::PackedPositionOverlay(const PathHandleGraph* graph) : graph(graph) {
     index_path_positions();
 }
 
-PackedPositionOverlay::PackedPositionOverlay() : steps_0(1), steps_1(1), positions(1) {
+PackedPositionOverlay::PackedPositionOverlay() {
     
 }
 

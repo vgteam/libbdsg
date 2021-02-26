@@ -402,8 +402,8 @@ private:
     const static double defrag_factor;
     
     /// We use standard page widths for page-compressed vectors
-    const static size_t NARROW_PAGE_WIDTH;
-    const static size_t WIDE_PAGE_WIDTH;
+    constexpr static size_t NARROW_PAGE_WIDTH = 256;
+    constexpr static size_t WIDE_PAGE_WIDTH = 1024;
     
     /// The maximum ID in the graph
     nid_t max_id = 0;
@@ -417,13 +417,13 @@ private:
     /// Encodes the topology of the graph. Consists of fixed width records that represent
     /// offsets in edge_lists_iv.
     /// {start edge list index, end edge list index}
-    PagedVector<> graph_iv;
+    PagedVector<NARROW_PAGE_WIDTH> graph_iv;
     const static size_t GRAPH_RECORD_SIZE;
     const static size_t GRAPH_START_EDGES_OFFSET;
     const static size_t GRAPH_END_EDGES_OFFSET;
     
     /// Encodes the start of a node's sequence in seq_iv. Matches the order of graph_iv.
-    PagedVector<> seq_start_iv;
+    PagedVector<NARROW_PAGE_WIDTH> seq_start_iv;
     const static size_t SEQ_START_RECORD_SIZE;
     
     /// Encodes the length of a node's sequence in seq_iv. Matches the order of graph_iv.
@@ -434,7 +434,7 @@ private:
     
     /// Encodes a series of edges lists of nodes.
     /// {ID|orientation (bit-packed), next edge index}
-    PagedVector<> edge_lists_iv;
+    PagedVector<WIDE_PAGE_WIDTH> edge_lists_iv;
     const static size_t EDGE_RECORD_SIZE;
     const static size_t EDGE_TRAV_OFFSET;
     const static size_t EDGE_NEXT_OFFSET;
@@ -454,19 +454,19 @@ private:
     /// Encodes the membership of a node in all paths. In the same order as graph_iv.
     /// Consists of 1-based offset to the corresponding heads of linked lists in
     /// path_membership_value_iv, which contains the actual pointers into the paths.
-    PagedVector<> path_membership_node_iv;
+    PagedVector<NARROW_PAGE_WIDTH> path_membership_node_iv;
     const static size_t NODE_MEMBER_RECORD_SIZE;
     
     /// Encodes a series of linked lists of the memberships within paths. The nodes
     /// in the linked list are split over three separate vectors, with the entry at
     /// the same index in each vector corresponding to the same linked list node.
     /// Path ID (0-based index)
-    PagedVector<> path_membership_id_iv;
+    PagedVector<WIDE_PAGE_WIDTH> path_membership_id_iv;
     /// 1-based offset of the occurrence of the node in the corresponding PackedPath vector.
-    PagedVector<> path_membership_offset_iv;
+    PagedVector<NARROW_PAGE_WIDTH> path_membership_offset_iv;
     /// 1-based offset of the next occurrence of this node on a path within this vector (or
     /// 0 if there is none)
-    PagedVector<> path_membership_next_iv;
+    PagedVector<NARROW_PAGE_WIDTH> path_membership_next_iv;
     const static size_t MEMBERSHIP_ID_RECORD_SIZE;
     const static size_t MEMBERSHIP_OFFSET_RECORD_SIZE;
     const static size_t MEMBERSHIP_NEXT_RECORD_SIZE;
@@ -482,7 +482,7 @@ private:
     
     /// The starting index of the path's name in path_names_iv for the path with the
     /// same index in paths
-    PagedVector<> path_name_start_iv;
+    PagedVector<NARROW_PAGE_WIDTH> path_name_start_iv;
     
     /// The length of the path's name for the path with the same index in paths
     PackedVector<> path_name_length_iv;
@@ -495,11 +495,11 @@ private:
     
     /// The 1-based index of the head of the linked list in steps_iv of the path
     /// with the same index in paths
-    PagedVector<> path_head_iv;
+    PagedVector<WIDE_PAGE_WIDTH> path_head_iv;
     
     /// The 1-based index of the tail of the linked list in steps_iv of the path
     /// with the same index in paths
-    PagedVector<> path_tail_iv;
+    PagedVector<NARROW_PAGE_WIDTH> path_tail_iv;
     
     /// The number of steps that have have deleted from the path at the same index
     PackedVector<> path_deleted_steps_iv;
@@ -508,15 +508,15 @@ private:
      * A struct to package the data associated with a path through the graph.
      */
     struct PackedPath {
-        PackedPath() : steps_iv(NARROW_PAGE_WIDTH), links_iv(NARROW_PAGE_WIDTH) {}
+        PackedPath() = default;
         
         /// Linked list records that encode the oriented nodes of the path. Indexes are
         /// 1-based, with 0 used as a sentinel to indicate none further.
         /// {prev index, next index}
-        RobustPagedVector links_iv;
+        RobustPagedVector<NARROW_PAGE_WIDTH> links_iv;
         /// The traversal value is stored in a separate vector at the matching index.
         /// {ID|orientation (bit-packed)}
-        RobustPagedVector steps_iv;
+        RobustPagedVector<NARROW_PAGE_WIDTH> steps_iv;
     };
     const static size_t PATH_RECORD_SIZE;
     const static size_t PATH_PREV_OFFSET;

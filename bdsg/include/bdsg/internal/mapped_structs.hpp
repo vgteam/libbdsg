@@ -495,6 +495,14 @@ public:
     void resize(size_t new_size);
     void reserve(size_t new_reserved_length);
     
+    T& back();
+    const T& back() const;
+    
+    void pop_back();
+    
+    template<typename... Args>
+    void emplace_back(Args&&... args);
+    
     /**
      * Empty out the vector and free any allocated memory.
      */
@@ -504,8 +512,6 @@ public:
     
     T& operator[](size_t index);
     const T& operator[](size_t index) const;
-    
-    // TODO: reserve(), push_back()
     
     // Compatibility with SDSL-lite serialization
     
@@ -842,6 +848,35 @@ void CompatVector<T, Alloc>::resize(size_t new_size) {
     
     // Record the new length
     length = new_size;
+}
+
+template<typename T, typename Alloc>
+T& CompatVector<T, Alloc>::back() {
+    return (*this)[size() - 1];
+}
+
+template<typename T, typename Alloc>
+const T& CompatVector<T, Alloc>::back() const {
+    return (*this)[size() - 1];
+}
+
+template<typename T, typename Alloc>
+void CompatVector<T, Alloc>::pop_back() {
+    resize(size() - 1);
+}
+
+template<typename T, typename Alloc>
+template<typename... Args>
+void CompatVector<T, Alloc>::emplace_back(Args&&... args) {
+    if (reserved_length <= length) {
+        // Make sure we're big enough
+        reserve(std::max((size_t) 1, reserved_length * RESIZE_FACTOR));
+    }
+    
+    // Make the new item in place
+    new (first + length) T(std::forward<Args>(args)...);
+    // Record that we have it.
+    length = length + 1;
 }
 
 template<typename T, typename Alloc>
