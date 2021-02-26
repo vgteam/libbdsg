@@ -127,7 +127,7 @@ protected:
     const HandleGraph* graph = nullptr;
     
     /// The handles that are included in the subgraph
-    PackedSet subgraph_handles;
+    PackedSet<> subgraph_handles;
     
     /// Max node ID
     nid_t max_id = numeric_limits<nid_t>::min();

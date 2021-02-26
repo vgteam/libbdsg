@@ -358,6 +358,8 @@ private:
     size_t filled = 0;
     static constexpr double factor = 1.25;
 };
+
+using MappedPackedDeque = PackedDeque<MappedPackedVector>;
     
 /*
  * A hash set that maintains integers in bit-compressed form, with the bit
@@ -365,6 +367,7 @@ private:
  * best compression when the values are similar to each other in scale,
  * except possibly for 0, which can be used as a sentinel.
  */
+template<typename PackedVec = PackedVector<>>
 class PackedSet {
 public:
     
@@ -465,28 +468,25 @@ private:
     inline uint64_t optimal_anchor() const;
     
     /// The table where the entries are stored
-    PackedVector<> table;
-    
-    /// PRNG used to generate universal hash functions
-    default_random_engine gen;
+    PackedVec table;
     
     /// A value that we greedily choose from the input to anchor differences
-    uint64_t anchor = 0;
+    big_endian<uint64_t> anchor = 0;
         
     /// Coefficients of a degree 4 polynomial over Z_p
-    size_t coefs[5] = {0, 0, 0, 0, 0};
+    big_endian<size_t> coefs[5] = {0, 0, 0, 0, 0};
     
     /// Index of the current size within the schedule of sizes
-    size_t schedule_val = 0;
+    big_endian<size_t> schedule_val = 0;
     
     /// Minimum load factor on the array
-    double min_load = 0.33;
+    big_endian<double> min_load = 0.33;
     
     /// Maximum load factor on the array
-    double max_load = 0.67;
+    big_endian<double> max_load = 0.67;
     
     /// Number of items in the set
-    size_t num_items = 0;
+    big_endian<size_t> num_items = 0;
     
     /// Let the iterator access the internals
     friend class iterator;
@@ -1126,71 +1126,12 @@ inline size_t RobustPagedVector<page_size, PackedVec, PagedVec>::page_width() co
     return latter_pages.page_width();
 }
 
-
-
-inline size_t PackedSet::hash(const uint64_t& diff, const PackedVector<>& _table) const {
-    // do a degree-4 mod polynomial with random coefficients, which is a 5-wise
-    // independent hash function
-    size_t p = _table.size();
-    size_t x = 1;
-    size_t hsh = 0;
-    for (size_t i = 0; i < 5; ++i) {
-        hsh = (hsh + ((coefs[i] * x) % p)) % p;
-        x = (x * diff) % p;
-    }
-    return hsh;
-}
-
-inline uint64_t PackedSet::to_diff(const uint64_t& value, const uint64_t& _anchor) const {
-    // encodes 0 as a 1, regardless of the anchor value. represents all other values
-    // according to their difference from the anchor in the following manner:
-    // difference  0 -1  1 -2  2 -3  3 -4  4 ....
-    // integer     2  3  4  5  6  7  8  9 10 1...
-    // the goal here is use smaller integers to maintain low bit-width, allowing 0 as
-    // a sentinel value in the input, regardless of the anchor, and allowing 0 as
-    // a sentinel in the output, regardless of the input
-    
-    if (value == 0) {
-        return 1;
-    }
-    else if (value >= _anchor) {
-        return 2 * (value - _anchor + 1);
-    }
-    else {
-        return 2 * (_anchor - value) + 1;
-    }
-}
-
-inline uint64_t PackedSet::from_diff(const uint64_t& diff, const uint64_t& _anchor) const {
-    // inverse of to_diff
-    if (diff == 1) {
-        return 0;
-    }
-    else if (diff % 2 == 0) {
-        return _anchor + (diff / 2) - 1;
-    }
-    else {
-        return _anchor - (diff / 2);
-    }
-}
-
-inline uint64_t PackedSet::optimal_anchor() const {
-    uint64_t min_val = numeric_limits<uint64_t>::max();
-    uint64_t max_val = numeric_limits<uint64_t>::min();
-    for (size_t i = 0; i < table.size(); ++i) {
-        uint64_t diff = table.get(i);
-        if (diff >= 2) {
-            // this is an encoding of a non-zero value
-            uint64_t val = from_diff(diff, anchor);
-            min_val = min(min_val, val);
-            max_val = max(max_val, val);
-        }
-    }
-    return min_val == numeric_limits<uint64_t>::max() ? anchor : (max_val + min_val) / 2;
-}
+/////////////////////
+/// PackedSet
+/////////////////////
 
 // a precomputed list of prime numbers that approximately correspond to powers of 1.25
-static constexpr uint64_t bdsg_packed_set_size_schedule[192] = {
+constexpr uint64_t bdsg_packed_set_size_schedule[192] = {
     1ull, 2ull, 3ull, 5ull, 7ull, 11ull, 13ull, 17ull, 19ull, 23ull, 31ull, 43ull, 53ull, 67ull, 83ull, 107ull, 131ull, 167ull, 211ull, 263ull,
     317ull, 409ull, 509ull, 643ull, 797ull, 1009ull, 1259ull, 1571ull, 1951ull, 2459ull, 3079ull,
     3851ull, 4813ull, 6011ull, 7523ull, 9403ull, 11743ull, 14683ull, 18367ull, 22943ull, 28697ull,
@@ -1224,7 +1165,138 @@ static constexpr uint64_t bdsg_packed_set_size_schedule[192] = {
     5053968264940243967ull, 6317460331175304137ull, 7896825413969130449ull, 9871031767461412841ull,
     12338789709326766061ull};
 
-inline void PackedSet::rehash(bool shrink) {
+template<typename PackedVec>
+PackedSet<PackedVec>::PackedSet() {
+    table.resize(bdsg_packed_set_size_schedule[0]);
+}
+
+template<typename PackedVec>
+typename PackedSet<PackedVec>::iterator PackedSet<PackedVec>::begin() const {
+    return iterator(this);
+}
+
+template<typename PackedVec>
+typename PackedSet<PackedVec>::iterator PackedSet<PackedVec>::end() const {
+    return iterator(this, table.size());
+}
+
+template<typename PackedVec>
+PackedSet<PackedVec>::iterator::iterator(const PackedSet* iteratee) : iteratee(iteratee) {
+//    cerr << "making iterator to table: " << endl;
+//    for (size_t j = 0; j < iteratee->table.size(); j++) {
+//        cerr << iteratee->table.get(j) << " ";
+//    }
+//    cerr << endl;
+    // make sure i is always pointing at a non-null element
+    while (i < iteratee->table.size() && iteratee->table.get(i) == 0) {
+//        cerr << "advancing from " << i << " to find initial position" << endl;
+        ++i;
+    }
+//    cerr << "starting at " << i << endl;
+}
+
+template<typename PackedVec>
+PackedSet<PackedVec>::iterator::iterator(const PackedSet* iteratee, size_t i) : iteratee(iteratee), i(i) {
+    // nothing to do
+}
+
+template<typename PackedVec>
+typename PackedSet<PackedVec>::iterator& PackedSet<PackedVec>::iterator::operator++() {
+    // advance to the next non-null element
+    do {
+//        cerr << "advancing from " << i << " to find next position" << endl;
+        ++i;
+    } while (i < iteratee->table.size() && iteratee->table.get(i) == 0);
+//    cerr << "at " << i << endl;
+    return *this;
+}
+
+template<typename PackedVec>
+uint64_t PackedSet<PackedVec>::iterator::operator*() const {
+    return iteratee->from_diff(iteratee->table.get(i), iteratee->anchor);
+}
+
+template<typename PackedVec>
+bool PackedSet<PackedVec>::iterator::operator==(const PackedSet<PackedVec>::iterator& other) const {
+//    cerr << "checking == for " << iteratee << " " << i << " and " << other.iteratee << " " << other.i << endl;
+    return iteratee == other.iteratee && i == other.i;
+}
+
+template<typename PackedVec>
+bool PackedSet<PackedVec>::iterator::operator!=(const PackedSet<PackedVec>::iterator& other) const {
+    return !(*this == other);
+}
+
+template<typename PackedVec>
+inline size_t PackedSet<PackedVec>::hash(const uint64_t& diff, const PackedVector<>& _table) const {
+    // do a degree-4 mod polynomial with random coefficients, which is a 5-wise
+    // independent hash function
+    size_t p = _table.size();
+    size_t x = 1;
+    size_t hsh = 0;
+    for (size_t i = 0; i < 5; ++i) {
+        hsh = (hsh + ((coefs[i] * x) % p)) % p;
+        x = (x * diff) % p;
+    }
+    return hsh;
+}
+
+template<typename PackedVec>
+inline uint64_t PackedSet<PackedVec>::to_diff(const uint64_t& value, const uint64_t& _anchor) const {
+    // encodes 0 as a 1, regardless of the anchor value. represents all other values
+    // according to their difference from the anchor in the following manner:
+    // difference  0 -1  1 -2  2 -3  3 -4  4 ....
+    // integer     2  3  4  5  6  7  8  9 10 1...
+    // the goal here is use smaller integers to maintain low bit-width, allowing 0 as
+    // a sentinel value in the input, regardless of the anchor, and allowing 0 as
+    // a sentinel in the output, regardless of the input
+    
+    if (value == 0) {
+        return 1;
+    }
+    else if (value >= _anchor) {
+        return 2 * (value - _anchor + 1);
+    }
+    else {
+        return 2 * (_anchor - value) + 1;
+    }
+}
+
+template<typename PackedVec>
+inline uint64_t PackedSet<PackedVec>::from_diff(const uint64_t& diff, const uint64_t& _anchor) const {
+    // inverse of to_diff
+    if (diff == 1) {
+        return 0;
+    }
+    else if (diff % 2 == 0) {
+        return _anchor + (diff / 2) - 1;
+    }
+    else {
+        return _anchor - (diff / 2);
+    }
+}
+
+template<typename PackedVec>
+inline uint64_t PackedSet<PackedVec>::optimal_anchor() const {
+    uint64_t min_val = numeric_limits<uint64_t>::max();
+    uint64_t max_val = numeric_limits<uint64_t>::min();
+    for (size_t i = 0; i < table.size(); ++i) {
+        uint64_t diff = table.get(i);
+        if (diff >= 2) {
+            // this is an encoding of a non-zero value
+            uint64_t val = from_diff(diff, anchor);
+            min_val = min(min_val, val);
+            max_val = max(max_val, val);
+        }
+    }
+    return min_val == numeric_limits<uint64_t>::max() ? (uint64_t)anchor : (max_val + min_val) / 2;
+}
+
+template<typename PackedVec>
+inline void PackedSet<PackedVec>::rehash(bool shrink) {
+    // Keeping the RNG state in the class isn't bvery portable, so we make one
+    // per thread in thread storage.
+    static thread_local default_random_engine gen(random_device{}());
     
     // move to the next size in the schedule
     if (shrink) {
@@ -1261,7 +1333,8 @@ inline void PackedSet::rehash(bool shrink) {
     table = move(new_table);
 }
 
-inline size_t PackedSet::locate(const uint64_t& diff, const PackedVector<>& _table) const {
+template<typename PackedVec>
+inline size_t PackedSet<PackedVec>::locate(const uint64_t& diff, const PackedVector<>& _table) const {
     // linear probing until finding the diff or a null sentinel
     size_t p = _table.size();
     size_t i = hash(diff, _table);
@@ -1271,7 +1344,8 @@ inline size_t PackedSet::locate(const uint64_t& diff, const PackedVector<>& _tab
     return i;
 }
 
-inline void PackedSet::insert(const uint64_t& value) {
+template<typename PackedVec>
+inline void PackedSet<PackedVec>::insert(const uint64_t& value) {
     
     // greedily choose the first non-zero anchor
     if (anchor == 0) {
@@ -1297,11 +1371,13 @@ inline void PackedSet::insert(const uint64_t& value) {
     }
 }
 
-inline bool PackedSet::find(const uint64_t& value) const {
+template<typename PackedVec>
+inline bool PackedSet<PackedVec>::find(const uint64_t& value) const {
     return table.get(locate(to_diff(value, anchor), table)) != 0;
 }
 
-inline void PackedSet::remove(const uint64_t& value) {
+template<typename PackedVec>
+inline void PackedSet<PackedVec>::remove(const uint64_t& value) {
     
     // locate the value if it exists
     uint64_t diff = to_diff(value, anchor);
@@ -1352,7 +1428,8 @@ inline void PackedSet::remove(const uint64_t& value) {
     }
 }
 
-inline void PackedSet::set_load_factors(double min_load_factor, double max_load_factor) {
+template<typename PackedVec>
+inline void PackedSet<PackedVec>::set_load_factors(double min_load_factor, double max_load_factor) {
     assert(max_load_factor > min_load_factor);
     assert(min_load_factor >= 0.0);
     assert(max_load_factor < 1.0);
@@ -1368,19 +1445,23 @@ inline void PackedSet::set_load_factors(double min_load_factor, double max_load_
     }
 }
 
-inline double PackedSet::max_load_factor() const {
+template<typename PackedVec>
+inline double PackedSet<PackedVec>::max_load_factor() const {
     return max_load;
 }
 
-inline double PackedSet::min_load_factor() const {
+template<typename PackedVec>
+inline double PackedSet<PackedVec>::min_load_factor() const {
     return min_load;
 }
 
-inline size_t PackedSet::size() const {
+template<typename PackedVec>
+inline size_t PackedSet<PackedVec>::size() const {
     return num_items;
 }
 
-inline bool PackedSet::empty() const {
+template<typename PackedVec>
+inline bool PackedSet<PackedVec>::empty() const {
     return num_items == 0;
 }
     

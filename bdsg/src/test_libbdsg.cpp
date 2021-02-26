@@ -2826,7 +2826,7 @@ void test_packed_set() {
         uint64_t next_val = 0;
         
         unordered_set<uint64_t> std_set;
-        PackedSet packed_set;
+        PackedSet<> packed_set;
         
         for (size_t j = 0; j < num_ops; j++) {
             set_op_t op = (set_op_t) op_distr(prng);

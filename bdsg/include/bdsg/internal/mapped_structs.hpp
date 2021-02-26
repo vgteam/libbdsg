@@ -10,6 +10,7 @@
 #include <cstdio>
 #include <cstdint>
 #include <cassert>
+#include <climits>
 #include <iostream>
 #include <functional>
 #include <limits>
@@ -35,6 +36,12 @@ public:
     big_endian(const T& value);
     operator T () const;
     big_endian<T>& operator=(const T& x);
+    big_endian<T>& operator+=(const T& other);
+    big_endian<T>& operator-=(const T& other);
+    big_endian<T>& operator++();
+    big_endian<T>& operator--();
+    T operator++(int);
+    T operator--(int);
 protected:
     char storage[sizeof(T)];
 };
@@ -597,51 +604,47 @@ big_endian<T>::big_endian(const T& value) {
 template<typename T>
 big_endian<T>::operator T () const {
     
-    static_assert(std::numeric_limits<T>::is_integer, "big_endian only works for integers");
-
+    // We assume an IEEE floating point representation and the same endian-ness
+    // as the integer type of the same width.
+    
     // I had no luck partially specializing the conversion operator for all
     // integral types of a given width, so we switch and call only the
     // conversion that will work.
     // TODO: manually write all the specializations?
     // Note that signed types report 1 fewer bits (i.e. 63)
-    switch (std::numeric_limits<T>::digits) {
+    switch (CHAR_BIT * sizeof(T)) {
     case 64:
-    case 63:
         return (T)be64toh(*((const T*)storage));
         break;
     case 32:
-    case 31:
         return (T)be32toh(*((const T*)storage));
         break;
     case 16:
-    case 15:
         return (T)be16toh(*((const T*)storage));
         break;
     default:
-        throw runtime_error("Unimplemented bit width: " + std::to_string(std::numeric_limits<T>::digits));
+        throw runtime_error("Unimplemented bit width: " + std::to_string(CHAR_BIT * sizeof(T)));
     }
 }
 
 template<typename T>
 big_endian<T>& big_endian<T>::operator=(const T& x) {
 
-    static_assert(std::numeric_limits<T>::is_integer, "big_endian only works for integers");
+    // We assume an IEEE floating point representation and the same endian-ness
+    // as the integer type of the same width.
 
-    switch (std::numeric_limits<T>::digits) {
+    switch (CHAR_BIT * sizeof(T)) {
     case 64:
-    case 63:
         *((T*)storage) = (T)htobe64(x);
         break;
     case 32:
-    case 31:
         *((T*)storage) = (T)htobe32(x);
         break;
     case 16:
-    case 15:
         *((T*)storage) = (T)htobe16(x);
         break;
     default:
-        throw runtime_error("Unimplemented bit width: " + std::to_string(std::numeric_limits<T>::digits));
+        throw runtime_error("Unimplemented bit width: " + std::to_string(CHAR_BIT * sizeof(T)));
     }
     
 #ifdef debug_big_endian
@@ -649,6 +652,44 @@ big_endian<T>& big_endian<T>::operator=(const T& x) {
 #endif
     
     return *this;
+}
+
+template<typename T>
+big_endian<T>& big_endian<T>::operator+=(const T& other) {
+    *this = ((T)*this) + other;
+    return *this;
+}
+
+template<typename T>
+big_endian<T>& big_endian<T>::operator-=(const T& other) {
+    *this = ((T)*this) - other;
+    return *this;
+}
+
+template<typename T>
+big_endian<T>& big_endian<T>::operator++() {
+    *this += 1;
+    return *this;
+}
+
+template<typename T>
+big_endian<T>& big_endian<T>::operator--() {
+    *this -= 1;
+    return *this;
+}
+
+template<typename T>
+T big_endian<T>::operator++(int) {
+    T old = *this;
+    ++*this;
+    return old;
+}
+
+template<typename T>
+T big_endian<T>::operator--(int) {
+    T old = *this;
+    --*this;
+    return old;
 }
 
 ////////////////////
