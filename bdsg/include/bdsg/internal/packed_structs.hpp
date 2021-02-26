@@ -16,7 +16,7 @@
 #include <random>
 #include <sdsl/int_vector.hpp>
 
-#include "mapped_structs.hpp"
+#include <bdsg/internal/mapped_structs.hpp>
 
 namespace bdsg {
     
