@@ -2513,6 +2513,7 @@ void test_mutable_path_handle_graphs() {
     cerr << "MutablePathDeletableHandleGraph tests successful!" << endl;
 }
 
+template<typename PackedVectorImpl>
 void test_packed_vector() {
     enum vec_op_t {SET = 0, GET = 1, APPEND = 2, POP = 3, SERIALIZE = 4};
     
@@ -2532,7 +2533,7 @@ void test_packed_vector() {
         uint64_t next_val = 0;
         
         vector<uint64_t> std_vec;
-        PackedVector<> dyn_vec;
+        PackedVectorImpl dyn_vec;
         
         for (size_t j = 0; j < num_ops; j++) {
             
@@ -2586,7 +2587,7 @@ void test_packed_vector() {
                     
                     dyn_vec.serialize(strm);
                     strm.seekg(0);
-                    PackedVector<> copy_vec(strm);
+                    PackedVectorImpl copy_vec(strm);
                     
                     assert(copy_vec.size() == dyn_vec.size());
                     for (size_t i = 0; i < copy_vec.size(); i++) {
@@ -2603,7 +2604,7 @@ void test_packed_vector() {
             assert(std_vec.size() == dyn_vec.size());
         }
     }
-    cerr << "PackedVector tests successful!" << endl;
+    cerr << "PackedVector (" << typeid(PackedVectorImpl).name() << ") tests successful!" << endl;
 }
 
 void test_paged_vector() {
@@ -3852,7 +3853,8 @@ void test_packed_subgraph_overlay() {
 int main(void) {
     test_mmap_backend();
     test_mapped_structs();
-    test_packed_vector();
+    test_packed_vector<PackedVector<>>();
+    test_packed_vector<PackedVector<CompatIntVector<>>>();
     test_paged_vector();
     test_packed_deque();
     test_packed_set();

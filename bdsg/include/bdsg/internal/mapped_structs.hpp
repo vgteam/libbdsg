@@ -402,6 +402,23 @@ public:
 };
 
 /**
+ * Allow rebinding our position-dependent "stateful" allocators to allocate new types.
+ * Needs to use a callback because the std::allocator version can't necessarily
+ * reinterpret and will need to construct a temporary.
+ */
+template<typename T, typename Old>
+void with_rebound_allocator(Allocator<Old>& alloc,
+                            const std::function<void(Allocator<T>&)>& callback);
+
+/**
+ * Allow rebinding std::allocator in templates in an overload-compatible way
+ * with how yomo::Allocator can be rebound. 
+ */
+template<typename T, typename Old>
+void with_rebound_allocator(std::allocator<Old>& alloc,
+                            const std::function<void(std::allocator<T>&)>& callback);
+
+/**
  * Interface between normally allocated objects and chain-allocated objects.
  * Pointer to an object that is allocated at the beginning of a chain, and
  * which should allocate, if it allocates, from the chain.
@@ -506,6 +523,19 @@ public:
     const T& operator[](size_t index) const;
     
     // TODO: reserve(), push_back()
+    
+    // Compatibility with SDSL-lite serialization
+    
+    /**
+     * Serialize the data to the given stream.
+     */
+    void serialize(std::ostream& out) const;
+    
+    /**
+     * Load the data from the given stream.
+     */
+    void load(std::istream& in);
+    
 protected:
     // We keep the allocator in ourselves, so if working in a chain we allocate
     // in the right chain.
@@ -527,8 +557,20 @@ protected:
 template<typename Alloc = std::allocator<size_t>>
 class CompatIntVector : public CompatVector<size_t, Alloc> {
 public:
+    /**
+     * Return the width in bits of the entries.
+     */
     size_t width() const;
+    /**
+     * Set the width in bits of the entries, causing existing data to be
+     * reinterpreted.
+     */
     void width(size_t new_width);
+    /**
+     * Repack existing data, re-encoding it with the given width, and
+     * simultaneously resize to the new given number of elements.
+     */
+    void repack(size_t new_width, size_t new_size);
 };
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -832,6 +874,32 @@ T& CompatVector<T, Alloc>::at(size_t index) {
 }
 
 template<typename T, typename Alloc>
+void CompatVector<T, Alloc>::serialize(std::ostream& out) const {
+    
+    // Dump the length
+    out.write((const char*)&length, sizeof(length));
+    // And all the set items
+    out.write((const char*)(T*)first, length * sizeof(T));
+}
+
+template<typename T, typename Alloc>
+void CompatVector<T, Alloc>::load(std::istream& in) {
+    // Start empty
+    this->clear();
+
+    // Determine the length
+    decltype(length) new_len;
+    in.read((char*)&new_len, sizeof(new_len));
+    
+    // Make sure we have that space
+    resize(new_len);
+    
+    // Fill in the items
+    in.read((char*)(T*)first, new_len * sizeof(T));
+}
+
+
+template<typename T, typename Alloc>
 const T& CompatVector<T, Alloc>::at(size_t index) const {
     // Just run non-const at and constify result
     return const_cast<CompatVector<T, Alloc>*>(this)->at(index);
@@ -847,9 +915,25 @@ T& CompatVector<T, Alloc>::operator[](size_t index) {
 template<typename T, typename Alloc>
 const T& CompatVector<T, Alloc>::operator[](size_t index) const {
     // Just run non-const at and constify result
-    return const_cast<CompatVector<T, Alloc>*>(this)[index];
+    return (*const_cast<CompatVector<T, Alloc>*>(this))[index];
 }
 
+template<typename Alloc>
+size_t CompatIntVector<Alloc>::width() const {
+    return std::numeric_limits<size_t>::digits;
+}
+
+template<typename Alloc>
+void CompatIntVector<Alloc>::width(size_t new_width) {
+    // Nothing to do!
+    // TODO: Actually bit pack
+}
+
+template<typename Alloc>
+void CompatIntVector<Alloc>::repack(size_t new_width, size_t new_size) {
+    // TODO: actually bit pack
+    this->resize(new_size);
+}
 
 namespace yomo {
 
@@ -920,6 +1004,23 @@ auto Allocator<T>::allocate(size_type n, const T* hint) -> T* {
 template<typename T>
 void Allocator<T>::deallocate(T* p, size_type n) {
     Manager::deallocate((void*) p);
+}
+
+
+template<typename T, typename Old>
+void with_rebound_allocator(Allocator<Old>& alloc,
+                            const std::function<void(Allocator<T>&)>& callback) {
+    // The YOMO allocator can just be reinterpreted in place
+    callback(reinterpret_cast<Allocator<T>&>(alloc));
+}
+
+template<typename T, typename Old>
+void with_rebound_allocator(std::allocator<Old>& alloc,
+                            const std::function<void(std::allocator<T>&)>& callback) {
+                            
+    // std::allocator is stateless so show the callback a temporary
+    std::allocator<T> new_alloc;
+    callback(new_alloc);
 }
 
 
