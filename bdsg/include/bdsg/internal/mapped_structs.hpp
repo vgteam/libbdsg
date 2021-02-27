@@ -20,7 +20,15 @@
 #include <vector>
 #include <shared_mutex>
 
-#include <endian.h>
+// Find the endian conversion functions.
+// See: <https://stackoverflow.com/a/58418801>
+#ifdef __APPLE__
+  #include <machine/endian.h>
+#else
+  #include <endian.h>
+#endif
+
+
 
 namespace bdsg {
     
