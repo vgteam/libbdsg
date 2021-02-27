@@ -495,9 +495,14 @@ public:
     CompatVector(const CompatVector& other);
     CompatVector(CompatVector&& other);
     
-    CompatVector& operator=(const CompatVector& other);
+    /**
+     * Allow copying across allocators (or within the same allocator).
+     */
+    template<typename OtherAlloc>
+    CompatVector& operator=(const CompatVector<T, OtherAlloc>& other);
+    
     CompatVector& operator=(CompatVector&& other);
-
+    
     size_t size() const;
     void resize(size_t new_size);
     void reserve(size_t new_reserved_length);
@@ -559,6 +564,9 @@ using MappedVector = CompatVector<T, yomo::Allocator<T>>;
 template<typename Alloc = std::allocator<size_t>>
 class CompatIntVector : public CompatVector<size_t, Alloc> {
 public:
+    
+    using CompatVector<size_t, Alloc>::CompatVector;
+
     /**
      * Return the width in bits of the entries.
      */
@@ -764,17 +772,23 @@ CompatVector<T, Alloc>::CompatVector(CompatVector&& other) :
 }
 
 template<typename T, typename Alloc>
-CompatVector<T, Alloc>& CompatVector<T, Alloc>::operator=(const CompatVector& other) {
+template<typename OtherAlloc>
+CompatVector<T, Alloc>& CompatVector<T, Alloc>::operator=(const CompatVector<T, OtherAlloc>& other) {
 #ifdef debug_compat_vector
     std::cerr << "Copy-assigning a vector of size " << other.size() << " from " << (intptr_t)&other << " to " << (intptr_t)this << std::endl;
 #endif
     if (this != &other) {
-        // TODO: can we economize and use copy constructors instead of
-        // assignment here sometimes?
-        resize(other.size);
+        // Get rid of our memory
+        clear();
+        // Get some new memory
+        reserve(other.size());
+        
         for (size_t i = 0; i < other.size(); i++) {
-            this->at(i) = other.at(i);
+            // Copy construct each thing.
+            new (first + i) T(other[i]);
         }
+        
+        length = other.size();
     }
 #ifdef debug_compat_vector
     std::cerr << "Result is of size " << size() << std::endl;
