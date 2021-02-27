@@ -614,13 +614,22 @@ big_endian<T>::operator T () const {
     // Note that signed types report 1 fewer bits (i.e. 63)
     switch (CHAR_BIT * sizeof(T)) {
     case 64:
-        return (T)be64toh(*((const T*)storage));
+        {
+            uint64_t scratch = be64toh(*(reinterpret_cast<const uint64_t*>(storage)));
+            return *reinterpret_cast<T*>(&scratch);
+        }
         break;
     case 32:
-        return (T)be32toh(*((const T*)storage));
+        {
+            uint32_t scratch = be32toh(*(reinterpret_cast<const uint32_t*>(storage)));
+            return *reinterpret_cast<T*>(&scratch);
+        }
         break;
     case 16:
-        return (T)be16toh(*((const T*)storage));
+        {
+            uint16_t scratch = be16toh(*(reinterpret_cast<const uint16_t*>(storage)));
+            return *reinterpret_cast<T*>(&scratch);
+        }
         break;
     default:
         throw runtime_error("Unimplemented bit width: " + std::to_string(CHAR_BIT * sizeof(T)));
@@ -632,16 +641,18 @@ big_endian<T>& big_endian<T>::operator=(const T& x) {
 
     // We assume an IEEE floating point representation and the same endian-ness
     // as the integer type of the same width.
+    
+    // We make sure to reinterpret the input as an int type in case it is floating point.
 
     switch (CHAR_BIT * sizeof(T)) {
     case 64:
-        *((T*)storage) = (T)htobe64(x);
+        *((uint64_t*)storage) = htobe64(reinterpret_cast<const uint64_t&>(x));
         break;
     case 32:
-        *((T*)storage) = (T)htobe32(x);
+        *((uint32_t*)storage) = htobe32(reinterpret_cast<const uint32_t&>(x));
         break;
     case 16:
-        *((T*)storage) = (T)htobe16(x);
+        *((uint16_t*)storage) = htobe16(reinterpret_cast<const uint16_t&>(x));
         break;
     default:
         throw runtime_error("Unimplemented bit width: " + std::to_string(CHAR_BIT * sizeof(T)));
@@ -649,6 +660,12 @@ big_endian<T>& big_endian<T>::operator=(const T& x) {
     
 #ifdef debug_big_endian
     std::cerr << "Set a big_endian at " << (intptr_t) this << " to " << x << std::endl;
+    std::cerr << "Contents:";
+    for (auto& b : storage) {
+        std::cerr << " " << (int)b;
+    }
+    std::cerr << std::endl;
+    std::cerr << "Reads back as " << (T)*this << std::endl;
 #endif
     
     return *this;

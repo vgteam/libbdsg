@@ -450,13 +450,13 @@ private:
     
     /// Internal function that returns the index of either either the null seninel
     /// or the diff, whichever comes first in linear probing
-    inline size_t locate(const uint64_t& diff, const PackedVector<>& _table) const;
+    inline size_t locate(const uint64_t& diff, const PackedVec& _table) const;
     
     /// Move up or down to the next size in the size schedule and rehash entries
     void rehash(bool shrink);
     
     /// Execute hash function for a given table
-    inline size_t hash(const uint64_t& diff, const PackedVector<>& table) const;
+    inline size_t hash(const uint64_t& diff, const PackedVec& table) const;
     
     /// Convert a value to a difference from an anchor
     inline uint64_t to_diff(const uint64_t& value, const uint64_t& _anchor) const;
@@ -706,7 +706,7 @@ inline uint64_t PackedDeque<PackedVec>::get(const size_t& i) const {
 template<typename PackedVec>
 inline void PackedDeque<PackedVec>::reserve(const size_t& future_size) {
     if (future_size > vec.size()) {
-        PackedVector<> new_vec;
+        PackedVec new_vec;
         new_vec.resize(future_size);
         
         for (size_t i = 0; i < filled; i++) {
@@ -758,7 +758,7 @@ template<typename PackedVec>
 inline void PackedDeque<PackedVec>::contract() {
     size_t shrink_capacity = vec.size() / (factor * factor);
     if (filled <= shrink_capacity) {
-        PackedVector<> new_vec;
+        PackedVec new_vec;
         new_vec.resize(filled);
         for (size_t i = 0; i < filled; i++) {
             new_vec.set(i, get(i));
@@ -1228,7 +1228,7 @@ bool PackedSet<PackedVec>::iterator::operator!=(const PackedSet<PackedVec>::iter
 }
 
 template<typename PackedVec>
-inline size_t PackedSet<PackedVec>::hash(const uint64_t& diff, const PackedVector<>& _table) const {
+inline size_t PackedSet<PackedVec>::hash(const uint64_t& diff, const PackedVec& _table) const {
     // do a degree-4 mod polynomial with random coefficients, which is a 5-wise
     // independent hash function
     size_t p = _table.size();
@@ -1311,7 +1311,7 @@ inline void PackedSet<PackedVec>::rehash(bool shrink) {
     
     // find the value that will be the best anchor to the current entries
     uint64_t new_anchor = optimal_anchor();
-    PackedVector<> new_table;
+    PackedVec new_table;
     new_table.resize(bdsg_packed_set_size_schedule[schedule_val]);
     
     std::uniform_int_distribution<uint64_t> distr(0, new_table.size() - 1);
@@ -1334,7 +1334,7 @@ inline void PackedSet<PackedVec>::rehash(bool shrink) {
 }
 
 template<typename PackedVec>
-inline size_t PackedSet<PackedVec>::locate(const uint64_t& diff, const PackedVector<>& _table) const {
+inline size_t PackedSet<PackedVec>::locate(const uint64_t& diff, const PackedVec& _table) const {
     // linear probing until finding the diff or a null sentinel
     size_t p = _table.size();
     size_t i = hash(diff, _table);
@@ -1435,6 +1435,9 @@ inline void PackedSet<PackedVec>::set_load_factors(double min_load_factor, doubl
     assert(max_load_factor < 1.0);
     min_load = min_load_factor;
     max_load = max_load_factor;
+    assert(max_load > min_load);
+    assert(min_load >= 0.0);
+    assert(max_load < 1.0);
     if (table.size() > 0) {
         while (num_items <= min_load * table.size()) {
             rehash(true);
