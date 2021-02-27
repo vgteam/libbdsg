@@ -23,9 +23,19 @@
 // Find the endian conversion functions.
 // See: <https://stackoverflow.com/a/58418801>
 #ifdef __APPLE__
-  #include <machine/endian.h>
+    // See <https://gist.github.com/yinyin/2027912>
+    #include <libkern/OSByteOrder.h>
+
+    #define htobe16(x) OSSwapHostToBigInt16(x)
+    #define be16toh(x) OSSwapBigToHostInt16(x)
+
+    #define htobe32(x) OSSwapHostToBigInt32(x)
+    #define be32toh(x) OSSwapBigToHostInt32(x)
+
+    #define htobe64(x) OSSwapHostToBigInt64(x)
+    #define be64toh(x) OSSwapBigToHostInt64(x)
 #else
-  #include <endian.h>
+    #include <endian.h>
 #endif
 
 
