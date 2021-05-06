@@ -19,3 +19,7 @@
 [submodule "deps/pybind11"]
 	path = bdsg/deps/pybind11
 	url = https://github.com/pybind/pybind11.git
+[submodule "bdsg/deps/mio"]
+	path = bdsg/deps/mio
+	url = https://github.com/mandreyel/mio.git
+	branch = master

@@ -235,19 +235,19 @@ protected:
     hash_map<int64_t, pair<size_t, size_t>> path_range;
     
     /// The first half of the steps
-    PagedVector steps_0;
+    PagedVector<> steps_0;
     
     /// The second half of the steps
-    PagedVector steps_1;
+    PagedVector<> steps_1;
     
     /// The positions of the steps
-    PagedVector positions;
+    PagedVector<> positions;
     
     /// A perfect minimal hash function for the step handles
     boomphf::mphf<step_handle_t, StepHash>* step_hash = nullptr;
     
     /// The position of the step that hashes to a given index
-    PackedVector step_positions;
+    PackedVector<> step_positions;
 };
 
 /*

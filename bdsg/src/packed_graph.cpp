@@ -15,9 +15,6 @@ namespace bdsg {
     
     const double PackedGraph::defrag_factor = .2;
     
-    const size_t PackedGraph::NARROW_PAGE_WIDTH = 256;
-    const size_t PackedGraph::WIDE_PAGE_WIDTH = 1024;
-    
     const size_t PackedGraph::GRAPH_RECORD_SIZE = 2;
     const size_t PackedGraph::GRAPH_START_EDGES_OFFSET = 0;
     const size_t PackedGraph::GRAPH_END_EDGES_OFFSET = 1;
@@ -44,17 +41,7 @@ namespace bdsg {
     
     const double PackedGraph::PATH_RESIZE_FACTOR = 1.25;
     
-    PackedGraph::PackedGraph() :
-        graph_iv(NARROW_PAGE_WIDTH),
-        seq_start_iv(NARROW_PAGE_WIDTH),
-        edge_lists_iv(WIDE_PAGE_WIDTH),
-        path_membership_node_iv(NARROW_PAGE_WIDTH),
-        path_membership_next_iv(NARROW_PAGE_WIDTH),
-        path_membership_offset_iv(NARROW_PAGE_WIDTH),
-        path_membership_id_iv(WIDE_PAGE_WIDTH),
-        path_name_start_iv(NARROW_PAGE_WIDTH),
-        path_head_iv(WIDE_PAGE_WIDTH),
-        path_tail_iv(NARROW_PAGE_WIDTH) {
+    PackedGraph::PackedGraph() {
         
         // set pretty full load factors
         path_id.max_load_factor(0.5);
@@ -824,11 +811,11 @@ namespace bdsg {
             if (path_head_iv.get(path_idx) != 0) {
                 
                 // the path is non-empty, so we need to straighten it out and reallocate it
-                RobustPagedVector new_steps_iv(path.steps_iv.page_width());
-                RobustPagedVector new_links_iv(path.links_iv.page_width());
+                decltype(path.steps_iv) new_steps_iv;
+                decltype(path.links_iv) new_links_iv;
                 
                 // we will need to record the translation between path steps so we can update memberships later
-                PagedVector offset_translator(NARROW_PAGE_WIDTH);
+                PagedVector<NARROW_PAGE_WIDTH> offset_translator;
                 offset_translator.resize(path.steps_iv.size() / STEP_RECORD_SIZE + 1);
                 
                 new_links_iv.reserve(path.links_iv.size() - path_deleted_steps_iv.get(path_idx) * PATH_RECORD_SIZE);
@@ -877,7 +864,7 @@ namespace bdsg {
                 // now we need to iterate over each node on the path exactly one time to update its membership
                 // records (even if the node occurs multiple times on this path), so we will use a bit deque
                 // indexed by node_id - min_id to flag nodes as either translated or untranslated
-                PackedDeque nid_translated;
+                PackedDeque<> nid_translated;
                 nid_translated.append_back(0);
                 nid_t min_translated_id = get_id(decode_traversal(get_step_trav(path, path_head_iv.get(path_idx))));
                 
@@ -928,8 +915,8 @@ namespace bdsg {
             }
             else {
                 // the path is empty, so let's make sure it's not holding onto any capacity it doesn't need
-                path.links_iv = RobustPagedVector(path.links_iv.page_width());
-                path.steps_iv = RobustPagedVector(path.steps_iv.page_width());
+                path.links_iv = decltype(path.links_iv)();
+                path.steps_iv = decltype(path.steps_iv)();
             }
             
             path_deleted_steps_iv.set(path_idx,  0);
@@ -982,7 +969,7 @@ namespace bdsg {
             }
             
             // make a new path name vector that we can fill with the remaining path names
-            PackedVector new_path_names_iv;
+            PackedVector<> new_path_names_iv;
             new_path_names_iv.resize(path_names_iv.size() - path_name_length_deleted);
             
             // transfer over path names and update pointers on paths into the vector
@@ -1007,49 +994,49 @@ namespace bdsg {
         
         // consolidate the vectors that share indexes with the paths vector (we do this to get them
         // to a tight allocation even if no paths have been deleted)
-        PagedVector new_path_name_start_iv(path_name_start_iv.page_width());
+        decltype(path_name_start_iv) new_path_name_start_iv;
         new_path_name_start_iv.reserve(paths.size());
         for (size_t i = 0; i < paths.size(); ++i) {
             new_path_name_start_iv.append(path_name_start_iv.get(i));
         }
         path_name_start_iv = move(new_path_name_start_iv);
         
-        PackedVector new_path_name_length_iv;
+        PackedVector<> new_path_name_length_iv;
         new_path_name_length_iv.reserve(paths.size());
         for (size_t i = 0; i < paths.size(); ++i) {
             new_path_name_length_iv.append(path_name_length_iv.get(i));
         }
         path_name_length_iv = move(new_path_name_length_iv);
         
-        PackedVector new_path_is_deleted_iv;
+        PackedVector<> new_path_is_deleted_iv;
         new_path_is_deleted_iv.reserve(paths.size());
         for (size_t i = 0; i < paths.size(); ++i) {
             new_path_is_deleted_iv.append(path_is_deleted_iv.get(i));
         }
         path_is_deleted_iv = move(new_path_is_deleted_iv);
         
-        PackedVector new_path_is_circular_iv;
+        PackedVector<> new_path_is_circular_iv;
         new_path_is_circular_iv.reserve(paths.size());
         for (size_t i = 0; i < paths.size(); ++i) {
             new_path_is_circular_iv.append(path_is_circular_iv.get(i));
         }
         path_is_circular_iv = move(new_path_is_circular_iv);
         
-        PagedVector new_path_head_iv(path_head_iv.page_width());
+        decltype(path_head_iv) new_path_head_iv;
         new_path_head_iv.reserve(paths.size());
         for (size_t i = 0; i < paths.size(); ++i) {
             new_path_head_iv.append(path_head_iv.get(i));
         }
         path_head_iv = move(new_path_head_iv);
         
-        PagedVector new_path_tail_iv(path_tail_iv.page_width());
+        decltype(path_tail_iv) new_path_tail_iv;
         new_path_tail_iv.reserve(paths.size());
         for (size_t i = 0; i < paths.size(); ++i) {
             new_path_tail_iv.append(path_tail_iv.get(i));
         }
         path_tail_iv = move(new_path_tail_iv);
         
-        PackedVector new_path_deleted_steps_iv;
+        PackedVector<> new_path_deleted_steps_iv;
         new_path_deleted_steps_iv.reserve(paths.size());
         for (size_t i = 0; i < paths.size(); ++i) {
             new_path_deleted_steps_iv.append(path_deleted_steps_iv.get(i));
@@ -1066,7 +1053,7 @@ namespace bdsg {
         }
         
         // use the layout to make a translator between current IDs and the IDs we will reassign
-        PagedVector nid_trans(NARROW_PAGE_WIDTH);
+        PagedVector<NARROW_PAGE_WIDTH> nid_trans;
         nid_trans.resize(max_id - min_id + 1);
         for (size_t i = 0; i < order.size(); ++i) {
             nid_trans.set(get_id(order[i]) - min_id, i + 1);
@@ -1096,7 +1083,7 @@ namespace bdsg {
         defragment(true);
         
         // make a new nid_to_graph_iv of exactly the right size
-        PackedDeque new_nid_to_graph_iv;
+        decltype(nid_to_graph_iv) new_nid_to_graph_iv;
         new_nid_to_graph_iv.reserve(nid_to_graph_iv.size());
         // transfer of the data
         for (size_t i = 0; i < nid_to_graph_iv.size(); i++) {
@@ -1109,7 +1096,7 @@ namespace bdsg {
         size_t total_seq_len = seq_iv.size() - deleted_bases;
         
         // make a new seq_iv of exactly the right size
-        PackedVector new_seq_iv;
+        PackedVector<> new_seq_iv;
         new_seq_iv.reserve(total_seq_len);
         static_assert(SEQ_START_RECORD_SIZE == SEQ_LENGTH_RECORD_SIZE,
                       "This loop will need to be rewritten if we change the record sizes");
@@ -1149,10 +1136,10 @@ namespace bdsg {
             max_id = min_id + nid_to_graph_iv.size() - 1;
             
             // initialize new vectors to construct defragged copies in
-            PagedVector new_graph_iv(graph_iv.page_width());
-            PackedVector new_seq_length_iv;
-            PagedVector new_seq_start_iv(seq_start_iv.page_width());
-            PagedVector new_path_membership_node_iv(path_membership_node_iv.page_width());
+            decltype(graph_iv) new_graph_iv;
+            PackedVector<> new_seq_length_iv;
+            decltype(seq_start_iv) new_seq_start_iv;
+            decltype(path_membership_node_iv) new_path_membership_node_iv;
             
             // expand them to the size we need to avoid reallocation and get optimal compression
             new_graph_iv.reserve(num_nodes * GRAPH_RECORD_SIZE);
@@ -1191,7 +1178,7 @@ namespace bdsg {
             
             uint64_t num_edge_records = edge_lists_iv.size() / EDGE_RECORD_SIZE - deleted_edge_records;
             
-            PagedVector new_edge_lists_iv(edge_lists_iv.page_width());
+            decltype(edge_lists_iv) new_edge_lists_iv;
             new_edge_lists_iv.reserve(num_edge_records * EDGE_RECORD_SIZE);
             
             for (size_t i = 0; i < nid_to_graph_iv.size(); i++) {
@@ -1235,9 +1222,9 @@ namespace bdsg {
             
             uint64_t num_membership_records = path_membership_next_iv.size() / MEMBERSHIP_NEXT_RECORD_SIZE - deleted_membership_records;
             
-            PagedVector new_path_membership_id_iv(path_membership_id_iv.page_width());
-            PagedVector new_path_membership_offset_iv(path_membership_offset_iv.page_width());
-            PagedVector new_path_membership_next_iv(path_membership_next_iv.page_width());
+            decltype(path_membership_id_iv) new_path_membership_id_iv;
+            decltype(path_membership_offset_iv) new_path_membership_offset_iv;
+            decltype(path_membership_next_iv) new_path_membership_next_iv;
             
             new_path_membership_id_iv.reserve(num_membership_records * MEMBERSHIP_ID_RECORD_SIZE);
             new_path_membership_offset_iv.reserve(num_membership_records * MEMBERSHIP_OFFSET_RECORD_SIZE);
@@ -1482,8 +1469,8 @@ namespace bdsg {
         return true;
     }
     
-    PackedVector PackedGraph::encode_and_assign_path_name(const string& path_name) {
-        PackedVector encoded;
+    PackedVector<> PackedGraph::encode_and_assign_path_name(const string& path_name) {
+        PackedVector<> encoded;
         encoded.resize(path_name.size());
         for (size_t i = 0; i < path_name.size(); ++i) {
             encoded.set(i, get_or_make_assignment(path_name.at(i)));
@@ -1491,8 +1478,8 @@ namespace bdsg {
         return encoded;
     }
     
-    PackedVector PackedGraph::encode_path_name(const string& path_name) const {
-        PackedVector encoded;
+    PackedVector<> PackedGraph::encode_path_name(const string& path_name) const {
+        PackedVector<> encoded;
         encoded.resize(path_name.size());
         for (size_t i = 0; i < path_name.size(); ++i) {
             uint64_t encoded_char = get_assignment(path_name.at(i));
@@ -1512,9 +1499,9 @@ namespace bdsg {
         }
     }
     
-    PackedVector PackedGraph::extract_encoded_path_name(const int64_t& path_idx) const {
+    PackedVector<> PackedGraph::extract_encoded_path_name(const int64_t& path_idx) const {
         size_t name_start = path_name_start_iv.get(path_idx);
-        PackedVector name;
+        PackedVector<> name;
         name.resize(path_name_length_iv.get(path_idx));
         for (size_t i = 0; i < name.size(); ++i) {
             name.set(i, path_names_iv.get(name_start + i));
@@ -1586,7 +1573,7 @@ namespace bdsg {
             throw std::runtime_error("[PackedGraph] error: cannot create paths with no name");
         }
         
-        PackedVector encoded = encode_and_assign_path_name(name);
+        PackedVector<> encoded = encode_and_assign_path_name(name);
         if (path_id.count(encoded)) {
             throw std::runtime_error("[PackedGraph] error: path of name " + name + " already exists, cannot create again");
         }
@@ -1924,7 +1911,7 @@ namespace bdsg {
         // initialize new ID member variables
         nid_t new_max_id = 0;
         nid_t new_min_id = std::numeric_limits<nid_t>::max();
-        PackedDeque new_nid_to_graph_iv;
+        decltype(nid_to_graph_iv) new_nid_to_graph_iv;
         new_nid_to_graph_iv.reserve(get_node_count());
 
         for (size_t i = 0; i < nid_to_graph_iv.size(); ++i) {

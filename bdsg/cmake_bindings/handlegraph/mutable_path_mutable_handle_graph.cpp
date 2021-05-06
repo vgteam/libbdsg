@@ -6,10 +6,16 @@
 #include <handlegraph/mutable_path_handle_graph.hpp>
 #include <handlegraph/mutable_path_mutable_handle_graph.hpp>
 #include <handlegraph/path_handle_graph.hpp>
+#include <handlegraph/serializable.hpp>
+#include <handlegraph/serializable_handle_graph.hpp>
 #include <handlegraph/types.hpp>
+#include <ios>
+#include <istream>
 #include <iterator>
 #include <memory>
+#include <ostream>
 #include <sstream> // __str__
+#include <streambuf>
 #include <string>
 #include <utility>
 #include <vector>
@@ -2012,5 +2018,16 @@ void bind_handlegraph_mutable_path_mutable_handle_graph(std::function< pybind11:
 		cl.def(pybind11::init<PyCallBack_handlegraph_MutablePathDeletableHandleGraph const &>());
 		cl.def( pybind11::init( [](){ return new PyCallBack_handlegraph_MutablePathDeletableHandleGraph(); } ) );
 		cl.def("assign", (class handlegraph::MutablePathDeletableHandleGraph & (handlegraph::MutablePathDeletableHandleGraph::*)(const class handlegraph::MutablePathDeletableHandleGraph &)) &handlegraph::MutablePathDeletableHandleGraph::operator=, "C++: handlegraph::MutablePathDeletableHandleGraph::operator=(const class handlegraph::MutablePathDeletableHandleGraph &) --> class handlegraph::MutablePathDeletableHandleGraph &", pybind11::return_value_policy::automatic, pybind11::arg(""));
+	}
+	{ // handlegraph::Serializable file:handlegraph/serializable.hpp line:20
+		pybind11::class_<handlegraph::Serializable, std::shared_ptr<handlegraph::Serializable>> cl(M("handlegraph"), "Serializable", "");
+		cl.def("get_magic_number", (unsigned int (handlegraph::Serializable::*)() const) &handlegraph::Serializable::get_magic_number, "Returns a number that is specific to the serialized implementation for type\n checking. Does not depend on the contents of any particular instantiation\n (i.e. behaves as if static, but cannot be static and virtual).\n\nC++: handlegraph::Serializable::get_magic_number() const --> unsigned int");
+		cl.def("deserialize", (void (handlegraph::Serializable::*)(const std::string &)) &handlegraph::Serializable::deserialize, "Sets the contents of this object to the contents of a serialized object\n from a file. The serialized object must be from the same implementation\n of this interface as is calling deserialize(). Can only be called on an\n empty object.\n\nC++: handlegraph::Serializable::deserialize(const std::string &) --> void", pybind11::arg("filename"));
+		cl.def("serialize", (void (handlegraph::Serializable::*)(const std::string &)) &handlegraph::Serializable::serialize, "Write the contents of this object to a named file. Makes sure to include\n a leading magic number.\n\nC++: handlegraph::Serializable::serialize(const std::string &) --> void", pybind11::arg("filename"));
+		cl.def("assign", (class handlegraph::Serializable & (handlegraph::Serializable::*)(const class handlegraph::Serializable &)) &handlegraph::Serializable::operator=, "C++: handlegraph::Serializable::operator=(const class handlegraph::Serializable &) --> class handlegraph::Serializable &", pybind11::return_value_policy::automatic, pybind11::arg(""));
+	}
+	{ // handlegraph::SerializableHandleGraph file:handlegraph/serializable_handle_graph.hpp line:16
+		pybind11::class_<handlegraph::SerializableHandleGraph, std::shared_ptr<handlegraph::SerializableHandleGraph>, handlegraph::Serializable> cl(M("handlegraph"), "SerializableHandleGraph", "");
+		cl.def("assign", (class handlegraph::SerializableHandleGraph & (handlegraph::SerializableHandleGraph::*)(const class handlegraph::SerializableHandleGraph &)) &handlegraph::SerializableHandleGraph::operator=, "C++: handlegraph::SerializableHandleGraph::operator=(const class handlegraph::SerializableHandleGraph &) --> class handlegraph::SerializableHandleGraph &", pybind11::return_value_policy::automatic, pybind11::arg(""));
 	}
 }

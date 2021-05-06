@@ -22,6 +22,7 @@
 #include "bdsg/packed_graph.hpp"
 #include "bdsg/hash_graph.hpp"
 #include "bdsg/internal/packed_structs.hpp"
+#include "bdsg/internal/mapped_structs.hpp"
 #include "bdsg/internal/mmap_backend.hpp"
 #include "bdsg/overlays/path_position_overlays.hpp"
 #include "bdsg/overlays/packed_path_position_overlay.hpp"
@@ -90,18 +91,138 @@ public:
 
 // Have helpers to store and check some test data
 
-void fill_to(MmapArray<int64_t>& data, size_t count, int64_t nonce) {
+size_t mix(size_t in, size_t salt = 0) {
+    return ((in * in + (in << 2)) ^ salt) + 1;
+}
+
+template<typename Vectorish>
+void fill_to(Vectorish& data, size_t count, int64_t nonce) {
     for (size_t i = 0; i < count; i++) {
-        data.at(i) = ((i * i + (i << 2)) ^ nonce);
+        data.at(i) = mix(i, nonce);
     }
 }
 
-void verify_to(const MmapArray<int64_t>& data, size_t count, int64_t nonce) {
+template<typename Vectorish>
+void verify_to(const Vectorish& data, size_t count, int64_t nonce) {
     if (count > data.size()) {
         throw std::runtime_error("Trying to check " + std::to_string(count) + " items but only " + std::to_string(data.size()) + " are available");
     }
     for (size_t i = 0; i < count; i++) {
-        assert(data.at(i) == (((i * i + (i << 2))) ^ nonce));
+        auto correct_value = mix(i, nonce);
+        auto observed_value = data.at(i);
+        if (observed_value != correct_value) {
+            cerr << "At index " << i << " observed " << observed_value << " at " << &data.at(i) << " but expected " << correct_value << endl;
+        }
+        assert(observed_value == correct_value);
+    }
+}
+
+/**
+ * Given a resizeable two-level container of numbers, vigorously resize it and
+ * its members and make sure they have the right values.
+ */
+template<typename TwoLevel>
+void bother_vector(TwoLevel& storage) {
+
+    vector<vector<int>> truth;
+    
+    auto check = [&]() {
+        // Make sure the structure under test is holding the correct data.
+        if (storage.size() != truth.size()) {
+            std::cerr << "Structure under test has " << storage.size() << " items but should have " << truth.size() << std::endl;
+            assert(storage.size() == truth.size());
+        }
+        for (size_t i = 0; i < truth.size(); i++) {
+            if (storage.at(i).size() != truth.at(i).size()) {
+                std::cerr << "Structure under test has " << storage.at(i).size()
+                    << " items in item " << i << " but should have " << truth.size() << std::endl;
+                assert(storage.at(i).size() == truth.at(i).size());
+            }
+            for (size_t j = 0; j < truth.at(i).size(); j++) {
+                if (storage.at(i).at(j) != truth.at(i).at(j)) {
+                    std::cerr << "Structure under test has " << storage.at(i).at(j)
+                        << " at " << j << " address " << ((intptr_t) &storage.at(i).at(j))
+                        << " in item " << i << " address " << ((intptr_t) &storage.at(i))
+                        << " but should have " << truth.at(i).at(j) << std::endl;
+                    assert(storage.at(i).at(j) == truth.at(i).at(j));
+                }
+            }
+        }
+    };
+
+    size_t seed = 0;
+
+    for (size_t iteration = 0; iteration < 2; iteration++) {
+        truth.resize(0);
+        storage.resize(0);
+        check();
+        
+        for (size_t parent_size = 0; parent_size < 100; parent_size++) {
+#ifdef debug_bother
+            std::cerr << "Resize parent to " << parent_size << endl;
+#endif
+            truth.resize(parent_size);
+            storage.resize(parent_size);
+            check();
+            
+            for (size_t child = 0; child < parent_size; child++) {
+                auto& truth_child = truth.at(child);
+                auto& storage_child = storage.at(child);
+                
+                size_t child_size = seed % 100;
+                seed = mix(seed);
+                
+                for (size_t i = 0; i <= std::min(child_size, (size_t)5); i++) {
+                    // Resize 1 bigger a bunch
+#ifdef debug_bother
+                    std::cerr << "Resize child " << child << " of " << parent_size << " to " << i << endl;
+#endif
+                    truth_child.resize(i);
+                    storage_child.resize(i);
+#ifdef debug_bother
+                    std::cerr << "Check after resize to " << i << endl;
+#endif
+                    check();
+#ifdef debug_bother
+                    std::cerr << "Completed check after resize to " << i << endl;
+#endif
+                }
+                
+                truth_child.resize(child_size);
+                storage_child.resize(child_size);
+                check();
+                
+#ifdef debug_bother
+                std::cerr << "Fill in " << child_size << " items in child " << child << endl;
+#endif
+                
+                for (size_t i = 0; i < child_size; i++) {
+                    // Fill in with data
+                    truth_child.at(i) = seed % 10000;
+                    storage_child.at(i) = seed % 10000;
+                    seed = mix(seed);
+                }
+                
+                // Cut in half
+#ifdef debug_bother
+                std::cerr << "Resize child " << child << " of " << parent_size << " to " << child_size/2 << endl;
+#endif
+                truth_child.resize(child_size/2);
+                storage_child.resize(child_size/2);
+                check();
+                
+                // And increase by 10 with empty slots
+#ifdef debug_bother
+                std::cerr << "Resize child " << child << " of " << parent_size << " to " << (truth_child.size() + 10) << endl;
+#endif
+                truth_child.resize(truth_child.size() + 10);
+                storage_child.resize(storage_child.size() + 10);
+                check();
+            }
+            
+            // Now make sure that after all that the structures are equal.
+            check();
+        }
     }
 }
 
@@ -388,6 +509,127 @@ void test_mmap_backend() {
     
     cerr << "MmapBackend tests successful!" << endl;
 }
+
+void test_mapped_structs() {
+    {
+    
+        using T = big_endian<int64_t>;
+        using A = bdsg::yomo::Allocator<T>;
+        using V = CompatVector<T, A>;
+        // Make a thing to hold onto a test array.
+        bdsg::yomo::UniqueMappedPointer<V> numbers_holder;
+        
+        // Construct it
+        numbers_holder.construct("GATTACA");
+        
+        { 
+        
+            // Get a reference to it, which will be valid unless we save() or something
+            auto& vec1 = *numbers_holder;
+            
+            // We should start empty
+            assert(vec1.size() == 0);
+            
+            // We should be able to expand.
+            vec1.resize(100);
+            assert(vec1.size() == 100);
+            
+            // And contract
+            vec1.resize(10);
+            assert(vec1.size() == 10);
+            
+            // And hold data
+            fill_to(vec1, 10, 0);
+            verify_to(vec1, 10, 0);
+            
+            // And expand again
+            vec1.resize(100);
+            assert(vec1.size() == 100);
+            
+            // And see the data
+            verify_to(vec1, 10, 0);
+            
+            // And expand more
+            vec1.resize(1000);
+            assert(vec1.size() == 1000);
+            
+            // And see the data
+            verify_to(vec1, 10, 0);
+            
+            // And hold more data
+            fill_to(vec1, 1000, 1);
+            verify_to(vec1, 1000, 1);
+            
+        }
+            
+        // We're going to need a temporary file
+        // This filename fill be filled in with the actual filename.
+        char filename[] = "tmpXXXXXX";
+        int tmpfd = mkstemp(filename);
+        assert(tmpfd != -1);
+        
+        numbers_holder.save(tmpfd);
+        
+        { 
+            auto& vec2 = *numbers_holder;
+            
+            // We should have the same data
+            assert(vec2.size() == 1000);
+            verify_to(vec2, 1000, 1);
+            
+            // We should still be able to modify it.
+            vec2.resize(4000);
+            fill_to(vec2, 4000, 2);
+            verify_to(vec2, 4000, 2);
+        }
+        
+        numbers_holder.dissociate();
+        
+        {
+            auto& vec3 = *numbers_holder;
+            
+            // After dissociating, we should be able to modify the vector
+            vec3.resize(5);
+            fill_to(vec3, 5, 3);
+            verify_to(vec3, 5, 3);
+        }
+        
+        numbers_holder.reset();
+        numbers_holder.load(tmpfd, "GATTACA");
+        
+        {
+            auto& vec4 = *numbers_holder;
+            
+            // When we reload we should see the last thing we wrote before dissociating.
+            assert(vec4.size() == 4000);
+            verify_to(vec4, 4000, 2);
+        }
+        
+        close(tmpfd);
+        unlink(filename);
+        
+    }
+    
+    {
+    
+        using T = big_endian<int64_t>;
+        using A = bdsg::yomo::Allocator<T>;
+        using V1 = CompatVector<T, A>;
+        using A2 = bdsg::yomo::Allocator<V1>;
+        using V2 = CompatVector<V1, A2>;
+        // Make a thing to hold onto a test array of arrays.
+        bdsg::yomo::UniqueMappedPointer<V2> numbers_holder_holder;
+        
+        numbers_holder_holder.construct();
+    
+        // Now do a vigorous test comparing to a normal vector
+        bother_vector(*numbers_holder_holder);
+    }
+    
+    cerr << "Mapped Structs tests successful!" << endl;
+}
+        
+
 
 void test_serializable_handle_graphs() {
     
@@ -2271,6 +2513,7 @@ void test_mutable_path_handle_graphs() {
     cerr << "MutablePathDeletableHandleGraph tests successful!" << endl;
 }
 
+template<typename PackedVectorImpl>
 void test_packed_vector() {
     enum vec_op_t {SET = 0, GET = 1, APPEND = 2, POP = 3, SERIALIZE = 4};
     
@@ -2290,7 +2533,7 @@ void test_packed_vector() {
         uint64_t next_val = 0;
         
         vector<uint64_t> std_vec;
-        PackedVector dyn_vec;
+        PackedVectorImpl dyn_vec;
         
         for (size_t j = 0; j < num_ops; j++) {
             
@@ -2344,7 +2587,7 @@ void test_packed_vector() {
                     
                     dyn_vec.serialize(strm);
                     strm.seekg(0);
-                    PackedVector copy_vec(strm);
+                    PackedVectorImpl copy_vec(strm);
                     
                     assert(copy_vec.size() == dyn_vec.size());
                     for (size_t i = 0; i < copy_vec.size(); i++) {
@@ -2361,18 +2604,18 @@ void test_packed_vector() {
             assert(std_vec.size() == dyn_vec.size());
         }
     }
-    cerr << "PackedVector tests successful!" << endl;
+    cerr << "PackedVector (" << typeid(PackedVectorImpl).name() << ") tests successful!" << endl;
 }
 
+template<typename PagedVectorImpl>
 void test_paged_vector() {
     enum vec_op_t {SET = 0, GET = 1, APPEND = 2, POP = 3, SERIALIZE = 4};
     std::random_device rd;
     std::default_random_engine prng(rd());
     std::uniform_int_distribution<int> op_distr(0, 4);
-    std::uniform_int_distribution<int> page_distr(1, 5);
     std::uniform_int_distribution<int> val_distr(0, 100);
     
-    int num_runs = 1000;
+    int num_runs = 200;
     int num_ops = 200;
     int gets_per_op = 5;
     int sets_per_op = 5;
@@ -2384,7 +2627,7 @@ void test_paged_vector() {
         uint64_t next_val = val_distr(prng);
         
         std::vector<uint64_t> std_vec;
-        PagedVector dyn_vec(page_distr(prng));
+        PagedVectorImpl dyn_vec;
         
         for (size_t j = 0; j < num_ops; j++) {
             
@@ -2438,7 +2681,7 @@ void test_paged_vector() {
                     
                     dyn_vec.serialize(strm);
                     strm.seekg(0);
-                    PagedVector copy_vec(strm);
+                    PagedVectorImpl copy_vec(strm);
                     
                     assert(copy_vec.size() == dyn_vec.size());
                     for (size_t i = 0; i < copy_vec.size(); i++) {
@@ -2455,7 +2698,7 @@ void test_paged_vector() {
             assert(std_vec.size() == dyn_vec.size());
         }
     }
-    cerr << "PagedVector tests successful!" << endl;
+    cerr << "PagedVector (" << typeid(PagedVectorImpl).name() << ") tests successful!" << endl;
 }
 
 void test_packed_deque() {
@@ -2476,7 +2719,7 @@ void test_packed_deque() {
         uint64_t next_val = 0;
         
         std::deque<uint64_t> std_deq;
-        PackedDeque suc_deq;
+        PackedDeque<> suc_deq;
         
         for (size_t j = 0; j < num_ops; j++) {
             
@@ -2545,7 +2788,7 @@ void test_packed_deque() {
                     
                     suc_deq.serialize(strm);
                     strm.seekg(0);
-                    PackedDeque copy_deq(strm);
+                    PackedDeque<> copy_deq(strm);
                     
                     assert(copy_deq.size() == suc_deq.size());
                     for (size_t i = 0; i < copy_deq.size(); i++) {
@@ -2583,7 +2826,7 @@ void test_packed_set() {
         uint64_t next_val = 0;
         
         unordered_set<uint64_t> std_set;
-        PackedSet packed_set;
+        PackedSet<> packed_set;
         
         for (size_t j = 0; j < num_ops; j++) {
             set_op_t op = (set_op_t) op_distr(prng);
@@ -2643,7 +2886,7 @@ void test_packed_set() {
 //
 //                    dyn_vec.serialize(strm);
 //                    strm.seekg(0);
-//                    PackedVector copy_vec(strm);
+//                    PackedVector<> copy_vec(strm);
 //
 //                    assert(copy_vec.size() == dyn_vec.size());
 //                    for (size_t i = 0; i < copy_vec.size(); i++) {
@@ -3609,8 +3852,15 @@ void test_packed_subgraph_overlay() {
 
 int main(void) {
     test_mmap_backend();
-    test_packed_vector();
-    test_paged_vector();
+    test_mapped_structs();
+    test_packed_vector<PackedVector<>>();
+    test_packed_vector<PackedVector<CompatIntVector<>>>();
+    test_paged_vector<PagedVector<1>>();
+    test_paged_vector<PagedVector<2>>();
+    test_paged_vector<PagedVector<3>>();
+    test_paged_vector<PagedVector<4>>();
+    test_paged_vector<PagedVector<5>>();
+    test_paged_vector<PagedVector<5, PackedVector<CompatIntVector<>>, CompatVector<PackedVector<CompatIntVector<>>>>>();
     test_packed_deque();
     test_packed_set();
     test_deletable_handle_graphs();

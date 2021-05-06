@@ -12,12 +12,13 @@ void bind_handlegraph_types(std::function< pybind11::module &(std::string const 
 void bind_handlegraph_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_handlegraph_path_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_handlegraph_mutable_path_mutable_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
-void bind_handlegraph_serializable_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_internal_wang_hash(std::function< pybind11::module &(std::string const &namespace_) > &M);
-void bind_bdsg_internal_packed_structs(std::function< pybind11::module &(std::string const &namespace_) > &M);
+void bind_bdsg_internal_mapped_structs(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_internal_utility(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_std_bdsg_internal_binder_hook_bind(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_internal_is_single_stranded(std::function< pybind11::module &(std::string const &namespace_) > &M);
+void bind_handlegraph_trivially_serializable(std::function< pybind11::module &(std::string const &namespace_) > &M);
+void bind_bdsg_internal_mmap_backend(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_odgi(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_handlegraph_path_position_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_overlays_packed_path_position_overlay(std::function< pybind11::module &(std::string const &namespace_) > &M);
@@ -42,6 +43,7 @@ PYBIND11_MODULE(bdsg, root_module) {
 	std::vector< std::pair<std::string, std::string> > sub_modules {
 		{"", "bdsg"},
 		{"bdsg", "algorithms"},
+		{"bdsg", "yomo"},
 		{"", "handlegraph"},
 		{"", "std"},
 	};
@@ -53,12 +55,13 @@ PYBIND11_MODULE(bdsg, root_module) {
 	bind_handlegraph_handle_graph(M);
 	bind_handlegraph_path_handle_graph(M);
 	bind_handlegraph_mutable_path_mutable_handle_graph(M);
-	bind_handlegraph_serializable_handle_graph(M);
 	bind_bdsg_internal_wang_hash(M);
-	bind_bdsg_internal_packed_structs(M);
+	bind_bdsg_internal_mapped_structs(M);
 	bind_bdsg_internal_utility(M);
 	bind_std_bdsg_internal_binder_hook_bind(M);
 	bind_bdsg_internal_is_single_stranded(M);
+	bind_handlegraph_trivially_serializable(M);
+	bind_bdsg_internal_mmap_backend(M);
 	bind_bdsg_odgi(M);
 	bind_handlegraph_path_position_handle_graph(M);
 	bind_bdsg_overlays_packed_path_position_overlay(M);

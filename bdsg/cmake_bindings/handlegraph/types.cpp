@@ -21,7 +21,7 @@
 void bind_handlegraph_types(std::function< pybind11::module &(std::string const &namespace_) > &M)
 {
 	{ // handlegraph::handle_t file:handlegraph/types.hpp line:34
-		pybind11::class_<handlegraph::handle_t, std::shared_ptr<handlegraph::handle_t>> cl(M("handlegraph"), "handle_t", "Represents the internal id of a node traversal");
+		pybind11::class_<handlegraph::handle_t, std::shared_ptr<handlegraph::handle_t>> cl(M("handlegraph"), "handle_t", "Represents a traversal of a node in a graph in a particular direction");
 		cl.def( pybind11::init( [](handlegraph::handle_t const &o){ return new handlegraph::handle_t(o); } ) );
 		cl.def( pybind11::init( [](){ return new handlegraph::handle_t(); } ) );
 		cl.def("assign", (struct handlegraph::handle_t & (handlegraph::handle_t::*)(const struct handlegraph::handle_t &)) &handlegraph::handle_t::operator=, "C++: handlegraph::handle_t::operator=(const struct handlegraph::handle_t &) --> struct handlegraph::handle_t &", pybind11::return_value_policy::automatic, pybind11::arg(""));

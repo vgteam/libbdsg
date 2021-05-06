@@ -118,6 +118,9 @@ target_include_directories(bbhash INTERFACE "${bdsg_DIR}/deps/BBHash/")
 add_library(sparsepp INTERFACE)
 target_include_directories(sparsepp INTERFACE "${bdsg_DIR}/deps/sparsepp/")
 
+# mio (header only)
+add_subdirectory("${bdsg_DIR}/deps/mio")
+
 if (BUILD_PYTHON_BINDINGS)
     # Binder (because some generated bindings depend on headers packaged with Binder)
     ExternalProject_Add(binder
@@ -204,12 +207,12 @@ add_library(bdsg_objs OBJECT
   ${bdsg_DIR}/src/eades_algorithm.cpp
   ${bdsg_DIR}/src/hash_graph.cpp
   ${bdsg_DIR}/src/is_single_stranded.cpp
+  ${bdsg_DIR}/src/mapped_structs.cpp
   ${bdsg_DIR}/src/mmap_backend.cpp
   ${bdsg_DIR}/src/node.cpp
   ${bdsg_DIR}/src/odgi.cpp
   ${bdsg_DIR}/src/packed_graph.cpp
   ${bdsg_DIR}/src/packed_path_position_overlay.cpp
-  ${bdsg_DIR}/src/packed_structs.cpp
   ${bdsg_DIR}/src/packed_subgraph_overlay.cpp
   ${bdsg_DIR}/src/path_position_overlays.cpp
   ${bdsg_DIR}/src/strand_split_overlay.cpp
@@ -229,7 +232,8 @@ set(bdsg_TARGET_DEPS
   dynamic
   handlegraph_shared
   bbhash
-  sparsepp)
+  sparsepp
+  mio::mio)
 
 set(bdsg_LIBS
   ${bdsg_TARGET_DEPS}
