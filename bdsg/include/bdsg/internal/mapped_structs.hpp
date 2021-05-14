@@ -579,11 +579,16 @@ using MappedVector = CompatVector<T, yomo::Allocator<T>>;
  *
  * TODO: Actually implement compression and a reference proxy like SDSL does.
  */
-template<typename Alloc = std::allocator<size_t>>
-class CompatIntVector : public CompatVector<size_t, Alloc> {
+template<typename Alloc = std::allocator<uint64_t>>
+class CompatIntVector : public CompatVector<uint64_t, Alloc> {
 public:
     
     using CompatVector<size_t, Alloc>::CompatVector;
+
+    /**
+     * Return the number of integers in the vector.
+     */
+    size_t size() const;
 
     /**
      * Return the width in bits of the entries.
@@ -599,12 +604,103 @@ public:
      * simultaneously resize to the new given number of elements.
      */
     void repack(size_t new_width, size_t new_size);
+    
+    /**
+     * Actual accessor method that sets the value at a position.
+     * Does not check if value actually fits.
+     */
+    void pack(size_t offset, uint64_t value);
+    
+    /**
+     * Actual accessor method that gets the value at a position.
+     */
+    uint64_t unpack(size_t index) const;
+    
+    /**
+     * Proxy that acts as a mutable reference to an entry in the vector.
+     */
+    class Proxy {
+    protected:
+        // What vector are we operating on?
+        CompatIntVector& parent;
+        // What location do we refer to?
+        size_t index;
+    public:
+        // Must be movable via constructor for by-value return
+        Proxy(Proxy&& other) = default;
+        
+        // But generally not movable or copyable
+        Proxy(const Proxy& other) = delete;
+        Proxy& operator=(const Proxy& other) = delete;
+        Proxy& operator=(Proxy&& other) = delete;
+        
+        /// Make a proxy for the entry at the given position in the given int
+        /// vector
+        Proxy(CompatIntVector& parent, size_t index);
+        
+        /// Get the value the proxy refers to
+        operator uint64_t () const;
+        
+        /// Set the value the proxy refers to
+        Proxy& operator=(uint64_t new_value);
+    };
+    
+    using reference = Proxy;
+    
+    /**
+     * Proxy that acts as an immutable reference to an entry in the vector.
+     */
+    class ConstProxy {
+    protected:
+        // What vector are we operating on?
+        const CompatIntVector& parent;
+        // What location do we refer to?
+        size_t index;
+    public:
+        // Must be movable via constructor for by-value return
+        ConstProxy(ConstProxy&& other) = default;
+        
+        // But generally not movable or copyable
+        ConstProxy(const ConstProxy& other) = delete;
+        ConstProxy& operator=(const ConstProxy& other) = delete;
+        ConstProxy& operator=(ConstProxy&& other) = delete;
+        
+        /// Make a proxy for the entry at the given position in the given int
+        /// vector
+        ConstProxy(const CompatIntVector& parent, size_t index);
+        
+        /// Get the value the proxy refers to
+        operator uint64_t () const;
+    };
+    
+    using const_reference = ConstProxy;
+    
+    /**
+     * Get a proxy reference to read or write the given index.
+     * Checks bounds, but not value width.
+     */
+    Proxy at(size_t index);
+    /**
+     * Get a proxy reference to read the given index.
+     * Checks bounds.
+     */
+    ConstProxy at(size_t index) const;
+    
+    /**
+     * Get a proxy reference to read or write the given index.
+     */
+    Proxy operator[](size_t index);
+    /**
+     * Get a proxy reference to read the given index.
+     */
+    ConstProxy operator[](size_t index) const;
+    
 };
 
 /**
  * Int vector mapped in from a file.
  */
-using MappedIntVector = CompatIntVector<yomo::Allocator<size_t>>; 
+using MappedIntVector = CompatIntVector<yomo::Allocator<uint64_t>>; 
 
 ///////////////////////////////////////////////////////////////////////////////////
 
@@ -1052,6 +1148,60 @@ template<typename Alloc>
 void CompatIntVector<Alloc>::repack(size_t new_width, size_t new_size) {
     // TODO: actually bit pack
     this->resize(new_size);
+}
+
+template<typename Alloc>
+CompatIntVector<Alloc>::Proxy::Proxy(CompatIntVector& parent, size_t index) : parent(parent), index(index) {
+    // Nothing to do!
+}
+
+template<typename Alloc>
+CompatIntVector<Alloc>::Proxy::operator uint64_t () const {
+    return parent.unpack(index);
+}
+
+template<typename Alloc>
+auto CompatIntVector<Alloc>::Proxy::operator=(uint64_t new_value) -> Proxy& {
+    parent.pack(index, new_value);
+    return *this;
+}
+
+template<typename Alloc>
+CompatIntVector<Alloc>::ConstProxy::ConstProxy(const CompatIntVector& parent, size_t index) : parent(parent), index(index) {
+    // Nothing to do!
+}
+
+template<typename Alloc>
+CompatIntVector<Alloc>::ConstProxy::operator uint64_t () const {
+    return parent.unpack(index);
+}
+
+template<typename Alloc>
+auto CompatIntVector<Alloc>::at(size_t index) -> Proxy {
+    if (index > size()) {
+        throw std::out_of_range("Accessing index " + std::to_string(index) +
+            " in integer vector of length " + std::to_string(size()));
+    }
+    return Proxy(*this, index);
+}
+
+template<typename Alloc>
+auto CompatIntVector<Alloc>::at(size_t index) const -> ConstProxy {
+    if (index > size()) {
+        throw std::out_of_range("Accessing index " + std::to_string(index) +
+            " in integer vector of length " + std::to_string(size()));
+    }
+    return ConstProxy(*this, index);
+}
+
+template<typename Alloc>
+auto CompatIntVector<Alloc>::operator[](size_t index) -> Proxy {
+    return Proxy(*this, index);
+}
+
+template<typename Alloc>
+auto CompatIntVector<Alloc>::operator[](size_t index) const -> ConstProxy {
+    return ConstProxy(*this, index);
 }
 
 namespace yomo {
