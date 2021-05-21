@@ -38,6 +38,9 @@
     #include <endian.h>
 #endif
 
+// Since the library already depends on SDSL we might as well use their fast
+// bit twiddling functions.
+#include <sdsl/bits.hpp>
 
 
 namespace bdsg {
@@ -576,19 +579,43 @@ using MappedVector = CompatVector<T, yomo::Allocator<T>>;
  * An int vector that is mostly API-compatible with SDSL's int vectors, but
  * which can exist in a memory mapping and uses the given allocator and its
  * pointers.
- *
- * TODO: Actually implement compression and a reference proxy like SDSL does.
  */
 template<typename Alloc = std::allocator<uint64_t>>
-class CompatIntVector : public CompatVector<uint64_t, Alloc> {
+class CompatIntVector {
 public:
     
-    using CompatVector<size_t, Alloc>::CompatVector;
-
+    CompatIntVector() = default;
+    
+    CompatIntVector(const CompatIntVector& other) = default;
+    CompatIntVector(CompatIntVector&& other);
+    
+    /**
+     * Allow copying across allocators (or within the same allocator).
+     */
+    template<typename OtherAlloc>
+    CompatIntVector& operator=(const CompatIntVector<OtherAlloc>& other);
+    
+    CompatIntVector& operator=(CompatIntVector&& other);
+    
     /**
      * Return the number of integers in the vector.
      */
     size_t size() const;
+    
+    /**
+     * Resize the vector to hold the given number of elements.
+     */
+    void resize(size_t new_size);
+    
+    /**
+     * Pre-allocate space to hold the given number of elements.
+     */
+    void reserve(size_t new_reserved_length);
+    
+    /**
+     * Drop everything from the vector.
+     */
+    void clear();
 
     /**
      * Return the width in bits of the entries.
@@ -608,13 +635,15 @@ public:
     /**
      * Actual accessor method that sets the value at a position.
      * Does not check if value actually fits.
+     * Uses the given width override instead of the stored width to write the value, if set.
      */
-    void pack(size_t offset, uint64_t value);
+    void pack(size_t index, uint64_t value, size_t width_override = 0);
     
     /**
      * Actual accessor method that gets the value at a position.
+     * Uses the given width override instead of the stored width to write the value, if set.
      */
-    uint64_t unpack(size_t index) const;
+    uint64_t unpack(size_t index, size_t width_override = 0) const;
     
     /**
      * Proxy that acts as a mutable reference to an entry in the vector.
@@ -694,6 +723,27 @@ public:
      * Get a proxy reference to read the given index.
      */
     ConstProxy operator[](size_t index) const;
+    
+    // Compatibility with SDSL-lite serialization
+    
+    /**
+     * Serialize the data to the given stream.
+     */
+    void serialize(std::ostream& out) const;
+    
+    /**
+     * Load the data from the given stream.
+     */
+    void load(std::istream& in);
+    
+protected:
+    /// How many items are stored?
+    big_endian<size_t> length = 0;
+    /// How many bits are used to represent each item?
+    big_endian<size_t> bit_width = 1;
+    
+    /// We store our actual data in this vector, which manages memory for us.
+    CompatVector<uint64_t, Alloc> data;
     
 };
 
@@ -1133,21 +1183,152 @@ const T& CompatVector<T, Alloc>::operator[](size_t index) const {
     return (*const_cast<CompatVector<T, Alloc>*>(this))[index];
 }
 
+
+template<typename Alloc>
+CompatIntVector<Alloc>::CompatIntVector(CompatIntVector&& other) :
+    length(other.length), bit_width(other.bit_width), data(std::move(other.data)) {
+    
+    // Say they have no items or memory.
+    other.clear();
+}
+
+template<typename Alloc>
+template<typename OtherAlloc>
+CompatIntVector<Alloc>& CompatIntVector<Alloc>::operator=(const CompatIntVector<OtherAlloc>& other) {
+    // Copy their contents
+    length = other.length;
+    bit_width = other.bit_width;
+    data = other.data;
+    
+    return *this;
+}
+
+template<typename Alloc>
+CompatIntVector<Alloc>& CompatIntVector<Alloc>::operator=(CompatIntVector&& other) {
+    // Steal their contents
+    length = other.length;
+    bit_width = other.bit_width;
+    data = std::move(other.data);
+    
+    // Say they have no items or memory.
+    other.clear();
+    
+    return *this;
+}
+
+template<typename Alloc>
+size_t CompatIntVector<Alloc>::size() const {
+    return length;
+}
+
+template<typename Alloc>
+void CompatIntVector<Alloc>::resize(size_t new_size) {
+    // Work how many slots we need in the backing vector for this, rounding up.
+    size_t item_slots = (new_size * width() + (std::numeric_limits<size_t>::digits - 1)) /
+        std::numeric_limits<uint64_t>::digits;
+    // Make sure we have that many slots
+    data.resize(item_slots);
+    // And say how big we are
+    length = new_size;
+}
+
+template<typename Alloc>
+void CompatIntVector<Alloc>::reserve(size_t new_reserved_length) {
+    // Work how many slots we need in the backing vector for this, rounding up.
+    size_t item_slots = (new_reserved_length * width() + (std::numeric_limits<size_t>::digits - 1)) /
+        std::numeric_limits<uint64_t>::digits;
+    // Reserve space in the backing vector
+    data.reserve(item_slots);
+}
+
+template<typename Alloc>
+void CompatIntVector<Alloc>::clear() {
+    // Reset to our initial state
+    length = 0;
+    bit_width = 1;
+    data.clear();
+}
+
 template<typename Alloc>
 size_t CompatIntVector<Alloc>::width() const {
-    return std::numeric_limits<size_t>::digits;
+    return bit_width;
 }
 
 template<typename Alloc>
 void CompatIntVector<Alloc>::width(size_t new_width) {
-    // Nothing to do!
-    // TODO: Actually bit pack
+    // Save the new bit width, causing reinterpretation.
+    bit_width = new_width;
 }
 
 template<typename Alloc>
 void CompatIntVector<Alloc>::repack(size_t new_width, size_t new_size) {
-    // TODO: actually bit pack
-    this->resize(new_size);
+    // TODO: Actually combine these operations to save a pass and an allocation
+    resize(new_size);
+    
+    size_t old_width = bit_width;
+    
+    if (new_width == old_width) {
+        // Nothing to do!
+        return;
+    }
+    
+    assert(new_width > 0);
+    
+    // Work out how many slots we need in backing storage.
+    size_t new_entries = (length * new_width + (std::numeric_limits<uint64_t>::digits - 1)) /
+        std::numeric_limits<uint64_t>::digits;
+    
+    if (new_width > old_width) {
+        // We can expand in place
+        data.resize(new_entries);
+        
+        // Starting at the end, to avoid overwriting
+        size_t i = length;
+        while (i > 0) {
+            i--;
+            // Copy all the data to the new size
+            pack(i, unpack(i, old_width), new_width);
+        }
+    } else {
+        // Must be shrinking
+        
+        // Starting at the beginning, to avoid overwriting
+        for (size_t i = 0; i < length; i++) {
+            // Copy all the data to the new size
+            pack(i, unpack(i, old_width), new_width);
+        }
+        
+        // Now shrink down
+        data.resize(new_entries);
+    }
+}
+
+template<typename Alloc>
+void CompatIntVector<Alloc>::pack(size_t index, uint64_t value, size_t width_override) {
+    // Decide how wide to encode the items as
+    size_t effective_width = width_override ? width_override : (size_t) bit_width;
+    // Find the bit index we start at
+    size_t start_bit = index * effective_width;
+    // And break into a slot number
+    size_t start_slot = start_bit / std::numeric_limits<uint64_t>::digits;
+    // And a start bit in that slot
+    size_t start_slot_bit_offset = start_bit % std::numeric_limits<uint64_t>::digits;
+    // And then save
+    sdsl::bits::write_int(&data[start_slot], value, start_slot_bit_offset, effective_width);
+}
+
+template<typename Alloc>
+uint64_t CompatIntVector<Alloc>::unpack(size_t index, size_t width_override) const {
+    // Decide how wide to interpret the items as
+    size_t effective_width = width_override ? width_override : (size_t) bit_width;
+    // Find the bit index we start at
+    size_t start_bit = index * effective_width;
+    // And break into a slot number
+    size_t start_slot = start_bit / std::numeric_limits<uint64_t>::digits;
+    // And a start bit in that slot
+    size_t start_slot_bit_offset = start_bit % std::numeric_limits<uint64_t>::digits;
+    // And then load
+    return sdsl::bits::read_int(&data[start_slot], start_slot_bit_offset, effective_width);
 }
 
 template<typename Alloc>
@@ -1202,6 +1383,26 @@ auto CompatIntVector<Alloc>::operator[](size_t index) -> Proxy {
 template<typename Alloc>
 auto CompatIntVector<Alloc>::operator[](size_t index) const -> ConstProxy {
     return ConstProxy(*this, index);
+}
+
+template<typename Alloc>
+void CompatIntVector<Alloc>::serialize(std::ostream& out) const {
+    // Dump the length
+    out.write((const char*)&length, sizeof(length));
+    // Dump the width
+    out.write((const char*)&bit_width, sizeof(length));
+    // Write the data
+    data.serialize(out);
+}
+
+template<typename Alloc>
+void CompatIntVector<Alloc>::load(std::istream& in) {
+    // Read the length
+    in.read((char*)&length, sizeof(length));
+    // Read the width
+    in.read((char*)&bit_width, sizeof(bit_width));
+    // Read the data
+    data.load(in);
 }
 
 namespace yomo {
