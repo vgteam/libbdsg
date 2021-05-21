@@ -24,7 +24,7 @@
 
 void bind_bdsg_internal_mapped_structs(std::function< pybind11::module &(std::string const &namespace_) > &M)
 {
-	{ // bdsg::yomo::Manager file:bdsg/internal/mapped_structs.hpp line:107
+	{ // bdsg::yomo::Manager file:bdsg/internal/mapped_structs.hpp line:128
 		pybind11::class_<bdsg::yomo::Manager, std::shared_ptr<bdsg::yomo::Manager>> cl(M("bdsg::yomo"), "Manager", "Global manager of mapped memory segments. Talked to by pointers in memory\n segments to figure out where they actually point to.\n\n The manager manages one or more \"chains\", each potentially corresponding to\n a file. The chains are made up of mapped memory \"segments\", and each segment\n can be mapped at a different base address.\n\n When a file is initially mapped, it is mapped as a single segment.\n Additional segments may be mapped later to fulfill allocations from\n yomo::Allocator<T> instances stored in the chain.");
 		cl.def( pybind11::init( [](){ return new bdsg::yomo::Manager(); } ) );
 		cl.def_static("create_chain", []() -> long { return bdsg::yomo::Manager::create_chain(); }, "");

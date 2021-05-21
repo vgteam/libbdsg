@@ -104,7 +104,7 @@ def clean_includes():
             for line in fh:
                 match = INCLUDE_REGEX.match(line)
                 if match:
-                    replacement = f'#include <{match.group(2)}>\n'
+                    replacement = line[:match.start()] + f'#include <{match.group(2)}>' + line[match.end():]
                     changes_made[filename].append((line, replacement))
         if not changes_made[filename]:
             del changes_made[filename]
@@ -153,10 +153,13 @@ def make_all_includes():
         # Then for each file found by any search
         with open(filename, 'r') as fh:
             for line in fh:
+                if 'BINDER_IGNORE' in line:
+                    # Skip includes that are maybe not available on all systems
+                    continue
                 # Look at each line
                 match = INCLUDE_REGEX.match(line)
                 if match:
-                    # This is an include directive. Parse it
+                    # This is an include directive that makes sense to include here. Parse it
                     is_relative = match.group(1) == '"'
                     included_path = match.group(2)
                     assert (match.group(1) == '"') == (match.group(3) == '"'), "Mismatched include delimiters in " + filename + " for " + included_path
