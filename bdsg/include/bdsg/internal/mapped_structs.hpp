@@ -1301,6 +1301,9 @@ void CompatIntVector<Alloc>::repack(size_t new_width, size_t new_size) {
         // Now shrink down
         data.resize(new_entries);
     }
+    
+    // And save the new width
+    width(new_width);
 }
 
 template<typename Alloc>
@@ -1314,6 +1317,12 @@ void CompatIntVector<Alloc>::pack(size_t index, uint64_t value, size_t width_ove
     // And a start bit in that slot
     size_t start_slot_bit_offset = start_bit % std::numeric_limits<uint64_t>::digits;
     // And then save
+#ifdef debug_bit_packing
+    std::cerr << "Write " << value
+        << " of width " << effective_width
+        << " at bit " << start_slot_bit_offset
+        << " in slot " << start_slot << endl; 
+#endif
     sdsl::bits::write_int(&data[start_slot], value, start_slot_bit_offset, effective_width);
 }
 
@@ -1328,7 +1337,16 @@ uint64_t CompatIntVector<Alloc>::unpack(size_t index, size_t width_override) con
     // And a start bit in that slot
     size_t start_slot_bit_offset = start_bit % std::numeric_limits<uint64_t>::digits;
     // And then load
-    return sdsl::bits::read_int(&data[start_slot], start_slot_bit_offset, effective_width);
+#ifdef debug_bit_packing
+    std::cerr << "Read value of width " << effective_width
+        << " at bit " << start_slot_bit_offset
+        << " in slot " << start_slot << ": ";
+#endif
+    uint64_t value = sdsl::bits::read_int(&data[start_slot], start_slot_bit_offset, effective_width);
+#ifdef debug_bit_packing
+    std::cerr << value << std::endl;
+#endif
+    return value;
 }
 
 template<typename Alloc>
