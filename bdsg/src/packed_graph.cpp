@@ -13,51 +13,51 @@ namespace bdsg {
     
     /// Define all of the static class variables
     
-    const double PackedGraph::defrag_factor = .2;
+    const double BasePackedGraph::defrag_factor = .2;
     
-    const size_t PackedGraph::GRAPH_RECORD_SIZE = 2;
-    const size_t PackedGraph::GRAPH_START_EDGES_OFFSET = 0;
-    const size_t PackedGraph::GRAPH_END_EDGES_OFFSET = 1;
+    const size_t BasePackedGraph::GRAPH_RECORD_SIZE = 2;
+    const size_t BasePackedGraph::GRAPH_START_EDGES_OFFSET = 0;
+    const size_t BasePackedGraph::GRAPH_END_EDGES_OFFSET = 1;
     
-    const size_t PackedGraph::SEQ_START_RECORD_SIZE = 1;
+    const size_t BasePackedGraph::SEQ_START_RECORD_SIZE = 1;
     
-    const size_t PackedGraph::SEQ_LENGTH_RECORD_SIZE = 1;
+    const size_t BasePackedGraph::SEQ_LENGTH_RECORD_SIZE = 1;
     
-    const size_t PackedGraph::EDGE_RECORD_SIZE = 2;
-    const size_t PackedGraph::EDGE_TRAV_OFFSET = 0;
-    const size_t PackedGraph::EDGE_NEXT_OFFSET = 1;
+    const size_t BasePackedGraph::EDGE_RECORD_SIZE = 2;
+    const size_t BasePackedGraph::EDGE_TRAV_OFFSET = 0;
+    const size_t BasePackedGraph::EDGE_NEXT_OFFSET = 1;
     
-    const size_t PackedGraph::NODE_MEMBER_RECORD_SIZE = 1;
+    const size_t BasePackedGraph::NODE_MEMBER_RECORD_SIZE = 1;
     
-    const size_t PackedGraph::MEMBERSHIP_ID_RECORD_SIZE = 1;
-    const size_t PackedGraph::MEMBERSHIP_OFFSET_RECORD_SIZE = 1;
-    const size_t PackedGraph::MEMBERSHIP_NEXT_RECORD_SIZE = 1;
+    const size_t BasePackedGraph::MEMBERSHIP_ID_RECORD_SIZE = 1;
+    const size_t BasePackedGraph::MEMBERSHIP_OFFSET_RECORD_SIZE = 1;
+    const size_t BasePackedGraph::MEMBERSHIP_NEXT_RECORD_SIZE = 1;
     
-    const size_t PackedGraph::STEP_RECORD_SIZE = 1;
+    const size_t BasePackedGraph::STEP_RECORD_SIZE = 1;
     
-    const size_t PackedGraph::PATH_RECORD_SIZE = 2;
-    const size_t PackedGraph::PATH_PREV_OFFSET = 0;
-    const size_t PackedGraph::PATH_NEXT_OFFSET = 1;
+    const size_t BasePackedGraph::PATH_RECORD_SIZE = 2;
+    const size_t BasePackedGraph::PATH_PREV_OFFSET = 0;
+    const size_t BasePackedGraph::PATH_NEXT_OFFSET = 1;
     
-    const double PackedGraph::PATH_RESIZE_FACTOR = 1.25;
+    const double BasePackedGraph::PATH_RESIZE_FACTOR = 1.25;
     
-    PackedGraph::PackedGraph() {
+    BasePackedGraph::BasePackedGraph() {
         
         // set pretty full load factors
         path_id.max_load_factor(0.5);
         path_id.min_load_factor(0.75);
     }
     
-    PackedGraph::PackedGraph(istream& in) : PackedGraph() {
+    BasePackedGraph::BasePackedGraph(istream& in) : BasePackedGraph() {
         
         deserialize(in);
     }
     
-    PackedGraph::~PackedGraph() {
+    BasePackedGraph::~BasePackedGraph() {
         
     }
     
-    void PackedGraph::serialize_members(ostream& out) const {
+    void BasePackedGraph::serialize_members(ostream& out) const {
         sdsl::write_member(max_id, out);
         sdsl::write_member(min_id, out);
         
@@ -98,7 +98,7 @@ namespace bdsg {
         sdsl::write_member(deleted_reversing_self_edge_records, out);
     }
     
-    void PackedGraph::deserialize_members(istream& in) {
+    void BasePackedGraph::deserialize_members(istream& in) {
         sdsl::read_member(max_id, in);
         sdsl::read_member(min_id, in);
         
@@ -152,11 +152,11 @@ namespace bdsg {
         sdsl::read_member(deleted_reversing_self_edge_records, in);
     }
 
-    uint32_t PackedGraph::get_magic_number() const {
+    uint32_t BasePackedGraph::get_magic_number() const {
         return 3080648541ul;
     }
     
-    size_t PackedGraph::new_node_record(nid_t node_id) {
+    size_t BasePackedGraph::new_node_record(nid_t node_id) {
         
         size_t next_g_iv_idx = graph_iv.size();
         
@@ -194,23 +194,23 @@ namespace bdsg {
         return next_g_iv_idx;
     }
     
-    handle_t PackedGraph::create_handle(const string& sequence) {
+    handle_t BasePackedGraph::create_handle(const string& sequence) {
         return create_handle(sequence, max_id + 1);
     }
     
-    handle_t PackedGraph::create_handle(const string& sequence, const nid_t& id) {
+    handle_t BasePackedGraph::create_handle(const string& sequence, const nid_t& id) {
         
         if (sequence.empty()) {
-            throw std::runtime_error("error:[PackedGraph] tried to create an empty node with ID " + std::to_string(id));
+            throw std::runtime_error("error:[BasePackedGraph] tried to create an empty node with ID " + std::to_string(id));
         }
         
         if (id <= 0) {
-            throw std::runtime_error("error:[PackedGraph] tried to create a node with non-positive ID " + std::to_string(id));
+            throw std::runtime_error("error:[BasePackedGraph] tried to create a node with non-positive ID " + std::to_string(id));
         }
         
         if (id >= min_id && id < min_id + nid_to_graph_iv.size()) {
             if (nid_to_graph_iv.get(id - min_id) != 0) {
-                throw std::runtime_error("error:[PackedGraph] tried to create a node with ID " + std::to_string(id) + ", but this ID already belongs to a different node");
+                throw std::runtime_error("error:[BasePackedGraph] tried to create a node with ID " + std::to_string(id) + ", but this ID already belongs to a different node");
             }
         }
         
@@ -226,7 +226,7 @@ namespace bdsg {
         return get_handle(id);
     }
     
-    void PackedGraph::create_edge(const handle_t& left, const handle_t& right) {
+    void BasePackedGraph::create_edge(const handle_t& left, const handle_t& right) {
         
         // look for the edge
         bool add_edge = follow_edges(left, false, [&](const handle_t& next) {
@@ -265,7 +265,7 @@ namespace bdsg {
         graph_iv.set(g_iv_right, edge_lists_iv.size() / EDGE_RECORD_SIZE);
     }
     
-    bool PackedGraph::has_node(nid_t node_id) const {
+    bool BasePackedGraph::has_node(nid_t node_id) const {
         if (node_id < min_id || node_id - min_id >= nid_to_graph_iv.size()) {
             return false;
         }
@@ -274,27 +274,27 @@ namespace bdsg {
         }
     }
     
-    handle_t PackedGraph::get_handle(const nid_t& node_id, bool is_reverse) const {
+    handle_t BasePackedGraph::get_handle(const nid_t& node_id, bool is_reverse) const {
         return handlegraph::number_bool_packing::pack(node_id, is_reverse);
     }
     
-    nid_t PackedGraph::get_id(const handle_t& handle) const {
+    nid_t BasePackedGraph::get_id(const handle_t& handle) const {
         return handlegraph::number_bool_packing::unpack_number(handle);
     }
     
-    bool PackedGraph::get_is_reverse(const handle_t& handle) const {
+    bool BasePackedGraph::get_is_reverse(const handle_t& handle) const {
         return handlegraph::number_bool_packing::unpack_bit(handle);;
     }
     
-    handle_t PackedGraph::flip(const handle_t& handle) const {
+    handle_t BasePackedGraph::flip(const handle_t& handle) const {
         return handlegraph::number_bool_packing::toggle_bit(handle);
     }
     
-    size_t PackedGraph::get_length(const handle_t& handle) const {
+    size_t BasePackedGraph::get_length(const handle_t& handle) const {
         return seq_length_iv.get(graph_index_to_seq_len_index(graph_iv_index(handle)));
     }
     
-    string PackedGraph::get_sequence(const handle_t& handle) const {
+    string BasePackedGraph::get_sequence(const handle_t& handle) const {
         size_t g_iv_index = graph_iv_index(handle);
         size_t seq_start = seq_start_iv.get(graph_index_to_seq_start_index(g_iv_index));
         size_t seq_len = seq_length_iv.get(graph_index_to_seq_len_index(g_iv_index));
@@ -306,7 +306,7 @@ namespace bdsg {
     }
     
     /*
-    void PackedGraph::swap_handles(const handle_t& a, const handle_t& b) {
+    void BasePackedGraph::swap_handles(const handle_t& a, const handle_t& b) {
         // TODO: this doesn't actually affect the traversal order
         // We either need to encode the IDs here or use different method to keep track
         // of deleted nodes
@@ -348,7 +348,7 @@ namespace bdsg {
     }
     */
     
-    bool PackedGraph::follow_edges_impl(const handle_t& handle, bool go_left,
+    bool BasePackedGraph::follow_edges_impl(const handle_t& handle, bool go_left,
                                         const std::function<bool(const handle_t&)>& iteratee) const {
         // toward start = true, toward end = false
         bool direction = get_is_reverse(handle) != go_left;
@@ -372,19 +372,19 @@ namespace bdsg {
         return keep_going;
     }
     
-    size_t PackedGraph::get_node_count(void) const {
+    size_t BasePackedGraph::get_node_count(void) const {
         return graph_iv.size() / GRAPH_RECORD_SIZE - deleted_node_records;
     }
     
-    nid_t PackedGraph::min_node_id(void) const {
+    nid_t BasePackedGraph::min_node_id(void) const {
         return min_id;
     }
     
-    nid_t PackedGraph::max_node_id(void) const {
+    nid_t BasePackedGraph::max_node_id(void) const {
         return max_id;
     }
     
-    bool PackedGraph::for_each_handle_impl(const std::function<bool(const handle_t&)>& iteratee,
+    bool BasePackedGraph::for_each_handle_impl(const std::function<bool(const handle_t&)>& iteratee,
                                            bool parallel) const {
         
         if (parallel) {
@@ -413,16 +413,16 @@ namespace bdsg {
         
     }
 
-    size_t PackedGraph::get_edge_count() const {
+    size_t BasePackedGraph::get_edge_count() const {
         // each edge (except reversing self edges) are stored twice in the edge vector
         return ((edge_lists_iv.size() / EDGE_RECORD_SIZE) + reversing_self_edge_records) / 2 - deleted_edge_records;
     }
 
-    size_t PackedGraph::get_total_length() const {
+    size_t BasePackedGraph::get_total_length() const {
         return seq_iv.size() - deleted_bases;
     }
     
-    char PackedGraph::get_base(const handle_t& handle, size_t index) const {
+    char BasePackedGraph::get_base(const handle_t& handle, size_t index) const {
         size_t g_iv_index = graph_iv_index(handle);
         size_t seq_start = seq_start_iv.get(graph_index_to_seq_start_index(g_iv_index));
         if (get_is_reverse(handle)) {
@@ -434,7 +434,7 @@ namespace bdsg {
         }
     }
     
-    string PackedGraph::get_subsequence(const handle_t& handle, size_t index, size_t size) const {
+    string BasePackedGraph::get_subsequence(const handle_t& handle, size_t index, size_t size) const {
         size_t g_iv_index = graph_iv_index(handle);
         size_t seq_start = seq_start_iv.get(graph_index_to_seq_start_index(g_iv_index));
         size_t seq_len = seq_length_iv.get(graph_index_to_seq_len_index(g_iv_index));
@@ -449,7 +449,7 @@ namespace bdsg {
         return get_is_reverse(handle) ? reverse_complement(subseq) : subseq;
     }
     
-    handle_t PackedGraph::apply_orientation(const handle_t& handle) {
+    handle_t BasePackedGraph::apply_orientation(const handle_t& handle) {
         
         if (get_is_reverse(handle)) {
             size_t g_iv_idx = graph_iv_index(handle);
@@ -526,7 +526,7 @@ namespace bdsg {
         }
     }
     
-    std::vector<handle_t> PackedGraph::divide_handle(const handle_t& handle,
+    std::vector<handle_t> BasePackedGraph::divide_handle(const handle_t& handle,
                                                      const std::vector<size_t>& offsets) {
         // put the offsets in forward orientation to simplify subsequent steps
         vector<size_t> forward_offsets = offsets;
@@ -706,7 +706,7 @@ namespace bdsg {
         return return_val;
     }
     
-    void PackedGraph::destroy_handle(const handle_t& handle) {
+    void BasePackedGraph::destroy_handle(const handle_t& handle) {
     
         // Clear out any paths on this handle.
         // We need to first compose a list of distinct visiting paths.
@@ -755,7 +755,7 @@ namespace bdsg {
         defragment();
     }
     
-    void PackedGraph::remove_edge_reference(const handle_t& on, const handle_t& to) {
+    void BasePackedGraph::remove_edge_reference(const handle_t& on, const handle_t& to) {
         // Note: this function assumes that edge ref exists, crashes otherwise
         
         size_t g_iv_idx = graph_iv_index(on) + (get_is_reverse(on)
@@ -787,7 +787,7 @@ namespace bdsg {
         }
     }
     
-    void PackedGraph::destroy_edge(const handle_t& left, const handle_t& right) {
+    void BasePackedGraph::destroy_edge(const handle_t& left, const handle_t& right) {
         remove_edge_reference(left, right);
         if (left != flip(right)) {
             // this edge is a reversing self edge, so it only has one reference
@@ -796,7 +796,7 @@ namespace bdsg {
         defragment();
     }
     
-    void PackedGraph::defragment_path(const int64_t& path_idx, bool force) {
+    void BasePackedGraph::defragment_path(const int64_t& path_idx, bool force) {
         
         // we don't want to defrag deleted paths since they have already been cleared
         if (path_is_deleted_iv.get(path_idx)) {
@@ -923,7 +923,7 @@ namespace bdsg {
         }
     }
     
-    void PackedGraph::eject_deleted_paths() {
+    void BasePackedGraph::eject_deleted_paths() {
         
         uint64_t num_paths_deleted = 0;
         uint64_t path_name_length_deleted = 0;
@@ -1046,10 +1046,10 @@ namespace bdsg {
         // TODO: unless paths have been deleted, path_names_iv doesn't get a tight allocation...
     }
     
-    void PackedGraph::compact_ids(const vector<handle_t>& order) {
+    void BasePackedGraph::compact_ids(const vector<handle_t>& order) {
         
         if (order.size() != get_node_count()) {
-            throw std::runtime_error("error:[PackedGraph] attempted to compact node IDs according to an incomplete ordering of the nodes");
+            throw std::runtime_error("error:[BasePackedGraph] attempted to compact node IDs according to an incomplete ordering of the nodes");
         }
         
         // use the layout to make a translator between current IDs and the IDs we will reassign
@@ -1068,7 +1068,7 @@ namespace bdsg {
         });
     }
     
-    void PackedGraph::tighten() {
+    void BasePackedGraph::tighten() {
         
         // remove deleted paths and force them to eject deleted material
         for (size_t i = 0; i < paths.size(); i++) {
@@ -1116,7 +1116,7 @@ namespace bdsg {
         deleted_bases = 0;
     }
     
-    void PackedGraph::defragment(bool force) {
+    void BasePackedGraph::defragment(bool force) {
         
         uint64_t num_nodes = graph_iv.size() / GRAPH_RECORD_SIZE - deleted_node_records;
         if (deleted_node_records > defrag_factor * (graph_iv.size() / GRAPH_RECORD_SIZE) || force) {
@@ -1271,7 +1271,7 @@ namespace bdsg {
         }
     }
     
-    void PackedGraph::optimize(bool allow_id_reassignment) {
+    void BasePackedGraph::optimize(bool allow_id_reassignment) {
         
         if (allow_id_reassignment) {
             // reassign IDs into a contiguous interval ordered by an approximate sort
@@ -1306,14 +1306,14 @@ namespace bdsg {
         tighten();
     }
     
-    void PackedGraph::apply_ordering(const vector<handle_t>& order, bool compact_ids) {
+    void BasePackedGraph::apply_ordering(const vector<handle_t>& order, bool compact_ids) {
         
         if (compact_ids) {
             // reassign IDs into a contiguous interval ordered by an approximate sort
             this->compact_ids(order);
         }
     }
-    void PackedGraph::clear(void) {
+    void BasePackedGraph::clear(void) {
         graph_iv.clear();
         seq_start_iv.clear();
         seq_length_iv.clear();
@@ -1337,7 +1337,7 @@ namespace bdsg {
         deleted_reversing_self_edge_records = 0;
     }
     
-    bool PackedGraph::has_path(const std::string& path_name) const {
+    bool BasePackedGraph::has_path(const std::string& path_name) const {
         auto encoded = encode_path_name(path_name);
         if (encoded.empty()) {
             return false;
@@ -1347,28 +1347,28 @@ namespace bdsg {
         }
     }
     
-    path_handle_t PackedGraph::get_path_handle(const std::string& path_name) const {
+    path_handle_t BasePackedGraph::get_path_handle(const std::string& path_name) const {
         return as_path_handle(path_id.at(encode_path_name(path_name)));
     }
     
-    string PackedGraph::get_path_name(const path_handle_t& path_handle) const {
+    string BasePackedGraph::get_path_name(const path_handle_t& path_handle) const {
         return decode_path_name(as_integer(path_handle));
     }
     
-    bool PackedGraph::get_is_circular(const path_handle_t& path_handle) const {
+    bool BasePackedGraph::get_is_circular(const path_handle_t& path_handle) const {
         return path_is_circular_iv.get(as_integer(path_handle));
     }
     
-    size_t PackedGraph::get_step_count(const path_handle_t& path_handle) const {
+    size_t BasePackedGraph::get_step_count(const path_handle_t& path_handle) const {
         const PackedPath& path = paths.at(as_integer(path_handle));
         return path.steps_iv.size() / STEP_RECORD_SIZE - path_deleted_steps_iv.get(as_integer(path_handle));
     }
     
-    size_t PackedGraph::get_path_count() const {
+    size_t BasePackedGraph::get_path_count() const {
         return path_id.size();
     }
     
-    bool PackedGraph::for_each_path_handle_impl(const std::function<bool(const path_handle_t&)>& iteratee) const {
+    bool BasePackedGraph::for_each_path_handle_impl(const std::function<bool(const path_handle_t&)>& iteratee) const {
         for (const auto& path_id_record : path_id) {
             if (!iteratee(as_path_handle(path_id_record.second))) {
                 return false;
@@ -1377,48 +1377,48 @@ namespace bdsg {
         return true;
     }
     
-    handle_t PackedGraph::get_handle_of_step(const step_handle_t& step_handle) const {
+    handle_t BasePackedGraph::get_handle_of_step(const step_handle_t& step_handle) const {
         const PackedPath& path = paths.at(as_integers(step_handle)[0]);
         return decode_traversal(get_step_trav(path, as_integers(step_handle)[1]));
     }
     
-    step_handle_t PackedGraph::path_begin(const path_handle_t& path_handle) const {
+    step_handle_t BasePackedGraph::path_begin(const path_handle_t& path_handle) const {
         step_handle_t step;
         as_integers(step)[0] = as_integer(path_handle);
         as_integers(step)[1] = path_head_iv.get(as_integer(path_handle));
         return step;
     }
     
-    step_handle_t PackedGraph::path_end(const path_handle_t& path_handle) const {
+    step_handle_t BasePackedGraph::path_end(const path_handle_t& path_handle) const {
         step_handle_t step;
         as_integers(step)[0] = as_integer(path_handle);
         as_integers(step)[1] = 0;
         return step;
     }
     
-    step_handle_t PackedGraph::path_back(const path_handle_t& path_handle) const {
+    step_handle_t BasePackedGraph::path_back(const path_handle_t& path_handle) const {
         step_handle_t step;
         as_integers(step)[0] = as_integer(path_handle);
         as_integers(step)[1] = path_tail_iv.get(as_integer(path_handle));
         return step;
     }
     
-    step_handle_t PackedGraph::path_front_end(const path_handle_t& path_handle) const {
+    step_handle_t BasePackedGraph::path_front_end(const path_handle_t& path_handle) const {
         // we will actually reuse the same sentinel
         return path_end(path_handle);
     }
     
-    bool PackedGraph::has_next_step(const step_handle_t& step_handle) const {
+    bool BasePackedGraph::has_next_step(const step_handle_t& step_handle) const {
         const PackedPath& packed_path = paths.at(as_integers(step_handle)[0]);
         return get_step_next(packed_path, as_integers(step_handle)[1]) != 0;
     }
     
-    bool PackedGraph::has_previous_step(const step_handle_t& step_handle) const {
+    bool BasePackedGraph::has_previous_step(const step_handle_t& step_handle) const {
         const PackedPath& packed_path = paths.at(as_integers(step_handle)[0]);
         return get_step_prev(packed_path, as_integers(step_handle)[1]) != 0;
     }
     
-    step_handle_t PackedGraph::get_next_step(const step_handle_t& step_handle) const {
+    step_handle_t BasePackedGraph::get_next_step(const step_handle_t& step_handle) const {
         step_handle_t next;
         as_integers(next)[0] = as_integers(step_handle)[0];
         as_integers(next)[1] = get_step_next(paths.at(as_integers(step_handle)[0]),
@@ -1426,7 +1426,7 @@ namespace bdsg {
         return next;
     }
     
-    step_handle_t PackedGraph::get_previous_step(const step_handle_t& step_handle) const {
+    step_handle_t BasePackedGraph::get_previous_step(const step_handle_t& step_handle) const {
         step_handle_t prev;
         as_integers(prev)[0] = as_integers(step_handle)[0];
         as_integers(prev)[1] = as_integers(step_handle)[1] != 0 ? get_step_prev(paths.at(as_integers(step_handle)[0]),
@@ -1435,12 +1435,12 @@ namespace bdsg {
         return prev;
     }
     
-    path_handle_t PackedGraph::get_path_handle_of_step(const step_handle_t& step_handle) const {
+    path_handle_t BasePackedGraph::get_path_handle_of_step(const step_handle_t& step_handle) const {
         return as_path_handle(as_integers(step_handle)[0]);
     }
     
     
-    bool PackedGraph::for_each_step_on_handle_impl(const handle_t& handle,
+    bool BasePackedGraph::for_each_step_on_handle_impl(const handle_t& handle,
                                                    const function<bool(const step_handle_t&)>& iteratee) const {
         
         size_t path_membership = path_membership_node_iv.get(graph_index_to_node_member_index(graph_iv_index(handle)));
@@ -1469,7 +1469,7 @@ namespace bdsg {
         return true;
     }
     
-    PackedVector<> PackedGraph::encode_and_assign_path_name(const string& path_name) {
+    PackedVector<> BasePackedGraph::encode_and_assign_path_name(const string& path_name) {
         PackedVector<> encoded;
         encoded.resize(path_name.size());
         for (size_t i = 0; i < path_name.size(); ++i) {
@@ -1478,7 +1478,7 @@ namespace bdsg {
         return encoded;
     }
     
-    PackedVector<> PackedGraph::encode_path_name(const string& path_name) const {
+    PackedVector<> BasePackedGraph::encode_path_name(const string& path_name) const {
         PackedVector<> encoded;
         encoded.resize(path_name.size());
         for (size_t i = 0; i < path_name.size(); ++i) {
@@ -1493,13 +1493,13 @@ namespace bdsg {
         return encoded;
     }
     
-    void PackedGraph::append_path_name(const string& path_name) {
+    void BasePackedGraph::append_path_name(const string& path_name) {
         for (size_t i = 0; i < path_name.size(); ++i) {
             path_names_iv.append(get_or_make_assignment(path_name.at(i)));
         }
     }
     
-    PackedVector<> PackedGraph::extract_encoded_path_name(const int64_t& path_idx) const {
+    PackedVector<> BasePackedGraph::extract_encoded_path_name(const int64_t& path_idx) const {
         size_t name_start = path_name_start_iv.get(path_idx);
         PackedVector<> name;
         name.resize(path_name_length_iv.get(path_idx));
@@ -1509,7 +1509,7 @@ namespace bdsg {
         return name;
     }
     
-    string PackedGraph::decode_path_name(const int64_t& path_idx) const {
+    string BasePackedGraph::decode_path_name(const int64_t& path_idx) const {
         size_t name_start = path_name_start_iv.get(path_idx);
         string name(path_name_length_iv.get(path_idx), '\0');
         for (size_t i = 0; i < name.size(); ++i) {
@@ -1518,7 +1518,7 @@ namespace bdsg {
         return name;
     }
     
-    void PackedGraph::destroy_path(const path_handle_t& path) {
+    void BasePackedGraph::destroy_path(const path_handle_t& path) {
         
         PackedPath& packed_path = paths.at(as_integer(path));
         
@@ -1568,14 +1568,14 @@ namespace bdsg {
         defragment();
     }
     
-    path_handle_t PackedGraph::create_path_handle(const string& name, bool is_circular) {
+    path_handle_t BasePackedGraph::create_path_handle(const string& name, bool is_circular) {
         if (name.empty()) {
-            throw std::runtime_error("[PackedGraph] error: cannot create paths with no name");
+            throw std::runtime_error("[BasePackedGraph] error: cannot create paths with no name");
         }
         
         PackedVector<> encoded = encode_and_assign_path_name(name);
         if (path_id.count(encoded)) {
-            throw std::runtime_error("[PackedGraph] error: path of name " + name + " already exists, cannot create again");
+            throw std::runtime_error("[BasePackedGraph] error: path of name " + name + " already exists, cannot create again");
         }
         
         path_id[encoded] = paths.size();
@@ -1606,7 +1606,7 @@ namespace bdsg {
         return path_handle;
     }
     
-    step_handle_t PackedGraph::append_step(const path_handle_t& path, const handle_t& to_append) {
+    step_handle_t BasePackedGraph::append_step(const path_handle_t& path, const handle_t& to_append) {
         
         PackedPath& packed_path = paths.at(as_integer(path));
         
@@ -1651,7 +1651,7 @@ namespace bdsg {
         return step;
     }
     
-    step_handle_t PackedGraph::prepend_step(const path_handle_t& path, const handle_t& to_prepend) {
+    step_handle_t BasePackedGraph::prepend_step(const path_handle_t& path, const handle_t& to_prepend) {
         
         PackedPath& packed_path = paths.at(as_integer(path));
         
@@ -1696,12 +1696,12 @@ namespace bdsg {
         return step;
     }
     
-    pair<step_handle_t, step_handle_t> PackedGraph::rewrite_segment(const step_handle_t& segment_begin,
+    pair<step_handle_t, step_handle_t> BasePackedGraph::rewrite_segment(const step_handle_t& segment_begin,
                                                                     const step_handle_t& segment_end,
                                                                     const vector<handle_t>& new_segment) {
         
         if (get_path_handle_of_step(segment_begin) != get_path_handle_of_step(segment_end)) {
-            throw std::runtime_error("error:[PackedGraph] attempted to rewrite a path segment delimited by steps on two different paths");
+            throw std::runtime_error("error:[BasePackedGraph] attempted to rewrite a path segment delimited by steps on two different paths");
         }
         
         size_t path_idx = as_integers(segment_begin)[0];
@@ -1839,7 +1839,7 @@ namespace bdsg {
         return new_segment_range;
     }
     
-    void PackedGraph::set_circularity(const path_handle_t& path, bool circular) {
+    void BasePackedGraph::set_circularity(const path_handle_t& path, bool circular) {
         PackedPath& packed_path = paths[as_integer(path)];
         // set the looping connection as appropriate
         if (circular && path_head_iv.get(as_integer(path)) != 0) {
@@ -1854,17 +1854,17 @@ namespace bdsg {
         path_is_circular_iv.set(as_integer(path), circular);
     }
 
-    void PackedGraph::set_id_increment(const nid_t& min_id) {
+    void BasePackedGraph::set_id_increment(const nid_t& min_id) {
         // no-op as this implementation does not require this hint for decent construction performance
     }
 
-    void PackedGraph::increment_node_ids(nid_t increment) {
+    void BasePackedGraph::increment_node_ids(nid_t increment) {
         reassign_node_ids([&](const nid_t& node_id) {
             return node_id + increment;
         });
     }
     
-    void PackedGraph::reassign_node_ids(const std::function<nid_t(const nid_t&)>& get_new_id) {
+    void BasePackedGraph::reassign_node_ids(const std::function<nid_t(const nid_t&)>& get_new_id) {
         
         // update the node IDs of edges
         for (size_t i = EDGE_TRAV_OFFSET; i < edge_lists_iv.size(); i += EDGE_RECORD_SIZE) {
@@ -1948,7 +1948,7 @@ namespace bdsg {
         nid_to_graph_iv = move(new_nid_to_graph_iv);
     }
 
-    void PackedGraph::print_graph(ostream& out) const {
+    void BasePackedGraph::print_graph(ostream& out) const {
         out << "min id " << min_id << ", max id " << max_id << endl;
         out << "nid_to_graph_iv" << endl;
         for (size_t i = 0; i < nid_to_graph_iv.size(); ++i) {
@@ -2095,7 +2095,7 @@ namespace bdsg {
         }
     }
 
-    void PackedGraph::report_memory(ostream& out, bool individual_paths) const {
+    void BasePackedGraph::report_memory(ostream& out, bool individual_paths) const {
         size_t grand_total = 0;
         size_t item_mem = sizeof(max_id) + sizeof(min_id);
         out << "min/max_id: " << format_memory(item_mem) << endl;
