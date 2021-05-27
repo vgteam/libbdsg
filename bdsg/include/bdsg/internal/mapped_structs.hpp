@@ -41,6 +41,8 @@
 // Since the library already depends on SDSL we might as well use their fast
 // bit twiddling functions.
 #include <sdsl/bits.hpp>
+// And we need to stock our non-mmapped backend with an int vector.
+#include <sdsl/int_vector.hpp>
 
 
 namespace bdsg {
@@ -65,6 +67,16 @@ public:
     T operator--(int);
 protected:
     char storage[sizeof(T)];
+};
+
+/**
+ * Collection of templates for data structures that use the STL and SDSL.
+ */
+struct STLBackend {
+    template<typename Item>
+    using vector = std::vector<Item>;
+    
+    using int_vector = sdsl::int_vector<>;
 };
 
 /**
@@ -751,6 +763,29 @@ protected:
  * Int vector mapped in from a file.
  */
 using MappedIntVector = CompatIntVector<yomo::Allocator<uint64_t>>; 
+
+
+/**
+ * Collection of templates replacing those defined in STLBackend with
+ * YOMO-based alternatives.
+ */
+struct MappedBackend {
+    template<typename Item>
+    using vector = MappedVector<Item>;
+    
+    using int_vector = MappedIntVector;
+};
+
+/**
+ * Collection of templates replacing those defined in STLBackend with the same
+ * data structures as in MappedBackend but running in normal memory.
+ */
+struct CompatBackend {
+    template<typename Item>
+    using vector = CompatVector<Item>;
+    
+    using int_vector = CompatIntVector<>;
+};
 
 ///////////////////////////////////////////////////////////////////////////////////
 

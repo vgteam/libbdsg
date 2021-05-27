@@ -32,8 +32,10 @@ inline void repack(IntVector& target, size_t new_width, size_t new_size);
  * A dynamic integer vector that maintains integers in bit-compressed form.
  * Automatically adjusts bit-width for entries depending on input data.
  */
-template<typename IntVector = sdsl::int_vector<>>
+template<typename Backend = STLBackend>
 class PackedVector {
+private:
+    using IntVector = typename Backend::int_vector;
 public:
     /// Constructor (starts empty)
     PackedVector();
@@ -110,7 +112,7 @@ private:
     static const double factor;
 };
 
-using MappedPackedVector = PackedVector<MappedIntVector>;
+using MappedPackedVector = PackedVector<MappedBackend>;
 
 /*
  * A dynamic integer vector that provides better compression when values in the
@@ -118,8 +120,16 @@ using MappedPackedVector = PackedVector<MappedIntVector>;
  * Compression is also optimized for vectors that are mostly (but not necessarily
  * exclusively) increasing.
  */
-template<size_t page_size = 64, typename Page = PackedVector<>, typename PageHolder = std::vector<Page>>
+template<size_t page_size = 64, typename Backend = STLBackend>
 class PagedVector {
+private:
+    using Page = PackedVector<Backend>;
+    // We need to say "template" here or the compiler will think we expect to
+    // get a type or value out of the backend. See "The template disambiguator
+    // for dependent names" in
+    // https://en.cppreference.com/w/cpp/language/dependent_name
+    using PageHolder = typename Backend::template vector<Page>;
+
 public:
     
     /// Construct (starts empty) 
@@ -197,17 +207,18 @@ private:
 };
 
 template<size_t page_size = 64>
-using MappedPagedVector = PagedVector<page_size, MappedPackedVector, MappedVector<MappedPackedVector>>;
+using MappedPagedVector = PagedVector<page_size, MappedBackend>;
 
 /*
  * A dynamic integer vector with similar compression properties to the PagedVector,
  * but better memory usage if the vector may be very small (relative to the page
  * size.
  */
-template<size_t page_size = 64,
-         typename PackedVec = PackedVector<>,
-         typename PagedVec = PagedVector<page_size, PackedVec>>
+template<size_t page_size = 64, typename Backend = STLBackend>
 class RobustPagedVector {
+private:
+    using PackedVec = PackedVector<Backend>;
+    using PagedVec = PagedVector<page_size, Backend>;
 public:
     /// Construct (starts empty)
     RobustPagedVector();
@@ -279,14 +290,16 @@ private:
 };
 
 template<size_t page_size = 64>
-using MappedRobustPagedVector = RobustPagedVector<page_size, MappedPackedVector, MappedPagedVector<page_size>>;
+using MappedRobustPagedVector = RobustPagedVector<page_size, MappedBackend>;
 
 /*
  * A deque implementation that maintains integers in bit-compressed form, with the bit
  * width automatically adjusted to the entries.
  */
-template<typename PackedVec = PackedVector<>>
+template<typename Backend = STLBackend>
 class PackedDeque {
+private:
+    using PackedVec = PackedVector<Backend>;
 public:
     /// Construct empty
     PackedDeque(void);
@@ -359,7 +372,7 @@ private:
     static constexpr double factor = 1.25;
 };
 
-using MappedPackedDeque = PackedDeque<MappedPackedVector>;
+using MappedPackedDeque = PackedDeque<MappedBackend>;
     
 /*
  * A hash set that maintains integers in bit-compressed form, with the bit
@@ -367,8 +380,10 @@ using MappedPackedDeque = PackedDeque<MappedPackedVector>;
  * best compression when the values are similar to each other in scale,
  * except possibly for 0, which can be used as a sentinel.
  */
-template<typename PackedVec = PackedVector<>>
+template<typename Backend = STLBackend>
 class PackedSet {
+private:
+    using PackedVec = PackedVector<Backend>;
 public:
     
     /// Constructor
@@ -491,7 +506,8 @@ private:
     /// Let the iterator access the internals
     friend class iterator;
 };
-    
+
+using MappedPackedSet = PackedSet<MappedBackend>;
     
 /// Inline and template functions
 
@@ -521,11 +537,11 @@ inline void repack<sdsl::int_vector<>>(sdsl::int_vector<>& target, size_t new_wi
 /// PackedVector
 /////////////////////
 
-template<typename IntVector>
-const double PackedVector<IntVector>::factor = 1.25;
+template<typename Backend>
+const double PackedVector<Backend>::factor = 1.25;
 
-template<typename IntVector>
-inline void PackedVector<IntVector>::set(const size_t& i, const uint64_t& value) {
+template<typename Backend>
+inline void PackedVector<Backend>::set(const size_t& i, const uint64_t& value) {
     assert(i < filled);
         
     uint8_t width = vec.width();
@@ -542,25 +558,25 @@ inline void PackedVector<IntVector>::set(const size_t& i, const uint64_t& value)
     vec[i] = value;
 }
     
-template<typename IntVector>
-inline uint64_t PackedVector<IntVector>::get(const size_t& i) const {
+template<typename Backend>
+inline uint64_t PackedVector<Backend>::get(const size_t& i) const {
     assert(i < filled);
     return vec[i];
 }
 
-template<typename IntVector>
-inline void PackedVector<IntVector>::append(const uint64_t& value) {
+template<typename Backend>
+inline void PackedVector<Backend>::append(const uint64_t& value) {
     resize(filled + 1);
     set(filled - 1, value);
 }
 
-template<typename IntVector>
-inline void PackedVector<IntVector>::pop() {
+template<typename Backend>
+inline void PackedVector<Backend>::pop() {
     resize(filled - 1);
 }
     
-template<typename IntVector>
-inline void PackedVector<IntVector>::resize(const size_t& new_size) {
+template<typename Backend>
+inline void PackedVector<Backend>::resize(const size_t& new_size) {
     if (new_size < filled) {
         size_t shrink_capacity = vec.size() / (factor * factor);
         if (new_size < shrink_capacity) {
@@ -578,32 +594,32 @@ inline void PackedVector<IntVector>::resize(const size_t& new_size) {
     filled = new_size;
 }
 
-template<typename IntVector>
-inline void PackedVector<IntVector>::reserve(const size_t& future_size) {
+template<typename Backend>
+inline void PackedVector<Backend>::reserve(const size_t& future_size) {
     if (future_size > vec.size()) {
         repack(vec, vec.width(), future_size);
     }
 }
 
-template<typename IntVector>
-inline size_t PackedVector<IntVector>::size() const {
+template<typename Backend>
+inline size_t PackedVector<Backend>::size() const {
     return filled;
 }
 
-template<typename IntVector>
-inline bool PackedVector<IntVector>::empty() const {
+template<typename Backend>
+inline bool PackedVector<Backend>::empty() const {
     return filled == 0;
 }
 
-template<typename IntVector>
-inline void PackedVector<IntVector>::clear() {
+template<typename Backend>
+inline void PackedVector<Backend>::clear() {
     vec.resize(0);
     vec.width(1);
     filled = 0;
 }
 
-template<typename IntVector>
-inline bool PackedVector<IntVector>::operator==(const PackedVector& other) const {
+template<typename Backend>
+inline bool PackedVector<Backend>::operator==(const PackedVector& other) const {
     if (size() != other.size()) {
         return false;
     }
@@ -616,35 +632,35 @@ inline bool PackedVector<IntVector>::operator==(const PackedVector& other) const
     return true;
 }
 
-template<typename IntVector>
-PackedVector<IntVector>::PackedVector() {
+template<typename Backend>
+PackedVector<Backend>::PackedVector() {
     vec.width(1); // by default we start as a bitvector
 }
 
-template<typename IntVector>
-PackedVector<IntVector>::PackedVector(istream& in) {
+template<typename Backend>
+PackedVector<Backend>::PackedVector(istream& in) {
     deserialize(in);
 }
 
-template<typename IntVector>
-PackedVector<IntVector>::~PackedVector() {
+template<typename Backend>
+PackedVector<Backend>::~PackedVector() {
     
 }
 
-template<typename IntVector>
-void PackedVector<IntVector>::deserialize(istream& in) {
+template<typename Backend>
+void PackedVector<Backend>::deserialize(istream& in) {
     sdsl::read_member(filled, in);
     vec.load(in);
 }
 
-template<typename IntVector>
-void PackedVector<IntVector>::serialize(ostream& out) const {
+template<typename Backend>
+void PackedVector<Backend>::serialize(ostream& out) const {
     sdsl::write_member(filled, out);
     vec.serialize(out);
 }
 
-template<typename IntVector>
-size_t PackedVector<IntVector>::memory_usage() const {
+template<typename Backend>
+size_t PackedVector<Backend>::memory_usage() const {
     // sdsl vectors return the number of bits, but we want bytes
     return sizeof(filled) + sizeof(vec) + vec.capacity() / 8;
 }
@@ -653,58 +669,58 @@ size_t PackedVector<IntVector>::memory_usage() const {
 /// PackedDeque
 /////////////////////
 
-template<typename PackedVec>
-PackedDeque<PackedVec>::PackedDeque() {
+template<typename Backend>
+PackedDeque<Backend>::PackedDeque() {
     
 }
 
-template<typename PackedVec>
-PackedDeque<PackedVec>::PackedDeque(istream& in) {
+template<typename Backend>
+PackedDeque<Backend>::PackedDeque(istream& in) {
     deserialize(in);
 }
 
-template<typename PackedVec>
-PackedDeque<PackedVec>::~PackedDeque() {
+template<typename Backend>
+PackedDeque<Backend>::~PackedDeque() {
     
 }
 
-template<typename PackedVec>
-void PackedDeque<PackedVec>::deserialize(istream& in) {
+template<typename Backend>
+void PackedDeque<Backend>::deserialize(istream& in) {
     sdsl::read_member(begin_idx, in);
     sdsl::read_member(filled, in);
     vec.deserialize(in);
 }
 
-template<typename PackedVec>
-void PackedDeque<PackedVec>::serialize(ostream& out) const  {
+template<typename Backend>
+void PackedDeque<Backend>::serialize(ostream& out) const  {
     sdsl::write_member(begin_idx, out);
     sdsl::write_member(filled, out);
     vec.serialize(out);
 }
 
-template<typename PackedVec>
-size_t PackedDeque<PackedVec>::memory_usage() const {
+template<typename Backend>
+size_t PackedDeque<Backend>::memory_usage() const {
     return sizeof(begin_idx) + sizeof(filled) + vec.memory_usage();
 }
 
-template<typename PackedVec>
-inline size_t PackedDeque<PackedVec>::internal_index(const size_t& i) const {
+template<typename Backend>
+inline size_t PackedDeque<Backend>::internal_index(const size_t& i) const {
     assert(i < filled);
     return i < vec.size() - begin_idx ? begin_idx + i : i - (vec.size() - begin_idx);
 }
 
-template<typename PackedVec>
-inline void PackedDeque<PackedVec>::set(const size_t& i, const uint64_t& value) {
+template<typename Backend>
+inline void PackedDeque<Backend>::set(const size_t& i, const uint64_t& value) {
     return vec.set(internal_index(i), value);
 }
 
-template<typename PackedVec>
-inline uint64_t PackedDeque<PackedVec>::get(const size_t& i) const {
+template<typename Backend>
+inline uint64_t PackedDeque<Backend>::get(const size_t& i) const {
     return vec.get(internal_index(i));
 }
    
-template<typename PackedVec>
-inline void PackedDeque<PackedVec>::reserve(const size_t& future_size) {
+template<typename Backend>
+inline void PackedDeque<Backend>::reserve(const size_t& future_size) {
     if (future_size > vec.size()) {
         PackedVec new_vec;
         new_vec.resize(future_size);
@@ -717,8 +733,8 @@ inline void PackedDeque<PackedVec>::reserve(const size_t& future_size) {
     }
 }
 
-template<typename PackedVec>
-inline void PackedDeque<PackedVec>::append_front(const uint64_t& value) {
+template<typename Backend>
+inline void PackedDeque<Backend>::append_front(const uint64_t& value) {
     // expand capacity if necessary
     if (filled == vec.size()) {
         size_t new_capacity = size_t(factor * vec.size()) + 1;
@@ -739,8 +755,8 @@ inline void PackedDeque<PackedVec>::append_front(const uint64_t& value) {
     vec.set(internal_index(0), value);
 }
 
-template<typename PackedVec>
-inline void PackedDeque<PackedVec>::append_back(const uint64_t& value) {
+template<typename Backend>
+inline void PackedDeque<Backend>::append_back(const uint64_t& value) {
     // expand capacity if necessary
     if (filled == vec.size()) {
         size_t new_capacity = size_t(factor * vec.size()) + 1;
@@ -754,8 +770,8 @@ inline void PackedDeque<PackedVec>::append_back(const uint64_t& value) {
     vec.set(internal_index(filled - 1), value);
 }
 
-template<typename PackedVec>
-inline void PackedDeque<PackedVec>::contract() {
+template<typename Backend>
+inline void PackedDeque<Backend>::contract() {
     size_t shrink_capacity = vec.size() / (factor * factor);
     if (filled <= shrink_capacity) {
         PackedVec new_vec;
@@ -769,8 +785,8 @@ inline void PackedDeque<PackedVec>::contract() {
     }
 }
 
-template<typename PackedVec>
-inline void PackedDeque<PackedVec>::pop_front() {
+template<typename Backend>
+inline void PackedDeque<Backend>::pop_front() {
     // update the pointer to the beginning
     begin_idx++;
     if (begin_idx == vec.size()) {
@@ -783,8 +799,8 @@ inline void PackedDeque<PackedVec>::pop_front() {
     contract();
 }
 
-template<typename PackedVec>
-inline void PackedDeque<PackedVec>::pop_back() {
+template<typename Backend>
+inline void PackedDeque<Backend>::pop_back() {
     // update the pointer to the end
     filled--;
     
@@ -792,18 +808,18 @@ inline void PackedDeque<PackedVec>::pop_back() {
     contract();
 }
 
-template<typename PackedVec>
-inline size_t PackedDeque<PackedVec>::size() const {
+template<typename Backend>
+inline size_t PackedDeque<Backend>::size() const {
     return filled;
 }
 
-template<typename PackedVec>
-inline bool PackedDeque<PackedVec>::empty() const {
+template<typename Backend>
+inline bool PackedDeque<Backend>::empty() const {
     return filled == 0;
 }
  
-template<typename PackedVec>
-inline void PackedDeque<PackedVec>::clear() {
+template<typename Backend>
+inline void PackedDeque<Backend>::clear() {
     vec.clear();
     filled = 0;
     begin_idx = 0;
@@ -813,23 +829,23 @@ inline void PackedDeque<PackedVec>::clear() {
 /// PagedVector
 /////////////////////
 
-template<size_t page_size, typename Page, typename PageHolder>
-PagedVector<page_size, Page, PageHolder>::PagedVector() {
+template<size_t page_size, typename Backend>
+PagedVector<page_size, Backend>::PagedVector() {
     
 }
 
-template<size_t page_size, typename Page, typename PageHolder>
-PagedVector<page_size, Page, PageHolder>::PagedVector(istream& in) {
+template<size_t page_size, typename Backend>
+PagedVector<page_size, Backend>::PagedVector(istream& in) {
     deserialize(in);
 }
 
-template<size_t page_size, typename Page, typename PageHolder>
-PagedVector<page_size, Page, PageHolder>::~PagedVector() {
+template<size_t page_size, typename Backend>
+PagedVector<page_size, Backend>::~PagedVector() {
     
 }
 
-template<size_t page_size, typename Page, typename PageHolder>
-void PagedVector<page_size, Page, PageHolder>::deserialize(istream& in) {
+template<size_t page_size, typename Backend>
+void PagedVector<page_size, Backend>::deserialize(istream& in) {
     sdsl::read_member(filled, in);
     size_t stored_page_size;
     sdsl::read_member(stored_page_size, in);
@@ -844,8 +860,8 @@ void PagedVector<page_size, Page, PageHolder>::deserialize(istream& in) {
     }
 }
 
-template<size_t page_size, typename Page, typename PageHolder>
-void PagedVector<page_size, Page, PageHolder>::serialize(ostream& out) const  {
+template<size_t page_size, typename Backend>
+void PagedVector<page_size, Backend>::serialize(ostream& out) const  {
     sdsl::write_member(filled, out);
     sdsl::write_member(page_size, out);
     anchors.serialize(out);
@@ -854,8 +870,8 @@ void PagedVector<page_size, Page, PageHolder>::serialize(ostream& out) const  {
     }
 }
 
-template<size_t page_size, typename Page, typename PageHolder>
-size_t PagedVector<page_size, Page, PageHolder>::memory_usage() const {
+template<size_t page_size, typename Backend>
+size_t PagedVector<page_size, Backend>::memory_usage() const {
     size_t total = sizeof(page_size) + sizeof(filled) + sizeof(pages);
     total += anchors.memory_usage();
     // add the memory of pages that are filled in the vector
@@ -867,8 +883,8 @@ size_t PagedVector<page_size, Page, PageHolder>::memory_usage() const {
     return total;
 }
     
-template<size_t page_size, typename Page, typename PageHolder>
-inline void PagedVector<page_size, Page, PageHolder>::set(const size_t& i, const uint64_t& value) {
+template<size_t page_size, typename Backend>
+inline void PagedVector<page_size, Backend>::set(const size_t& i, const uint64_t& value) {
     assert(i < filled);
     uint64_t anchor = anchors.get(i / page_size);
     if (anchor == 0) {
@@ -879,15 +895,15 @@ inline void PagedVector<page_size, Page, PageHolder>::set(const size_t& i, const
     pages[i / page_size].set(i % page_size, to_diff(value, anchor));
 }
 
-template<size_t page_size, typename Page, typename PageHolder>
-inline uint64_t PagedVector<page_size, Page, PageHolder>::get(const size_t& i) const {
+template<size_t page_size, typename Backend>
+inline uint64_t PagedVector<page_size, Backend>::get(const size_t& i) const {
     assert(i < filled);
     return from_diff(pages[i / page_size].get(i % page_size),
                      anchors.get(i / page_size));
 }
 
-template<size_t page_size, typename Page, typename PageHolder>
-inline void PagedVector<page_size, Page, PageHolder>::append(const uint64_t& value) {
+template<size_t page_size, typename Backend>
+inline void PagedVector<page_size, Backend>::append(const uint64_t& value) {
     if (filled == pages.size() * page_size) {
         // init a new page and a new anchor
         pages.emplace_back();
@@ -900,8 +916,8 @@ inline void PagedVector<page_size, Page, PageHolder>::append(const uint64_t& val
     set(filled - 1, value);
 }
 
-template<size_t page_size, typename Page, typename PageHolder>
-inline void PagedVector<page_size, Page, PageHolder>::pop() {
+template<size_t page_size, typename Backend>
+inline void PagedVector<page_size, Backend>::pop() {
     filled--;
     while (filled + page_size <= pages.size() * page_size) {
         // the final page is unused now, remove it
@@ -910,8 +926,8 @@ inline void PagedVector<page_size, Page, PageHolder>::pop() {
     }
 }
 
-template<size_t page_size, typename Page, typename PageHolder>
-inline void PagedVector<page_size, Page, PageHolder>::resize(const size_t& new_size) {
+template<size_t page_size, typename Backend>
+inline void PagedVector<page_size, Backend>::resize(const size_t& new_size) {
     if (new_size < filled) {
         // shrink down to the number of pages we would need
         size_t num_pages = new_size == 0 ? 0 : (new_size - 1) / page_size + 1;
@@ -925,8 +941,8 @@ inline void PagedVector<page_size, Page, PageHolder>::resize(const size_t& new_s
     filled = new_size;
 }
   
-template<size_t page_size, typename Page, typename PageHolder>
-inline void PagedVector<page_size, Page, PageHolder>::reserve(const size_t& future_size) {
+template<size_t page_size, typename Backend>
+inline void PagedVector<page_size, Backend>::reserve(const size_t& future_size) {
     if (future_size > pages.size() * page_size) {
         // how many pages does this require?
         size_t num_pages = (future_size - 1) / page_size + 1;
@@ -946,30 +962,30 @@ inline void PagedVector<page_size, Page, PageHolder>::reserve(const size_t& futu
     }
 }
 
-template<size_t page_size, typename Page, typename PageHolder>
-inline size_t PagedVector<page_size, Page, PageHolder>::size() const {
+template<size_t page_size, typename Backend>
+inline size_t PagedVector<page_size, Backend>::size() const {
     return filled;
 }
 
-template<size_t page_size, typename Page, typename PageHolder>
-inline bool PagedVector<page_size, Page, PageHolder>::empty() const {
+template<size_t page_size, typename Backend>
+inline bool PagedVector<page_size, Backend>::empty() const {
     return filled == 0;
 }
 
-template<size_t page_size, typename Page, typename PageHolder>
-inline void PagedVector<page_size, Page, PageHolder>::clear() {
+template<size_t page_size, typename Backend>
+inline void PagedVector<page_size, Backend>::clear() {
     pages.clear();
     anchors.clear();
     filled = 0;
 }
 
-template<size_t page_size, typename Page, typename PageHolder>
-inline size_t PagedVector<page_size, Page, PageHolder>::page_width() const {
+template<size_t page_size, typename Backend>
+inline size_t PagedVector<page_size, Backend>::page_width() const {
     return page_size;
 }
     
-template<size_t page_size, typename Page, typename PageHolder>
-inline uint64_t PagedVector<page_size, Page, PageHolder>::to_diff(const uint64_t& value, const uint64_t& anchor) const {
+template<size_t page_size, typename Backend>
+inline uint64_t PagedVector<page_size, Backend>::to_diff(const uint64_t& value, const uint64_t& anchor) const {
     // leaves 0 unchanged, encodes other values as a difference from the anchor value
     // with a reversible mapping into the positive integers as follows:
     // difference  0  1  2  3 -1  4  5  6  7 -2  8  9 10 11 -3 ...
@@ -991,8 +1007,8 @@ inline uint64_t PagedVector<page_size, Page, PageHolder>::to_diff(const uint64_t
     }
 }
 
-template<size_t page_size, typename Page, typename PageHolder>
-inline uint64_t PagedVector<page_size, Page, PageHolder>::from_diff(const uint64_t& diff, const uint64_t& anchor) const {
+template<size_t page_size, typename Backend>
+inline uint64_t PagedVector<page_size, Backend>::from_diff(const uint64_t& diff, const uint64_t& anchor) const {
     // convert backward from the transformation described in to_diff
     
     if (diff == 0) {
@@ -1010,40 +1026,40 @@ inline uint64_t PagedVector<page_size, Page, PageHolder>::from_diff(const uint64
 /// RobustPagedVector
 /////////////////////
 
-template<size_t page_size, typename PackedVec, typename PagedVec>
-RobustPagedVector<page_size, PackedVec, PagedVec>::RobustPagedVector() {
+template<size_t page_size, typename Backend>
+RobustPagedVector<page_size, Backend>::RobustPagedVector() {
     // Nothing to do
 }
 
-template<size_t page_size, typename PackedVec, typename PagedVec>
-RobustPagedVector<page_size, PackedVec, PagedVec>::RobustPagedVector(istream& in) {
+template<size_t page_size, typename Backend>
+RobustPagedVector<page_size, Backend>::RobustPagedVector(istream& in) {
     deserialize(in);
 }
 
-template<size_t page_size, typename PackedVec, typename PagedVec>
-RobustPagedVector<page_size, PackedVec, PagedVec>::~RobustPagedVector() {
+template<size_t page_size, typename Backend>
+RobustPagedVector<page_size, Backend>::~RobustPagedVector() {
     
 }
 
-template<size_t page_size, typename PackedVec, typename PagedVec>
-void RobustPagedVector<page_size, PackedVec, PagedVec>::deserialize(istream& in) {
+template<size_t page_size, typename Backend>
+void RobustPagedVector<page_size, Backend>::deserialize(istream& in) {
     first_page.deserialize(in);
     latter_pages.deserialize(in);
 }
 
-template<size_t page_size, typename PackedVec, typename PagedVec>
-void RobustPagedVector<page_size, PackedVec, PagedVec>::serialize(ostream& out) const {
+template<size_t page_size, typename Backend>
+void RobustPagedVector<page_size, Backend>::serialize(ostream& out) const {
     first_page.serialize(out);
     latter_pages.serialize(out);
 }
 
-template<size_t page_size, typename PackedVec, typename PagedVec>
-size_t RobustPagedVector<page_size, PackedVec, PagedVec>::memory_usage() const {
+template<size_t page_size, typename Backend>
+size_t RobustPagedVector<page_size, Backend>::memory_usage() const {
     return first_page.memory_usage() + latter_pages.memory_usage();
 }
 
-template<size_t page_size, typename PackedVec, typename PagedVec>
-inline void RobustPagedVector<page_size, PackedVec, PagedVec>::set(const size_t& i, const uint64_t& value) {
+template<size_t page_size, typename Backend>
+inline void RobustPagedVector<page_size, Backend>::set(const size_t& i, const uint64_t& value) {
     if (i < latter_pages.page_width()) {
         first_page.set(i, value);
     }
@@ -1052,8 +1068,8 @@ inline void RobustPagedVector<page_size, PackedVec, PagedVec>::set(const size_t&
     }
 }
 
-template<size_t page_size, typename PackedVec, typename PagedVec>
-inline uint64_t RobustPagedVector<page_size, PackedVec, PagedVec>::get(const size_t& i) const {
+template<size_t page_size, typename Backend>
+inline uint64_t RobustPagedVector<page_size, Backend>::get(const size_t& i) const {
     if (i < latter_pages.page_width()) {
         return first_page.get(i);
     }
@@ -1062,8 +1078,8 @@ inline uint64_t RobustPagedVector<page_size, PackedVec, PagedVec>::get(const siz
     }
 }
 
-template<size_t page_size, typename PackedVec, typename PagedVec>
-inline void RobustPagedVector<page_size, PackedVec, PagedVec>::append(const uint64_t& value) {
+template<size_t page_size, typename Backend>
+inline void RobustPagedVector<page_size, Backend>::append(const uint64_t& value) {
     if (first_page.size() < latter_pages.page_width()) {
         first_page.append(value);
     }
@@ -1072,8 +1088,8 @@ inline void RobustPagedVector<page_size, PackedVec, PagedVec>::append(const uint
     }
 }
 
-template<size_t page_size, typename PackedVec, typename PagedVec>
-inline void RobustPagedVector<page_size, PackedVec, PagedVec>::pop() {
+template<size_t page_size, typename Backend>
+inline void RobustPagedVector<page_size, Backend>::pop() {
     if (latter_pages.empty()) {
         first_page.pop();
     }
@@ -1082,8 +1098,8 @@ inline void RobustPagedVector<page_size, PackedVec, PagedVec>::pop() {
     }
 }
 
-template<size_t page_size, typename PackedVec, typename PagedVec>
-inline void RobustPagedVector<page_size, PackedVec, PagedVec>::resize(const size_t& new_size) {
+template<size_t page_size, typename Backend>
+inline void RobustPagedVector<page_size, Backend>::resize(const size_t& new_size) {
     if (new_size > latter_pages.page_width()) {
         first_page.resize(latter_pages.page_width());
         latter_pages.resize(new_size - latter_pages.page_width());
@@ -1094,8 +1110,8 @@ inline void RobustPagedVector<page_size, PackedVec, PagedVec>::resize(const size
     }
 }
 
-template<size_t page_size, typename PackedVec, typename PagedVec>
-inline void RobustPagedVector<page_size, PackedVec, PagedVec>::reserve(const size_t& future_size) {
+template<size_t page_size, typename Backend>
+inline void RobustPagedVector<page_size, Backend>::reserve(const size_t& future_size) {
     if (future_size > latter_pages.page_width()) {
         first_page.reserve(latter_pages.page_width());
         latter_pages.reserve(future_size - latter_pages.page_width());
@@ -1105,24 +1121,24 @@ inline void RobustPagedVector<page_size, PackedVec, PagedVec>::reserve(const siz
     }
 }
 
-template<size_t page_size, typename PackedVec, typename PagedVec>
-inline size_t RobustPagedVector<page_size, PackedVec, PagedVec>::size() const {
+template<size_t page_size, typename Backend>
+inline size_t RobustPagedVector<page_size, Backend>::size() const {
     return first_page.size() + latter_pages.size();
 }
 
-template<size_t page_size, typename PackedVec, typename PagedVec>
-inline bool RobustPagedVector<page_size, PackedVec, PagedVec>::empty() const {
+template<size_t page_size, typename Backend>
+inline bool RobustPagedVector<page_size, Backend>::empty() const {
     return first_page.empty() && latter_pages.empty();
 }
 
-template<size_t page_size, typename PackedVec, typename PagedVec>
-inline void RobustPagedVector<page_size, PackedVec, PagedVec>::clear() {
+template<size_t page_size, typename Backend>
+inline void RobustPagedVector<page_size, Backend>::clear() {
     first_page.clear();
     latter_pages.clear();
 }
 
-template<size_t page_size, typename PackedVec, typename PagedVec>
-inline size_t RobustPagedVector<page_size, PackedVec, PagedVec>::page_width() const {
+template<size_t page_size, typename Backend>
+inline size_t RobustPagedVector<page_size, Backend>::page_width() const {
     return latter_pages.page_width();
 }
 
@@ -1165,23 +1181,23 @@ constexpr uint64_t bdsg_packed_set_size_schedule[192] = {
     5053968264940243967ull, 6317460331175304137ull, 7896825413969130449ull, 9871031767461412841ull,
     12338789709326766061ull};
 
-template<typename PackedVec>
-PackedSet<PackedVec>::PackedSet() {
+template<typename Backend>
+PackedSet<Backend>::PackedSet() {
     table.resize(bdsg_packed_set_size_schedule[0]);
 }
 
-template<typename PackedVec>
-typename PackedSet<PackedVec>::iterator PackedSet<PackedVec>::begin() const {
+template<typename Backend>
+typename PackedSet<Backend>::iterator PackedSet<Backend>::begin() const {
     return iterator(this);
 }
 
-template<typename PackedVec>
-typename PackedSet<PackedVec>::iterator PackedSet<PackedVec>::end() const {
+template<typename Backend>
+typename PackedSet<Backend>::iterator PackedSet<Backend>::end() const {
     return iterator(this, table.size());
 }
 
-template<typename PackedVec>
-PackedSet<PackedVec>::iterator::iterator(const PackedSet* iteratee) : iteratee(iteratee) {
+template<typename Backend>
+PackedSet<Backend>::iterator::iterator(const PackedSet* iteratee) : iteratee(iteratee) {
 //    cerr << "making iterator to table: " << endl;
 //    for (size_t j = 0; j < iteratee->table.size(); j++) {
 //        cerr << iteratee->table.get(j) << " ";
@@ -1195,13 +1211,13 @@ PackedSet<PackedVec>::iterator::iterator(const PackedSet* iteratee) : iteratee(i
 //    cerr << "starting at " << i << endl;
 }
 
-template<typename PackedVec>
-PackedSet<PackedVec>::iterator::iterator(const PackedSet* iteratee, size_t i) : iteratee(iteratee), i(i) {
+template<typename Backend>
+PackedSet<Backend>::iterator::iterator(const PackedSet* iteratee, size_t i) : iteratee(iteratee), i(i) {
     // nothing to do
 }
 
-template<typename PackedVec>
-typename PackedSet<PackedVec>::iterator& PackedSet<PackedVec>::iterator::operator++() {
+template<typename Backend>
+typename PackedSet<Backend>::iterator& PackedSet<Backend>::iterator::operator++() {
     // advance to the next non-null element
     do {
 //        cerr << "advancing from " << i << " to find next position" << endl;
@@ -1211,24 +1227,24 @@ typename PackedSet<PackedVec>::iterator& PackedSet<PackedVec>::iterator::operato
     return *this;
 }
 
-template<typename PackedVec>
-uint64_t PackedSet<PackedVec>::iterator::operator*() const {
+template<typename Backend>
+uint64_t PackedSet<Backend>::iterator::operator*() const {
     return iteratee->from_diff(iteratee->table.get(i), iteratee->anchor);
 }
 
-template<typename PackedVec>
-bool PackedSet<PackedVec>::iterator::operator==(const PackedSet<PackedVec>::iterator& other) const {
+template<typename Backend>
+bool PackedSet<Backend>::iterator::operator==(const PackedSet<Backend>::iterator& other) const {
 //    cerr << "checking == for " << iteratee << " " << i << " and " << other.iteratee << " " << other.i << endl;
     return iteratee == other.iteratee && i == other.i;
 }
 
-template<typename PackedVec>
-bool PackedSet<PackedVec>::iterator::operator!=(const PackedSet<PackedVec>::iterator& other) const {
+template<typename Backend>
+bool PackedSet<Backend>::iterator::operator!=(const PackedSet<Backend>::iterator& other) const {
     return !(*this == other);
 }
 
-template<typename PackedVec>
-inline size_t PackedSet<PackedVec>::hash(const uint64_t& diff, const PackedVec& _table) const {
+template<typename Backend>
+inline size_t PackedSet<Backend>::hash(const uint64_t& diff, const PackedVec& _table) const {
     // do a degree-4 mod polynomial with random coefficients, which is a 5-wise
     // independent hash function
     size_t p = _table.size();
@@ -1241,8 +1257,8 @@ inline size_t PackedSet<PackedVec>::hash(const uint64_t& diff, const PackedVec& 
     return hsh;
 }
 
-template<typename PackedVec>
-inline uint64_t PackedSet<PackedVec>::to_diff(const uint64_t& value, const uint64_t& _anchor) const {
+template<typename Backend>
+inline uint64_t PackedSet<Backend>::to_diff(const uint64_t& value, const uint64_t& _anchor) const {
     // encodes 0 as a 1, regardless of the anchor value. represents all other values
     // according to their difference from the anchor in the following manner:
     // difference  0 -1  1 -2  2 -3  3 -4  4 ....
@@ -1262,8 +1278,8 @@ inline uint64_t PackedSet<PackedVec>::to_diff(const uint64_t& value, const uint6
     }
 }
 
-template<typename PackedVec>
-inline uint64_t PackedSet<PackedVec>::from_diff(const uint64_t& diff, const uint64_t& _anchor) const {
+template<typename Backend>
+inline uint64_t PackedSet<Backend>::from_diff(const uint64_t& diff, const uint64_t& _anchor) const {
     // inverse of to_diff
     if (diff == 1) {
         return 0;
@@ -1276,8 +1292,8 @@ inline uint64_t PackedSet<PackedVec>::from_diff(const uint64_t& diff, const uint
     }
 }
 
-template<typename PackedVec>
-inline uint64_t PackedSet<PackedVec>::optimal_anchor() const {
+template<typename Backend>
+inline uint64_t PackedSet<Backend>::optimal_anchor() const {
     uint64_t min_val = numeric_limits<uint64_t>::max();
     uint64_t max_val = numeric_limits<uint64_t>::min();
     for (size_t i = 0; i < table.size(); ++i) {
@@ -1292,8 +1308,8 @@ inline uint64_t PackedSet<PackedVec>::optimal_anchor() const {
     return min_val == numeric_limits<uint64_t>::max() ? (uint64_t)anchor : (max_val + min_val) / 2;
 }
 
-template<typename PackedVec>
-inline void PackedSet<PackedVec>::rehash(bool shrink) {
+template<typename Backend>
+inline void PackedSet<Backend>::rehash(bool shrink) {
     // Keeping the RNG state in the class isn't bvery portable, so we make one
     // per thread in thread storage.
     static thread_local default_random_engine gen(random_device{}());
@@ -1333,8 +1349,8 @@ inline void PackedSet<PackedVec>::rehash(bool shrink) {
     table = move(new_table);
 }
 
-template<typename PackedVec>
-inline size_t PackedSet<PackedVec>::locate(const uint64_t& diff, const PackedVec& _table) const {
+template<typename Backend>
+inline size_t PackedSet<Backend>::locate(const uint64_t& diff, const PackedVec& _table) const {
     // linear probing until finding the diff or a null sentinel
     size_t p = _table.size();
     size_t i = hash(diff, _table);
@@ -1344,8 +1360,8 @@ inline size_t PackedSet<PackedVec>::locate(const uint64_t& diff, const PackedVec
     return i;
 }
 
-template<typename PackedVec>
-inline void PackedSet<PackedVec>::insert(const uint64_t& value) {
+template<typename Backend>
+inline void PackedSet<Backend>::insert(const uint64_t& value) {
     
     // greedily choose the first non-zero anchor
     if (anchor == 0) {
@@ -1371,13 +1387,13 @@ inline void PackedSet<PackedVec>::insert(const uint64_t& value) {
     }
 }
 
-template<typename PackedVec>
-inline bool PackedSet<PackedVec>::find(const uint64_t& value) const {
+template<typename Backend>
+inline bool PackedSet<Backend>::find(const uint64_t& value) const {
     return table.get(locate(to_diff(value, anchor), table)) != 0;
 }
 
-template<typename PackedVec>
-inline void PackedSet<PackedVec>::remove(const uint64_t& value) {
+template<typename Backend>
+inline void PackedSet<Backend>::remove(const uint64_t& value) {
     
     // locate the value if it exists
     uint64_t diff = to_diff(value, anchor);
@@ -1428,8 +1444,8 @@ inline void PackedSet<PackedVec>::remove(const uint64_t& value) {
     }
 }
 
-template<typename PackedVec>
-inline void PackedSet<PackedVec>::set_load_factors(double min_load_factor, double max_load_factor) {
+template<typename Backend>
+inline void PackedSet<Backend>::set_load_factors(double min_load_factor, double max_load_factor) {
     assert(max_load_factor > min_load_factor);
     assert(min_load_factor >= 0.0);
     assert(max_load_factor < 1.0);
@@ -1448,23 +1464,23 @@ inline void PackedSet<PackedVec>::set_load_factors(double min_load_factor, doubl
     }
 }
 
-template<typename PackedVec>
-inline double PackedSet<PackedVec>::max_load_factor() const {
+template<typename Backend>
+inline double PackedSet<Backend>::max_load_factor() const {
     return max_load;
 }
 
-template<typename PackedVec>
-inline double PackedSet<PackedVec>::min_load_factor() const {
+template<typename Backend>
+inline double PackedSet<Backend>::min_load_factor() const {
     return min_load;
 }
 
-template<typename PackedVec>
-inline size_t PackedSet<PackedVec>::size() const {
+template<typename Backend>
+inline size_t PackedSet<Backend>::size() const {
     return num_items;
 }
 
-template<typename PackedVec>
-inline bool PackedSet<PackedVec>::empty() const {
+template<typename Backend>
+inline bool PackedSet<Backend>::empty() const {
     return num_items == 0;
 }
     

@@ -3888,13 +3888,13 @@ int main(void) {
     test_mmap_backend();
     test_mapped_structs();
     test_packed_vector<PackedVector<>>();
-    test_packed_vector<PackedVector<CompatIntVector<>>>();
+    test_packed_vector<PackedVector<CompatBackend>>();
     test_paged_vector<PagedVector<1>>();
     test_paged_vector<PagedVector<2>>();
     test_paged_vector<PagedVector<3>>();
     test_paged_vector<PagedVector<4>>();
     test_paged_vector<PagedVector<5>>();
-    test_paged_vector<PagedVector<5, PackedVector<CompatIntVector<>>, CompatVector<PackedVector<CompatIntVector<>>>>>();
+    test_paged_vector<PagedVector<5, CompatBackend>>();
     test_packed_deque();
     test_packed_set();
     test_deletable_handle_graphs();
