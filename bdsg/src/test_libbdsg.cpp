@@ -626,6 +626,40 @@ void test_mapped_structs() {
         bother_vector(*numbers_holder_holder);
     }
     
+    {
+        // Make sure our bit-packing vector works
+        CompatIntVector<> vec;
+        vec.width(3);
+        
+        for (size_t i = 0; i < 1000; i++) {
+            vec.resize(i + 1);
+            vec.at(i) = i % 8;
+            if (vec.at(i) != i % 8) {
+                throw std::runtime_error("Expected " + std::to_string(i % 8) + " at " + std::to_string(i) + " but got " + std::to_string(vec.at(i)));
+            }
+        }
+        
+        for (size_t i = 0; i < 1000; i++) {
+            if (vec.at(i) != i % 8) {
+                throw std::runtime_error("Expected " + std::to_string(i % 8) + " at " + std::to_string(i) + " but got " + std::to_string(vec.at(i)));
+            }
+        }
+        
+        vec.resize(500);
+        for (size_t i = 0; i < 500; i++) {
+            if (vec.at(i) != i % 8) {
+                throw std::runtime_error("Expected " + std::to_string(i % 8) + " at " + std::to_string(i) + " but got " + std::to_string(vec.at(i)));
+            }
+        }
+        
+        vec.repack(4, 500);
+        for (size_t i = 0; i < 500; i++) {
+            if (vec.at(i) != i % 8) {
+                throw std::runtime_error("Expected " + std::to_string(i % 8) + " at " + std::to_string(i) + " but got " + std::to_string(vec.at(i)));
+            }
+        }
+    }
+    
     cerr << "Mapped Structs tests successful!" << endl;
 }
         
@@ -3854,13 +3888,13 @@ int main(void) {
     test_mmap_backend();
     test_mapped_structs();
     test_packed_vector<PackedVector<>>();
-    test_packed_vector<PackedVector<CompatIntVector<>>>();
+    test_packed_vector<PackedVector<CompatBackend>>();
     test_paged_vector<PagedVector<1>>();
     test_paged_vector<PagedVector<2>>();
     test_paged_vector<PagedVector<3>>();
     test_paged_vector<PagedVector<4>>();
     test_paged_vector<PagedVector<5>>();
-    test_paged_vector<PagedVector<5, PackedVector<CompatIntVector<>>, CompatVector<PackedVector<CompatIntVector<>>>>>();
+    test_paged_vector<PagedVector<5, CompatBackend>>();
     test_packed_deque();
     test_packed_set();
     test_deletable_handle_graphs();
