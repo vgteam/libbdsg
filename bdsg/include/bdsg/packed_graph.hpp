@@ -26,7 +26,7 @@ using namespace std;
 using namespace handlegraph;
 
 /**
- * PackedGraph is a HandleGraph implementation designed to use very little
+ * BasePackedGraph is a HandleGraph implementation designed to use very little
  * memory. It stores its data in bit-packed integer vectors, which are
  * dynamically widened as needed in O(1) amortized time. Within these vectors,
  * graphs are stored using adjacency linked lists.
@@ -41,18 +41,19 @@ using namespace handlegraph;
  * is not a good choice when large fractions of the graph will need to be
  * deleted and replaced; ODGI or HashGraph may be better for such workloads.
  */
-class PackedGraph : public MutablePathDeletableHandleGraph, public SerializableHandleGraph {
+template<typename IntVector = sdsl::int_vector<>, typename Page = PackedVector<>, typename PageHolder = std::vector<Page>, template<typename T> Vector = std::vector<T>>
+class BasePackedGraph : public MutablePathDeletableHandleGraph, public SerializableHandleGraph {
         
 public:
-    PackedGraph();
-    ~PackedGraph();
+    BasePackedGraph();
+    ~BasePackedGraph();
     
     ////////////////////////////////////////////////////////////////////////////
     // I/O methods
     ////////////////////////////////////////////////////////////////////////////
     
     /// Construct from a stream
-    PackedGraph(istream& in);
+    BasePackedGraph(istream& in);
     
 private:
     
@@ -417,24 +418,24 @@ private:
     /// Encodes the topology of the graph. Consists of fixed width records that represent
     /// offsets in edge_lists_iv.
     /// {start edge list index, end edge list index}
-    PagedVector<NARROW_PAGE_WIDTH> graph_iv;
+    PagedVector<NARROW_PAGE_WIDTH, Page, PageHolder> graph_iv;
     const static size_t GRAPH_RECORD_SIZE;
     const static size_t GRAPH_START_EDGES_OFFSET;
     const static size_t GRAPH_END_EDGES_OFFSET;
     
     /// Encodes the start of a node's sequence in seq_iv. Matches the order of graph_iv.
-    PagedVector<NARROW_PAGE_WIDTH> seq_start_iv;
+    PagedVector<NARROW_PAGE_WIDTH, Page, PageHolder> seq_start_iv;
     const static size_t SEQ_START_RECORD_SIZE;
     
     /// Encodes the length of a node's sequence in seq_iv. Matches the order of graph_iv.
-    PackedVector<> seq_length_iv;
+    PackedVector<IntVector> seq_length_iv;
     const static size_t SEQ_LENGTH_RECORD_SIZE;
 
     // TODO: split up the edge lists into separate vectors
     
     /// Encodes a series of edges lists of nodes.
     /// {ID|orientation (bit-packed), next edge index}
-    PagedVector<WIDE_PAGE_WIDTH> edge_lists_iv;
+    PagedVector<WIDE_PAGE_WIDTH, Page, PageHolder> edge_lists_iv;
     const static size_t EDGE_RECORD_SIZE;
     const static size_t EDGE_TRAV_OFFSET;
     const static size_t EDGE_NEXT_OFFSET;
@@ -446,27 +447,27 @@ private:
     /// Encodes the 1-based offset of an ID in graph_iv in units of GRAPH_RECORD_SIZE.
     /// If no node with that ID exists, contains a 0. The index of a given ID is
     /// computed by (ID - min ID).
-    PackedDeque<> nid_to_graph_iv;
+    PackedDeque<PackedVector<IntVector>> nid_to_graph_iv;
 
     /// Encodes all of the sequences of all nodes in the graph.
-    PackedVector<> seq_iv;
+    PackedVector<IntVector> seq_iv;
     
     /// Encodes the membership of a node in all paths. In the same order as graph_iv.
     /// Consists of 1-based offset to the corresponding heads of linked lists in
     /// path_membership_value_iv, which contains the actual pointers into the paths.
-    PagedVector<NARROW_PAGE_WIDTH> path_membership_node_iv;
+    PagedVector<NARROW_PAGE_WIDTH, Page, PageHolder> path_membership_node_iv;
     const static size_t NODE_MEMBER_RECORD_SIZE;
     
     /// Encodes a series of linked lists of the memberships within paths. The nodes
     /// in the linked list are split over three separate vectors, with the entry at
     /// the same index in each vector corresponding to the same linked list node.
     /// Path ID (0-based index)
-    PagedVector<WIDE_PAGE_WIDTH> path_membership_id_iv;
+    PagedVector<WIDE_PAGE_WIDTH, Page, PageHolder> path_membership_id_iv;
     /// 1-based offset of the occurrence of the node in the corresponding PackedPath vector.
-    PagedVector<NARROW_PAGE_WIDTH> path_membership_offset_iv;
+    PagedVector<NARROW_PAGE_WIDTH, Page, PageHolder> path_membership_offset_iv;
     /// 1-based offset of the next occurrence of this node on a path within this vector (or
     /// 0 if there is none)
-    PagedVector<NARROW_PAGE_WIDTH> path_membership_next_iv;
+    PagedVector<NARROW_PAGE_WIDTH, Page, PageHolder> path_membership_next_iv;
     const static size_t MEMBERSHIP_ID_RECORD_SIZE;
     const static size_t MEMBERSHIP_OFFSET_RECORD_SIZE;
     const static size_t MEMBERSHIP_NEXT_RECORD_SIZE;
@@ -478,31 +479,31 @@ private:
     
     /// All path names, encoded according to the char assignments and concatenated in
     /// a single vector
-    PackedVector<> path_names_iv;
+    PackedVector<IntVector> path_names_iv;
     
     /// The starting index of the path's name in path_names_iv for the path with the
     /// same index in paths
-    PagedVector<NARROW_PAGE_WIDTH> path_name_start_iv;
+    PagedVector<NARROW_PAGE_WIDTH, Page, PageHolder> path_name_start_iv;
     
     /// The length of the path's name for the path with the same index in paths
-    PackedVector<> path_name_length_iv;
+    PackedVector<IntVector> path_name_length_iv;
     
     /// Bit-vector that marks whether the path at the same index has been deleted
-    PackedVector<> path_is_deleted_iv;
+    PackedVector<IntVector> path_is_deleted_iv;
     
     /// Bit-vector that marks whether the path at the same index is circular
-    PackedVector<> path_is_circular_iv;
+    PackedVector<IntVector> path_is_circular_iv;
     
     /// The 1-based index of the head of the linked list in steps_iv of the path
     /// with the same index in paths
-    PagedVector<WIDE_PAGE_WIDTH> path_head_iv;
+    PagedVector<WIDE_PAGE_WIDTH, Page, PageHolder> path_head_iv;
     
     /// The 1-based index of the tail of the linked list in steps_iv of the path
     /// with the same index in paths
-    PagedVector<NARROW_PAGE_WIDTH> path_tail_iv;
+    PagedVector<NARROW_PAGE_WIDTH, Page, PageHolder> path_tail_iv;
     
     /// The number of steps that have have deleted from the path at the same index
-    PackedVector<> path_deleted_steps_iv;
+    PackedVector<IntVector> path_deleted_steps_iv;
     
     /*
      * A struct to package the data associated with a path through the graph.
@@ -513,10 +514,10 @@ private:
         /// Linked list records that encode the oriented nodes of the path. Indexes are
         /// 1-based, with 0 used as a sentinel to indicate none further.
         /// {prev index, next index}
-        RobustPagedVector<NARROW_PAGE_WIDTH> links_iv;
+        RobustPagedVector<NARROW_PAGE_WIDTH, Page, PageHolder> links_iv;
         /// The traversal value is stored in a separate vector at the matching index.
         /// {ID|orientation (bit-packed)}
-        RobustPagedVector<NARROW_PAGE_WIDTH> steps_iv;
+        RobustPagedVector<NARROW_PAGE_WIDTH, Page, PageHolder> steps_iv;
     };
     const static size_t PATH_RECORD_SIZE;
     const static size_t PATH_PREV_OFFSET;
@@ -525,10 +526,10 @@ private:
     const static size_t STEP_RECORD_SIZE;
     
     /// Map from path names to index in the paths vector.
-    string_hash_map<PackedVector<>, int64_t> path_id;
+    string_hash_map<PackedVector<IntVector>, int64_t> path_id;
     
     /// Vector of the embedded paths in the graph
-    vector<PackedPath> paths;
+    Vector<PackedPath> paths;
     static const double PATH_RESIZE_FACTOR;
     
     ///////////////////////////////////////////////////////////////////////
@@ -597,7 +598,7 @@ public:
     
     
     
-inline uint64_t PackedGraph::encode_nucleotide(const char& nt) const {
+inline uint64_t BasePackedGraph::encode_nucleotide(const char& nt) const {
     
     uint64_t encoded;
     switch (nt) {
@@ -630,100 +631,100 @@ inline uint64_t PackedGraph::encode_nucleotide(const char& nt) const {
     return encoded;
 }
     
-inline uint64_t PackedGraph::complement_encoded_nucleotide(const uint64_t& val) const {
+inline uint64_t BasePackedGraph::complement_encoded_nucleotide(const uint64_t& val) const {
     return val == 4 ? 4 : 3 - val;
 }
     
-inline char PackedGraph::decode_nucleotide(const uint64_t& val) const {
+inline char BasePackedGraph::decode_nucleotide(const uint64_t& val) const {
     static const char* alphabet = "ACGTN";
     return alphabet[val];
 }
     
-inline size_t PackedGraph::graph_iv_index(const handle_t& handle) const {
+inline size_t BasePackedGraph::graph_iv_index(const handle_t& handle) const {
     return (nid_to_graph_iv.get(get_id(handle) - min_id) - 1) * GRAPH_RECORD_SIZE;
 }
 
-inline uint64_t PackedGraph::graph_index_to_seq_len_index(const size_t& graph_index) const {
+inline uint64_t BasePackedGraph::graph_index_to_seq_len_index(const size_t& graph_index) const {
     return (graph_index * SEQ_LENGTH_RECORD_SIZE) / GRAPH_RECORD_SIZE;
 }
 
-inline uint64_t PackedGraph::graph_index_to_seq_start_index(const size_t& graph_index) const {
+inline uint64_t BasePackedGraph::graph_index_to_seq_start_index(const size_t& graph_index) const {
     return (graph_index * SEQ_START_RECORD_SIZE) / GRAPH_RECORD_SIZE;
 }
 
-inline uint64_t PackedGraph::graph_index_to_node_member_index(const size_t& graph_index) const {
+inline uint64_t BasePackedGraph::graph_index_to_node_member_index(const size_t& graph_index) const {
     return (graph_index * NODE_MEMBER_RECORD_SIZE) / GRAPH_RECORD_SIZE;
 }
     
-inline const uint64_t& PackedGraph::encode_traversal(const handle_t& handle) const {
+inline const uint64_t& BasePackedGraph::encode_traversal(const handle_t& handle) const {
     return reinterpret_cast<const uint64_t&>(handle);
 }
     
-inline const handle_t& PackedGraph::decode_traversal(const uint64_t& val) const {
+inline const handle_t& BasePackedGraph::decode_traversal(const uint64_t& val) const {
     return reinterpret_cast<const handle_t&>(val);
 }
 
-inline uint64_t PackedGraph::get_next_edge_index(const uint64_t& edge_index) const {
+inline uint64_t BasePackedGraph::get_next_edge_index(const uint64_t& edge_index) const {
     return edge_lists_iv.get((edge_index - 1) * EDGE_RECORD_SIZE + EDGE_NEXT_OFFSET);
 }
 
-inline uint64_t PackedGraph::get_edge_target(const uint64_t& edge_index) const {
+inline uint64_t BasePackedGraph::get_edge_target(const uint64_t& edge_index) const {
     return edge_lists_iv.get((edge_index - 1) * EDGE_RECORD_SIZE + EDGE_TRAV_OFFSET);
 }
     
-inline void PackedGraph::set_edge_target(const uint64_t& edge_index, const handle_t& handle) {
+inline void BasePackedGraph::set_edge_target(const uint64_t& edge_index, const handle_t& handle) {
     edge_lists_iv.set((edge_index - 1) * EDGE_RECORD_SIZE + EDGE_TRAV_OFFSET, encode_traversal(handle));
 }
     
-inline uint64_t PackedGraph::get_next_membership(const uint64_t& membership_index) const {
+inline uint64_t BasePackedGraph::get_next_membership(const uint64_t& membership_index) const {
     return path_membership_next_iv.get((membership_index - 1) * MEMBERSHIP_NEXT_RECORD_SIZE);
 }
     
-inline uint64_t PackedGraph::get_membership_step(const uint64_t& membership_index) const {
+inline uint64_t BasePackedGraph::get_membership_step(const uint64_t& membership_index) const {
     return path_membership_offset_iv.get((membership_index - 1) * MEMBERSHIP_OFFSET_RECORD_SIZE);
 }
 
-inline uint64_t PackedGraph::get_membership_path(const uint64_t& membership_index) const {
+inline uint64_t BasePackedGraph::get_membership_path(const uint64_t& membership_index) const {
     return path_membership_id_iv.get((membership_index - 1) * MEMBERSHIP_ID_RECORD_SIZE);
 }
 
-inline void PackedGraph::set_next_membership(const uint64_t& membership_index, const uint64_t& next) {
+inline void BasePackedGraph::set_next_membership(const uint64_t& membership_index, const uint64_t& next) {
     path_membership_next_iv.set((membership_index - 1) * MEMBERSHIP_NEXT_RECORD_SIZE, next);
 }
     
-inline void PackedGraph::set_membership_step(const uint64_t& membership_index, const uint64_t& step) {
+inline void BasePackedGraph::set_membership_step(const uint64_t& membership_index, const uint64_t& step) {
     path_membership_offset_iv.set((membership_index - 1) * MEMBERSHIP_ID_RECORD_SIZE, step);
 }
     
-inline void PackedGraph::set_membership_path(const uint64_t& membership_index, const uint64_t& path) {
+inline void BasePackedGraph::set_membership_path(const uint64_t& membership_index, const uint64_t& path) {
     path_membership_id_iv.set((membership_index - 1) * MEMBERSHIP_NEXT_RECORD_SIZE, path);
 }
 
-inline uint64_t PackedGraph::get_step_trav(const PackedPath& path, const uint64_t& step_index) const {
+inline uint64_t BasePackedGraph::get_step_trav(const PackedPath& path, const uint64_t& step_index) const {
     return path.steps_iv.get((step_index - 1) * STEP_RECORD_SIZE);
 }
 
-inline uint64_t PackedGraph::get_step_prev(const PackedPath& path, const uint64_t& step_index) const {
+inline uint64_t BasePackedGraph::get_step_prev(const PackedPath& path, const uint64_t& step_index) const {
     return path.links_iv.get((step_index - 1) * PATH_RECORD_SIZE + PATH_PREV_OFFSET);
 }
 
-inline uint64_t PackedGraph::get_step_next(const PackedPath& path, const uint64_t& step_index) const {
+inline uint64_t BasePackedGraph::get_step_next(const PackedPath& path, const uint64_t& step_index) const {
     return path.links_iv.get((step_index - 1) * PATH_RECORD_SIZE + PATH_NEXT_OFFSET);
 }
 
-inline void PackedGraph::set_step_trav(PackedPath& path, const uint64_t& step_index, const uint64_t& trav) {
+inline void BasePackedGraph::set_step_trav(PackedPath& path, const uint64_t& step_index, const uint64_t& trav) {
     path.steps_iv.set((step_index - 1) * STEP_RECORD_SIZE, trav);
 }
 
-inline void PackedGraph::set_step_prev(PackedPath& path, const uint64_t& step_index, const uint64_t& prev_index) {
+inline void BasePackedGraph::set_step_prev(PackedPath& path, const uint64_t& step_index, const uint64_t& prev_index) {
     path.links_iv.set((step_index - 1) * PATH_RECORD_SIZE + PATH_PREV_OFFSET, prev_index);
 }
 
-inline void PackedGraph::set_step_next(PackedPath& path, const uint64_t& step_index, const uint64_t& next_index) {
+inline void BasePackedGraph::set_step_next(PackedPath& path, const uint64_t& step_index, const uint64_t& next_index) {
     path.links_iv.set((step_index - 1) * PATH_RECORD_SIZE + PATH_NEXT_OFFSET, next_index);
 }
     
-inline uint64_t PackedGraph::get_assignment(const char& c) const {
+inline uint64_t BasePackedGraph::get_assignment(const char& c) const {
     auto it = char_assignment.find(c);
     if (it != char_assignment.end()) {
         return it->second;
@@ -733,7 +734,7 @@ inline uint64_t PackedGraph::get_assignment(const char& c) const {
     }
 }
 
-inline uint64_t PackedGraph::get_or_make_assignment(const char& c) {
+inline uint64_t BasePackedGraph::get_or_make_assignment(const char& c) {
     auto it = char_assignment.find(c);
     if (it != char_assignment.end()) {
         return it->second;
@@ -745,7 +746,7 @@ inline uint64_t PackedGraph::get_or_make_assignment(const char& c) {
     }
 }
 
-inline char PackedGraph::get_char(const uint64_t& assignment) const {
+inline char BasePackedGraph::get_char(const uint64_t& assignment) const {
     return inverse_char_assignment.at(assignment);
 }
 
