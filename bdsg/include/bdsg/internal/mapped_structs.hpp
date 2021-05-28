@@ -539,6 +539,7 @@ public:
     size_t size() const;
     void resize(size_t new_size);
     void reserve(size_t new_reserved_length);
+    void shrink_to_fit();
     
     T& back();
     const T& back() const;
@@ -557,6 +558,15 @@ public:
     
     T& operator[](size_t index);
     const T& operator[](size_t index) const;
+    
+    // We have iterators but they aren't safe to serialize.
+    using iterator = T*;
+    using const_iterator = const T*;
+    
+    iterator begin();
+    const_iterator begin() const;
+    iterator end();
+    const_iterator end() const;
     
     // Compatibility with SDSL-lite serialization
     
@@ -1122,6 +1132,11 @@ void CompatVector<T, Alloc>::resize(size_t new_size) {
 }
 
 template<typename T, typename Alloc>
+void CompatVector<T, Alloc>::shrink_to_fit() {
+    // TODO: actually reallocate smaller.
+}
+
+template<typename T, typename Alloc>
 T& CompatVector<T, Alloc>::back() {
     return (*this)[size() - 1];
 }
@@ -1171,6 +1186,26 @@ T& CompatVector<T, Alloc>::at(size_t index) {
     }
     
     return (*this)[index];
+}
+
+template<typename T, typename Alloc>
+auto CompatVector<T, Alloc>::begin() -> iterator {
+    return &(*this)[0];
+}
+
+template<typename T, typename Alloc>
+auto CompatVector<T, Alloc>::begin() const -> const_iterator {
+    return &(*this)[0];
+}
+
+template<typename T, typename Alloc>
+auto CompatVector<T, Alloc>::end() -> iterator {
+    return &(*this)[size()];
+}
+
+template<typename T, typename Alloc>
+auto CompatVector<T, Alloc>::end() const -> const_iterator {
+    return &(*this)[size()];
 }
 
 template<typename T, typename Alloc>
