@@ -69,14 +69,41 @@ protected:
     char storage[sizeof(T)];
 };
 
+
 /**
- * Collection of templates for data structures that use the STL and SDSL.
+ * Template to choose the appropriate bit-packed integer vector for a backend.
+ * Exposes the resulting type at ::type.
+ */
+template<typename Backend>
+struct IntVectorFor {
+};
+
+/**
+ * Template to choose the appropriate vector for a backend. Exposes the
+ * resulting template at ::type.
+ */
+template<typename Backend>
+struct VectorFor {
+};
+
+/**
+ * Type enum value for selecting data structures that use the STL and SDSL.
  */
 struct STLBackend {
+};
+
+
+// Implementations for the data structures for STLBackend
+
+template<>
+struct VectorFor<STLBackend> {
     template<typename Item>
-    using vector = std::vector<Item>;
-    
-    using int_vector = sdsl::int_vector<>;
+    using type = std::vector<Item>;
+};
+
+template<>
+struct IntVectorFor<STLBackend> {
+    using type = sdsl::int_vector<>;
 };
 
 /**
@@ -776,25 +803,44 @@ using MappedIntVector = CompatIntVector<yomo::Allocator<uint64_t>>;
 
 
 /**
- * Collection of templates replacing those defined in STLBackend with
- * YOMO-based alternatives.
+ * Type enum value for selecting data structures that use YOMO memory mapping.
  */
 struct MappedBackend {
+};
+
+
+// Implementations for the data structures for MappedBackend
+
+template<>
+struct VectorFor<MappedBackend> {
     template<typename Item>
-    using vector = MappedVector<Item>;
-    
-    using int_vector = MappedIntVector;
+    using type = MappedVector<Item>;
+};
+
+template<>
+struct IntVectorFor<MappedBackend> {
+    using type = MappedIntVector;
 };
 
 /**
- * Collection of templates replacing those defined in STLBackend with the same
- * data structures as in MappedBackend but running in normal memory.
+ * Type enum value for selecting data structures that use memory-mappable data
+ * structures but in normal memory, mostly for testing.
  */
 struct CompatBackend {
+};
+
+
+// Implementations for the data structures for CompatBackend
+
+template<>
+struct VectorFor<CompatBackend> {
     template<typename Item>
-    using vector = CompatVector<Item>;
-    
-    using int_vector = CompatIntVector<>;
+    using type = CompatVector<Item>;
+};
+
+template<>
+struct IntVectorFor<CompatBackend> {
+    using type = CompatIntVector<>;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////

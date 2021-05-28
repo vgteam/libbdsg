@@ -35,7 +35,7 @@ inline void repack(IntVector& target, size_t new_width, size_t new_size);
 template<typename Backend = STLBackend>
 class PackedVector {
 private:
-    using IntVector = typename Backend::int_vector;
+    using IntVector = typename IntVectorFor<Backend>::type;
 public:
     /// Constructor (starts empty)
     PackedVector();
@@ -128,7 +128,7 @@ private:
     // get a type or value out of the backend. See "The template disambiguator
     // for dependent names" in
     // https://en.cppreference.com/w/cpp/language/dependent_name
-    using PageHolder = typename Backend::template vector<Page>;
+    using PageHolder = typename VectorFor<Backend>::template type<Page>;
 
 public:
     

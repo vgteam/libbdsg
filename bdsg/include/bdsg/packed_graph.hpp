@@ -531,7 +531,7 @@ private:
     string_hash_map<PackedVector<>, int64_t> path_id;
     
     /// Vector of the embedded paths in the graph
-    typename Backend::template vector<PackedPath> paths;
+    typename VectorFor<Backend>::template type<PackedPath> paths;
     static const double PATH_RESIZE_FACTOR;
     
     ///////////////////////////////////////////////////////////////////////
