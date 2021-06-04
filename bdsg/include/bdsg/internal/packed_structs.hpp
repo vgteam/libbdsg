@@ -313,8 +313,6 @@ template<typename Backend = STLBackend>
 class PackedDeque {
 private:
     using PackedVec = PackedVector<Backend>;
-    // Sometimes we need a vector on the stack (i.e. a local variable)
-    using StackVec = PackedVector<typename StackBackendFor<Backend>::type>;
 public:
     /// Construct empty
     PackedDeque(void);
@@ -753,7 +751,7 @@ inline uint64_t PackedDeque<Backend>::get(const size_t& i) const {
 template<typename Backend>
 inline void PackedDeque<Backend>::reserve(const size_t& future_size) {
     if (future_size > vec.size()) {
-        StackVec new_vec;
+        PackedVec new_vec;
         new_vec.resize(future_size);
         
         for (size_t i = 0; i < filled; i++) {
@@ -805,7 +803,7 @@ template<typename Backend>
 inline void PackedDeque<Backend>::contract() {
     size_t shrink_capacity = vec.size() / (factor * factor);
     if (filled <= shrink_capacity) {
-        StackVec new_vec;
+        PackedVec new_vec;
         new_vec.resize(filled);
         for (size_t i = 0; i < filled; i++) {
             new_vec.set(i, get(i));

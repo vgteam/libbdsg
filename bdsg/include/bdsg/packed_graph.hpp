@@ -3076,6 +3076,7 @@ void BasePackedGraph<Backend>::report_memory(ostream& out, bool individual_paths
 }
 
 using PackedGraph = BasePackedGraph<>;
+using MappedPackedGraph = BasePackedGraph<MappedBackend>;
 
 } // end dankness
 

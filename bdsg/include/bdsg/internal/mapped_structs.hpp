@@ -76,21 +76,6 @@ struct STLBackend {
 };
 
 /**
- * Template to choose the right backend type to use for stack values, given
- * your own backend you use for heap values.
- * Exposes the resulting type at ::type.
- */
-template<typename Backend>
-struct StackBackendFor {
-};
-
-// STL backend is happy on the stack.
-template<>
-struct StackBackendFor<STLBackend> {
-    using type = STLBackend;
-};
-
-/**
  * Template to choose the appropriate bit-packed integer vector for a backend.
  * Exposes the resulting type at ::type.
  */
@@ -626,9 +611,7 @@ public:
     /// Allow copying within the same allocator
     CompatVector& operator=(const CompatVector& other);
     
-    /**
-     * Allow copying across allocators.
-     */
+    /// Allow copying across allocators.
     template<typename OtherAlloc>
     CompatVector& operator=(const CompatVector<T, OtherAlloc>& other);
     
@@ -897,27 +880,20 @@ using MappedIntVector = CompatIntVector<yomo::Allocator<uint64_t>>;
 
 /**
  * Type enum value for selecting data structures that use memory-mappable data
- * structures but in normal memory, mostly for testing.
+ * structures but with the standard allocator.
  */
 struct CompatBackend {
 };
 
-// CompatBackend is happy on the stack.
-template<>
-struct StackBackendFor<CompatBackend> {
-    using type = CompatBackend;
-};
-
 /**
- * Type enum value for selecting data structures that use YOMO memory mapping.
+ * Type enum value for selecting data structures that use YOMO memory mapping
+ * and the YOMO allocator.
+ *
+ * They can safely exist outside of mapped memory, but are probably slower
+ * there since YOMO's internal tables still need to be consulted when following
+ * pointers.
  */
 struct MappedBackend {
-};
-
-// MappedBackend shoudl use CompatBackend on the stack.
-template<>
-struct StackBackendFor<MappedBackend> {
-    using type = CompatBackend;
 };
 
 // Implementations for the data structures for MappedBackend

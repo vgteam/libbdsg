@@ -683,17 +683,17 @@ void test_serializable_handle_graphs() {
     
     vector<pair<SerializableHandleGraph*, SerializableHandleGraph*>> implementations;
     
-    /*PackedGraph pg_out, pg_in;
+    PackedGraph pg_out, pg_in;
     implementations.emplace_back(&pg_out, &pg_in);
     
     HashGraph hg_out, hg_in;
     implementations.emplace_back(&hg_out, &hg_in);
     
     ODGI og_out, og_in;
-    implementations.emplace_back(&og_out, &og_in);*/
+    implementations.emplace_back(&og_out, &og_in);
     
-    // Memory-mapped PackedGraph needs to be held in mapped memory.
-    bdsg::yomo::UniqueMappedPointer<BasePackedGraph<MappedBackend>> mpg_in, mpg_out;
+    // Test memory-mapped PackedGraph held in actual mapped memory 
+    bdsg::yomo::UniqueMappedPointer<MappedPackedGraph> mpg_in, mpg_out;
     mpg_in.construct();
     mpg_out.construct();
     implementations.emplace_back(mpg_in.get(), mpg_out.get());
@@ -3909,12 +3909,14 @@ int main(void) {
     test_mapped_structs();
     test_packed_vector<PackedVector<>>();
     test_packed_vector<PackedVector<CompatBackend>>();
+    test_packed_vector<PackedVector<MappedBackend>>();
     test_paged_vector<PagedVector<1>>();
     test_paged_vector<PagedVector<2>>();
     test_paged_vector<PagedVector<3>>();
     test_paged_vector<PagedVector<4>>();
     test_paged_vector<PagedVector<5>>();
     test_paged_vector<PagedVector<5, CompatBackend>>();
+    test_paged_vector<PagedVector<5, MappedBackend>>();
     test_packed_deque();
     test_packed_set();
     test_deletable_handle_graphs();
