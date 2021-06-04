@@ -757,6 +757,10 @@ void test_deletable_handle_graphs() {
 
         ODGI og;
         implementations.push_back(&og);
+        
+        bdsg::yomo::UniqueMappedPointer<MappedPackedGraph> mpg;
+        mpg.construct();
+        implementations.push_back(mpg.get());
 
         // And test them
 
@@ -1839,6 +1843,10 @@ void test_deletable_handle_graphs() {
 
         ODGI og;
         implementations.push_back(&og);
+        
+        bdsg::yomo::UniqueMappedPointer<MappedPackedGraph> mpg;
+        mpg.construct();
+        implementations.push_back(mpg.get());
 
         for (DeletableHandleGraph* implementation : implementations) {
 
@@ -2035,6 +2043,10 @@ void test_deletable_handle_graphs() {
 
         PackedGraph pg;
         implementations.push_back(&pg);
+        
+        bdsg::yomo::UniqueMappedPointer<MappedPackedGraph> mpg;
+        mpg.construct();
+        implementations.push_back(mpg.get());
 
         //ODGI og;
         //implementations.push_back(&og);
@@ -2079,6 +2091,11 @@ void test_deletable_handle_graphs() {
 
         HashGraph hg, hg2;
         implementations.push_back(make_pair(&hg, &hg2));
+        
+        bdsg::yomo::UniqueMappedPointer<MappedPackedGraph> mpg, mpg2;
+        mpg.construct();
+        mpg2.construct();
+        implementations.push_back(make_pair(mpg.get(), mpg2.get()));
         
         // And test them
         for (int imp = 0; imp < implementations.size(); ++imp) {
@@ -2162,6 +2179,10 @@ void test_mutable_path_handle_graphs() {
 
     ODGI og;
     implementations.push_back(&og);
+    
+    bdsg::yomo::UniqueMappedPointer<MappedPackedGraph> mpg;
+    mpg.construct();
+    implementations.push_back(mpg.get());
     
     for (MutablePathDeletableHandleGraph* implementation : implementations) {
 
@@ -2523,6 +2544,11 @@ void test_mutable_path_handle_graphs() {
         
         PackedGraph pg, pg2;
         implementations.push_back(make_pair(&pg, &pg2));
+        
+        bdsg::yomo::UniqueMappedPointer<MappedPackedGraph> mpg, mpg2;
+        mpg.construct();
+        mpg2.construct();
+        implementations.push_back(make_pair(mpg.get(), mpg2.get()));
         
         // And test them
         for (int imp = 0; imp < implementations.size(); ++imp) {
@@ -3418,14 +3444,20 @@ void test_packed_graph() {
 
 void test_path_position_overlays() {
     
-    PackedGraph pg;
-    HashGraph hg;
-    ODGI og;
-    
     vector<MutablePathDeletableHandleGraph*> implementations;
-    implementations.push_back(&pg);
+
+    HashGraph hg;
     implementations.push_back(&hg);
+
+    PackedGraph pg;
+    implementations.push_back(&pg);
+    
+    ODGI og;
     implementations.push_back(&og);
+    
+    bdsg::yomo::UniqueMappedPointer<MappedPackedGraph> mpg;
+    mpg.construct();
+    implementations.push_back(mpg.get());
     
     for (MutablePathDeletableHandleGraph* implementation : implementations) {
         
@@ -3571,14 +3603,20 @@ void test_path_position_overlays() {
 
 void test_vectorizable_overlays() {
     
-    bdsg::PackedGraph pg;
-    bdsg::HashGraph hg;
-    bdsg::ODGI og;
-    
     vector<MutablePathDeletableHandleGraph*> implementations;
-    implementations.push_back(&pg);
+
+    HashGraph hg;
     implementations.push_back(&hg);
+
+    PackedGraph pg;
+    implementations.push_back(&pg);
+    
+    ODGI og;
     implementations.push_back(&og);
+    
+    bdsg::yomo::UniqueMappedPointer<MappedPackedGraph> mpg;
+    mpg.construct();
+    implementations.push_back(mpg.get());
     
     for (MutablePathDeletableHandleGraph* implementation : implementations) {
         
@@ -3641,14 +3679,20 @@ void test_vectorizable_overlays() {
 
 void test_packed_subgraph_overlay() {
     
-    bdsg::PackedGraph pg;
-    bdsg::HashGraph hg;
-    bdsg::ODGI og;
-    
     vector<MutablePathDeletableHandleGraph*> implementations;
-    implementations.push_back(&pg);
+
+    HashGraph hg;
     implementations.push_back(&hg);
+
+    PackedGraph pg;
+    implementations.push_back(&pg);
+    
+    ODGI og;
     implementations.push_back(&og);
+    
+    bdsg::yomo::UniqueMappedPointer<MappedPackedGraph> mpg;
+    mpg.construct();
+    implementations.push_back(mpg.get());
     
     for (MutablePathDeletableHandleGraph* implementation : implementations) {
 
