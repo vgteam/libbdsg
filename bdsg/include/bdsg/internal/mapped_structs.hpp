@@ -69,6 +69,26 @@ protected:
     char storage[sizeof(T)];
 };
 
+/**
+ * Type enum value for selecting data structures that use the STL and SDSL.
+ */
+struct STLBackend {
+};
+
+/**
+ * Template to choose the right backend type to use for stack values, given
+ * your own backend you use for heap values.
+ * Exposes the resulting type at ::type.
+ */
+template<typename Backend>
+struct StackBackendFor {
+};
+
+// STL backend is happy on the stack.
+template<>
+struct StackBackendFor<STLBackend> {
+    using type = STLBackend;
+};
 
 /**
  * Template to choose the appropriate bit-packed integer vector for a backend.
@@ -85,13 +105,6 @@ struct IntVectorFor {
 template<typename Backend>
 struct VectorFor {
 };
-
-/**
- * Type enum value for selecting data structures that use the STL and SDSL.
- */
-struct STLBackend {
-};
-
 
 // Implementations for the data structures for STLBackend
 
@@ -684,6 +697,10 @@ public:
     CompatIntVector(const CompatIntVector& other) = default;
     CompatIntVector(CompatIntVector&& other);
     
+    // To allow copy across backends, we need to be friends with other
+    // instantiations of us.
+    template<typename OtherAlloc> friend class CompatIntVector;
+    
     /// Allow copy construction across allocators
     template<typename OtherAlloc>
     CompatIntVector(const CompatIntVector<OtherAlloc>& other);
@@ -862,6 +879,18 @@ protected:
  */
 using MappedIntVector = CompatIntVector<yomo::Allocator<uint64_t>>; 
 
+/**
+ * Type enum value for selecting data structures that use memory-mappable data
+ * structures but in normal memory, mostly for testing.
+ */
+struct CompatBackend {
+};
+
+// CompatBackend is happy on the stack.
+template<>
+struct StackBackendFor<CompatBackend> {
+    using type = CompatBackend;
+};
 
 /**
  * Type enum value for selecting data structures that use YOMO memory mapping.
@@ -869,6 +898,11 @@ using MappedIntVector = CompatIntVector<yomo::Allocator<uint64_t>>;
 struct MappedBackend {
 };
 
+// MappedBackend shoudl use CompatBackend on the stack.
+template<>
+struct StackBackendFor<MappedBackend> {
+    using type = CompatBackend;
+};
 
 // Implementations for the data structures for MappedBackend
 
@@ -883,12 +917,7 @@ struct IntVectorFor<MappedBackend> {
     using type = MappedIntVector;
 };
 
-/**
- * Type enum value for selecting data structures that use memory-mappable data
- * structures but in normal memory, mostly for testing.
- */
-struct CompatBackend {
-};
+
 
 
 // Implementations for the data structures for CompatBackend
@@ -1093,7 +1122,7 @@ CompatVector<T, Alloc>& CompatVector<T, Alloc>::operator=(const CompatVector<T, 
 #ifdef debug_compat_vector
     std::cerr << "Copy-assigning a vector of size " << other.size() << " from " << (intptr_t)&other << " to " << (intptr_t)this << std::endl;
 #endif
-    if (this != &other) {
+    if ((void*)this != (void*)&other) {
         // Get rid of our memory
         clear();
         // Get some new memory
@@ -1117,7 +1146,7 @@ CompatVector<T, Alloc>& CompatVector<T, Alloc>::operator=(CompatVector&& other) 
 #ifdef debug_compat_vector
     std::cerr << "Move-assigning a vector of size " << other.size() << " from " << (intptr_t)&other << " to " << (intptr_t)this << std::endl;
 #endif
-    if (this != &other) {
+    if ((void*)this != (void*)&other) {
         // Get rid of our memory
         clear();
         
@@ -1285,6 +1314,8 @@ void CompatVector<T, Alloc>::clear() {
         // We have some memory allocated to us.
         // Get rid of it.
         alloc.deallocate(first, reserved_length);
+        // And remember it is gone
+        first = nullptr;
     }
     reserved_length = 0;
 }

@@ -17,6 +17,8 @@
 
 #include <mio/mmap.hpp>
 
+#define debug_manager
+
 
 namespace bdsg {
 
@@ -227,6 +229,10 @@ Manager::chainid_t Manager::get_chain(const void* address) {
 }
 
 void* Manager::get_address_in_chain(chainid_t chain, size_t position, size_t length) {
+    if (chain == NO_CHAIN) {
+        throw std::runtime_error("Attempted to find address in no chain.");
+    }
+    
     // Get read access to manager data structures
     std::shared_lock<std::shared_timed_mutex> lock(Manager::mutex);
     
@@ -279,10 +285,9 @@ std::pair<Manager::chainid_t, size_t> Manager::get_chain_and_position(const void
         auto found = Manager::address_space_index.upper_bound((intptr_t)address);
         
         if (found == Manager::address_space_index.begin() || Manager::address_space_index.empty()) {
-            // There won't be a link covering the address
-            throw std::runtime_error("Attempted to place address " +
-                std::to_string((intptr_t)address) + " that is before all " +
-                std::to_string(Manager::address_space_index.size()) + " chain links.");
+            // There won't be a link covering the address.
+            // Say this is an address not in any chain.
+            return std::make_pair(NO_CHAIN, (size_t)address); 
         }
         
         // Go left to the block that must include the address if any does.
@@ -296,7 +301,14 @@ std::pair<Manager::chainid_t, size_t> Manager::get_chain_and_position(const void
     }
     
     if (link_base + link_length < sought + length) {
-        throw std::runtime_error("Attempted to place address range that does not fit completely within any link");
+        // We aren't fully in a link.
+        if (link_base + link_length > sought) {
+            // The link we found covers the start but not the end of our range. This is a problem.
+            throw std::runtime_error("Attempted to place address range that crosses a link boundary");
+        } else {
+            // Otherwise we just aren't in a link at all.
+            return std::make_pair(NO_CHAIN, (size_t)address); 
+        }
     }
     
     // Translate first link's address to chain ID, and address to link local offset to chain position.
@@ -328,6 +340,11 @@ size_t Manager::get_position_in_same_chain(const void* here, const void* address
 }
 
 void Manager::dump(chainid_t chain) {
+    
+    if (chain == NO_CHAIN) {
+        // No need to dump a non-chain
+        return;
+    }
     
     auto& chain_space = chain_space_index.at(chain);
     
@@ -402,6 +419,11 @@ void* Manager::allocate_from(chainid_t chain, size_t bytes) {
     dump(chain);
 #endif
     
+    if (chain == NO_CHAIN) {
+        // Someone has made a mistake; we only allocate from chains.
+        throw std::runtime_error("Attempting to allocate from no chain!");
+    }
+    
     // How much space do we need with block overhead, if we need a new block?
     size_t block_bytes = bytes + sizeof(AllocatorBlock);
     
@@ -422,6 +444,7 @@ void* Manager::allocate_from(chainid_t chain, size_t bytes) {
             std::cerr << "Skip block of " << found->size << " bytes at " << (intptr_t) found << std::endl;
 #endif
             AllocatorBlock* old = found;
+            assert(found != found->next);
             found = found->next;
             if (found && found->prev != old) {
                 throw std::runtime_error("Free block " + std::to_string((intptr_t) found) +
@@ -573,9 +596,15 @@ void Manager::deallocate(void* address) {
 #ifdef debug_manager
     dump(chain);
 #endif
-   
+
     with_allocator_header(chain, [&](AllocatorHeader* header) {
         // With exclusive use of the free list
+        
+        bool is_free = (found->prev || found->next || (header->first_free == found && header->last_free == found));
+        if (is_free) {
+            // This is free already!
+            throw std::runtime_error("Detected double-free!");
+        }
        
         // Find the block in the free list after it, if any
         AllocatorBlock* right = header->first_free;
