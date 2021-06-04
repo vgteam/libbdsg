@@ -474,7 +474,7 @@ private:
     const static size_t MEMBERSHIP_NEXT_RECORD_SIZE;
     
     /// We will reassign char values from the path names to small integers
-    hash_map<char, uint64_t> char_assignment;
+    typename HashMapFor<Backend>::template type<char, uint64_t> char_assignment;
     /// The inverse mapping from integer to the char value
     string inverse_char_assignment;
     
@@ -527,8 +527,8 @@ private:
     const static size_t STEP_RECORD_SIZE;
     
     /// Map from path names to index in the paths vector.
-    // TODO: This is not serialized! It isn't safe to memory map!
-    string_hash_map<PackedVector<>, int64_t> path_id;
+    // TODO: This is not serialized usually!
+    typename StringHashMapFor<Backend>::template type<PackedVector<Backend>, int64_t> path_id;
     
     /// Vector of the embedded paths in the graph
     typename VectorFor<Backend>::template type<PackedPath> paths;
