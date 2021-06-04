@@ -530,6 +530,16 @@ void* Manager::allocate_from(chainid_t chain, size_t bytes) {
             std::cerr << "\tWas last free block; now that's " << (intptr_t)header->last_free.get() << std::endl;
 #endif
         }
+        
+        if (!header->first_allocated) {
+            // This is the first thing we are allocating from the chain, so we
+            // need to remember where it is so we can re-find it when someone
+            // remaps the chain later.
+#ifdef debug_manager
+            std::cerr << "Recording first allocation" << std::endl;
+#endif
+            header->first_allocated = found->get_user_data();
+        }
     });
     
 #ifdef debug_manager
@@ -622,18 +632,12 @@ void Manager::deallocate(void* address) {
 }
 
 void* Manager::find_first_allocation(chainid_t chain, size_t bytes) {
-
-    if (bytes > (BASE_SIZE - MAX_PREFIX_SIZE - sizeof(AllocatorBlock) - sizeof(AllocatorHeader))) {
-        // Too big to fit in the first block. Can't find it.
-        throw std::runtime_error("Could not find first allocation of " + std::to_string(bytes) +
-            " because it is too big for the first block");
-        // TODO: can we predict the behavior of the allocator to find bigger things?
-        // TODO: what if the thing or allocator changes?
-    }
-    
-    // The first allocated item is just in the first block, after the prefix and allocator stuff.
-    // Doesn't actually use the allocator header so doesn't need to synchronize.
-    return (void*)(((char*)find_allocator_header(chain)) + sizeof(AllocatorHeader) + sizeof(AllocatorBlock));
+    void* first_allocated;
+    with_allocator_header(chain, [&](AllocatorHeader* header) {
+        // Go look in the header for where we stashed this.
+        first_allocated = header->first_allocated;
+    });
+    return first_allocated;
 }
 
 Manager::AllocatorHeader* Manager::find_allocator_header(chainid_t chain) {
@@ -957,6 +961,7 @@ void Manager::set_up_allocator_at(chainid_t chain, size_t offset, size_t space) 
     // And point it at the block
     header->first_free = block;
     header->last_free = block;
+    // Let the constructor handle the other fields.
     
     // Construct the block
     new (block) AllocatorBlock();

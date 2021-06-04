@@ -669,15 +669,21 @@ void test_serializable_handle_graphs() {
     
     vector<pair<SerializableHandleGraph*, SerializableHandleGraph*>> implementations;
     
-    PackedGraph pg_out, pg_in;
+    /*PackedGraph pg_out, pg_in;
     implementations.emplace_back(&pg_out, &pg_in);
     
     HashGraph hg_out, hg_in;
     implementations.emplace_back(&hg_out, &hg_in);
     
     ODGI og_out, og_in;
-    implementations.emplace_back(&og_out, &og_in);
-        
+    implementations.emplace_back(&og_out, &og_in);*/
+    
+    // Memory-mapped PackedGraph needs to be held in mapped memory.
+    bdsg::yomo::UniqueMappedPointer<BasePackedGraph<MappedBackend>> mpg_in, mpg_out;
+    mpg_in.construct();
+    mpg_out.construct();
+    implementations.emplace_back(mpg_in.get(), mpg_out.get());
+    
     for (pair<SerializableHandleGraph*, SerializableHandleGraph*> implementation : implementations) {
         
         MutablePathMutableHandleGraph* build_graph = dynamic_cast<MutablePathMutableHandleGraph*>(implementation.first);
@@ -3885,7 +3891,7 @@ void test_packed_subgraph_overlay() {
 
 
 int main(void) {
-    test_mmap_backend();
+    /*test_mmap_backend();
     test_mapped_structs();
     test_packed_vector<PackedVector<>>();
     test_packed_vector<PackedVector<CompatBackend>>();
@@ -3898,10 +3904,10 @@ int main(void) {
     test_packed_deque();
     test_packed_set();
     test_deletable_handle_graphs();
-    test_mutable_path_handle_graphs();
+    test_mutable_path_handle_graphs();*/
     test_serializable_handle_graphs();
-    test_packed_graph();
+    /*test_packed_graph();
     test_path_position_overlays();
     test_vectorizable_overlays();
-    test_packed_subgraph_overlay();
+    test_packed_subgraph_overlay();*/
 }

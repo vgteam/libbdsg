@@ -137,7 +137,8 @@ public:
     
     // Be a good pointer
     operator bool () const;
-    T& operator*() const;
+    // We use this template instead of T& to let us have a Pointer<void>.
+    std::add_lvalue_reference<T> operator*() const;
     T* operator->() const;
     operator T* () const;
     Pointer<T>& operator=(T* addr);
@@ -331,12 +332,19 @@ protected:
 
     /**
      * This occurs at the start of a chain, after any prefix, and lets us find the free list.
+     *
+     * Since the location of the first allocation is dependent on the size of
+     * the first mapping in the chain, we also keep track of the address of the
+     * first allocation. It's not allowed to be deallocated or Bad Things will
+     * happen.
      */
     struct AllocatorHeader {
         /// Where is the first free block of memory?
         Pointer<AllocatorBlock> first_free;
         /// Where is the last free block of memory?
         Pointer<AllocatorBlock> last_free;
+        /// Where is the first object allocated?
+        Pointer<void> first_allocated;
     };
     
     
@@ -1652,7 +1660,7 @@ Pointer<T>::operator bool () const {
 }
 
 template<typename T>
-T& Pointer<T>::operator*() const {
+std::add_lvalue_reference<T> Pointer<T>::operator*() const {
     return *get();
 }
 
@@ -1800,6 +1808,7 @@ void UniqueMappedPointer<T>::construct(const std::string& prefix, Args&&... cons
     // Can't use the Allocator because we don't have a place in the chain to
     // store one.
     T* item = (T*) Manager::allocate_from(chain, sizeof(T));
+    
     // Run the constructor.
     new (item) T(std::forward<Args>(constructor_args)...);
 }
