@@ -135,6 +135,10 @@ namespace yomo {
  * stored at an address mapped by a yomo::Allocator (or otherwise in the same
  * yomo::Manager chain).
  *
+ * Can also work outside of any chain, which lets us make things of types that
+ * use this as local variables, at the cost of not being able to fail fast
+ * whenever we make a mistake and wander out of a chain.
+ *
  * We interpret constness as applying to the value of the pointer and not the
  * pointed-to object. If you want a pointer to a const object, you need a
  * Pointer<const T>.
@@ -242,6 +246,7 @@ public:
      * Get the address of the given byte from the start of the chain.
      * If a length is provided, throws if the given length of bytes from
      * position are not contiguous in memory.
+     * For NO_CHAIN just uses an offset from address 0 in memory.
      */
     static void* get_address_in_chain(chainid_t chain, size_t position, size_t length = 0);
     
@@ -255,27 +260,32 @@ public:
     
     /**
      * Find the address of the given position in the chain that the given address exists in.
+     * For NO_CHAIN just uses an offset from address 0 in memory.
      */
     static void* get_address_in_same_chain(const void* here, size_t position);
     
     /**
      * Find the position of the given address in the chain that here exists in.
+     * For NO_CHAIN just uses an offset from address 0 in memory.
      */
     static size_t get_position_in_same_chain(const void* here, const void* address);
     
     /**
      * Allocate the given number of bytes from the given chain.
+     * For NO_CHAIN just allocates with malloc().
      */
     static void* allocate_from(chainid_t chain, size_t bytes);
     
     /**
      * Allocate the given number of bytes from the chain containing the given
      * address.
+     * For NO_CHAIN just allocates with malloc().
      */
     static void* allocate_from_same_chain(void* here, size_t bytes);
     
     /**
      * Free the given allocated block in the chain to which it belongs.
+     * For NO_CHAIN just frees with free().
      */
     static void deallocate(void* address);
     
@@ -284,6 +294,8 @@ public:
      * that it was allocated with the given size.
      *
      * That first allocated thing must exist and not be deallocated.
+     *
+     * Must not be called for NO_CHAIN.
      */
     static void* find_first_allocation(chainid_t chain, size_t bytes);
     
@@ -611,12 +623,16 @@ public:
     CompatVector(const CompatVector& other);
     CompatVector(CompatVector&& other);
     
+    /// Allow copying within the same allocator
+    CompatVector& operator=(const CompatVector& other);
+    
     /**
-     * Allow copying across allocators (or within the same allocator).
+     * Allow copying across allocators.
      */
     template<typename OtherAlloc>
     CompatVector& operator=(const CompatVector<T, OtherAlloc>& other);
     
+    /// Alow moving within the same allocator.
     CompatVector& operator=(CompatVector&& other);
     
     size_t size() const;
@@ -1100,20 +1116,59 @@ CompatVector<T, Alloc>::CompatVector(const CompatVector& other) {
 }
 
 template<typename T, typename Alloc>
-CompatVector<T, Alloc>::CompatVector(CompatVector&& other) :
-    length(other.length), reserved_length(other.reserved_length), first(other.first) {
-    
+CompatVector<T, Alloc>::CompatVector(CompatVector&& other) {
+
 #ifdef debug_compat_vector
     std::cerr << "Move-constructing a vector of size " << other.size() << " from " << (intptr_t)&other << " to " << (intptr_t)this << std::endl;
 #endif
+
+    // We need to make sure that we and the other vector are in the same memory
+    // arena (i.e. same chain or lack of chain), if applicable.
     
-    // And say they have no items or memory.
-    other.length = 0;
-    other.reserved_length = 0;
-    other.first = nullptr;
+    if (alloc == other.alloc) {
+        // We can accept whatever they have allocated.
+        
+        // Take everything out of other
+        length = other.length;
+        reserved_length = other.reserved_length;
+        first = other.first;
+    
+        // And say they have no items or memory.
+        other.length = 0;
+        other.reserved_length = 0;
+        other.first = nullptr;
+    } else {
+        // Fall back on copy assignment
+        CompatVector& to_copy = other;
+        *this = to_copy;
+    }
 #ifdef debug_compat_vector
     std::cerr << "Result is of size " << size() << std::endl;
 #endif
+}
+
+template<typename T, typename Alloc>
+CompatVector<T, Alloc>& CompatVector<T, Alloc>::operator=(const CompatVector& other) {
+#ifdef debug_compat_vector
+    std::cerr << "Copy-assigning a vector of size " << other.size() << " from " << (intptr_t)&other << " to " << (intptr_t)this << std::endl;
+#endif
+    if ((void*)this != (void*)&other) {
+        // Get rid of our memory
+        clear();
+        // Get some new memory
+        reserve(other.size());
+        
+        for (size_t i = 0; i < other.size(); i++) {
+            // Copy construct each thing.
+            new (first + i) T(other[i]);
+        }
+        
+        length = other.size();
+    }
+#ifdef debug_compat_vector
+    std::cerr << "Result is of size " << size() << std::endl;
+#endif
+    return *this;
 }
 
 template<typename T, typename Alloc>
@@ -1147,18 +1202,26 @@ CompatVector<T, Alloc>& CompatVector<T, Alloc>::operator=(CompatVector&& other) 
     std::cerr << "Move-assigning a vector of size " << other.size() << " from " << (intptr_t)&other << " to " << (intptr_t)this << std::endl;
 #endif
     if ((void*)this != (void*)&other) {
-        // Get rid of our memory
-        clear();
+        if (alloc == other.alloc) {
+            // We can safely use their memory.
+            
+            // Get rid of our memory.
+            clear();
         
-        // Steal their memory
-        length = other.length;
-        reserved_length = other.reserved_length;
-        first = other.first;
-        
-        // And say they have no items or memory.
-        other.length = 0;
-        other.reserved_length = 0;
-        other.first = nullptr;
+            // Steal their memory
+            length = other.length;
+            reserved_length = other.reserved_length;
+            first = other.first;
+            
+            // And say they have no items or memory.
+            other.length = 0;
+            other.reserved_length = 0;
+            other.first = nullptr;
+        } else {
+            // Fall back on copy assignment
+            CompatVector& to_copy = other;
+            *this = to_copy;
+        }
     }
 #ifdef debug_compat_vector
     std::cerr << "Result is of size " << size() << std::endl;

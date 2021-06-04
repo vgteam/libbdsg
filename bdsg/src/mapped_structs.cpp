@@ -17,7 +17,7 @@
 
 #include <mio/mmap.hpp>
 
-#define debug_manager
+//#define debug_manager
 
 
 namespace bdsg {
@@ -230,7 +230,8 @@ Manager::chainid_t Manager::get_chain(const void* address) {
 
 void* Manager::get_address_in_chain(chainid_t chain, size_t position, size_t length) {
     if (chain == NO_CHAIN) {
-        throw std::runtime_error("Attempted to find address in no chain.");
+        // When using no chain we fall back to normal C addressing.
+        return (void*) position; 
     }
     
     // Get read access to manager data structures
@@ -420,8 +421,20 @@ void* Manager::allocate_from(chainid_t chain, size_t bytes) {
 #endif
     
     if (chain == NO_CHAIN) {
-        // Someone has made a mistake; we only allocate from chains.
-        throw std::runtime_error("Attempting to allocate from no chain!");
+#ifdef debug_manager
+        cerr << "Fall back to malloc" << endl;
+#endif
+        // Just allocate off the heap
+        void* allocated = malloc(bytes);
+        if (allocated == nullptr) {
+            throw std::bad_alloc();
+        }
+        
+#ifdef debug_manager
+        cerr << "Allocated from heap at " << (intptr_t) allocated << endl;
+#endif
+        
+        return allocated;
     }
     
     // How much space do we need with block overhead, if we need a new block?
@@ -584,6 +597,23 @@ void Manager::deallocate(void* address) {
     std::cerr << "Deallocate at " << address << std::endl;
 #endif
     
+    // Find the chain
+    chainid_t chain = get_chain(address);
+    
+    if (chain == NO_CHAIN) {
+        // This isn't really ours.
+        
+        #ifdef debug_manager
+            std::cerr << "Deallocate from heap" << std::endl;
+        #endif
+        
+        // Just free it off the heap.
+        free(address);
+        return;
+    }
+    
+    // Otherwise this really is in a chain.
+    
     // Find the block
     AllocatorBlock* found = AllocatorBlock::get_from_data(address);
     
@@ -591,8 +621,7 @@ void Manager::deallocate(void* address) {
     std::cerr << "Freeing block at " << (intptr_t)found << std::endl;
 #endif
     
-    // Find the chain
-    chainid_t chain = get_chain(address);
+    
 #ifdef debug_manager
     dump(chain);
 #endif
@@ -661,6 +690,9 @@ void Manager::deallocate(void* address) {
 }
 
 void* Manager::find_first_allocation(chainid_t chain, size_t bytes) {
+
+    assert(chain != NO_CHAIN);
+
     void* first_allocated;
     with_allocator_header(chain, [&](AllocatorHeader* header) {
         // Go look in the header for where we stashed this.
@@ -670,6 +702,9 @@ void* Manager::find_first_allocation(chainid_t chain, size_t bytes) {
 }
 
 Manager::AllocatorHeader* Manager::find_allocator_header(chainid_t chain) {
+    
+    assert(chain != NO_CHAIN);
+
     // We know the header is always in the first link.
 
     LinkRecord* first;
@@ -688,6 +723,8 @@ Manager::AllocatorHeader* Manager::find_allocator_header(chainid_t chain) {
 
 void Manager::with_allocator_header(chainid_t chain,
     const std::function<void(AllocatorHeader*)>& callback) {
+    
+    assert(chain != NO_CHAIN);
     
     LinkRecord* first;
     
@@ -809,6 +846,9 @@ std::pair<Manager::chainid_t, bool> Manager::open_chain(int fd, size_t start_siz
 }
 
 void Manager::extend_chain_to(chainid_t chain, size_t new_total_size) {
+    
+    assert(chain != NO_CHAIN);
+
     // Get write access to manager data structures
     std::unique_lock<std::shared_timed_mutex> lock(Manager::mutex);
     
@@ -881,6 +921,9 @@ Manager::LinkRecord& Manager::add_link(LinkRecord& head, size_t new_bytes) {
 }
 
 Manager::chainid_t Manager::copy_chain(chainid_t chain, int fd) {
+
+    assert(chain != NO_CHAIN);
+
     // First we need to grab the prefix length, so we know where to site the new allocator.
     size_t prefix_size;
     // And the total size of the data in the source chain
@@ -981,6 +1024,8 @@ Manager::chainid_t Manager::copy_chain(chainid_t chain, int fd) {
 
 void Manager::set_up_allocator_at(chainid_t chain, size_t offset, size_t space) {
 
+    assert(chain != NO_CHAIN);
+
     // Find where the header and block should go
     AllocatorHeader* header = (AllocatorHeader*) get_address_in_chain(chain, offset, sizeof(AllocatorHeader));
     AllocatorBlock* block = (AllocatorBlock*) get_address_in_chain(chain, offset + sizeof(AllocatorHeader), sizeof(AllocatorBlock));
@@ -1003,6 +1048,9 @@ void Manager::set_up_allocator_at(chainid_t chain, size_t offset, size_t space) 
 }
 
 void Manager::connect_allocator_at(chainid_t chain, size_t offset) {
+
+    assert(chain != NO_CHAIN);
+
     {
         // Get read access to manager data structures
         std::shared_lock<std::shared_timed_mutex> lock(Manager::mutex);

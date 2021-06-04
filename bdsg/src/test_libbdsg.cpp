@@ -611,7 +611,6 @@ void test_mapped_structs() {
     }
     
     {
-    
         using T = big_endian<int64_t>;
         using A = bdsg::yomo::Allocator<T>;
         using V1 = CompatVector<T, A>;
@@ -624,6 +623,21 @@ void test_mapped_structs() {
     
         // Now do a vigorous test comparing to a normal vector
         bother_vector(*numbers_holder_holder);
+    }
+    
+    {
+        using T = big_endian<int64_t>;
+        using A = bdsg::yomo::Allocator<T>;
+        using V1 = CompatVector<T, A>;
+        using A2 = bdsg::yomo::Allocator<V1>;
+        using V2 = CompatVector<V1, A2>;
+        
+        // Just make the root object on the stack and make sure chain-based
+        // allocators and pointers fall back to the heap properly.
+        V2 numbers;
+        
+        // Now do a vigorous test comparing to a normal vector
+        bother_vector(numbers);
     }
     
     {
@@ -3891,7 +3905,7 @@ void test_packed_subgraph_overlay() {
 
 
 int main(void) {
-    /*test_mmap_backend();
+    test_mmap_backend();
     test_mapped_structs();
     test_packed_vector<PackedVector<>>();
     test_packed_vector<PackedVector<CompatBackend>>();
@@ -3904,10 +3918,10 @@ int main(void) {
     test_packed_deque();
     test_packed_set();
     test_deletable_handle_graphs();
-    test_mutable_path_handle_graphs();*/
+    test_mutable_path_handle_graphs();
     test_serializable_handle_graphs();
-    /*test_packed_graph();
+    test_packed_graph();
     test_path_position_overlays();
     test_vectorizable_overlays();
-    test_packed_subgraph_overlay();*/
+    test_packed_subgraph_overlay();
 }
