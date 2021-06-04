@@ -441,6 +441,7 @@ public:
     using pointer = Pointer<T>;
     using const_pointer = Pointer<const T>;
     using size_type = size_t;
+    using difference_type = size_t;
     using value_type = T;
     
     
@@ -457,6 +458,27 @@ public:
     Allocator(const Allocator<U>& alloc);
     
     /**
+     * A template we can use to re-instantiate this allocator for a different
+     * type.
+     */
+    template<typename U>
+    struct rebind {
+        using other = Allocator<U>; 
+    };
+    
+    /**
+     * Return true if the two allocators can allocate and deallocate each
+     * others' memory, and false otherwise.
+     */
+    bool operator==(const Allocator& other) const;
+    
+    /**
+     * Return false if the two allocators can allocate and deallocate each
+     * others' memory, and true otherwise.
+     */
+    bool operator!=(const Allocator& other) const;
+    
+    /**
      * Allocate the given number of items. Ought to be near the hint.
      */
     T* allocate(size_type n, const T* hint = nullptr);
@@ -465,6 +487,19 @@ public:
      * Deallocate the given number of items. Must be the same number as were allocated.
      */
     void deallocate(T* p, size_type n);
+    
+    /**
+     * Work out the maximum size that can be allocated.
+     */
+    size_t max_size() const;
+    
+private:
+    
+    /**
+     * Determine the chain that an allocator will allocate from.
+     */
+    Manager::chainid_t get_chain() const;
+    
 
 };
 
@@ -1666,13 +1701,38 @@ Allocator<T>::Allocator(const Allocator<U>& alloc) {
 }
 
 template<typename T>
+bool Allocator<T>::operator==(const Allocator& other) const {
+    // TODO: Technically anybody can deallocate anybody else's memory since it
+    // always deallocates from the chain it is in, not the one we are in. But
+    // we say we're equal if we are using the same chain for allocations.
+    return get_chain() == other.get_chain();
+}
+
+template<typename T>
+bool Allocator<T>::operator!=(const Allocator& other) const {
+    return !(*this == other);
+}
+
+template<typename T>
 auto Allocator<T>::allocate(size_type n, const T* hint) -> T* {
-    return (T*) Manager::allocate_from_same_chain((void*) this, n * sizeof(T));
+    return (T*) Manager::allocate_from(get_chain(), n * sizeof(T));
 }
 
 template<typename T>
 void Allocator<T>::deallocate(T* p, size_type n) {
     Manager::deallocate((void*) p);
+}
+
+template<typename T>
+size_t Allocator<T>::max_size() const {
+    // TODO: this probably won't really fit in memory, but other than that
+    // there's no reason we can't allocate something this big.
+    return numeric_limits<size_t>::max();
+}
+
+template<typename T>
+Manager::chainid_t Allocator<T>::get_chain() const {
+    return Manager::get_chain((void*) this);
 }
 
 template<typename T>
