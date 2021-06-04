@@ -564,6 +564,7 @@ public:
     CompatVector& operator=(CompatVector&& other);
     
     size_t size() const;
+    size_t capacity() const;
     void resize(size_t new_size);
     void reserve(size_t new_reserved_length);
     void shrink_to_fit();
@@ -585,6 +586,8 @@ public:
     
     T& operator[](size_t index);
     const T& operator[](size_t index) const;
+    
+    using value_type = T;
     
     // We have iterators but they aren't safe to serialize.
     using iterator = T*;
@@ -638,11 +641,21 @@ public:
     CompatIntVector(const CompatIntVector& other) = default;
     CompatIntVector(CompatIntVector&& other);
     
-    /**
-     * Allow copying across allocators (or within the same allocator).
-     */
+    /// Allow copy construction across allocators
+    template<typename OtherAlloc>
+    CompatIntVector(const CompatIntVector<OtherAlloc>& other);
+    
+    /// Allow copy assignment across allocators
     template<typename OtherAlloc>
     CompatIntVector& operator=(const CompatIntVector<OtherAlloc>& other);
+    
+    /// Allow copy construction from anything with the right methods
+    template<typename OtherType>
+    CompatIntVector(const OtherType& other);
+    
+    /// Allow copy assignment from anything with the right methods
+    template<typename OtherType>
+    CompatIntVector& operator=(const OtherType& other);
     
     CompatIntVector& operator=(CompatIntVector&& other);
     
@@ -655,6 +668,11 @@ public:
      * Resize the vector to hold the given number of elements.
      */
     void resize(size_t new_size);
+    
+    /**
+     * Return the number of elements the vector can hold without reallocating.
+     */
+    size_t capacity() const;
     
     /**
      * Pre-allocate space to hold the given number of elements.
@@ -1082,6 +1100,11 @@ size_t CompatVector<T, Alloc>::size() const {
 }
 
 template<typename T, typename Alloc>
+size_t CompatVector<T, Alloc>::capacity() const {
+    return reserved_length;
+}
+
+template<typename T, typename Alloc>
 void CompatVector<T, Alloc>::reserve(size_t new_reserved_length) {
     // Find where the data is. Note that this may be null.
     T* old_first = first;
@@ -1310,12 +1333,41 @@ CompatIntVector<Alloc>::CompatIntVector(CompatIntVector&& other) :
 
 template<typename Alloc>
 template<typename OtherAlloc>
+CompatIntVector<Alloc>::CompatIntVector(const CompatIntVector<OtherAlloc>& other) : length(other.length), bit_width(other.bit_width), data(other.data) {
+    // Nothing to do!
+}
+
+
+template<typename Alloc>
+template<typename OtherAlloc>
 CompatIntVector<Alloc>& CompatIntVector<Alloc>::operator=(const CompatIntVector<OtherAlloc>& other) {
     // Copy their contents
     length = other.length;
     bit_width = other.bit_width;
     data = other.data;
     
+    return *this;
+}
+
+template<typename Alloc>
+template<typename OtherType>
+CompatIntVector<Alloc>::CompatIntVector(const OtherType& other) {
+    // Fall back on copy assignment
+    *this = other;
+}
+
+
+template<typename Alloc>
+template<typename OtherType>
+CompatIntVector<Alloc>& CompatIntVector<Alloc>::operator=(const OtherType& other) {
+    clear();
+    width(other.width());
+    resize(other.size());
+    for (size_t i = 0; i < size(); i++) {
+        // Copy all the entries, repacking each.
+        // TODO: accelerate somehow if we can get direct access to bit-packed data.
+        (*this)[i] = other[i];
+    }
     return *this;
 }
 
@@ -1349,9 +1401,20 @@ void CompatIntVector<Alloc>::resize(size_t new_size) {
 }
 
 template<typename Alloc>
+size_t CompatIntVector<Alloc>::capacity() const {
+    if (width() == 0) {
+        // This is sort of nonsense.
+        return 0;
+    } else {
+        // Work out how many items could be packed into the bits we have reserved.
+        return data.capacity() * std::numeric_limits<uint64_t>::digits / width();
+    }
+}
+
+template<typename Alloc>
 void CompatIntVector<Alloc>::reserve(size_t new_reserved_length) {
     // Work how many slots we need in the backing vector for this, rounding up.
-    size_t item_slots = (new_reserved_length * width() + (std::numeric_limits<size_t>::digits - 1)) /
+    size_t item_slots = (new_reserved_length * width() + (std::numeric_limits<uint64_t>::digits - 1)) /
         std::numeric_limits<uint64_t>::digits;
     // Reserve space in the backing vector
     data.reserve(item_slots);
@@ -1374,6 +1437,8 @@ template<typename Alloc>
 void CompatIntVector<Alloc>::width(size_t new_width) {
     // Save the new bit width, causing reinterpretation.
     bit_width = new_width;
+    // TODO: make sure length won't take us out of bounds now?
+    // TODO: prevent a width of 0?
 }
 
 template<typename Alloc>

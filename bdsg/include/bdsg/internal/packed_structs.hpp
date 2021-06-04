@@ -55,6 +55,19 @@ public:
     PackedVector(const PackedVector& other) = default;
     /// Copy assignment operator
     PackedVector& operator=(const PackedVector& other) = default;
+    
+    // To allow copy across backends, we need to be friends with other
+    // instantiations of us.
+    template<typename OtherBackend> friend class PackedVector;
+    
+    /// Allow copy constructing across backends
+    template<typename OtherBackend>
+    PackedVector(const PackedVector<OtherBackend>& other);
+    
+    /// Allow copy assignment across backends
+    template<typename OtherBackend>
+    PackedVector& operator=(const PackedVector<OtherBackend>& other);
+    
         
     /// Destructor
     ~PackedVector();
@@ -644,7 +657,23 @@ PackedVector<Backend>::PackedVector(istream& in) {
 
 template<typename Backend>
 PackedVector<Backend>::~PackedVector() {
+    // Nothing to do!    
+}
+
+template<typename Backend>
+template<typename OtherBackend>
+PackedVector<Backend>::PackedVector(const PackedVector<OtherBackend>& other) : vec(other.vec), filled(other.filled) {
+    // Nothing to do because members' constructors did all the work.
+}
+
+template<typename Backend>
+template<typename OtherBackend>
+auto PackedVector<Backend>::operator=(const PackedVector<OtherBackend>& other) -> PackedVector& {
+    // Assign all the fields with their cross-type assignment operators.
+    filled = other.filled;
+    vec = other.vec;
     
+    return *this;
 }
 
 template<typename Backend>
