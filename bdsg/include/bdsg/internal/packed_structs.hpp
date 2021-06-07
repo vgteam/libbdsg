@@ -52,9 +52,14 @@ public:
     PackedVector& operator=(PackedVector&& other) = default;
     
     /// Copy constructor
-    PackedVector(const PackedVector& other) = default;
+    PackedVector(const PackedVector& other) : vec(other.vec), filled(other.filled) {
+    };
     /// Copy assignment operator
-    PackedVector& operator=(const PackedVector& other) = default;
+    PackedVector& operator=(const PackedVector& other) {
+        vec = other.vec;
+        filled = other.filled;
+        return *this;
+    };
     
     // To allow copy across backends, we need to be friends with other
     // instantiations of us.

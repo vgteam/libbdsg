@@ -704,7 +704,9 @@ public:
     
     CompatIntVector() = default;
     
-    CompatIntVector(const CompatIntVector& other) = default;
+    /// Allow copy construction
+    CompatIntVector(const CompatIntVector& other);
+    /// Allow move construction
     CompatIntVector(CompatIntVector&& other);
     
     // To allow copy across backends, we need to be friends with other
@@ -727,6 +729,10 @@ public:
     template<typename OtherType>
     CompatIntVector& operator=(const OtherType& other);
     
+    /// Allow copy assignment
+    CompatIntVector& operator=(const CompatIntVector& other);
+    
+    /// Allow move assignment
     CompatIntVector& operator=(CompatIntVector&& other);
     
     /**
@@ -1447,6 +1453,13 @@ const T& CompatVector<T, Alloc>::operator[](size_t index) const {
 }
 
 
+
+template<typename Alloc>
+CompatIntVector<Alloc>::CompatIntVector(const CompatIntVector& other) :
+    length(other.length), bit_width(other.bit_width), data(other.data) {
+    // Nothing to do!
+}
+
 template<typename Alloc>
 CompatIntVector<Alloc>::CompatIntVector(CompatIntVector&& other) :
     length(other.length), bit_width(other.bit_width), data(std::move(other.data)) {
@@ -1492,6 +1505,16 @@ CompatIntVector<Alloc>& CompatIntVector<Alloc>::operator=(const OtherType& other
         // TODO: accelerate somehow if we can get direct access to bit-packed data.
         (*this)[i] = other[i];
     }
+    return *this;
+}
+
+template<typename Alloc>
+CompatIntVector<Alloc>& CompatIntVector<Alloc>::operator=(const CompatIntVector& other) {
+    // Copy their contents
+    length = other.length;
+    bit_width = other.bit_width;
+    data = other.data;
+    
     return *this;
 }
 

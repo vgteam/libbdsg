@@ -692,11 +692,8 @@ void test_serializable_handle_graphs() {
     ODGI og_out, og_in;
     implementations.emplace_back(&og_out, &og_in);
     
-    // Test memory-mapped PackedGraph held in actual mapped memory 
-    bdsg::yomo::UniqueMappedPointer<MappedPackedGraph> mpg_in, mpg_out;
-    mpg_in.construct();
-    mpg_out.construct();
-    implementations.emplace_back(mpg_in.get(), mpg_out.get());
+    MappedPackedGraph mpg_in, mpg_out;
+    implementations.emplace_back(&mpg_in, &mpg_out);
     
     for (pair<SerializableHandleGraph*, SerializableHandleGraph*> implementation : implementations) {
         
@@ -758,9 +755,8 @@ void test_deletable_handle_graphs() {
         ODGI og;
         implementations.push_back(&og);
         
-        bdsg::yomo::UniqueMappedPointer<MappedPackedGraph> mpg;
-        mpg.construct();
-        implementations.push_back(mpg.get());
+        MappedPackedGraph mpg;
+        implementations.push_back(&mpg);
 
         // And test them
 
@@ -1844,9 +1840,8 @@ void test_deletable_handle_graphs() {
         ODGI og;
         implementations.push_back(&og);
         
-        bdsg::yomo::UniqueMappedPointer<MappedPackedGraph> mpg;
-        mpg.construct();
-        implementations.push_back(mpg.get());
+        MappedPackedGraph mpg;
+        implementations.push_back(&mpg);
 
         for (DeletableHandleGraph* implementation : implementations) {
 
@@ -2044,9 +2039,8 @@ void test_deletable_handle_graphs() {
         PackedGraph pg;
         implementations.push_back(&pg);
         
-        bdsg::yomo::UniqueMappedPointer<MappedPackedGraph> mpg;
-        mpg.construct();
-        implementations.push_back(mpg.get());
+        MappedPackedGraph mpg;
+        implementations.push_back(&mpg);
 
         //ODGI og;
         //implementations.push_back(&og);
@@ -2092,10 +2086,8 @@ void test_deletable_handle_graphs() {
         HashGraph hg, hg2;
         implementations.push_back(make_pair(&hg, &hg2));
         
-        bdsg::yomo::UniqueMappedPointer<MappedPackedGraph> mpg, mpg2;
-        mpg.construct();
-        mpg2.construct();
-        implementations.push_back(make_pair(mpg.get(), mpg2.get()));
+        MappedPackedGraph mpg, mpg2;
+        implementations.push_back(make_pair(&mpg, &mpg2));
         
         // And test them
         for (int imp = 0; imp < implementations.size(); ++imp) {
@@ -2180,9 +2172,8 @@ void test_mutable_path_handle_graphs() {
     ODGI og;
     implementations.push_back(&og);
     
-    bdsg::yomo::UniqueMappedPointer<MappedPackedGraph> mpg;
-    mpg.construct();
-    implementations.push_back(mpg.get());
+    MappedPackedGraph mpg;
+    implementations.push_back(&mpg);
     
     for (MutablePathDeletableHandleGraph* implementation : implementations) {
 
@@ -2545,10 +2536,8 @@ void test_mutable_path_handle_graphs() {
         PackedGraph pg, pg2;
         implementations.push_back(make_pair(&pg, &pg2));
         
-        bdsg::yomo::UniqueMappedPointer<MappedPackedGraph> mpg, mpg2;
-        mpg.construct();
-        mpg2.construct();
-        implementations.push_back(make_pair(mpg.get(), mpg2.get()));
+        MappedPackedGraph mpg, mpg2;
+        implementations.push_back(make_pair(&mpg, &mpg2));
         
         // And test them
         for (int imp = 0; imp < implementations.size(); ++imp) {
@@ -3455,9 +3444,8 @@ void test_path_position_overlays() {
     ODGI og;
     implementations.push_back(&og);
     
-    bdsg::yomo::UniqueMappedPointer<MappedPackedGraph> mpg;
-    mpg.construct();
-    implementations.push_back(mpg.get());
+    MappedPackedGraph mpg;
+    implementations.push_back(&mpg);
     
     for (MutablePathDeletableHandleGraph* implementation : implementations) {
         
@@ -3614,9 +3602,8 @@ void test_vectorizable_overlays() {
     ODGI og;
     implementations.push_back(&og);
     
-    bdsg::yomo::UniqueMappedPointer<MappedPackedGraph> mpg;
-    mpg.construct();
-    implementations.push_back(mpg.get());
+    MappedPackedGraph mpg;
+    implementations.push_back(&mpg);
     
     for (MutablePathDeletableHandleGraph* implementation : implementations) {
         
@@ -3690,9 +3677,8 @@ void test_packed_subgraph_overlay() {
     ODGI og;
     implementations.push_back(&og);
     
-    bdsg::yomo::UniqueMappedPointer<MappedPackedGraph> mpg;
-    mpg.construct();
-    implementations.push_back(mpg.get());
+    MappedPackedGraph mpg;
+    implementations.push_back(&mpg);
     
     for (MutablePathDeletableHandleGraph* implementation : implementations) {
 
