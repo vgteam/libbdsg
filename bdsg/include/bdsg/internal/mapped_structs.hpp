@@ -111,6 +111,17 @@ struct IntVectorFor<STLBackend> {
  * allocation, so that objects whose *this is in a mapped memory segment can
  * safely allocate more memory backed by the file the object exists in.
  * Allocating more memory will not unmap memory already allocated.
+ *
+ * Note that you need to follow some rules in the objects you use:
+ *
+ * 1. Always template on an allocator and pointer type, or use yomo::Allocator
+ * and yomo::Pointer.
+ *
+ * 2. Don't use yomo::Allocator off of the stack, only from object storage.
+ *
+ * 3. Don't have a vtable. Don't inherit from anything with virtual methods, or
+ * have virtual methods yourself. Note that this means you can't actually
+ * inherit from libhandlegraph::HandleGraph!
  */
 namespace yomo {
 
