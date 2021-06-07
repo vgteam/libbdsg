@@ -206,6 +206,14 @@ public:
     static chainid_t create_chain(int fd, const std::string& prefix = "");
     
     /**
+     * Create a chain by calling the given function until it returns an empty
+     * string, and concatenating all the results.
+     *
+     * The result must begin with the given prefix, if specified.
+     */
+    static chainid_t create_chain(const std::function<std::string(void)>& iterator, const std::string& prefix = "");
+    
+    /**
      * Return a chain which has the same stored data as the given chain, but
      * for which modification of the chain will not modify any backing file on
      * disk. The chain returned may be the same chain as the given chain.
@@ -294,6 +302,12 @@ public:
      * Must not be called for NO_CHAIN.
      */
     static void* find_first_allocation(chainid_t chain, size_t bytes);
+    
+    /**
+     * Scan all memory regions in the given chain. Calls the iteratee with each
+     * region's start address and length, in order.
+     */
+    static void scan_chain(chainid_t chain, const std::function<void(const void*, size_t)>& iteratee);
     
     /**
      * Dump information about free and allocated memory.
@@ -413,6 +427,13 @@ protected:
      * Extend the given chain to the given new total size.
      */
     static void extend_chain_to(chainid_t chain, size_t new_total_size);
+    
+    /**
+     * Get the address of the given byte from the start of the chain, and the
+     * number of contiguous bytes after it. The number of bytes is always 1 or
+     * more if the address is not past the end of the chain.
+     */
+    static std::pair<void*, size_t> get_address_and_length_in_chain(chainid_t chain, size_t position);
     
     /**
      * Add a link into a chain. The caller must hold a write lock on the manager data structures.
@@ -578,6 +599,18 @@ public:
     void load(int fd, const std::string& prefix = "");
     
     /**
+     * Load into memory and point to the already-constructed T saved to the
+     * given stream by a previous save() call.
+     */
+    void load(std::istream& in, const std::string& prefix = "");
+    
+    /**
+     * Load into memory and point to the already-constructed T emitted in
+     * blocks by the given function.
+     */
+    void load(const std::function<std::string(void)>& iterator, const std::string& prefix = "");
+    
+    /**
      * Break any write-back association with a backing file and move the object
      * to non-file-backed memory.
      *
@@ -591,6 +624,17 @@ public:
      * called.
      */
     void save(int fd);
+    
+    /**
+     * Save the stored item to the given stream. The pointer must not be null.
+     */
+    void save(std::ostream& out) const;
+    
+    /**
+     * Save the stored item as blocks of data shown to the given function. The
+     * pointer must not be null.
+     */
+    void save(const std::function<void(const void*, size_t)>& iteratee) const;
     
     /**
      * Free any associated memory and become empty.
@@ -1926,6 +1970,39 @@ void UniqueMappedPointer<T>::load(int fd, const std::string& prefix) {
 }
 
 template<typename T>
+void UniqueMappedPointer<T>::load(std::istream& in, const std::string& prefix) {
+    // Drop any existing chain.
+    reset();
+    
+    const size_t MAX_CHUNK_SIZE = 4096;
+    
+    // Fill up this buffer with chunks of a certian size
+    std::string buffer;
+    
+    chain = Manager::create_chain([&]() {
+        buffer.resize(MAX_CHUNK_SIZE);
+        // Grab a chunk
+        in.read(&buffer.at(0), MAX_CHUNK_SIZE);
+        if (!in) {
+            // Didn't read all the characters, so shrink down (maybe to 0)
+            buffer.resize(in.gcount());
+        }
+        // Copy the buffer over to the caller.
+        // TODO: can we save a copy here?
+        return buffer;
+    }, prefix);
+}
+
+template<typename T>
+void UniqueMappedPointer<T>::load(const std::function<std::string(void)>& iterator, const std::string& prefix) {
+    // Drop any existing chain.
+    reset();
+    
+    // Just pass through to the Manager
+    chain = Manager::create_chain(iterator, prefix);
+}
+
+template<typename T>
 void UniqueMappedPointer<T>::dissociate() {
     if (chain == Manager::NO_CHAIN) {
         throw runtime_error("Cannot dissociate a null object");
@@ -1949,6 +2026,21 @@ void UniqueMappedPointer<T>::save(int fd) {
     Manager::destroy_chain(chain);
     // Adopt the new chain
     chain = new_chain;
+}
+
+template<typename T>
+void UniqueMappedPointer<T>::save(std::ostream& out) const {
+    Manager::scan_chain(chain, [&](const void* start, size_t length) {
+        // Go through all the data in the chain
+        // And save it to the stream.
+        out.write((const char*) start, length); 
+    });
+}
+
+template<typename T>
+void UniqueMappedPointer<T>::save(const std::function<void(const void*, size_t)>& iteratee) const {
+    // Just pass through to the Manager.
+    Manager::scan_chain(chain, iteratee);
 }
 
 template<typename T>

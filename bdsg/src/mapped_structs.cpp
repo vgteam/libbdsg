@@ -142,6 +142,69 @@ Manager::chainid_t Manager::create_chain(int fd, const std::string& prefix) {
     return chain;
 }
 
+Manager::chainid_t Manager::create_chain(const std::function<std::string(void)>& iterator, const std::string& prefix) {
+    if (prefix.size() > MAX_PREFIX_SIZE) {
+        // Prefix is too long and allocator might not fit.
+        throw std::runtime_error("Prefix of " + std::to_string(prefix.size()) +
+            " is longer than limit of " + std::to_string(MAX_PREFIX_SIZE));
+    }
+    
+    // TODO: Could we elide a copy here like if we were a Protobuf stream?
+    
+    // Make a no-file chain with definitely enough room for the prefix in the
+    // first block.
+    chainid_t chain = open_chain(0, BASE_SIZE).first;
+    
+    // Start a cursor at the start of the chain
+    size_t chain_offset = 0;
+    
+    // Go and get some data
+    std::string block = iterator();
+    
+    while (!block.empty()) {
+        // Make sure the chain is big enough for the whole block
+        extend_chain_to(chain, chain_offset + block.size());
+        
+        // Start a cursor in the block
+        size_t block_offset = 0;
+        
+        while (block_offset < block.size()) {
+            // Find how big the next contiguous block of chain memory is.
+            std::pair<void*, size_t> range = get_address_and_length_in_chain(chain, chain_offset);
+            
+            // Work out how much of the block will fit
+            size_t bytes_to_copy = std::min(range.second, block.size());
+            
+            // Copy it over
+            memcpy(range.first, (void*)(&block.at(block_offset)), bytes_to_copy);
+            
+            // Update the cursors
+            block_offset += bytes_to_copy;
+            chain_offset += bytes_to_copy;
+        }
+        
+        // We copied the whole block so go get another block.
+        block = iterator();
+    }
+    
+    if (chain_offset < prefix.size()) {
+        // We should have copied the whole prefix
+        throw std::runtime_error("Input ended before expected prefix could be read");
+    }
+    
+    // Go find where the prefix should be
+    char* start = (char*)get_address_in_chain(chain, 0, prefix.size());
+    if (!std::equal(prefix.begin(), prefix.end(), start)) {
+        // And make sure it is what we expected.
+        throw std::runtime_error("Expected prefix not found in input. Check file type.");
+    }
+    
+    // Assume the allocator data structures are ready.
+    connect_allocator_at(chain, prefix.size());
+    
+    return chain;
+}
+
 Manager::chainid_t Manager::get_dissociated_chain(chainid_t chain) {
     // Copy to a chain associated with no FD
     return copy_chain(chain, 0);
@@ -701,6 +764,21 @@ void* Manager::find_first_allocation(chainid_t chain, size_t bytes) {
     return first_allocated;
 }
 
+void Manager::scan_chain(chainid_t chain, const std::function<void(const void*, size_t)>& iteratee) {
+    // Start a cursor in the chain
+    size_t chain_offset = 0;
+    
+    std::pair<void*, size_t> block = get_address_and_length_in_chain(chain, chain_offset);
+    
+    while (block.second > 0) {
+        // Show the block to the iteratee
+        iteratee(block.first, block.second);
+        // And advance
+        chain_offset += block.second;
+        block = get_address_and_length_in_chain(chain, chain_offset);
+    }
+}
+
 Manager::AllocatorHeader* Manager::find_allocator_header(chainid_t chain) {
     
     assert(chain != NO_CHAIN);
@@ -862,6 +940,46 @@ void Manager::extend_chain_to(chainid_t chain, size_t new_total_size) {
     size_t new_bytes = new_total_size - head.total_size;
     
     add_link(head, new_bytes);
+}
+
+std::pair<void*, size_t> Manager::get_address_and_length_in_chain(chainid_t chain, size_t position) {
+    if (chain == NO_CHAIN) {
+        // This doesn't make any sense for no chain
+        throw std::runtime_error("Cannot enumerate blocks in non-chain");
+    }
+    
+    // TODO: Deduplicate code with get_address_in_chain? This version always
+    // needs to have the length.
+    
+    // Get read access to manager data structures
+    std::shared_lock<std::shared_timed_mutex> lock(Manager::mutex);
+    
+    // Find the index over this chain's space
+    auto& chain_map = Manager::chain_space_index.at(chain);
+    
+    // Find the first chain link starting after our position 
+    auto found = chain_map.upper_bound(position);
+    
+    if (found == chain_map.begin() || chain_map.empty()) {
+        // There won't be a link covering the position
+        // We really should never end up with no link over position 0, though,
+        // so this should mostly mean empty.
+        throw std::runtime_error("Attempted to find address for position that has no link.");
+    }
+    
+    // Look left and find the link we are looking for
+    --found;
+    
+    // Go get the LinkRecord for the link
+    LinkRecord& link = Manager::address_space_index.at(found->second);
+    
+    if (position - link.offset > link.length) {
+        // Actually we went off the end. Say there's nothing here.
+        return std::make_pair(nullptr, 0);
+    }
+    
+    // Convert to address by offsetting from address of containing block, and include length
+    return std::make_pair((void*)(found->second + (position - found->first)), link.length - (position - link.offset));
 }
 
 Manager::LinkRecord& Manager::add_link(LinkRecord& head, size_t new_bytes) {
