@@ -428,6 +428,6 @@ namespace bdsg {
     }
     
     MutablePathDeletableHandleGraph* MutablePositionOverlay::get_graph() {
-        return reinterpret_cast<MutablePathDeletableHandleGraph*>(graph);
+        return static_cast<MutablePathDeletableHandleGraph*>(graph);
     }
 }
