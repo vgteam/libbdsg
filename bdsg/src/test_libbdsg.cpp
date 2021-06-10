@@ -3933,6 +3933,66 @@ void test_packed_subgraph_overlay() {
     cerr << "PackedSubgraphOverlay tests successful!" << endl;
 }
 
+void test_mapped_packed_graph() {
+    auto check_graph = [](const MappedPackedGraph& mpg) {
+        // Dump it into this map
+        unordered_map<nid_t, std::string> graph_contents;
+        mpg.for_each_handle([&](const handle_t& h) {
+            graph_contents[mpg.get_id(h)] = mpg.get_sequence(h);
+        });
+        
+        // Make sure it has the right things
+        assert(graph_contents.at(1) == "GATTACA");
+        assert(graph_contents.at(2) == "CATTAG");
+    };
+
+    char filename[] = "tmpXXXXXX";
+    int fd = mkstemp(filename);
+    assert(fd != -1);
+    {
+        // Make a graph
+        MappedPackedGraph mpg;
+        // Give it a node
+        mpg.create_handle("GATTACA", 1);
+        // Save it to an FD
+        mpg.serialize(fd);
+        // Make sure write-back works
+        mpg.create_handle("CATTAG", 2);
+        
+        // Make sure it looks right now
+        check_graph(mpg);
+    }
+    {
+        // Make a graph again
+        MappedPackedGraph mpg;
+        // Load it from the fd
+        mpg.deserialize(fd);
+        // Make sure it looks right
+        check_graph(mpg);
+    }
+    assert(close(fd) == 0);
+    {
+        // Make a graph again
+        MappedPackedGraph mpg;
+        // Load it from the file
+        mpg.deserialize(filename);
+        // Make sure it looks right
+        check_graph(mpg);
+    }
+    {
+        // Make a graph again
+        MappedPackedGraph mpg;
+        // Load it from a stream
+        std::ifstream stream(filename);
+        mpg.deserialize(stream);
+        // Make sure it looks right
+        check_graph(mpg);
+    }
+    //unlink(filename);
+    
+    cerr << "MappedPackedGraph tests successful!" << endl;
+}
+
 
 int main(void) {
     test_mmap_backend();
@@ -3956,4 +4016,5 @@ int main(void) {
     test_path_position_overlays();
     test_vectorizable_overlays();
     test_packed_subgraph_overlay();
+    test_mapped_packed_graph();
 }

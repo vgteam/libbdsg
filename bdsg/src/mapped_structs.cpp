@@ -161,8 +161,15 @@ Manager::chainid_t Manager::create_chain(const std::function<std::string(void)>&
     // Go and get some data
     std::string block = iterator();
     
+#ifdef debug_manager
+    std::cerr << "Received block of size " << block.size() << endl;
+#endif
+    
     while (!block.empty()) {
         // Make sure the chain is big enough for the whole block
+#ifdef debug_manager
+        std::cerr << "Extend chain to " << chain_offset + block.size() << endl;
+#endif
         extend_chain_to(chain, chain_offset + block.size());
         
         // Start a cursor in the block
@@ -174,6 +181,10 @@ Manager::chainid_t Manager::create_chain(const std::function<std::string(void)>&
             
             // Work out how much of the block will fit
             size_t bytes_to_copy = std::min(range.second, block.size());
+            
+#ifdef debug_manager
+            std::cerr << "Copy contiguous range of " << bytes_to_copy << " bytes into " << range.first << endl;
+#endif
             
             // Copy it over
             memcpy(range.first, (void*)(&block.at(block_offset)), bytes_to_copy);
@@ -932,7 +943,7 @@ void Manager::extend_chain_to(chainid_t chain, size_t new_total_size) {
     
     LinkRecord& head = Manager::address_space_index.at((intptr_t)chain);
     
-    if (head.total_size <= new_total_size) {
+    if (head.total_size >= new_total_size) {
         // Already done.
         return;
     }
