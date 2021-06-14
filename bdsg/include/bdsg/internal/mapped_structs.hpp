@@ -597,7 +597,7 @@ protected:
 public:
 
     /**
-     * Make a new default-constructed T in memory, preceeded by the empty
+     * Make a new default-constructed T in memory, with an empty preceeding
      * prefix.
      */
     void construct();
