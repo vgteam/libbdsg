@@ -8,11 +8,12 @@
 #include "bdsg/internal/wang_hash.hpp"
 #include "bdsg/internal/packed_structs.hpp"
 
-// Uncomment these to use dense hash tables:
+// Uncomment these to use dense hash tables in memory:
 //#define USE_DENSE_HASH
 //#include <sparsehash/dense_hash_map>
 //#include <sparsehash/dense_hash_set>
-// Or these to use sparse hash tables:
+
+// We always need the sparse hash tables around.
 #include <sparsepp/spp.h>
 
 // http://stackoverflow.com/questions/4870437/pairint-int-pair-as-key-of-unordered-map-issue#comment5439557_4870467
@@ -84,9 +85,9 @@ struct hash<std::tuple<TT...>>
 
 // make a hash function for PackedVectors
 namespace std {
-    template<>
-    struct hash<bdsg::PackedVector<>> {
-        size_t operator()(const bdsg::PackedVector<>& vec) {
+    template<typename Backend>
+    struct hash<bdsg::PackedVector<Backend>> {
+        size_t operator()(const bdsg::PackedVector<Backend>& vec) {
             size_t hash_val = 0;
             for (size_t i = 0; i < vec.size(); ++i) {
                 hash_combine(hash_val, vec.get(i));
@@ -151,6 +152,35 @@ public:
 #endif
 };
 
+/**
+ * Template to choose the appropriate hash map for a backend. Exposes the
+ * resulting template at ::type.
+ */
+template<typename Backend>
+struct HashMapFor {
+};
+
+// Use the hash map selected above for STLBackend
+template<>
+struct HashMapFor<STLBackend> {
+    template<typename K, typename V>
+    using type = hash_map<K, V>;
+};
+
+// Always use a sparse hash map with SPP's default allocator for CompatBackend
+template<>
+struct HashMapFor<CompatBackend> {
+    template<typename K, typename V>
+    using type = spp::sparse_hash_map<K, V, spp::spp_hash<K>, std::equal_to<K>, SPP_DEFAULT_ALLOCATOR<std::pair<const K, V>>>;
+};
+
+// When memory mapping, use the SPP hash tables with the YOMO allocator, so they live in the memory map.
+template<>
+struct HashMapFor<MappedBackend> {
+    template<typename K, typename V>
+    using type = spp::sparse_hash_map<K, V, spp::spp_hash<K>, std::equal_to<K>, bdsg::yomo::Allocator<std::pair<const K, V>>>;
+};
+
 template<typename K, typename V>
 #ifdef USE_DENSE_HASH
 class string_hash_map : public google::dense_hash_map<K, V>
@@ -164,6 +194,24 @@ public:
         this->set_empty_key(" ");
     }
 #endif
+};
+
+/**
+ * Template to choose the appropriate string-keyed hash map for a backend.
+ * Exposes the resulting template at ::type.
+ */
+template<typename Backend>
+struct StringHashMapFor {
+    // Usually use the normal hash map.
+    template<typename K, typename V>
+    using type = typename HashMapFor<Backend>::template type<K, V>;
+};
+
+// Use the string hash map selected above for STLBackend
+template<>
+struct StringHashMapFor<STLBackend> {
+    template<typename K, typename V>
+    using type = string_hash_map<K, V>;
 };
 
 template<typename K, typename V>
@@ -180,6 +228,26 @@ public:
     }
 #endif
 };
+
+/**
+ * Template to choose the appropriate pair-keyed hash map for a backend.
+ * Exposes the resulting template at ::type.
+ */
+template<typename Backend>
+struct PairHashMapFor {
+    // Usually use the normal hash map.
+    template<typename K, typename V>
+    using type = typename HashMapFor<Backend>::template type<K, V>;
+};
+
+// Use the pair hash map selected above for STLBackend
+template<>
+struct PairHashMapFor<STLBackend> {
+    template<typename K, typename V>
+    using type = pair_hash_map<K, V>;
+};
+
+// We also need this one for pointer keys.
 
 template<typename K, typename V>
 #ifdef USE_DENSE_HASH
@@ -214,6 +282,35 @@ public:
 #endif
 };
 
+/**
+ * Template to choose the appropriate hash set for a backend.
+ * Exposes the resulting template at ::type.
+ */
+template<typename Backend>
+struct HashSetFor {
+};
+
+// Use the hash set selected above for STLBackend
+template<>
+struct HashSetFor<STLBackend> {
+    template<typename K>
+    using type = hash_set<K>;
+};
+
+// Always use a sparse hash set with SPP's default allocator for CompatBackend
+template<>
+struct HashSetFor<CompatBackend> {
+    template<typename K>
+    using type = spp::sparse_hash_set<K, spp::spp_hash<K>, std::equal_to<K>, SPP_DEFAULT_ALLOCATOR<const K>>;
+};
+
+// When memory mapping, use the SPP hash set with the YOMO allocator, so they live in the memory map.
+template<>
+struct HashSetFor<MappedBackend> {
+    template<typename K>
+    using type = spp::sparse_hash_set<K, spp::spp_hash<K>, std::equal_to<K>, bdsg::yomo::Allocator<const K>>;
+};
+
 template<typename K>
 #ifdef USE_DENSE_HASH
 class string_hash_set : public google::dense_hash_set<K>
@@ -227,6 +324,24 @@ public:
         this->set_empty_key(" ");
     }
 #endif
+};
+
+/**
+ * Template to choose the appropriate string-keyed hash set for a backend.
+ * Exposes the resulting template at ::type.
+ */
+template<typename Backend>
+struct StringHashSetFor {
+    // Usually use the normal hash set.
+    template<typename K>
+    using type = typename HashSetFor<Backend>::template type<K>;
+};
+
+// Use the hash set selected above for STLBackend
+template<>
+struct StringHashSetFor<STLBackend> {
+    template<typename K>
+    using type = string_hash_set<K>;
 };
 
 template<typename K>
@@ -243,6 +358,26 @@ public:
     }
 #endif
 };
+
+/**
+ * Template to choose the appropriate pair-keyed hash set for a backend.
+ * Exposes the resulting template at ::type.
+ */
+template<typename Backend>
+struct PairHashSetFor {
+    // Usually use the normal hash set.
+    template<typename K>
+    using type = typename HashSetFor<Backend>::template type<K>;
+};
+
+// Use the hash set selected above for STLBackend
+template<>
+struct PairHashSetFor<STLBackend> {
+    template<typename K>
+    using type = pair_hash_set<K>;
+};
+
+// We also have this specialization for pointer keys
 
 template<typename K>
 #ifdef USE_DENSE_HASH

@@ -611,7 +611,6 @@ void test_mapped_structs() {
     }
     
     {
-    
         using T = big_endian<int64_t>;
         using A = bdsg::yomo::Allocator<T>;
         using V1 = CompatVector<T, A>;
@@ -624,6 +623,55 @@ void test_mapped_structs() {
     
         // Now do a vigorous test comparing to a normal vector
         bother_vector(*numbers_holder_holder);
+    }
+    
+    {
+        using T = big_endian<int64_t>;
+        using A = bdsg::yomo::Allocator<T>;
+        using V1 = CompatVector<T, A>;
+        using A2 = bdsg::yomo::Allocator<V1>;
+        using V2 = CompatVector<V1, A2>;
+        
+        // Just make the root object on the stack and make sure chain-based
+        // allocators and pointers fall back to the heap properly.
+        V2 numbers;
+        
+        // Now do a vigorous test comparing to a normal vector
+        bother_vector(numbers);
+    }
+    
+    {
+        // Make sure our bit-packing vector works
+        CompatIntVector<> vec;
+        vec.width(3);
+        
+        for (size_t i = 0; i < 1000; i++) {
+            vec.resize(i + 1);
+            vec.at(i) = i % 8;
+            if (vec.at(i) != i % 8) {
+                throw std::runtime_error("Expected " + std::to_string(i % 8) + " at " + std::to_string(i) + " but got " + std::to_string(vec.at(i)));
+            }
+        }
+        
+        for (size_t i = 0; i < 1000; i++) {
+            if (vec.at(i) != i % 8) {
+                throw std::runtime_error("Expected " + std::to_string(i % 8) + " at " + std::to_string(i) + " but got " + std::to_string(vec.at(i)));
+            }
+        }
+        
+        vec.resize(500);
+        for (size_t i = 0; i < 500; i++) {
+            if (vec.at(i) != i % 8) {
+                throw std::runtime_error("Expected " + std::to_string(i % 8) + " at " + std::to_string(i) + " but got " + std::to_string(vec.at(i)));
+            }
+        }
+        
+        vec.repack(4, 500);
+        for (size_t i = 0; i < 500; i++) {
+            if (vec.at(i) != i % 8) {
+                throw std::runtime_error("Expected " + std::to_string(i % 8) + " at " + std::to_string(i) + " but got " + std::to_string(vec.at(i)));
+            }
+        }
     }
     
     cerr << "Mapped Structs tests successful!" << endl;
@@ -643,7 +691,10 @@ void test_serializable_handle_graphs() {
     
     ODGI og_out, og_in;
     implementations.emplace_back(&og_out, &og_in);
-        
+    
+    MappedPackedGraph mpg_in, mpg_out;
+    implementations.emplace_back(&mpg_in, &mpg_out);
+    
     for (pair<SerializableHandleGraph*, SerializableHandleGraph*> implementation : implementations) {
         
         MutablePathMutableHandleGraph* build_graph = dynamic_cast<MutablePathMutableHandleGraph*>(implementation.first);
@@ -703,6 +754,9 @@ void test_deletable_handle_graphs() {
 
         ODGI og;
         implementations.push_back(&og);
+        
+        MappedPackedGraph mpg;
+        implementations.push_back(&mpg);
 
         // And test them
 
@@ -1785,6 +1839,9 @@ void test_deletable_handle_graphs() {
 
         ODGI og;
         implementations.push_back(&og);
+        
+        MappedPackedGraph mpg;
+        implementations.push_back(&mpg);
 
         for (DeletableHandleGraph* implementation : implementations) {
 
@@ -1981,6 +2038,9 @@ void test_deletable_handle_graphs() {
 
         PackedGraph pg;
         implementations.push_back(&pg);
+        
+        MappedPackedGraph mpg;
+        implementations.push_back(&mpg);
 
         //ODGI og;
         //implementations.push_back(&og);
@@ -2025,6 +2085,9 @@ void test_deletable_handle_graphs() {
 
         HashGraph hg, hg2;
         implementations.push_back(make_pair(&hg, &hg2));
+        
+        MappedPackedGraph mpg, mpg2;
+        implementations.push_back(make_pair(&mpg, &mpg2));
         
         // And test them
         for (int imp = 0; imp < implementations.size(); ++imp) {
@@ -2108,6 +2171,9 @@ void test_mutable_path_handle_graphs() {
 
     ODGI og;
     implementations.push_back(&og);
+    
+    MappedPackedGraph mpg;
+    implementations.push_back(&mpg);
     
     for (MutablePathDeletableHandleGraph* implementation : implementations) {
 
@@ -2469,6 +2535,9 @@ void test_mutable_path_handle_graphs() {
         
         PackedGraph pg, pg2;
         implementations.push_back(make_pair(&pg, &pg2));
+        
+        MappedPackedGraph mpg, mpg2;
+        implementations.push_back(make_pair(&mpg, &mpg2));
         
         // And test them
         for (int imp = 0; imp < implementations.size(); ++imp) {
@@ -3364,14 +3433,19 @@ void test_packed_graph() {
 
 void test_path_position_overlays() {
     
-    PackedGraph pg;
-    HashGraph hg;
-    ODGI og;
-    
     vector<MutablePathDeletableHandleGraph*> implementations;
-    implementations.push_back(&pg);
+
+    HashGraph hg;
     implementations.push_back(&hg);
+
+    PackedGraph pg;
+    implementations.push_back(&pg);
+    
+    ODGI og;
     implementations.push_back(&og);
+    
+    MappedPackedGraph mpg;
+    implementations.push_back(&mpg);
     
     for (MutablePathDeletableHandleGraph* implementation : implementations) {
         
@@ -3517,14 +3591,19 @@ void test_path_position_overlays() {
 
 void test_vectorizable_overlays() {
     
-    bdsg::PackedGraph pg;
-    bdsg::HashGraph hg;
-    bdsg::ODGI og;
-    
     vector<MutablePathDeletableHandleGraph*> implementations;
-    implementations.push_back(&pg);
+
+    HashGraph hg;
     implementations.push_back(&hg);
+
+    PackedGraph pg;
+    implementations.push_back(&pg);
+    
+    ODGI og;
     implementations.push_back(&og);
+    
+    MappedPackedGraph mpg;
+    implementations.push_back(&mpg);
     
     for (MutablePathDeletableHandleGraph* implementation : implementations) {
         
@@ -3587,14 +3666,19 @@ void test_vectorizable_overlays() {
 
 void test_packed_subgraph_overlay() {
     
-    bdsg::PackedGraph pg;
-    bdsg::HashGraph hg;
-    bdsg::ODGI og;
-    
     vector<MutablePathDeletableHandleGraph*> implementations;
-    implementations.push_back(&pg);
+
+    HashGraph hg;
     implementations.push_back(&hg);
+
+    PackedGraph pg;
+    implementations.push_back(&pg);
+    
+    ODGI og;
     implementations.push_back(&og);
+    
+    MappedPackedGraph mpg;
+    implementations.push_back(&mpg);
     
     for (MutablePathDeletableHandleGraph* implementation : implementations) {
 
@@ -3849,18 +3933,80 @@ void test_packed_subgraph_overlay() {
     cerr << "PackedSubgraphOverlay tests successful!" << endl;
 }
 
+void test_mapped_packed_graph() {
+    auto check_graph = [](const MappedPackedGraph& mpg) {
+        // Dump it into this map
+        unordered_map<nid_t, std::string> graph_contents;
+        mpg.for_each_handle([&](const handle_t& h) {
+            graph_contents[mpg.get_id(h)] = mpg.get_sequence(h);
+        });
+        
+        // Make sure it has the right things
+        assert(graph_contents.at(1) == "GATTACA");
+        assert(graph_contents.at(2) == "CATTAG");
+    };
+
+    char filename[] = "tmpXXXXXX";
+    int fd = mkstemp(filename);
+    assert(fd != -1);
+    {
+        // Make a graph
+        MappedPackedGraph mpg;
+        // Give it a node
+        mpg.create_handle("GATTACA", 1);
+        // Save it to an FD
+        mpg.serialize(fd);
+        // Make sure write-back works
+        mpg.create_handle("CATTAG", 2);
+        
+        // Make sure it looks right now
+        check_graph(mpg);
+    }
+    {
+        // Make a graph again
+        MappedPackedGraph mpg;
+        // Load it from the fd
+        mpg.deserialize(fd);
+        // Make sure it looks right
+        check_graph(mpg);
+    }
+    assert(close(fd) == 0);
+    {
+        // Make a graph again
+        MappedPackedGraph mpg;
+        // Load it from the file
+        mpg.deserialize(filename);
+        // Make sure it looks right
+        check_graph(mpg);
+    }
+    {
+        // Make a graph again
+        MappedPackedGraph mpg;
+        // Load it from a stream
+        std::ifstream stream(filename);
+        mpg.deserialize(stream);
+        // Make sure it looks right
+        check_graph(mpg);
+    }
+    //unlink(filename);
+    
+    cerr << "MappedPackedGraph tests successful!" << endl;
+}
+
 
 int main(void) {
     test_mmap_backend();
     test_mapped_structs();
     test_packed_vector<PackedVector<>>();
-    test_packed_vector<PackedVector<CompatIntVector<>>>();
+    test_packed_vector<PackedVector<CompatBackend>>();
+    test_packed_vector<PackedVector<MappedBackend>>();
     test_paged_vector<PagedVector<1>>();
     test_paged_vector<PagedVector<2>>();
     test_paged_vector<PagedVector<3>>();
     test_paged_vector<PagedVector<4>>();
     test_paged_vector<PagedVector<5>>();
-    test_paged_vector<PagedVector<5, PackedVector<CompatIntVector<>>, CompatVector<PackedVector<CompatIntVector<>>>>>();
+    test_paged_vector<PagedVector<5, CompatBackend>>();
+    test_paged_vector<PagedVector<5, MappedBackend>>();
     test_packed_deque();
     test_packed_set();
     test_deletable_handle_graphs();
@@ -3870,4 +4016,5 @@ int main(void) {
     test_path_position_overlays();
     test_vectorizable_overlays();
     test_packed_subgraph_overlay();
+    test_mapped_packed_graph();
 }

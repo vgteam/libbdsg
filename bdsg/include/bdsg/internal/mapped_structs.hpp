@@ -24,7 +24,7 @@
 // See: <https://stackoverflow.com/a/58418801>
 #ifdef __APPLE__
     // See <https://gist.github.com/yinyin/2027912>
-    #include <libkern/OSByteOrder.h>
+    #include <libkern/OSByteOrder.h> // BINDER_IGNORE
 
     #define htobe16(x) OSSwapHostToBigInt16(x)
     #define be16toh(x) OSSwapBigToHostInt16(x)
@@ -35,9 +35,14 @@
     #define htobe64(x) OSSwapHostToBigInt64(x)
     #define be64toh(x) OSSwapBigToHostInt64(x)
 #else
-    #include <endian.h>
+    #include <endian.h> // BINDER_IGNORE
 #endif
 
+// Since the library already depends on SDSL we might as well use their fast
+// bit twiddling functions.
+#include <sdsl/bits.hpp>
+// And we need to stock our non-mmapped backend with an int vector.
+#include <sdsl/int_vector.hpp>
 
 
 namespace bdsg {
@@ -65,12 +70,58 @@ protected:
 };
 
 /**
+ * Type enum value for selecting data structures that use the STL and SDSL.
+ */
+struct STLBackend {
+};
+
+/**
+ * Template to choose the appropriate bit-packed integer vector for a backend.
+ * Exposes the resulting type at ::type.
+ */
+template<typename Backend>
+struct IntVectorFor {
+};
+
+/**
+ * Template to choose the appropriate vector for a backend. Exposes the
+ * resulting template at ::type.
+ */
+template<typename Backend>
+struct VectorFor {
+};
+
+// Implementations for the data structures for STLBackend
+
+template<>
+struct VectorFor<STLBackend> {
+    template<typename Item>
+    using type = std::vector<Item>;
+};
+
+template<>
+struct IntVectorFor<STLBackend> {
+    using type = sdsl::int_vector<>;
+};
+
+/**
  * You Only Map Once: mapped memory with safe allocation by objects in the mapped memory.
  *
  * YOMO provides an interconnected system for file-backed memory mapping and
  * allocation, so that objects whose *this is in a mapped memory segment can
  * safely allocate more memory backed by the file the object exists in.
  * Allocating more memory will not unmap memory already allocated.
+ *
+ * Note that you need to follow some rules in the objects you use:
+ *
+ * 1. Always template on an allocator and pointer type, or use yomo::Allocator
+ * and yomo::Pointer.
+ *
+ * 2. Don't use yomo::Allocator off of the stack, only from object storage.
+ *
+ * 3. Don't have a vtable. Don't inherit from anything with virtual methods, or
+ * have virtual methods yourself. Note that this means you can't actually
+ * inherit from libhandlegraph::HandleGraph!
  */
 namespace yomo {
 
@@ -79,6 +130,10 @@ namespace yomo {
  * yomo::Allocator (or otherwise in a yomo::Manager's chain), and is itself
  * stored at an address mapped by a yomo::Allocator (or otherwise in the same
  * yomo::Manager chain).
+ *
+ * Can also work outside of any chain, which lets us make things of types that
+ * use this as local variables, at the cost of not being able to fail fast
+ * whenever we make a mistake and wander out of a chain.
  *
  * We interpret constness as applying to the value of the pointer and not the
  * pointed-to object. If you want a pointer to a const object, you need a
@@ -95,7 +150,8 @@ public:
     
     // Be a good pointer
     operator bool () const;
-    T& operator*() const;
+    // We use this template instead of T& to let us have a Pointer<void>.
+    std::add_lvalue_reference<T> operator*() const;
     T* operator->() const;
     operator T* () const;
     Pointer<T>& operator=(T* addr);
@@ -150,6 +206,14 @@ public:
     static chainid_t create_chain(int fd, const std::string& prefix = "");
     
     /**
+     * Create a chain by calling the given function until it returns an empty
+     * string, and concatenating all the results.
+     *
+     * The result must begin with the given prefix, if specified.
+     */
+    static chainid_t create_chain(const std::function<std::string(void)>& iterator, const std::string& prefix = "");
+    
+    /**
      * Return a chain which has the same stored data as the given chain, but
      * for which modification of the chain will not modify any backing file on
      * disk. The chain returned may be the same chain as the given chain.
@@ -186,6 +250,7 @@ public:
      * Get the address of the given byte from the start of the chain.
      * If a length is provided, throws if the given length of bytes from
      * position are not contiguous in memory.
+     * For NO_CHAIN just uses an offset from address 0 in memory.
      */
     static void* get_address_in_chain(chainid_t chain, size_t position, size_t length = 0);
     
@@ -199,27 +264,32 @@ public:
     
     /**
      * Find the address of the given position in the chain that the given address exists in.
+     * For NO_CHAIN just uses an offset from address 0 in memory.
      */
     static void* get_address_in_same_chain(const void* here, size_t position);
     
     /**
      * Find the position of the given address in the chain that here exists in.
+     * For NO_CHAIN just uses an offset from address 0 in memory.
      */
     static size_t get_position_in_same_chain(const void* here, const void* address);
     
     /**
      * Allocate the given number of bytes from the given chain.
+     * For NO_CHAIN just allocates with malloc().
      */
     static void* allocate_from(chainid_t chain, size_t bytes);
     
     /**
      * Allocate the given number of bytes from the chain containing the given
      * address.
+     * For NO_CHAIN just allocates with malloc().
      */
     static void* allocate_from_same_chain(void* here, size_t bytes);
     
     /**
      * Free the given allocated block in the chain to which it belongs.
+     * For NO_CHAIN just frees with free().
      */
     static void deallocate(void* address);
     
@@ -228,8 +298,16 @@ public:
      * that it was allocated with the given size.
      *
      * That first allocated thing must exist and not be deallocated.
+     *
+     * Must not be called for NO_CHAIN.
      */
     static void* find_first_allocation(chainid_t chain, size_t bytes);
+    
+    /**
+     * Scan all memory regions in the given chain. Calls the iteratee with each
+     * region's start address and length, in order.
+     */
+    static void scan_chain(chainid_t chain, const std::function<void(const void*, size_t)>& iteratee);
     
     /**
      * Dump information about free and allocated memory.
@@ -289,12 +367,19 @@ protected:
 
     /**
      * This occurs at the start of a chain, after any prefix, and lets us find the free list.
+     *
+     * Since the location of the first allocation is dependent on the size of
+     * the first mapping in the chain, we also keep track of the address of the
+     * first allocation. It's not allowed to be deallocated or Bad Things will
+     * happen.
      */
     struct AllocatorHeader {
         /// Where is the first free block of memory?
         Pointer<AllocatorBlock> first_free;
         /// Where is the last free block of memory?
         Pointer<AllocatorBlock> last_free;
+        /// Where is the first object allocated?
+        Pointer<void> first_allocated;
     };
     
     
@@ -342,6 +427,13 @@ protected:
      * Extend the given chain to the given new total size.
      */
     static void extend_chain_to(chainid_t chain, size_t new_total_size);
+    
+    /**
+     * Get the address of the given byte from the start of the chain, and the
+     * number of contiguous bytes after it. The number of bytes is always 1 or
+     * more if the address is not past the end of the chain.
+     */
+    static std::pair<void*, size_t> get_address_and_length_in_chain(chainid_t chain, size_t position);
     
     /**
      * Add a link into a chain. The caller must hold a write lock on the manager data structures.
@@ -399,6 +491,7 @@ public:
     using pointer = Pointer<T>;
     using const_pointer = Pointer<const T>;
     using size_type = size_t;
+    using difference_type = size_t;
     using value_type = T;
     
     
@@ -415,6 +508,27 @@ public:
     Allocator(const Allocator<U>& alloc);
     
     /**
+     * A template we can use to re-instantiate this allocator for a different
+     * type.
+     */
+    template<typename U>
+    struct rebind {
+        using other = Allocator<U>; 
+    };
+    
+    /**
+     * Return true if the two allocators can allocate and deallocate each
+     * others' memory, and false otherwise.
+     */
+    bool operator==(const Allocator& other) const;
+    
+    /**
+     * Return false if the two allocators can allocate and deallocate each
+     * others' memory, and true otherwise.
+     */
+    bool operator!=(const Allocator& other) const;
+    
+    /**
      * Allocate the given number of items. Ought to be near the hint.
      */
     T* allocate(size_type n, const T* hint = nullptr);
@@ -423,6 +537,19 @@ public:
      * Deallocate the given number of items. Must be the same number as were allocated.
      */
     void deallocate(T* p, size_type n);
+    
+    /**
+     * Work out the maximum size that can be allocated.
+     */
+    size_t max_size() const;
+    
+private:
+    
+    /**
+     * Determine the chain that an allocator will allocate from.
+     */
+    Manager::chainid_t get_chain() const;
+    
 
 };
 
@@ -458,18 +585,56 @@ public:
     T* get();
     const T* get() const;
 
+protected:
+
     /**
-     * Make a new default-constructed T in memory, preceeded by the given
+     * Make a new constructed T in memory, preceeded by the given
      * prefix. Forward other arguments to the constructor.
      */
     template <typename... Args>
-    void construct(const std::string& prefix = "", Args&&... constructor_args);
+    void construct_internal(const std::string& prefix, Args&&... constructor_args);
+
+public:
+
+    /**
+     * Make a new default-constructed T in memory, with an empty preceeding
+     * prefix.
+     */
+    void construct();
+
+    /**
+     * Make a new default-constructed T in memory, preceeded by the given
+     * prefix.
+     */
+    void construct(const std::string& prefix);
+
+    /**
+     * Make a new constructed T in memory, preceeded by the given
+     * prefix. Forward other arguments to the constructor.
+     *
+     * If you want to use arguments you must pass a prefix, although it may be
+     * empty. Otherwise we get into trouble with templates replacing overloads.
+     */
+    template <typename... Args>
+    void construct(const std::string& prefix, Args&&... constructor_args);
     
     /**
      * Point to the already-constructed T saved to the file at fd by a previous
      * save() call.
      */
     void load(int fd, const std::string& prefix = "");
+    
+    /**
+     * Load into memory and point to the already-constructed T saved to the
+     * given stream by a previous save() call.
+     */
+    void load(std::istream& in, const std::string& prefix = "");
+    
+    /**
+     * Load into memory and point to the already-constructed T emitted in
+     * blocks by the given function.
+     */
+    void load(const std::function<std::string(void)>& iterator, const std::string& prefix = "");
     
     /**
      * Break any write-back association with a backing file and move the object
@@ -485,6 +650,17 @@ public:
      * called.
      */
     void save(int fd);
+    
+    /**
+     * Save the stored item to the given stream. The pointer must not be null.
+     */
+    void save(std::ostream& out) const;
+    
+    /**
+     * Save the stored item as blocks of data shown to the given function. The
+     * pointer must not be null.
+     */
+    void save(const std::function<void(const void*, size_t)>& iteratee) const;
     
     /**
      * Free any associated memory and become empty.
@@ -513,17 +689,21 @@ public:
     CompatVector(const CompatVector& other);
     CompatVector(CompatVector&& other);
     
-    /**
-     * Allow copying across allocators (or within the same allocator).
-     */
+    /// Allow copying within the same allocator
+    CompatVector& operator=(const CompatVector& other);
+    
+    /// Allow copying across allocators.
     template<typename OtherAlloc>
     CompatVector& operator=(const CompatVector<T, OtherAlloc>& other);
     
+    /// Alow moving within the same allocator.
     CompatVector& operator=(CompatVector&& other);
     
     size_t size() const;
+    size_t capacity() const;
     void resize(size_t new_size);
     void reserve(size_t new_reserved_length);
+    void shrink_to_fit();
     
     T& back();
     const T& back() const;
@@ -542,6 +722,17 @@ public:
     
     T& operator[](size_t index);
     const T& operator[](size_t index) const;
+    
+    using value_type = T;
+    
+    // We have iterators but they aren't safe to serialize.
+    using iterator = T*;
+    using const_iterator = const T*;
+    
+    iterator begin();
+    const_iterator begin() const;
+    iterator end();
+    const_iterator end() const;
     
     // Compatibility with SDSL-lite serialization
     
@@ -576,14 +767,68 @@ using MappedVector = CompatVector<T, yomo::Allocator<T>>;
  * An int vector that is mostly API-compatible with SDSL's int vectors, but
  * which can exist in a memory mapping and uses the given allocator and its
  * pointers.
- *
- * TODO: Actually implement compression and a reference proxy like SDSL does.
  */
-template<typename Alloc = std::allocator<size_t>>
-class CompatIntVector : public CompatVector<size_t, Alloc> {
+template<typename Alloc = std::allocator<uint64_t>>
+class CompatIntVector {
 public:
     
-    using CompatVector<size_t, Alloc>::CompatVector;
+    CompatIntVector() = default;
+    
+    /// Allow copy construction
+    CompatIntVector(const CompatIntVector& other);
+    /// Allow move construction
+    CompatIntVector(CompatIntVector&& other);
+    
+    // To allow copy across backends, we need to be friends with other
+    // instantiations of us.
+    template<typename OtherAlloc> friend class CompatIntVector;
+    
+    /// Allow copy construction across allocators
+    template<typename OtherAlloc>
+    CompatIntVector(const CompatIntVector<OtherAlloc>& other);
+    
+    /// Allow copy assignment across allocators
+    template<typename OtherAlloc>
+    CompatIntVector& operator=(const CompatIntVector<OtherAlloc>& other);
+    
+    /// Allow copy construction from anything with the right methods
+    template<typename OtherType>
+    CompatIntVector(const OtherType& other);
+    
+    /// Allow copy assignment from anything with the right methods
+    template<typename OtherType>
+    CompatIntVector& operator=(const OtherType& other);
+    
+    /// Allow copy assignment
+    CompatIntVector& operator=(const CompatIntVector& other);
+    
+    /// Allow move assignment
+    CompatIntVector& operator=(CompatIntVector&& other);
+    
+    /**
+     * Return the number of integers in the vector.
+     */
+    size_t size() const;
+    
+    /**
+     * Resize the vector to hold the given number of elements.
+     */
+    void resize(size_t new_size);
+    
+    /**
+     * Return the number of elements the vector can hold without reallocating.
+     */
+    size_t capacity() const;
+    
+    /**
+     * Pre-allocate space to hold the given number of elements.
+     */
+    void reserve(size_t new_reserved_length);
+    
+    /**
+     * Drop everything from the vector.
+     */
+    void clear();
 
     /**
      * Return the width in bits of the entries.
@@ -599,12 +844,173 @@ public:
      * simultaneously resize to the new given number of elements.
      */
     void repack(size_t new_width, size_t new_size);
+    
+    /**
+     * Actual accessor method that sets the value at a position.
+     * Does not check if value actually fits.
+     * Uses the given width override instead of the stored width to write the value, if set.
+     */
+    void pack(size_t index, uint64_t value, size_t width_override = 0);
+    
+    /**
+     * Actual accessor method that gets the value at a position.
+     * Uses the given width override instead of the stored width to write the value, if set.
+     */
+    uint64_t unpack(size_t index, size_t width_override = 0) const;
+    
+    /**
+     * Proxy that acts as a mutable reference to an entry in the vector.
+     */
+    class Proxy {
+    protected:
+        // What vector are we operating on?
+        CompatIntVector& parent;
+        // What location do we refer to?
+        size_t index;
+    public:
+        // Must be movable via constructor for by-value return
+        Proxy(Proxy&& other) = default;
+        
+        // But generally not movable or copyable
+        Proxy(const Proxy& other) = delete;
+        Proxy& operator=(const Proxy& other) = delete;
+        Proxy& operator=(Proxy&& other) = delete;
+        
+        /// Make a proxy for the entry at the given position in the given int
+        /// vector
+        Proxy(CompatIntVector& parent, size_t index);
+        
+        /// Get the value the proxy refers to
+        operator uint64_t () const;
+        
+        /// Set the value the proxy refers to
+        Proxy& operator=(uint64_t new_value);
+    };
+    
+    using reference = Proxy;
+    
+    /**
+     * Proxy that acts as an immutable reference to an entry in the vector.
+     */
+    class ConstProxy {
+    protected:
+        // What vector are we operating on?
+        const CompatIntVector& parent;
+        // What location do we refer to?
+        size_t index;
+    public:
+        // Must be movable via constructor for by-value return
+        ConstProxy(ConstProxy&& other) = default;
+        
+        // But generally not movable or copyable
+        ConstProxy(const ConstProxy& other) = delete;
+        ConstProxy& operator=(const ConstProxy& other) = delete;
+        ConstProxy& operator=(ConstProxy&& other) = delete;
+        
+        /// Make a proxy for the entry at the given position in the given int
+        /// vector
+        ConstProxy(const CompatIntVector& parent, size_t index);
+        
+        /// Get the value the proxy refers to
+        operator uint64_t () const;
+    };
+    
+    using const_reference = ConstProxy;
+    
+    /**
+     * Get a proxy reference to read or write the given index.
+     * Checks bounds, but not value width.
+     */
+    Proxy at(size_t index);
+    /**
+     * Get a proxy reference to read the given index.
+     * Checks bounds.
+     */
+    ConstProxy at(size_t index) const;
+    
+    /**
+     * Get a proxy reference to read or write the given index.
+     */
+    Proxy operator[](size_t index);
+    /**
+     * Get a proxy reference to read the given index.
+     */
+    ConstProxy operator[](size_t index) const;
+    
+    // Compatibility with SDSL-lite serialization
+    
+    /**
+     * Serialize the data to the given stream.
+     */
+    void serialize(std::ostream& out) const;
+    
+    /**
+     * Load the data from the given stream.
+     */
+    void load(std::istream& in);
+    
+protected:
+    /// How many items are stored?
+    big_endian<size_t> length = 0;
+    /// How many bits are used to represent each item?
+    big_endian<size_t> bit_width = 1;
+    
+    /// We store our actual data in this vector, which manages memory for us.
+    CompatVector<uint64_t, Alloc> data;
+    
 };
 
 /**
  * Int vector mapped in from a file.
  */
-using MappedIntVector = CompatIntVector<yomo::Allocator<size_t>>; 
+using MappedIntVector = CompatIntVector<yomo::Allocator<uint64_t>>; 
+
+/**
+ * Type enum value for selecting data structures that use memory-mappable data
+ * structures but with the standard allocator.
+ */
+struct CompatBackend {
+};
+
+/**
+ * Type enum value for selecting data structures that use YOMO memory mapping
+ * and the YOMO allocator.
+ *
+ * They can safely exist outside of mapped memory, but are probably slower
+ * there since YOMO's internal tables still need to be consulted when following
+ * pointers.
+ */
+struct MappedBackend {
+};
+
+// Implementations for the data structures for MappedBackend
+
+template<>
+struct VectorFor<MappedBackend> {
+    template<typename Item>
+    using type = MappedVector<Item>;
+};
+
+template<>
+struct IntVectorFor<MappedBackend> {
+    using type = MappedIntVector;
+};
+
+
+
+
+// Implementations for the data structures for CompatBackend
+
+template<>
+struct VectorFor<CompatBackend> {
+    template<typename Item>
+    using type = CompatVector<Item>;
+};
+
+template<>
+struct IntVectorFor<CompatBackend> {
+    using type = CompatIntVector<>;
+};
 
 ///////////////////////////////////////////////////////////////////////////////////
 
@@ -773,20 +1179,59 @@ CompatVector<T, Alloc>::CompatVector(const CompatVector& other) {
 }
 
 template<typename T, typename Alloc>
-CompatVector<T, Alloc>::CompatVector(CompatVector&& other) :
-    length(other.length), reserved_length(other.reserved_length), first(other.first) {
-    
+CompatVector<T, Alloc>::CompatVector(CompatVector&& other) {
+
 #ifdef debug_compat_vector
     std::cerr << "Move-constructing a vector of size " << other.size() << " from " << (intptr_t)&other << " to " << (intptr_t)this << std::endl;
 #endif
+
+    // We need to make sure that we and the other vector are in the same memory
+    // arena (i.e. same chain or lack of chain), if applicable.
     
-    // And say they have no items or memory.
-    other.length = 0;
-    other.reserved_length = 0;
-    other.first = nullptr;
+    if (alloc == other.alloc) {
+        // We can accept whatever they have allocated.
+        
+        // Take everything out of other
+        length = other.length;
+        reserved_length = other.reserved_length;
+        first = other.first;
+    
+        // And say they have no items or memory.
+        other.length = 0;
+        other.reserved_length = 0;
+        other.first = nullptr;
+    } else {
+        // Fall back on copy assignment
+        CompatVector& to_copy = other;
+        *this = to_copy;
+    }
 #ifdef debug_compat_vector
     std::cerr << "Result is of size " << size() << std::endl;
 #endif
+}
+
+template<typename T, typename Alloc>
+CompatVector<T, Alloc>& CompatVector<T, Alloc>::operator=(const CompatVector& other) {
+#ifdef debug_compat_vector
+    std::cerr << "Copy-assigning a vector of size " << other.size() << " from " << (intptr_t)&other << " to " << (intptr_t)this << std::endl;
+#endif
+    if ((void*)this != (void*)&other) {
+        // Get rid of our memory
+        clear();
+        // Get some new memory
+        reserve(other.size());
+        
+        for (size_t i = 0; i < other.size(); i++) {
+            // Copy construct each thing.
+            new (first + i) T(other[i]);
+        }
+        
+        length = other.size();
+    }
+#ifdef debug_compat_vector
+    std::cerr << "Result is of size " << size() << std::endl;
+#endif
+    return *this;
 }
 
 template<typename T, typename Alloc>
@@ -795,7 +1240,7 @@ CompatVector<T, Alloc>& CompatVector<T, Alloc>::operator=(const CompatVector<T, 
 #ifdef debug_compat_vector
     std::cerr << "Copy-assigning a vector of size " << other.size() << " from " << (intptr_t)&other << " to " << (intptr_t)this << std::endl;
 #endif
-    if (this != &other) {
+    if ((void*)this != (void*)&other) {
         // Get rid of our memory
         clear();
         // Get some new memory
@@ -819,19 +1264,27 @@ CompatVector<T, Alloc>& CompatVector<T, Alloc>::operator=(CompatVector&& other) 
 #ifdef debug_compat_vector
     std::cerr << "Move-assigning a vector of size " << other.size() << " from " << (intptr_t)&other << " to " << (intptr_t)this << std::endl;
 #endif
-    if (this != &other) {
-        // Get rid of our memory
-        clear();
+    if ((void*)this != (void*)&other) {
+        if (alloc == other.alloc) {
+            // We can safely use their memory.
+            
+            // Get rid of our memory.
+            clear();
         
-        // Steal their memory
-        length = other.length;
-        reserved_length = other.reserved_length;
-        first = other.first;
-        
-        // And say they have no items or memory.
-        other.length = 0;
-        other.reserved_length = 0;
-        other.first = nullptr;
+            // Steal their memory
+            length = other.length;
+            reserved_length = other.reserved_length;
+            first = other.first;
+            
+            // And say they have no items or memory.
+            other.length = 0;
+            other.reserved_length = 0;
+            other.first = nullptr;
+        } else {
+            // Fall back on copy assignment
+            CompatVector& to_copy = other;
+            *this = to_copy;
+        }
     }
 #ifdef debug_compat_vector
     std::cerr << "Result is of size " << size() << std::endl;
@@ -842,6 +1295,11 @@ CompatVector<T, Alloc>& CompatVector<T, Alloc>::operator=(CompatVector&& other) 
 template<typename T, typename Alloc>
 size_t CompatVector<T, Alloc>::size() const {
     return length;
+}
+
+template<typename T, typename Alloc>
+size_t CompatVector<T, Alloc>::capacity() const {
+    return reserved_length;
 }
 
 template<typename T, typename Alloc>
@@ -941,6 +1399,11 @@ void CompatVector<T, Alloc>::resize(size_t new_size) {
 }
 
 template<typename T, typename Alloc>
+void CompatVector<T, Alloc>::shrink_to_fit() {
+    // TODO: actually reallocate smaller.
+}
+
+template<typename T, typename Alloc>
 T& CompatVector<T, Alloc>::back() {
     return (*this)[size() - 1];
 }
@@ -977,6 +1440,8 @@ void CompatVector<T, Alloc>::clear() {
         // We have some memory allocated to us.
         // Get rid of it.
         alloc.deallocate(first, reserved_length);
+        // And remember it is gone
+        first = nullptr;
     }
     reserved_length = 0;
 }
@@ -990,6 +1455,26 @@ T& CompatVector<T, Alloc>::at(size_t index) {
     }
     
     return (*this)[index];
+}
+
+template<typename T, typename Alloc>
+auto CompatVector<T, Alloc>::begin() -> iterator {
+    return &(*this)[0];
+}
+
+template<typename T, typename Alloc>
+auto CompatVector<T, Alloc>::begin() const -> const_iterator {
+    return &(*this)[0];
+}
+
+template<typename T, typename Alloc>
+auto CompatVector<T, Alloc>::end() -> iterator {
+    return &(*this)[size()];
+}
+
+template<typename T, typename Alloc>
+auto CompatVector<T, Alloc>::end() const -> const_iterator {
+    return &(*this)[size()];
 }
 
 template<typename T, typename Alloc>
@@ -1037,21 +1522,303 @@ const T& CompatVector<T, Alloc>::operator[](size_t index) const {
     return (*const_cast<CompatVector<T, Alloc>*>(this))[index];
 }
 
+
+
+template<typename Alloc>
+CompatIntVector<Alloc>::CompatIntVector(const CompatIntVector& other) :
+    length(other.length), bit_width(other.bit_width), data(other.data) {
+    // Nothing to do!
+}
+
+template<typename Alloc>
+CompatIntVector<Alloc>::CompatIntVector(CompatIntVector&& other) :
+    length(other.length), bit_width(other.bit_width), data(std::move(other.data)) {
+    
+    // Say they have no items or memory.
+    other.clear();
+}
+
+template<typename Alloc>
+template<typename OtherAlloc>
+CompatIntVector<Alloc>::CompatIntVector(const CompatIntVector<OtherAlloc>& other) : length(other.length), bit_width(other.bit_width), data(other.data) {
+    // Nothing to do!
+}
+
+
+template<typename Alloc>
+template<typename OtherAlloc>
+CompatIntVector<Alloc>& CompatIntVector<Alloc>::operator=(const CompatIntVector<OtherAlloc>& other) {
+    // Copy their contents
+    length = other.length;
+    bit_width = other.bit_width;
+    data = other.data;
+    
+    return *this;
+}
+
+template<typename Alloc>
+template<typename OtherType>
+CompatIntVector<Alloc>::CompatIntVector(const OtherType& other) {
+    // Fall back on copy assignment
+    *this = other;
+}
+
+
+template<typename Alloc>
+template<typename OtherType>
+CompatIntVector<Alloc>& CompatIntVector<Alloc>::operator=(const OtherType& other) {
+    clear();
+    width(other.width());
+    resize(other.size());
+    for (size_t i = 0; i < size(); i++) {
+        // Copy all the entries, repacking each.
+        // TODO: accelerate somehow if we can get direct access to bit-packed data.
+        (*this)[i] = other[i];
+    }
+    return *this;
+}
+
+template<typename Alloc>
+CompatIntVector<Alloc>& CompatIntVector<Alloc>::operator=(const CompatIntVector& other) {
+    // Copy their contents
+    length = other.length;
+    bit_width = other.bit_width;
+    data = other.data;
+    
+    return *this;
+}
+
+template<typename Alloc>
+CompatIntVector<Alloc>& CompatIntVector<Alloc>::operator=(CompatIntVector&& other) {
+    // Steal their contents
+    length = other.length;
+    bit_width = other.bit_width;
+    data = std::move(other.data);
+    
+    // Say they have no items or memory.
+    other.clear();
+    
+    return *this;
+}
+
+template<typename Alloc>
+size_t CompatIntVector<Alloc>::size() const {
+    return length;
+}
+
+template<typename Alloc>
+void CompatIntVector<Alloc>::resize(size_t new_size) {
+    // Work how many slots we need in the backing vector for this, rounding up.
+    size_t item_slots = (new_size * width() + (std::numeric_limits<size_t>::digits - 1)) /
+        std::numeric_limits<uint64_t>::digits;
+    // Make sure we have that many slots
+    data.resize(item_slots);
+    // And say how big we are
+    length = new_size;
+}
+
+template<typename Alloc>
+size_t CompatIntVector<Alloc>::capacity() const {
+    if (width() == 0) {
+        // This is sort of nonsense.
+        return 0;
+    } else {
+        // Work out how many items could be packed into the bits we have reserved.
+        return data.capacity() * std::numeric_limits<uint64_t>::digits / width();
+    }
+}
+
+template<typename Alloc>
+void CompatIntVector<Alloc>::reserve(size_t new_reserved_length) {
+    // Work how many slots we need in the backing vector for this, rounding up.
+    size_t item_slots = (new_reserved_length * width() + (std::numeric_limits<uint64_t>::digits - 1)) /
+        std::numeric_limits<uint64_t>::digits;
+    // Reserve space in the backing vector
+    data.reserve(item_slots);
+}
+
+template<typename Alloc>
+void CompatIntVector<Alloc>::clear() {
+    // Reset to our initial state
+    length = 0;
+    bit_width = 1;
+    data.clear();
+}
+
 template<typename Alloc>
 size_t CompatIntVector<Alloc>::width() const {
-    return std::numeric_limits<size_t>::digits;
+    return bit_width;
 }
 
 template<typename Alloc>
 void CompatIntVector<Alloc>::width(size_t new_width) {
-    // Nothing to do!
-    // TODO: Actually bit pack
+    // Save the new bit width, causing reinterpretation.
+    bit_width = new_width;
+    // TODO: make sure length won't take us out of bounds now?
+    // TODO: prevent a width of 0?
 }
 
 template<typename Alloc>
 void CompatIntVector<Alloc>::repack(size_t new_width, size_t new_size) {
-    // TODO: actually bit pack
-    this->resize(new_size);
+    // TODO: Actually combine these operations to save a pass and an allocation
+    resize(new_size);
+    
+    size_t old_width = bit_width;
+    
+    if (new_width == old_width) {
+        // Nothing to do!
+        return;
+    }
+    
+    assert(new_width > 0);
+    
+    // Work out how many slots we need in backing storage.
+    size_t new_entries = (length * new_width + (std::numeric_limits<uint64_t>::digits - 1)) /
+        std::numeric_limits<uint64_t>::digits;
+    
+    if (new_width > old_width) {
+        // We can expand in place
+        data.resize(new_entries);
+        
+        // Starting at the end, to avoid overwriting
+        size_t i = length;
+        while (i > 0) {
+            i--;
+            // Copy all the data to the new size
+            pack(i, unpack(i, old_width), new_width);
+        }
+    } else {
+        // Must be shrinking
+        
+        // Starting at the beginning, to avoid overwriting
+        for (size_t i = 0; i < length; i++) {
+            // Copy all the data to the new size
+            pack(i, unpack(i, old_width), new_width);
+        }
+        
+        // Now shrink down
+        data.resize(new_entries);
+    }
+    
+    // And save the new width
+    width(new_width);
+}
+
+template<typename Alloc>
+void CompatIntVector<Alloc>::pack(size_t index, uint64_t value, size_t width_override) {
+    // Decide how wide to encode the items as
+    size_t effective_width = width_override ? width_override : (size_t) bit_width;
+    // Find the bit index we start at
+    size_t start_bit = index * effective_width;
+    // And break into a slot number
+    size_t start_slot = start_bit / std::numeric_limits<uint64_t>::digits;
+    // And a start bit in that slot
+    size_t start_slot_bit_offset = start_bit % std::numeric_limits<uint64_t>::digits;
+    // And then save
+#ifdef debug_bit_packing
+    std::cerr << "Write " << value
+        << " of width " << effective_width
+        << " at bit " << start_slot_bit_offset
+        << " in slot " << start_slot << endl; 
+#endif
+    sdsl::bits::write_int(&data[start_slot], value, start_slot_bit_offset, effective_width);
+}
+
+template<typename Alloc>
+uint64_t CompatIntVector<Alloc>::unpack(size_t index, size_t width_override) const {
+    // Decide how wide to interpret the items as
+    size_t effective_width = width_override ? width_override : (size_t) bit_width;
+    // Find the bit index we start at
+    size_t start_bit = index * effective_width;
+    // And break into a slot number
+    size_t start_slot = start_bit / std::numeric_limits<uint64_t>::digits;
+    // And a start bit in that slot
+    size_t start_slot_bit_offset = start_bit % std::numeric_limits<uint64_t>::digits;
+    // And then load
+#ifdef debug_bit_packing
+    std::cerr << "Read value of width " << effective_width
+        << " at bit " << start_slot_bit_offset
+        << " in slot " << start_slot << ": ";
+#endif
+    uint64_t value = sdsl::bits::read_int(&data[start_slot], start_slot_bit_offset, effective_width);
+#ifdef debug_bit_packing
+    std::cerr << value << std::endl;
+#endif
+    return value;
+}
+
+template<typename Alloc>
+CompatIntVector<Alloc>::Proxy::Proxy(CompatIntVector& parent, size_t index) : parent(parent), index(index) {
+    // Nothing to do!
+}
+
+template<typename Alloc>
+CompatIntVector<Alloc>::Proxy::operator uint64_t () const {
+    return parent.unpack(index);
+}
+
+template<typename Alloc>
+auto CompatIntVector<Alloc>::Proxy::operator=(uint64_t new_value) -> Proxy& {
+    parent.pack(index, new_value);
+    return *this;
+}
+
+template<typename Alloc>
+CompatIntVector<Alloc>::ConstProxy::ConstProxy(const CompatIntVector& parent, size_t index) : parent(parent), index(index) {
+    // Nothing to do!
+}
+
+template<typename Alloc>
+CompatIntVector<Alloc>::ConstProxy::operator uint64_t () const {
+    return parent.unpack(index);
+}
+
+template<typename Alloc>
+auto CompatIntVector<Alloc>::at(size_t index) -> Proxy {
+    if (index > size()) {
+        throw std::out_of_range("Accessing index " + std::to_string(index) +
+            " in integer vector of length " + std::to_string(size()));
+    }
+    return Proxy(*this, index);
+}
+
+template<typename Alloc>
+auto CompatIntVector<Alloc>::at(size_t index) const -> ConstProxy {
+    if (index > size()) {
+        throw std::out_of_range("Accessing index " + std::to_string(index) +
+            " in integer vector of length " + std::to_string(size()));
+    }
+    return ConstProxy(*this, index);
+}
+
+template<typename Alloc>
+auto CompatIntVector<Alloc>::operator[](size_t index) -> Proxy {
+    return Proxy(*this, index);
+}
+
+template<typename Alloc>
+auto CompatIntVector<Alloc>::operator[](size_t index) const -> ConstProxy {
+    return ConstProxy(*this, index);
+}
+
+template<typename Alloc>
+void CompatIntVector<Alloc>::serialize(std::ostream& out) const {
+    // Dump the length
+    out.write((const char*)&length, sizeof(length));
+    // Dump the width
+    out.write((const char*)&bit_width, sizeof(length));
+    // Write the data
+    data.serialize(out);
+}
+
+template<typename Alloc>
+void CompatIntVector<Alloc>::load(std::istream& in) {
+    // Read the length
+    in.read((char*)&length, sizeof(length));
+    // Read the width
+    in.read((char*)&bit_width, sizeof(bit_width));
+    // Read the data
+    data.load(in);
 }
 
 namespace yomo {
@@ -1067,7 +1834,7 @@ Pointer<T>::operator bool () const {
 }
 
 template<typename T>
-T& Pointer<T>::operator*() const {
+std::add_lvalue_reference<T> Pointer<T>::operator*() const {
     return *get();
 }
 
@@ -1116,13 +1883,38 @@ Allocator<T>::Allocator(const Allocator<U>& alloc) {
 }
 
 template<typename T>
+bool Allocator<T>::operator==(const Allocator& other) const {
+    // TODO: Technically anybody can deallocate anybody else's memory since it
+    // always deallocates from the chain it is in, not the one we are in. But
+    // we say we're equal if we are using the same chain for allocations.
+    return get_chain() == other.get_chain();
+}
+
+template<typename T>
+bool Allocator<T>::operator!=(const Allocator& other) const {
+    return !(*this == other);
+}
+
+template<typename T>
 auto Allocator<T>::allocate(size_type n, const T* hint) -> T* {
-    return (T*) Manager::allocate_from_same_chain((void*) this, n * sizeof(T));
+    return (T*) Manager::allocate_from(get_chain(), n * sizeof(T));
 }
 
 template<typename T>
 void Allocator<T>::deallocate(T* p, size_type n) {
     Manager::deallocate((void*) p);
+}
+
+template<typename T>
+size_t Allocator<T>::max_size() const {
+    // TODO: this probably won't really fit in memory, but other than that
+    // there's no reason we can't allocate something this big.
+    return numeric_limits<size_t>::max();
+}
+
+template<typename T>
+Manager::chainid_t Allocator<T>::get_chain() const {
+    return Manager::get_chain((void*) this);
 }
 
 template<typename T>
@@ -1180,7 +1972,7 @@ const T* UniqueMappedPointer<T>::get() const {
 
 template<typename T>
 template<typename... Args>
-void UniqueMappedPointer<T>::construct(const std::string& prefix, Args&&... constructor_args) {
+void UniqueMappedPointer<T>::construct_internal(const std::string& prefix, Args&&... constructor_args) {
     // Drop any existing chain.
     reset();
     
@@ -1190,8 +1982,28 @@ void UniqueMappedPointer<T>::construct(const std::string& prefix, Args&&... cons
     // Can't use the Allocator because we don't have a place in the chain to
     // store one.
     T* item = (T*) Manager::allocate_from(chain, sizeof(T));
+    
     // Run the constructor.
     new (item) T(std::forward<Args>(constructor_args)...);
+}
+
+template<typename T>
+void UniqueMappedPointer<T>::construct() {
+    // Use an empty prefix.
+    construct_internal("");
+}
+
+template<typename T>
+void UniqueMappedPointer<T>::construct(const std::string& prefix) {
+    // Use the provided prefix.
+    construct_internal(prefix);
+}
+
+template<typename T>
+template<typename... Args>
+void UniqueMappedPointer<T>::construct(const std::string& prefix, Args&&... constructor_args) {
+    // Pass along args and use the provided prefix.
+    construct_internal(prefix, std::forward<Args>(constructor_args)...);
 }
 
 template<typename T>
@@ -1200,6 +2012,39 @@ void UniqueMappedPointer<T>::load(int fd, const std::string& prefix) {
     reset();
 
     chain = Manager::create_chain(fd, prefix);
+}
+
+template<typename T>
+void UniqueMappedPointer<T>::load(std::istream& in, const std::string& prefix) {
+    // Drop any existing chain.
+    reset();
+    
+    const size_t MAX_CHUNK_SIZE = 4096;
+    
+    // Fill up this buffer with chunks of a certian size
+    std::string buffer;
+    
+    chain = Manager::create_chain([&]() {
+        buffer.resize(MAX_CHUNK_SIZE);
+        // Grab a chunk
+        in.read(&buffer.at(0), MAX_CHUNK_SIZE);
+        if (!in) {
+            // Didn't read all the characters, so shrink down (maybe to 0)
+            buffer.resize(in.gcount());
+        }
+        // Copy the buffer over to the caller.
+        // TODO: can we save a copy here?
+        return buffer;
+    }, prefix);
+}
+
+template<typename T>
+void UniqueMappedPointer<T>::load(const std::function<std::string(void)>& iterator, const std::string& prefix) {
+    // Drop any existing chain.
+    reset();
+    
+    // Just pass through to the Manager
+    chain = Manager::create_chain(iterator, prefix);
 }
 
 template<typename T>
@@ -1226,6 +2071,21 @@ void UniqueMappedPointer<T>::save(int fd) {
     Manager::destroy_chain(chain);
     // Adopt the new chain
     chain = new_chain;
+}
+
+template<typename T>
+void UniqueMappedPointer<T>::save(std::ostream& out) const {
+    Manager::scan_chain(chain, [&](const void* start, size_t length) {
+        // Go through all the data in the chain
+        // And save it to the stream.
+        out.write((const char*) start, length); 
+    });
+}
+
+template<typename T>
+void UniqueMappedPointer<T>::save(const std::function<void(const void*, size_t)>& iteratee) const {
+    // Just pass through to the Manager.
+    Manager::scan_chain(chain, iteratee);
 }
 
 template<typename T>

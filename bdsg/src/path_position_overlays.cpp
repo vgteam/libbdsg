@@ -207,7 +207,7 @@ namespace bdsg {
         });
     }
     
-    MutablePositionOverlay::MutablePositionOverlay(MutablePathDeletableHandleGraph* graph) : PositionOverlay(graph) {
+    MutablePositionOverlay::MutablePositionOverlay(MutablePathDeletableHandleGraph* graph) : PositionOverlay(graph), mutable_graph(graph) {
         
     }
     
@@ -428,6 +428,6 @@ namespace bdsg {
     }
     
     MutablePathDeletableHandleGraph* MutablePositionOverlay::get_graph() {
-        return reinterpret_cast<MutablePathDeletableHandleGraph*>(graph);
+        return mutable_graph;
     }
 }

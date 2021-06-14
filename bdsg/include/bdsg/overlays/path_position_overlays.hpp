@@ -246,6 +246,14 @@ protected:
  * by augmenting it with relatively simple data structures.
  */
 class MutablePositionOverlay : public PositionOverlay, public MutablePathDeletableHandleGraph {
+
+    // Because virtual base classes and multiple inheritance are involved, we
+    // can't really safely go back from the PathHandleGraph* our base class
+    // stores to the MutablePathDeletableHandleGraph* we sometimes need. So we
+    // need to store it again or Clang will complain.
+
+    // TODO: Can we hack around this some other way?
+    MutablePathDeletableHandleGraph* mutable_graph;
     
 public:
     
