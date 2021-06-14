@@ -585,12 +585,38 @@ public:
     T* get();
     const T* get() const;
 
+protected:
+
     /**
-     * Make a new default-constructed T in memory, preceeded by the given
+     * Make a new constructed T in memory, preceeded by the given
      * prefix. Forward other arguments to the constructor.
      */
     template <typename... Args>
-    void construct(const std::string& prefix = "", Args&&... constructor_args);
+    void construct_internal(const std::string& prefix, Args&&... constructor_args);
+
+public:
+
+    /**
+     * Make a new default-constructed T in memory, preceeded by the empty
+     * prefix.
+     */
+    void construct();
+
+    /**
+     * Make a new default-constructed T in memory, preceeded by the given
+     * prefix.
+     */
+    void construct(const std::string& prefix);
+
+    /**
+     * Make a new constructed T in memory, preceeded by the given
+     * prefix. Forward other arguments to the constructor.
+     *
+     * If you want to use arguments you must pass a prefix, although it may be
+     * empty. Otherwise we get into trouble with templates replacing overloads.
+     */
+    template <typename... Args>
+    void construct(const std::string& prefix, Args&&... constructor_args);
     
     /**
      * Point to the already-constructed T saved to the file at fd by a previous
@@ -1946,7 +1972,7 @@ const T* UniqueMappedPointer<T>::get() const {
 
 template<typename T>
 template<typename... Args>
-void UniqueMappedPointer<T>::construct(const std::string& prefix, Args&&... constructor_args) {
+void UniqueMappedPointer<T>::construct_internal(const std::string& prefix, Args&&... constructor_args) {
     // Drop any existing chain.
     reset();
     
@@ -1959,6 +1985,25 @@ void UniqueMappedPointer<T>::construct(const std::string& prefix, Args&&... cons
     
     // Run the constructor.
     new (item) T(std::forward<Args>(constructor_args)...);
+}
+
+template<typename T>
+void UniqueMappedPointer<T>::construct() {
+    // Use an empty prefix.
+    construct_internal("");
+}
+
+template<typename T>
+void UniqueMappedPointer<T>::construct(const std::string& prefix) {
+    // Use the provided prefix.
+    construct_internal(prefix);
+}
+
+template<typename T>
+template<typename... Args>
+void UniqueMappedPointer<T>::construct(const std::string& prefix, Args&&... constructor_args) {
+    // Pass along args and use the provided prefix.
+    construct_internal(prefix, std::forward<Args>(constructor_args)...);
 }
 
 template<typename T>
