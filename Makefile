@@ -11,9 +11,9 @@ INSTALL_INC_DIR=$(INSTALL_PREFIX)/include
 
 LIB_FLAGS:=-lbdsg -lsdsl -lhandlegraph -lomp
 
-OBJS:=$(OBJ_DIR)/eades_algorithm.o $(OBJ_DIR)/hash_graph.o $(OBJ_DIR)/is_single_stranded.o $(OBJ_DIR)/node.o $(OBJ_DIR)/odgi.o $(OBJ_DIR)/packed_graph.o $(OBJ_DIR)/path_position_overlays.o $(OBJ_DIR)/packed_path_position_overlay.o $(OBJ_DIR)/vectorizable_overlays.o $(OBJ_DIR)/packed_subgraph_overlay.o $(OBJ_DIR)/strand_split_overlay.o $(OBJ_DIR)/utility.o
+OBJS:=$(OBJ_DIR)/eades_algorithm.o $(OBJ_DIR)/hash_graph.o $(OBJ_DIR)/is_single_stranded.o $(OBJ_DIR)/mapped_structs.o $(OBJ_DIR)/node.o $(OBJ_DIR)/odgi.o $(OBJ_DIR)/packed_graph.o $(OBJ_DIR)/path_position_overlays.o $(OBJ_DIR)/packed_path_position_overlay.o $(OBJ_DIR)/vectorizable_overlays.o $(OBJ_DIR)/packed_subgraph_overlay.o $(OBJ_DIR)/strand_split_overlay.o $(OBJ_DIR)/utility.o
 
-CXXFLAGS :=-O3 -Werror=return-type -std=c++14 -ggdb -g -I$(INC_DIR) $(CXXFLAGS)
+CXXFLAGS :=-MMD -MP -O3 -Werror=return-type -std=c++14 -ggdb -g -I$(INC_DIR) $(CXXFLAGS)
 
 ifeq ($(shell uname -s),Darwin)
 	CXXFLAGS := $(CXXFLAGS) -Xpreprocessor -fopenmp
@@ -34,47 +34,29 @@ docs:
 .pre-build:
 	@if [ ! -d $(LIB_DIR) ]; then mkdir -p $(LIB_DIR); fi
 	@if [ ! -d $(OBJ_DIR) ]; then mkdir -p $(OBJ_DIR); fi
-	@if [ ! -d $(BIN_DIR) ]; then mkdir -p $(BIN_DIR); fi
+	@if [ ! -d $(BIN_DIR) ]; then mkdir -p $(BIN_DIR); fiq
 
 # run .pre-build before we make anything at all.
 -include .pre-build
 
-$(OBJ_DIR)/eades_algorithm.o: $(SRC_DIR)/eades_algorithm.cpp $(INC_DIR)/bdsg/internal/eades_algorithm.hpp
-	$(CXX) $(LDFLAGS) $(CPPFLAGS) $(CXXFLAGS) -c $(SRC_DIR)/eades_algorithm.cpp -o $(OBJ_DIR)/eades_algorithm.o 
+# Make sure to pull in dependency files
+include $(wildcard $(OBJ_DIR)/*.d)
 
-$(OBJ_DIR)/hash_graph.o: $(SRC_DIR)/hash_graph.cpp $(INC_DIR)/bdsg/hash_graph.hpp
-	$(CXX) $(LDFLAGS) $(CPPFLAGS) $(CXXFLAGS) -c $(SRC_DIR)/hash_graph.cpp -o $(OBJ_DIR)/hash_graph.o 
+# Use a fake rule to build .d files, so we don't complain if they don't exist.
+$(OBJ_DIR)/%.d: ;
 
-$(OBJ_DIR)/is_single_stranded.o: $(SRC_DIR)/is_single_stranded.cpp $(INC_DIR)/bdsg/internal/is_single_stranded.hpp
-	$(CXX) $(LDFLAGS) $(CPPFLAGS) $(CXXFLAGS) -c $(SRC_DIR)/is_single_stranded.cpp -o $(OBJ_DIR)/is_single_stranded.o 
+# Don't delete them.
+.PRECIOUS: $(OBJ_DIR)/%.d
 
-$(OBJ_DIR)/node.o: $(SRC_DIR)/node.cpp $(INC_DIR)/bdsg/internal/node.hpp
-	$(CXX) $(LDFLAGS) $(CPPFLAGS) $(CXXFLAGS) -c $(SRC_DIR)/node.cpp -o $(OBJ_DIR)/node.o 
+# Build each object with this rule.
+# Depend on the .d file so we rebuild if dependency info is missing/deleted
+# Make sure to touch the .o file after the compiler finishes so it is always newer than the .d file
+# Use static pattern rules so the dependency files will not be ignored if the output exists
+# See <https://stackoverflow.com/a/34983297>
+$(OBJS): $(OBJ_DIR)/%.o : $(SRC_DIR)/%.cpp $(OBJ_DIR)/%.d
+	$(CXX) $(LDFLAGS) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+	@touch $@
 
-$(OBJ_DIR)/odgi.o: $(SRC_DIR)/odgi.cpp $(INC_DIR)/bdsg/odgi.hpp
-	$(CXX) $(LDFLAGS) $(CPPFLAGS) $(CXXFLAGS) -c $(SRC_DIR)/odgi.cpp -o $(OBJ_DIR)/odgi.o 
-
-$(OBJ_DIR)/packed_graph.o: $(SRC_DIR)/packed_graph.cpp $(INC_DIR)/bdsg/packed_graph.hpp
-	$(CXX) $(LDFLAGS) $(CPPFLAGS) $(CXXFLAGS) -c $(SRC_DIR)/packed_graph.cpp -o $(OBJ_DIR)/packed_graph.o 
-
-$(OBJ_DIR)/path_position_overlays.o: $(SRC_DIR)/path_position_overlays.cpp $(INC_DIR)/bdsg/overlays/path_position_overlays.hpp
-	$(CXX) $(LDFLAGS) $(CPPFLAGS) $(CXXFLAGS) -c $(SRC_DIR)/path_position_overlays.cpp -o $(OBJ_DIR)/path_position_overlays.o
-
-$(OBJ_DIR)/packed_path_position_overlay.o: $(SRC_DIR)/packed_path_position_overlay.cpp $(INC_DIR)/bdsg/overlays/packed_path_position_overlay.hpp
-	$(CXX) $(LDFLAGS) $(CPPFLAGS) $(CXXFLAGS) -c $(SRC_DIR)/packed_path_position_overlay.cpp -o $(OBJ_DIR)/packed_path_position_overlay.o
-
-$(OBJ_DIR)/vectorizable_overlays.o: $(SRC_DIR)/vectorizable_overlays.cpp $(INC_DIR)/bdsg/overlays/vectorizable_overlays.hpp
-	$(CXX) $(LDFLAGS) $(CPPFLAGS) $(CXXFLAGS) -c $(SRC_DIR)/vectorizable_overlays.cpp -o $(OBJ_DIR)/vectorizable_overlays.o
-
-$(OBJ_DIR)/packed_subgraph_overlay.o: $(SRC_DIR)/packed_subgraph_overlay.cpp $(INC_DIR)/bdsg/overlays/packed_subgraph_overlay.hpp
-	$(CXX) $(LDFLAGS) $(CPPFLAGS) $(CXXFLAGS) -c $(SRC_DIR)/packed_subgraph_overlay.cpp -o $(OBJ_DIR)/packed_subgraph_overlay.o
-
-$(OBJ_DIR)/strand_split_overlay.o: $(SRC_DIR)/strand_split_overlay.cpp $(INC_DIR)/bdsg/overlays/strand_split_overlay.hpp
-	$(CXX) $(LDFLAGS) $(CPPFLAGS) $(CXXFLAGS) -c $(SRC_DIR)/strand_split_overlay.cpp -o $(OBJ_DIR)/strand_split_overlay.o
-
-
-$(OBJ_DIR)/utility.o: $(SRC_DIR)/utility.cpp $(INC_DIR)/bdsg/internal/utility.hpp
-	$(CXX) $(LDFLAGS) $(CPPFLAGS) $(CXXFLAGS) -c $(SRC_DIR)/utility.cpp -o $(OBJ_DIR)/utility.o 
 
 $(LIB_DIR)/libbdsg.a: $(OBJS)
 	rm -f $@
@@ -91,7 +73,7 @@ install: $(LIB_DIR)/libbdsg.a
 	cp -r $(INC_DIR)/bdsg $(INSTALL_INC_DIR)/
 
 clean:
-	rm -r $(OBJ_DIR)
-	rm -r $(LIB_DIR)
-	rm -r $(BIN_DIR)
+	[ ! -e $(OBJ_DIR) ] || rm -r $(OBJ_DIR)
+	[ ! -e $(LIB_DIR) ] || rm -r $(LIB_DIR)
+	[ ! -e $(BIN_DIR) ] || rm -r $(BIN_DIR)
 
