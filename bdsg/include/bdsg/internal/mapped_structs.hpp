@@ -771,7 +771,7 @@ using MappedVector = CompatVector<T, yomo::Allocator<T>>;
  * Does *NOT* automatically adjust its width; you must call width() or repack()
  * to set the appropriate bit width for your values *before* you write them.
  * Consider a PagedVector if this seems hard, or if your values come in runs of
- * differing widths.
+ * differing widths. Width defaults to 1 bit.
  */
 template<typename Alloc = std::allocator<uint64_t>>
 class CompatIntVector {
