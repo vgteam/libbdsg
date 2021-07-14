@@ -767,6 +767,11 @@ using MappedVector = CompatVector<T, yomo::Allocator<T>>;
  * An int vector that is mostly API-compatible with SDSL's int vectors, but
  * which can exist in a memory mapping and uses the given allocator and its
  * pointers.
+ *
+ * Does *NOT* automatically adjust its width; you must call width() or repack()
+ * to set the appropriate bit width for your values *before* you write them.
+ * Consider a PagedVector if this seems hard, or if your values come in runs of
+ * differing widths.
  */
 template<typename Alloc = std::allocator<uint64_t>>
 class CompatIntVector {
@@ -837,11 +842,15 @@ public:
     /**
      * Set the width in bits of the entries, causing existing data to be
      * reinterpreted.
+     *
+     * Throws if any stored entry cannot be represented with the new width.
      */
     void width(size_t new_width);
     /**
      * Repack existing data, re-encoding it with the given width, and
      * simultaneously resize to the new given number of elements.
+     *
+     * Throws if any stored entry cannot be represented with the new width.
      */
     void repack(size_t new_width, size_t new_size);
     
@@ -849,6 +858,8 @@ public:
      * Actual accessor method that sets the value at a position.
      * Does not check if value actually fits.
      * Uses the given width override instead of the stored width to write the value, if set.
+     *
+     * Throws if the value will not fit in the relevant number of bits.
      */
     void pack(size_t index, uint64_t value, size_t width_override = 0);
     
@@ -1708,6 +1719,19 @@ template<typename Alloc>
 void CompatIntVector<Alloc>::pack(size_t index, uint64_t value, size_t width_override) {
     // Decide how wide to encode the items as
     size_t effective_width = width_override ? width_override : (size_t) bit_width;
+    
+    if (effective_width < std::numeric_limits<uint64_t>::digits && value) {
+        // It is possible we have been given a number that we cannot represent.
+        // Use the compiler's count leading zeroes function, which hopefully it has.
+        size_t needed_bits = std::numeric_limits<uint64_t>::digits - __builtin_clzll(value);
+        if (needed_bits > effective_width) {
+            // The value will not fit.
+            throw std::invalid_argument("Need " + std::to_string(needed_bits) +
+                                        " bits to represent value " + std::to_string(value) +
+                                        " but only have " + std::to_string(effective_width)); 
+        }
+    }
+    
     // Find the bit index we start at
     size_t start_bit = index * effective_width;
     // And break into a slot number
