@@ -218,6 +218,7 @@ add_library(bdsg_objs OBJECT
   ${bdsg_DIR}/src/strand_split_overlay.cpp
   ${bdsg_DIR}/src/utility.cpp
   ${bdsg_DIR}/src/vectorizable_overlays.cpp
+  ${bdsg_DIR}/src/snarl_distance_index.cpp
   )
 
 set(bdsg_INCLUDES
