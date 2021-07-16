@@ -244,7 +244,7 @@ public:
      * Returns std::numeric_limits<int64_t>::max() if there is no path between the two positions
      */
     //TODO: The positions can't be const?
-    int64_t minimum_distance(handle_t handle1, size_t offset1, handle_t handle2, offset_t offset2, bool unoriented_distance = false, const HandleGraph* graph=nullptr) const ;
+    int64_t minimum_distance(handle_t handle1, size_t offset1, handle_t handle2, size_t offset2, bool unoriented_distance = false, const HandleGraph* graph=nullptr) const ;
 
 
     
