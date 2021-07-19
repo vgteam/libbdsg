@@ -2,7 +2,7 @@
 //#define debug_snarl_traversal
 //#define debug_distances
 
-#include "snarl_distance_index.hpp"
+#include "bdsg/snarl_distance_index.hpp"
 
 using namespace std;
 using namespace handlegraph;
