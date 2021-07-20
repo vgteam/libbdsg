@@ -2279,8 +2279,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
      */
     //TODO: For now I'm assuming that I'm including distances
     // maps <index into temporary_indexes, <record type, index into chain/snarl/node records>> to new offset
-    typedef std::pair<size_t, std::pair<temp_record_t, size_t>> temp_index_location_t;
-    unordered_map<temp_index_location_t, size_t> record_to_offset;
+    unordered_map<std::pair<size_t, std::pair<temp_record_t, size_t>>, size_t> record_to_offset;
     //Set the root index
     for (size_t temp_index_i = 0 ; temp_index_i < temporary_indexes.size() ; temp_index_i++) {
         //Any root will point to the same root
