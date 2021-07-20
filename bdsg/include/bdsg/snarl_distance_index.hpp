@@ -4,10 +4,14 @@
 //#define debug_indexing
 
 #include <handlegraph/snarl_decomposition.hpp>
-#include <internal/mapped_structs.hpp>
+#include <handlegraph/algorithms/dijkstra.hpp>
+#include <handlegraph/util.hpp>
+#include <bdsg/internal/mapped_structs.hpp>
+#include <string>
 
 
 using namespace sdsl;
+using namespace std;
 using namespace handlegraph;
 namespace vg { 
 
@@ -23,14 +27,6 @@ class SnarlDistanceIndex : public SnarlDecomposition {
 public:
     ~SnarlDistanceIndex();
     SnarlDistanceIndex();
-
-/////////////////  Construction methods
-public:
-
-    void set_size_limit (size_t size) {size_limit=size;}
-
-
-
 public:
 
 
@@ -187,11 +183,11 @@ public:
     net_handle_t get_parent_traversal(const net_handle_t& traversal_start, const net_handle_t& traversal_end) const;
 
 public:
-    void load(string& filename);
+    void load(std::string& filename);
     void load(int fd);
     void load(std::istream&in);
 
-    void save(string& filename) const;
+    void save(std::string& filename) const;
     void save(int fd) ;
     void save(std::ostream&out) const;
 
@@ -319,11 +315,19 @@ public:
      * Otherwise, for snarls with more children than snarl_size_limit, only store the distances
      * that include boundary nodes (OVERSIZED_SNARL)
      */
-    size_t snarl_size_limit = 100000;
+    size_t snarl_size_limit = 1000;
+
+/////////////////  Construction methods
+public:
+
+    void set_size_limit (size_t size) {snarl_size_limit=size;}
+
+
+
 
 private:
 
-    string tag = "DistanceIndex3.0";
+    std::string tag = "DistanceIndex3.0";
 
 
 /////// These are used to interpret the distance index, which is just a vector of ints
@@ -420,15 +424,15 @@ private:
 
 private:
     /*Give each of the enum types a name for debugging */
-    vector<string> record_t_as_string = {"ROOT", "NODE", "DISTANCED_NODE", 
+    vector<std::string> record_t_as_string = {"ROOT", "NODE", "DISTANCED_NODE", 
                      "SNARL", "DISTANCED_SNARL", "SIMPLE_SNARL", "OVERSIZED_SNARL", 
                      "ROOT_SNARL", "DISTANCED_ROOT_SNARL",
                      "CHAIN", "DISTANCED_CHAIN", "MULTICOMPONENT_CHAIN",
                      "CHILDREN"};
-    vector<string> connectivity_t_as_string = { "START_START", "START_END", "START_TIP", 
+    vector<std::string> connectivity_t_as_string = { "START_START", "START_END", "START_TIP", 
                             "END_START", "END_END", "END_TIP", 
                             "TIP_START", "TIP_END", "TIP_TIP"};
-    vector<string> net_handle_record_t_string = {"ROOT_HANDLE", "NODE_HANDLE", "SNARL_HANDLE", 
+    vector<std::string> net_handle_record_t_string = {"ROOT_HANDLE", "NODE_HANDLE", "SNARL_HANDLE", 
                                                 "CHAIN_HANDLE", "SENTINEL_HANDLE"};
 
 
@@ -445,15 +449,15 @@ private:
 
     ///The offset into records that this handle points to
     const static size_t get_record_offset (const handlegraph::net_handle_t& net_handle) {
-        return as_integer(net_handle) >> 7;
+        return handlegraph::as_integer(net_handle) >> 7;
     }
     const static connectivity_t get_connectivity (const handlegraph::net_handle_t& net_handle){
-        size_t connectivity_as_int = (as_integer(net_handle)>>3) & 15; //Get 4 bits after last 3
+        size_t connectivity_as_int = (handlegraph::as_integer(net_handle)>>3) & 15; //Get 4 bits after last 3
         assert (connectivity_as_int <= 9);
         return static_cast<connectivity_t>(connectivity_as_int);
     }
     const static net_handle_record_t get_handle_type (const handlegraph::net_handle_t& net_handle) {
-        size_t connectivity_as_int = as_integer(net_handle) & 7; //Get last 3 bits
+        size_t connectivity_as_int = handlegraph::as_integer(net_handle) & 7; //Get last 3 bits
         assert (connectivity_as_int <= 4);
         return static_cast<net_handle_record_t>(connectivity_as_int);
     }
@@ -472,14 +476,14 @@ private:
 
 
     //Get the offset into snarl_tree_records for a node record
-    size_t get_offset_from_node_id (const id_t& id) const {
+    size_t get_offset_from_node_id (const handlegraph::nid_t& id) const {
         size_t node_records_offset = snarl_tree_records->at(COMPONENT_COUNT_OFFSET) + ROOT_RECORD_SIZE; 
         size_t offset = (id-snarl_tree_records->at(MIN_NODE_ID_OFFSET)) * NODE_RECORD_SIZE;
         return node_records_offset + offset; 
     }
     //And its inverse, get the id from the offset of the node record
     //TODO: Do I want to add the min_node_id?
-    id_t get_node_id_from_offset(size_t offset) const {
+    handlegraph::nid_t get_node_id_from_offset(size_t offset) const {
         size_t min_node_id = snarl_tree_records->at(MIN_NODE_ID_OFFSET);
         size_t node_records_offset = snarl_tree_records->at(COMPONENT_COUNT_OFFSET) + ROOT_RECORD_SIZE; 
         return ((offset-node_records_offset) / NODE_RECORD_SIZE) + min_node_id;
@@ -642,19 +646,19 @@ private:
 
         //Get the node id of the start/end of this structure (start node of a snarl/chain)
         //TODO: Also need to add min node id
-        virtual id_t get_start_id() const; 
+        virtual handlegraph::nid_t get_start_id() const; 
         //True if the node is traversed backwards to enter the structure
         virtual bool get_start_orientation() const;
-        virtual id_t get_end_id() const;
+        virtual handlegraph::nid_t get_end_id() const;
         //Return true if the end node is traversed backwards to leave the snarl
-        virtual id_t get_end_orientation() const;
+        virtual handlegraph::nid_t get_end_orientation() const;
 
         //TODO: These are redeclared so that I don't need to pass the SnarlTreeRecord the actual distance index
         //Get the offset into snarl_tree_records for a node record
-        virtual size_t get_offset_from_id (const id_t id) const ;
+        virtual size_t get_offset_from_id (const handlegraph::nid_t id) const ;
         //And its inverse, get the id from the offset of the node record
         //TODO: Do I want to add the min_node_id?
-        virtual id_t get_id_from_offset(size_t offset) const ;
+        virtual handlegraph::nid_t get_id_from_offset(size_t offset) const ;
     };
 
     //Record interpreter that has a non-const reference to snarl_tree_records, so it can
@@ -707,9 +711,9 @@ private:
         virtual void set_is_reversed_in_parent(bool rev);
         virtual void set_parent_record_offset(size_t pointer);
         //Rev is true if the node is traversed backwards to enter the snarl
-        virtual void set_start_node(id_t id, bool rev); 
+        virtual void set_start_node(handlegraph::nid_t id, bool rev); 
         //Rev is true if the node is traversed backwards to leave the snarl
-        virtual void set_end_node(id_t id, bool rev) const;
+        virtual void set_end_node(handlegraph::nid_t id, bool rev) const;
     };
 
     struct RootRecord : SnarlTreeRecord {
@@ -738,7 +742,7 @@ private:
         //Constructor meant for creating a new record, at the end of snarl_tree_records
         //TODO: The way I wrote this pointer should be 0
         RootRecordConstructor (size_t pointer, size_t connected_component_count, size_t node_count, 
-                    id_t min_node_id, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records){
+                    handlegraph::nid_t min_node_id, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records){
             RootRecord::record_offset = pointer;
             SnarlTreeRecordConstructor::record_offset = pointer;
             SnarlTreeRecordConstructor::records = records;
@@ -756,7 +760,7 @@ private:
         }
         virtual void set_connected_component_count(size_t connected_component_count);
         virtual void set_node_count(size_t node_count);
-        virtual void set_min_node_id(id_t node_id);
+        virtual void set_min_node_id(handlegraph::nid_t node_id);
         virtual void add_component(size_t index, size_t offset);
     };
     struct NodeRecord : SnarlTreeRecord {
@@ -779,7 +783,7 @@ private:
                   || get_connectivity(net) == START_START || get_connectivity(net) == END_END);
         }
 
-        virtual id_t get_node_id() const {return get_id_from_offset(record_offset);}
+        virtual handlegraph::nid_t get_node_id() const {return get_id_from_offset(record_offset);}
 
         //TODO: This one is a bit redundant but fine I think
         virtual int64_t get_node_length() const {return (*records)->at(record_offset + NODE_LENGTH_OFFSET);}
@@ -1027,8 +1031,8 @@ private:
          * Two 0's where the snarl size and next node id should be indicates the end of the chain
          */
 
-        void add_node(id_t id, int64_t prefix_sum, int64_t forward_loop, int64_t reverse_loop);
-        void add_node(id_t id, int64_t prefix_sum, int64_t forward_loop, int64_t reverse_loop, size_t component);
+        void add_node(handlegraph::nid_t id, int64_t prefix_sum, int64_t forward_loop, int64_t reverse_loop);
+        void add_node(handlegraph::nid_t id, int64_t prefix_sum, int64_t forward_loop, int64_t reverse_loop, size_t component);
         void set_node_count(size_t node_count);
 
         //The offset of the last child, if it is a snarl, and if it can loop 
@@ -1061,7 +1065,7 @@ private:
 
 public:
 //TODO: Move this
-    string net_handle_as_string(const net_handle_t& net) const;
+    std::string net_handle_as_string(const net_handle_t& net) const;
 
 
 protected:
@@ -1076,14 +1080,13 @@ protected:
     public:
         TemporaryDistanceIndex();
         ~TemporaryDistanceIndex();
-        TemporaryDistanceIndex(const HandleGraph* graph, const HandleGraphSnarlFinder* snarl_finder, size_t size_limit);
 
         //Get a string of the start and end of a structure
-        string structure_start_end_as_string(pair<temp_record_t, size_t> index) const;
+        std::string structure_start_end_as_string(pair<temp_record_t, size_t> index) const;
     
     protected:
-        id_t min_node_id;
-        id_t max_node_id;
+        handlegraph::nid_t min_node_id;
+        handlegraph::nid_t max_node_id;
         size_t root_structure_count=0; //How many things are in the root
         size_t index_size;//TODO: This will change depending on how the actual index is represented
 
@@ -1092,9 +1095,9 @@ protected:
         struct TemporaryRecord {
         };
         struct TemporaryChainRecord : TemporaryRecord {
-            id_t start_node_id;
+            handlegraph::nid_t start_node_id;
             bool start_node_rev;
-            id_t end_node_id;
+            handlegraph::nid_t end_node_id;
             bool end_node_rev;
             int64_t end_node_length;
             //Type of the parent and offset into the appropriate vector
@@ -1117,10 +1120,10 @@ protected:
             bool loopable = true; //If this is a looping snarl, this is false if the last snarl is not start-end connected
         };
         struct TemporarySnarlRecord : TemporaryRecord{
-            id_t start_node_id;
+            handlegraph::nid_t start_node_id;
             bool start_node_rev;
             int64_t start_node_length;
-            id_t end_node_id;
+            handlegraph::nid_t end_node_id;
             bool end_node_rev;
             int64_t end_node_length;
             size_t node_count;
@@ -1144,7 +1147,7 @@ protected:
             node_id(0), parent(make_pair(TEMP_ROOT, 0)), node_length(0), 
             rank_in_parent(0), reversed_in_parent(false){
             }
-            id_t node_id;
+            handlegraph::nid_t node_id;
             pair<temp_record_t, size_t> parent;
             size_t node_length;
             size_t rank_in_parent;
