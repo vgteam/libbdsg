@@ -1237,7 +1237,7 @@ public:
 
     friend class TemporaryDistanceIndex;
 
-    private:
+public:
     ///Add integers, returning max() if any of them are max()
     static int64_t sum(const vector<int64_t> vals) {
         int64_t sum = 0;
