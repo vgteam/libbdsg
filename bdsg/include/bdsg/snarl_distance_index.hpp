@@ -1139,7 +1139,7 @@ public:
     std::string net_handle_as_string(const net_handle_t& net) const;
 
 
-protected:
+public:
 
     /*
      * A structure to store everything in the distance index, but not in just one vector to make it easier to construct
