@@ -1155,7 +1155,6 @@ public:
         //Get a string of the start and end of a structure
         std::string structure_start_end_as_string(pair<temp_record_t, size_t> index) const;
     
-    protected:
         handlegraph::nid_t min_node_id;
         handlegraph::nid_t max_node_id;
         size_t root_structure_count=0; //How many things are in the root
@@ -1261,9 +1260,9 @@ public:
         }
     }
 public:
-//Given an arbitrary number of temporary indexes, produce the final one
-//Each temporary index must be a separate connected component
-void get_snarl_tree_records(const vector<const TemporaryDistanceIndex*>& temporary_indexes, const     HandleGraph* graph);
+    //Given an arbitrary number of temporary indexes, produce the final one
+    //Each temporary index must be a separate connected component
+    void get_snarl_tree_records(const vector<const TemporaryDistanceIndex*>& temporary_indexes, const     HandleGraph* graph);
 
 };
 
