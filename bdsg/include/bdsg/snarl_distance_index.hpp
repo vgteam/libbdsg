@@ -84,7 +84,7 @@ struct hash<std::tuple<TT...>>
 #endif  // OVERLOAD_PAIR_HASH
 
 
-namespace vg { 
+namespace bdsg { 
 
 /**
  * The distance index. Stores minimum distances among nodes in each 
