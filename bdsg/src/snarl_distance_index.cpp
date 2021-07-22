@@ -709,7 +709,8 @@ int64_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
 //#endif
 //
         if (snarl_record.get_record_type() == OVERSIZED_SNARL 
-            && !(rank1 == 0 || rank1 == 1 || rank2 == 0 || rank2 == 1)) {
+            && !(rank1 == 0 || rank1 == 1 || rank2 == 0 || rank2 == 1) 
+            && graph != nullptr) {
             //If this is an oversized snarl and we're looking for internal distances, then we didn't store the
             //distance and we have to find it using dijkstra's algorithm
             if (graph == nullptr) {
@@ -767,12 +768,12 @@ pair<net_handle_t, bool> SnarlDistanceIndex::lowest_common_ancestor(const net_ha
     return make_pair(parent2, is_connected);
 }
 
-int64_t SnarlDistanceIndex::minimum_distance(handle_t handle1, size_t offset1, handle_t handle2, size_t offset2, bool unoriented_distance, const HandleGraph* graph) const {
+int64_t SnarlDistanceIndex::minimum_distance(handlegraph::nid_t id1, bool rev1, size_t offset1, handlegraph::nid_t id2, bool rev2, size_t offset2, bool unoriented_distance, const HandleGraph* graph) const {
 
 
 #ifdef debug_distances
         cerr << endl;
-        cerr << "Find the minimum distance between " << handle1 << " and " << handle2 << endl;
+        cerr << "Find the minimum distance between " << id1 << " " <<rev1 <<" " << offset1 << " and " << id2 << " " << rev2 << " " << offset2 << endl;
 #endif
 
 
@@ -831,8 +832,8 @@ int64_t SnarlDistanceIndex::minimum_distance(handle_t handle1, size_t offset1, h
      * TODO: net2 is pointing in the opposite direction of the position. The final 
      * distance will be between the two nets pointing towards each other
      */
-    net_handle_t net1 = get_net_handle(get_offset_from_node_id(graph->get_id(handle1)), START_END);
-    net_handle_t net2 = get_net_handle(get_offset_from_node_id(graph->get_id(handle2)), START_END);
+    net_handle_t net1 = get_net_handle(get_offset_from_node_id(id1), START_END);
+    net_handle_t net2 = get_net_handle(get_offset_from_node_id(id2), START_END);
     pair<net_handle_t, bool> lowest_ancestor = lowest_common_ancestor(net1, net2);
     if (!lowest_ancestor.second) {
         //If these are not in the same connected component
@@ -849,19 +850,19 @@ int64_t SnarlDistanceIndex::minimum_distance(handle_t handle1, size_t offset1, h
         cerr << "Found the lowest common ancestor " << net_handle_as_string(common_ancestor) << endl;
 #endif
     //These are the distances to the ends of the node, including the position
-    int64_t distance_to_start1 = graph->get_is_reverse(handle1) ? node_length(net1) - offset1 : offset1 + 1;
-    int64_t distance_to_end1 = graph->get_is_reverse(handle1) ? offset1 + 1 : node_length(net1) - offset1;
-    int64_t distance_to_start2 = graph->get_is_reverse(handle2) ? node_length(net2) - offset2 : offset2 + 1;
-    int64_t distance_to_end2 = graph->get_is_reverse(handle2) ? offset2 + 1 : node_length(net2) - offset2;
+    int64_t distance_to_start1 = rev1 ? node_length(net1) - offset1 : offset1 + 1;
+    int64_t distance_to_end1 = rev1 ? offset1 + 1 : node_length(net1) - offset1;
+    int64_t distance_to_start2 = rev2 ? node_length(net2) - offset2 : offset2 + 1;
+    int64_t distance_to_end2 = rev2 ? offset2 + 1 : node_length(net2) - offset2;
 
     if (!unoriented_distance) {
         //If we care about the oriented distance, one of the distances will be infinite
-        if (graph->get_is_reverse(handle1)) {
+        if (rev1) {
             distance_to_end1 = std::numeric_limits<int64_t>::max();
         } else {
             distance_to_start1 = std::numeric_limits<int64_t>::max();
         }
-        if (graph->get_is_reverse(handle2)) {
+        if (rev2) {
             distance_to_start2 = std::numeric_limits<int64_t>::max();
         } else {
             distance_to_end2 = std::numeric_limits<int64_t>::max();

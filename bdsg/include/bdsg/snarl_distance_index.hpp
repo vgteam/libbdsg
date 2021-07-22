@@ -10,10 +10,6 @@
 #include <string>
 
 
-using namespace sdsl;
-using namespace std;
-using namespace handlegraph;
-
 
 //How to hash pairs, copied from vg
 // http://stackoverflow.com/questions/4870437/pairint-int-pair-as-key-of-unordered-map-issue#comment5439557_4870467
@@ -86,6 +82,10 @@ struct hash<std::tuple<TT...>>
 
 namespace bdsg { 
 
+
+using namespace sdsl;
+using namespace std;
+using namespace handlegraph;
 /**
  * The distance index. Stores minimum distances among nodes in each 
  * snarl's netgraph and each chain.
@@ -317,7 +317,7 @@ public:
      * Returns std::numeric_limits<int64_t>::max() if there is no path between the two positions
      */
     //TODO: The positions can't be const?
-    int64_t minimum_distance(handle_t handle1, size_t offset1, handle_t handle2, size_t offset2, bool unoriented_distance = false, const HandleGraph* graph=nullptr) const ;
+    int64_t minimum_distance(handlegraph::nid_t id1, bool rev1, size_t offset1, handlegraph::nid_t id2, bool rev2, size_t offset2, bool unoriented_distance = false, const HandleGraph* graph=nullptr) const ;
 
 
     
