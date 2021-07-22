@@ -272,10 +272,10 @@ public:
      * was possible. Doesn't allow you to find the distance from a traversal ending/starting in a tip
      * requires that the children are children of the parent
      * For chains, the distance to/from a snarl is really the distance from the outer node of the snarl
-     * Returns std::numeric_limits<int64_t>::max() if there is not path between them in the parent 
+     * Returns std::numeric_limits<size_t>::max() if there is not path between them in the parent 
      * or if they are not children of the parent
      */
-    int64_t distance_in_parent(const net_handle_t& parent, const net_handle_t& child1, const net_handle_t& child2, const HandleGraph* graph=nullptr) const;
+    size_t distance_in_parent(const net_handle_t& parent, const net_handle_t& child1, const net_handle_t& child2, const HandleGraph* graph=nullptr) const;
 
 
     /** 
@@ -289,7 +289,7 @@ public:
     /**
      * Return the length of the net, which must represent a node (or sentinel of a snarl)
      */
-    int64_t node_length(const net_handle_t& net) const ;
+    size_t node_length(const net_handle_t& net) const ;
 
 
     /**
@@ -297,13 +297,13 @@ public:
      * The length of a chain includes the boundary nodes, a snarl does not
      * A looping chain only includes the start/end node once
      */
-    int64_t minimum_length(const net_handle_t& net) const;
+    size_t minimum_length(const net_handle_t& net) const;
 
     /**
      * What is the node id of the node represented by this net handle
      * net must be a node or a sentinel
      */
-    int64_t node_id(const net_handle_t& net) const ;
+    size_t node_id(const net_handle_t& net) const ;
 
     bool has_connectivity(const net_handle_t& net, endpoint_t start, endpoint_t end) const ;
     bool has_external_connectivity(const net_handle_t& net, endpoint_t start, endpoint_t end) const ; 
@@ -314,10 +314,10 @@ public:
      * If unoriented_distance is true, then ignore the orientations of the positions
      * Otherwise, distance is calculated from the first position going forward to the second position going forward
      * The distance includes one of the positions; the distance from one position to itself is 1
-     * Returns std::numeric_limits<int64_t>::max() if there is no path between the two positions
+     * Returns std::numeric_limits<size_t>::max() if there is no path between the two positions
      */
     //TODO: The positions can't be const?
-    int64_t minimum_distance(handlegraph::nid_t id1, bool rev1, size_t offset1, handlegraph::nid_t id2, bool rev2, size_t offset2, bool unoriented_distance = false, const HandleGraph* graph=nullptr) const ;
+    size_t minimum_distance(handlegraph::nid_t id1, bool rev1, size_t offset1, handlegraph::nid_t id2, bool rev2, size_t offset2, bool unoriented_distance = false, const HandleGraph* graph=nullptr) const ;
 
 
     
@@ -857,7 +857,7 @@ private:
         virtual handlegraph::nid_t get_node_id() const {return get_id_from_offset(record_offset);}
 
         //TODO: This one is a bit redundant but fine I think
-        virtual int64_t get_node_length() const {return (*records)->at(record_offset + NODE_LENGTH_OFFSET);}
+        virtual size_t get_node_length() const {return (*records)->at(record_offset + NODE_LENGTH_OFFSET);}
 
         virtual size_t get_root_component() const {return (*records)->at(record_offset + NODE_COMPONENT_OFFSET);}
 
@@ -921,16 +921,16 @@ private:
 
 
         //Get the index into the distance vector for the calculating distance between the given node sides
-        static int64_t get_distance_vector_offset(size_t rank1, bool right_side1, size_t rank2, 
+        static size_t get_distance_vector_offset(size_t rank1, bool right_side1, size_t rank2, 
                 bool right_side2, size_t node_count, record_t type); 
 
-        virtual int64_t get_distance_vector_offset(size_t rank1, bool right_side1, 
+        virtual size_t get_distance_vector_offset(size_t rank1, bool right_side1, 
                 size_t rank2, bool right_side2) const;
 
         //TODO: I want to also add a function to do this given a node id or net_handle_t instead of rank
         //Get and set the distances between two node sides in the graph
         //Ranks identify which node, sides indicate node side: false for left, true for right
-        virtual int64_t get_distance(size_t rank1, bool right_side1, size_t rank2, bool right_side2) const;
+        virtual size_t get_distance(size_t rank1, bool right_side1, size_t rank2, bool right_side2) const;
 
         virtual size_t get_node_count() const {
             return (*records)->at(record_offset + SNARL_NODE_COUNT_OFFSET);
@@ -976,7 +976,7 @@ private:
             SnarlTreeRecordConstructor::records = records;
             SnarlRecord::records = records;
         }
-        void set_distance(size_t rank1, bool right_side1, size_t rank2, bool right_side2, int64_t distance);
+        void set_distance(size_t rank1, bool right_side1, size_t rank2, bool right_side2, size_t distance);
 
         //Node count is the number of nodes in the snarl, not including boundary nodes
         void set_node_count(size_t node_count);
@@ -1030,10 +1030,10 @@ private:
         //Get the values this node (boundary node of a snarl in the chain)
         //pointer is a pointer into snarl_tree_records, to the beginning of the record for this node
         //So it'll point to the node id of the node we're looking at
-        virtual int64_t get_chain_node_id(size_t pointer) const;
-        virtual int64_t get_prefix_sum_value(size_t pointer) const;
-        virtual int64_t get_forward_loop_value(size_t pointer) const;
-        virtual int64_t get_reverse_loop_value(size_t pointer) const;
+        virtual size_t get_chain_node_id(size_t pointer) const;
+        virtual size_t get_prefix_sum_value(size_t pointer) const;
+        virtual size_t get_forward_loop_value(size_t pointer) const;
+        virtual size_t get_reverse_loop_value(size_t pointer) const;
         virtual size_t get_chain_component(size_t pointer, bool get_end=false) const;
 
         //Get the distance between the given node sides (relative to the orientation of the chain)
@@ -1041,13 +1041,13 @@ private:
         //This is the distance between the node sides, leaving the first and entering the second,
         //not including node lengths
         //TODO: Double check finding the distance for the same node
-        virtual int64_t get_distance(tuple<size_t, bool, int64_t> node1, 
-                             tuple<size_t, bool, int64_t> node2) const;
+        virtual size_t get_distance(tuple<size_t, bool, size_t> node1, 
+                             tuple<size_t, bool, size_t> node2) const;
 
         ///For a chain that loops (when the start and end node are the same), find the 
         //distance walking around the back of the loop
-        virtual int64_t get_distance_taking_chain_loop(tuple<size_t, bool, int64_t> node1, 
-                             tuple<size_t, bool, int64_t> node2) const;
+        virtual size_t get_distance_taking_chain_loop(tuple<size_t, bool, size_t> node1, 
+                             tuple<size_t, bool, size_t> node2) const;
 
         ////////////////////////// methods for navigating the snarl tree from this chain
 
@@ -1102,8 +1102,8 @@ private:
          * Two 0's where the snarl size and next node id should be indicates the end of the chain
          */
 
-        void add_node(handlegraph::nid_t id, int64_t prefix_sum, int64_t forward_loop, int64_t reverse_loop);
-        void add_node(handlegraph::nid_t id, int64_t prefix_sum, int64_t forward_loop, int64_t reverse_loop, size_t component);
+        void add_node(handlegraph::nid_t id, size_t prefix_sum, size_t forward_loop, size_t reverse_loop);
+        void add_node(handlegraph::nid_t id, size_t prefix_sum, size_t forward_loop, size_t reverse_loop, size_t component);
         void set_node_count(size_t node_count);
 
         //The offset of the last child, if it is a snarl, and if it can loop 
@@ -1169,17 +1169,17 @@ public:
             bool start_node_rev;
             handlegraph::nid_t end_node_id;
             bool end_node_rev;
-            int64_t end_node_length;
+            size_t end_node_length;
             //Type of the parent and offset into the appropriate vector
             //(TEMP_ROOT, 0) if this is a root level chain
             pair<temp_record_t, size_t> parent;
-            int64_t min_length;//Including boundary nodes
-            int64_t max_length;
+            size_t min_length;//Including boundary nodes
+            size_t max_length;
             vector<pair<temp_record_t, size_t>> children; //All children, both nodes and snarls, in order
             //Distances for the chain, one entry per node
-            vector<int64_t> prefix_sum;
-            vector<int64_t> forward_loops;
-            vector<int64_t> backward_loops;
+            vector<size_t> prefix_sum;
+            vector<size_t> forward_loops;
+            vector<size_t> backward_loops;
             vector<size_t> chain_components;//Which component does each node belong to, usually all 0s
             size_t rank_in_parent;
             bool reversed_in_parent;
@@ -1192,22 +1192,22 @@ public:
         struct TemporarySnarlRecord : TemporaryRecord{
             handlegraph::nid_t start_node_id;
             bool start_node_rev;
-            int64_t start_node_length;
+            size_t start_node_length;
             handlegraph::nid_t end_node_id;
             bool end_node_rev;
-            int64_t end_node_length;
+            size_t end_node_length;
             size_t node_count;
-            int64_t min_length; //Not including boundary nodes
-            int64_t max_length;
+            size_t min_length; //Not including boundary nodes
+            size_t max_length;
             pair<temp_record_t, size_t> parent;
             vector<pair<temp_record_t, size_t>> children; //All children, nodes and chains, in arbitrary order
             unordered_set<size_t> tippy_child_ranks; //The ranks of children that are tips
-            unordered_map<pair<pair<size_t, bool>, pair<size_t, bool>>, int64_t> distances;
+            unordered_map<pair<pair<size_t, bool>, pair<size_t, bool>>, size_t> distances;
             size_t rank_in_parent;
             bool reversed_in_parent;
             //The minimum distances to go into and out of the snarl from the start or end nodes
-            int64_t loop_start;
-            int64_t loop_end;
+            size_t loop_start;
+            size_t loop_end;
             bool is_trivial;
             bool is_tip = false;
             bool is_root_snarl = false;
@@ -1239,22 +1239,22 @@ public:
 
 public:
     ///Add integers, returning max() if any of them are max()
-    static int64_t sum(const vector<int64_t> vals) {
-        int64_t sum = 0;
-        for (const int64_t& x : vals) {
-            if (x ==  std::numeric_limits<int64_t>::max()) {
-                return std::numeric_limits<int64_t>::max();
+    static size_t sum(const vector<size_t> vals) {
+        size_t sum = 0;
+        for (const size_t& x : vals) {
+            if (x ==  std::numeric_limits<size_t>::max()) {
+                return std::numeric_limits<size_t>::max();
             } else {
                 sum += x;
             }
         }
         return sum;
     }
-    static int64_t minus(int64_t x, int64_t y) {
-        if (x == std::numeric_limits<int64_t>::max()) {
-            return numeric_limits<int64_t>::max();
-        } else if (y == std::numeric_limits<int64_t>::max()) {
-            return -numeric_limits<int64_t>::max();
+    static size_t minus(size_t x, size_t y) {
+        if (x == std::numeric_limits<size_t>::max()) {
+            return numeric_limits<size_t>::max();
+        } else if (y == std::numeric_limits<size_t>::max()) {
+            return -numeric_limits<size_t>::max();
         } else {
             return x - y;
         }
