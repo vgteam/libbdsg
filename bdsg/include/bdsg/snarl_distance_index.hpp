@@ -820,8 +820,8 @@ private:
             RootRecord::records = records;
             //Allocate memory for the root vector and for all of the nodes
 #ifdef debug_indexing
-            cerr << " Resizing array to add root: length " << SnarlTreeRecordConstructor::(*records)->size() << " -> " 
-                 << SnarlTreeRecordConstructor::(*records)->size() + ROOT_RECORD_SIZE + connected_component_count + (NODE_RECORD_SIZE * node_count) << endl;
+            cerr << " Resizing array to add root: length " << (*SnarlTreeRecordConstructor::records)->size() << " -> " 
+                 << (*SnarlTreeRecordConstructor::records)->size() + ROOT_RECORD_SIZE + connected_component_count + (NODE_RECORD_SIZE * node_count) << endl;
 #endif
             (*SnarlTreeRecordConstructor::records)->resize((*SnarlTreeRecordConstructor::records)->size() + ROOT_RECORD_SIZE + connected_component_count + (NODE_RECORD_SIZE * node_count));
             set_record_type(ROOT);

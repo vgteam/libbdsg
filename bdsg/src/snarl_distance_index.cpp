@@ -806,21 +806,23 @@ size_t SnarlDistanceIndex::minimum_distance(handlegraph::nid_t id1, bool rev1, s
         size_t end_length = is_chain(parent) ? node_length(end_bound) : 0;
 
         //Get the distances from the bounds of the parent to the node we're looking at
-        size_t distance_start_start = start_bound == net ? -start_length : distance_in_parent(parent, start_bound, flip(net), graph);
-        size_t distance_start_end = start_bound == flip(net) ? -start_length : distance_in_parent(parent, start_bound, net, graph);
-        size_t distance_end_start = end_bound == net ? -end_length : distance_in_parent(parent, end_bound, flip(net), graph);
-        size_t distance_end_end = end_bound == flip(net) ? -end_length : distance_in_parent(parent, end_bound, net, graph);
+        size_t distance_start_start = start_bound == net ? 0 
+                : sum({start_length, distance_in_parent(parent, start_bound, flip(net), graph)});
+        size_t distance_start_end = start_bound == flip(net) ? 0 
+                : sum({start_length, distance_in_parent(parent, start_bound, net, graph)});
+        size_t distance_end_start = end_bound == net ? 0 
+                : sum({end_length, distance_in_parent(parent, end_bound, flip(net), graph)});
+        size_t distance_end_end = end_bound == flip(net) ? 0 
+                : sum({distance_in_parent(parent, end_bound, net, graph)});
 
         size_t distance_start = dist_start;
         size_t distance_end = dist_end; 
 
 
-        dist_start = sum({std::min( sum({distance_start_start, distance_start}), 
-                                    sum({distance_start_end , distance_end})) , 
-                           start_length});
-        dist_end = sum({std::min(sum({distance_end_start , distance_start}), 
-                            sum({distance_end_end , distance_end})) ,
-                       end_length});
+        dist_start = std::min( sum({distance_start_start, distance_start}), 
+                                    sum({distance_start_end , distance_end}));
+        dist_end = std::min(sum({distance_end_start , distance_start}), 
+                            sum({distance_end_end , distance_end}));
 #ifdef debug_distances
         cerr << "        ...new distances to start and end: " << dist_start << " " << dist_end << endl;
 #endif
