@@ -813,7 +813,7 @@ size_t SnarlDistanceIndex::minimum_distance(handlegraph::nid_t id1, bool rev1, s
         size_t distance_end_start = end_bound == net ? 0 
                 : sum({end_length, distance_in_parent(parent, end_bound, flip(net), graph)});
         size_t distance_end_end = end_bound == flip(net) ? 0 
-                : sum({distance_in_parent(parent, end_bound, net, graph)});
+                : sum({end_length, distance_in_parent(parent, end_bound, net, graph)});
 
         size_t distance_start = dist_start;
         size_t distance_end = dist_end; 
