@@ -2156,6 +2156,110 @@ void test_deletable_handle_graphs() {
         }
     }
     
+    // another batch of tests that deal with deleting down to an empty graph
+    {
+        vector<MutablePathDeletableHandleGraph*> implementations;
+        
+        // Add implementations
+        
+        PackedGraph pg;
+        implementations.push_back(&pg);
+        
+        ODGI og;
+        implementations.push_back(&og);
+        
+        HashGraph hg;
+        implementations.push_back(&hg);
+        
+        // And test them
+        for (int imp = 0; imp < implementations.size(); ++imp) {
+            
+            MutablePathDeletableHandleGraph* g = implementations[imp];
+            
+            // the graph that i discovered the bug this tests for
+            vector<tuple<int, string, vector<int>>> graph_spec{
+                {1, "C", {19}},
+                {2, "A", {4, 5}},
+                {3, "G", {4, 5}},
+                {4, "T", {6, 16, 18}},
+                {5, "C", {6, 16, 18}},
+                {6, "TTG", {7, 8}},
+                {7, "A", {9}},
+                {8, "G", {9}},
+                {9, "AAATT", {16}},
+                {10, "A", {12}},
+                {11, "T", {12}},
+                {12, "ATAT", {13, 14}},
+                {13, "A", {15}},
+                {14, "T", {15}},
+                {15, "C", {20}},
+                {16, "TTCTGG", {17, 18}},
+                {17, "AGT", {18}},
+                {18, "TCTAT", {10, 11}},
+                {19, "AAATAAG", {2, 3}},
+                {20, "CAACTCTCTG", {}},
+            };
+            
+            for (auto rec : graph_spec) {
+                g->create_handle(get<1>(rec), get<0>(rec));
+            }
+            for (auto rec : graph_spec) {
+                for (auto n : get<2>(rec)) {
+                    g->create_edge(g->get_handle(get<0>(rec)), g->get_handle(n));
+                }
+            }
+            
+            // a series of deletes that elicits the behavior
+            vector<pair<handle_t, handle_t>> delete_edges{
+                {g->get_handle(10, 1), g->get_handle(18, 1)},
+                {g->get_handle(3, 0), g->get_handle(5, 0)},
+                {g->get_handle(4, 0), g->get_handle(6, 0)},
+                {g->get_handle(6, 0), g->get_handle(7, 0)},
+                {g->get_handle(2, 0), g->get_handle(5, 0)},
+                {g->get_handle(7, 0), g->get_handle(9, 0)},
+                {g->get_handle(16, 0), g->get_handle(17, 0)},
+                {g->get_handle(12, 0), g->get_handle(14, 0)},
+                {g->get_handle(9, 0), g->get_handle(16, 0)},
+                {g->get_handle(11, 1), g->get_handle(18, 1)},
+                {g->get_handle(6, 0), g->get_handle(8, 0)},
+                {g->get_handle(12, 0), g->get_handle(13, 0)},
+                {g->get_handle(5, 0), g->get_handle(16, 0)},
+                {g->get_handle(4, 0), g->get_handle(16, 0)},
+                {g->get_handle(16, 0), g->get_handle(18, 0)},
+                {g->get_handle(5, 0), g->get_handle(6, 0)},
+                {g->get_handle(3, 0), g->get_handle(4, 0)},
+                {g->get_handle(8, 0), g->get_handle(9, 0)},
+                {g->get_handle(2, 0), g->get_handle(4, 0)}
+            };
+            for (auto edge : delete_edges) {
+                g->destroy_edge(edge.first, edge.second);
+            }
+            g->destroy_handle(g->get_handle(16, 0));
+            g->destroy_handle(g->get_handle(13, 0));
+            g->destroy_handle(g->get_handle(15, 0));
+            g->destroy_handle(g->get_handle(20, 0));
+            g->destroy_handle(g->get_handle(14, 0));
+            g->destroy_handle(g->get_handle(10, 0));
+            g->destroy_handle(g->get_handle(12, 0));
+            g->destroy_handle(g->get_handle(11, 0));
+            g->destroy_handle(g->get_handle(9, 0));
+            g->destroy_handle(g->get_handle(4, 0));
+            g->destroy_handle(g->get_handle(7, 0));
+            g->destroy_handle(g->get_handle(18, 0));
+            g->destroy_handle(g->get_handle(5, 0));
+            g->destroy_handle(g->get_handle(1, 0));
+            g->destroy_handle(g->get_handle(8, 0));
+            g->destroy_handle(g->get_handle(19, 0));
+            g->destroy_handle(g->get_handle(3, 0));
+            g->destroy_handle(g->get_handle(6, 0));
+            g->destroy_handle(g->get_handle(17, 0));
+            g->destroy_handle(g->get_handle(2, 0));
+            
+            g->create_handle("GATTACA", 4);
+            assert(g->get_node_count() == 1);
+        }
+    }
+    
     cerr << "DeletableHandleGraph tests successful!" << endl;
 }
 
