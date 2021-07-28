@@ -1155,10 +1155,12 @@ public:
         //Get a string of the start and end of a structure
         std::string structure_start_end_as_string(pair<temp_record_t, size_t> index) const;
     
-        handlegraph::nid_t min_node_id;
-        handlegraph::nid_t max_node_id;
+        handlegraph::nid_t min_node_id=0;
+        handlegraph::nid_t max_node_id=0;
         size_t root_structure_count=0; //How many things are in the root
-        size_t index_size;//TODO: This will change depending on how the actual index is represented
+        size_t max_index_size=ROOT_RECORD_SIZE;//TODO: This will change depending on how the actual index is represented
+        size_t max_distance = 0;
+        size_t get_max_record_length() const {return root_structure_count + (max_node_id-min_node_id) * NODE_RECORD_SIZE + max_index_size;} 
 
         //This will actually store each individual record separately, and each 
         //will have real pointers to their parents/children (as opposed to offsets)
@@ -1188,6 +1190,7 @@ public:
             //What is the index of this record in root_snarl_components
             size_t root_snarl_index = std::numeric_limits<size_t>::max();
             bool loopable = true; //If this is a looping snarl, this is false if the last snarl is not start-end connected
+            size_t get_max_record_length() const {return CHAIN_RECORD_SIZE + CHAIN_NODE_MULTICOMPONENT_RECORD_SIZE*prefix_sum.size();} 
         };
         struct TemporarySnarlRecord : TemporaryRecord{
             handlegraph::nid_t start_node_id;
@@ -1211,6 +1214,7 @@ public:
             bool is_trivial;
             bool is_tip = false;
             bool is_root_snarl = false;
+            size_t get_max_record_length() {return SNARL_RECORD_SIZE + node_count * node_count + node_count;}
         };
         struct TemporaryNodeRecord : TemporaryRecord{
             TemporaryNodeRecord() :
@@ -1223,6 +1227,7 @@ public:
             size_t rank_in_parent;
             bool reversed_in_parent;
             bool is_tip = false;
+            size_t get_max_record_length() {return NODE_RECORD_SIZE;} 
         };
 
 
