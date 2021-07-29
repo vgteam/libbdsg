@@ -2648,7 +2648,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                         max_snarl_distance = std::max(max_snarl_distance, distance);
                     }
                 }
-                snarl_record_constructor.set_distance_bit_width(max_distance);
+                snarl_record_constructor.set_distance_bit_width(max_snarl_distance);
 #ifdef debug_distance_indexing
                 cerr << "    The snarl record is at offset " << snarl_record_constructor.SnarlRecord::record_offset << endl;
                 cerr << "    This child snarl has " << snarl_record_constructor.get_node_count() << " children: " << endl;
