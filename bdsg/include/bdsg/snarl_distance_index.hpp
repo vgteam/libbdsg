@@ -432,7 +432,7 @@ private:
 
    
     //Snarl record (which occurs within a chain)
-    const static size_t SNARL_RECORD_SIZE = 9;
+    const static size_t SNARL_RECORD_SIZE = 10;
     const static size_t SNARL_NODE_COUNT_OFFSET = 1;
     const static size_t SNARL_PARENT_OFFSET = 2;
     const static size_t SNARL_MIN_LENGTH_OFFSET = 3;
@@ -442,6 +442,7 @@ private:
     //TODO: This could also be found from the list of the snarl's children, but probably better here, even if it's duplicative
     const static size_t SNARL_START_NODE_OFFSET = 7;
     const static size_t SNARL_END_NODE_OFFSET = 8;
+    const static size_t SNARL_BIT_WIDTH_OFFSET = 9;
     
     //Node record within a chain
     const static size_t CHAIN_NODE_RECORD_SIZE = 5; //# things for a node (not including snarl record)
@@ -919,6 +920,12 @@ private:
         static size_t record_size (record_t type, size_t node_count) ;
         virtual size_t record_size() ;
 
+        //We're going to store multiple distance values in each vector slot to save bits
+        //Get the bit width used for storing distances
+        size_t get_distance_bit_width() const;
+        //And how many distance values are we keeping in each slot in the snarl_tree_records vector
+        size_t get_distance_values_per_vector_element() const;
+
 
         //Get the index into the distance vector for the calculating distance between the given node sides
         static size_t get_distance_vector_offset(size_t rank1, bool right_side1, size_t rank2, 
@@ -932,13 +939,9 @@ private:
         //Ranks identify which node, sides indicate node side: false for left, true for right
         virtual size_t get_distance(size_t rank1, bool right_side1, size_t rank2, bool right_side2) const;
 
-        virtual size_t get_node_count() const {
-            return (*records)->at(record_offset + SNARL_NODE_COUNT_OFFSET);
-        }
+        virtual size_t get_node_count() const;
 
-        virtual size_t get_child_record_pointer() const {
-            return (*records)->at(record_offset+SNARL_CHILD_RECORD_OFFSET) ;
-        }
+        virtual size_t get_child_record_pointer() const;
 
         virtual bool for_each_child(const std::function<bool(const net_handle_t&)>& iteratee) const;
 
@@ -976,6 +979,9 @@ private:
             SnarlTreeRecordConstructor::records = records;
             SnarlRecord::records = records;
         }
+
+        //Set the bit width used for storing distances 
+        void set_distance_bit_width(size_t max_distance_value);
         void set_distance(size_t rank1, bool right_side1, size_t rank2, bool right_side2, size_t distance);
 
         //Node count is the number of nodes in the snarl, not including boundary nodes
@@ -1263,6 +1269,12 @@ public:
         } else {
             return x - y;
         }
+    }
+    //How many bits are needed to represent this value (with some wiggle room)
+    //This uses sdsl's formula
+    static size_t bit_width(size_t value) {
+        return log2(value-1) + 1;
+
     }
 public:
     //Given an arbitrary number of temporary indexes, produce the final one
