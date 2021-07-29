@@ -2311,7 +2311,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
         min_node_id = min_node_id == 0 ? temp_index->min_node_id
                                        : std::min(min_node_id, temp_index->min_node_id);
         max_node_id = std::max(max_node_id, temp_index->max_node_id);
-        maximum_distance = std::max(temp_index->max_distance);
+        maximum_distance = std::max(temp_index->max_distance, maximum_distance);
         maximum_index_size += temp_index->get_max_record_length();
     }
 
@@ -2324,7 +2324,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
 
 
     //Set the width of the values to the minimum needed to fit everything
-    size_t maximum_value = std::max(maximum_index_size, std::max(maximum_distance, max_node_id));
+    size_t maximum_value = std::max(maximum_index_size, std::max(maximum_distance, (size_t) max_node_id));
     size_t new_width = std::max(bit_width(maximum_value), (size_t)13); //13 is the width of the tags
     snarl_tree_records->width(new_width);
 
@@ -2645,7 +2645,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                         //or the snarl is too big but we are looking at the boundaries
                         snarl_record_constructor.set_distance(node_ranks.first.first, node_ranks.first.second,
                             node_ranks.second.first, node_ranks.second.second, distance);
-                        max_distance = std::max(max_snarl_distance, distance);
+                        max_snarl_distance = std::max(max_snarl_distance, distance);
                     }
                 }
                 snarl_record_constructor.set_distance_bit_width(max_distance);
