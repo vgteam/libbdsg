@@ -2311,7 +2311,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
         min_node_id = min_node_id == 0 ? temp_index->min_node_id
                                        : std::min(min_node_id, temp_index->min_node_id);
         max_node_id = std::max(max_node_id, temp_index->max_node_id);
-        maximum_distance += temp_index->max_distance;
+        maximum_distance = std::max(temp_index->max_distance);
         maximum_index_size += temp_index->get_max_record_length();
     }
 
@@ -2498,6 +2498,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                                 snarl_record_constructor.set_max_length(temp_snarl_record.max_length);
 
                                 //Add distances and record connectivity
+                                size_t max_snarl_distance = 0;
                                 for (const auto& it : temp_snarl_record.distances) {
                                     const pair<pair<size_t, bool>, pair<size_t, bool>>& node_ranks = it.first;
                                     const size_t distance = it.second;
@@ -2510,6 +2511,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                                         //or the snarl is too big but we are looking at the boundaries
                                         snarl_record_constructor.set_distance(node_ranks.first.first, node_ranks.first.second,
                                             node_ranks.second.first, node_ranks.second.second, distance);
+                                        max_snarl_distance = std::max(max_snarl_distance, distance);
                                     }
 
                                     //Now set the connectivity of this snarl
@@ -2533,6 +2535,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                                         snarl_record_constructor.set_tip_tip_connected();
                                     }
                                 }
+                                snarl_record_constructor.set_distance_bit_width(max_snarl_distance);
 #ifdef debug_distance_indexing
                             cerr << "    The snarl record is at offset " << snarl_record_constructor.SnarlRecord::record_offset << endl;
                             cerr << "    This child snarl has " << snarl_record_constructor.get_node_count() << " children: " << endl;
@@ -2632,6 +2635,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                 //Fill in snarl info
                 snarl_record_constructor.set_parent_record_offset(0);
                 //Add distances and record connectivity
+                size_t max_snarl_distance = 0;
                 for (const auto& it : temp_snarl_record.distances) {
                     const pair<pair<size_t, bool>, pair<size_t, bool>>& node_ranks = it.first;
                     const size_t distance = it.second;
@@ -2641,8 +2645,10 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                         //or the snarl is too big but we are looking at the boundaries
                         snarl_record_constructor.set_distance(node_ranks.first.first, node_ranks.first.second,
                             node_ranks.second.first, node_ranks.second.second, distance);
+                        max_distance = std::max(max_snarl_distance, distance);
                     }
                 }
+                snarl_record_constructor.set_distance_bit_width(max_distance);
 #ifdef debug_distance_indexing
                 cerr << "    The snarl record is at offset " << snarl_record_constructor.SnarlRecord::record_offset << endl;
                 cerr << "    This child snarl has " << snarl_record_constructor.get_node_count() << " children: " << endl;
