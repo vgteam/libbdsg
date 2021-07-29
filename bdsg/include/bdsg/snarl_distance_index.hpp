@@ -922,9 +922,9 @@ private:
 
         //We're going to store multiple distance values in each vector slot to save bits
         //Get the bit width used for storing distances
-        size_t get_distance_bit_width() ;
+        size_t get_distance_bit_width() const ;
         //And how many distance values are we keeping in each slot in the snarl_tree_records vector
-        size_t get_distance_values_per_vector_element();
+        size_t get_distance_values_per_vector_element() const;
 
 
         //Get the index into the distance vector for the calculating distance between the given node sides

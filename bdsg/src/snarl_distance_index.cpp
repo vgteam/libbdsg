@@ -1698,12 +1698,12 @@ void SnarlDistanceIndex::SnarlRecordConstructor::set_distance_bit_width(size_t m
     (*SnarlTreeRecordConstructor::records)->at(SnarlRecord::record_offset + + SNARL_BIT_WIDTH_OFFSET) = val;
 }
 
-size_t SnarlDistanceIndex::SnarlRecord::get_distance_bit_width() {
+size_t SnarlDistanceIndex::SnarlRecord::get_distance_bit_width() const {
 
     return (*SnarlTreeRecord::records)->at(SnarlRecord::record_offset + SNARL_BIT_WIDTH_OFFSET);
 }
-size_t SnarlDistanceIndex::SnarlRecord::get_distance_values_per_vector_element() {
-    return snarl_tree_records->width() / get_distance_bit_width();
+size_t SnarlDistanceIndex::SnarlRecord::get_distance_values_per_vector_element() const {
+    return (*SnarlTreeRecord::records)->width() / get_distance_bit_width();
 }
 
 void SnarlDistanceIndex::SnarlRecordConstructor::set_distance(size_t rank1, bool right_side1, size_t rank2, bool right_side2, size_t distance) {
@@ -1738,7 +1738,7 @@ void SnarlDistanceIndex::SnarlRecordConstructor::set_distance(size_t rank1, bool
     size_t new_value = old_value | (val << bits_to_the_right);
 
 
-    (*SnarlTreeRecordConstructor::records)->at(distance_vector_start + snarl_tree_record_vector_offset) = new_val;
+    (*SnarlTreeRecordConstructor::records)->at(distance_vector_start + snarl_tree_record_vector_offset) = new_value;
 }
 
 size_t SnarlDistanceIndex::SnarlRecord::get_distance(size_t rank1, bool right_side1, size_t rank2, bool right_side2) const {
