@@ -952,7 +952,7 @@ private:
 
         SnarlRecordConstructor();
 
-        SnarlRecordConstructor (size_t node_count, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, record_t type){
+        SnarlRecordConstructor (size_t node_count, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, record_t type, size_t max_distance){
             //Constructor for making a new record, including allocating memory.
             //Assumes that this is the latest record being made, so pointer will be the end of
             //the array and we need to allocate extra memory past it
@@ -963,7 +963,7 @@ private:
             SnarlRecord::record_offset = (*records)->size();
             SnarlTreeRecordConstructor::record_offset = (*records)->size();
 
-            size_t extra_size = record_size(type, node_count);
+            size_t extra_size = record_size(type, node_count, max_distance);
 #ifdef debug_indexing
             cerr << " Resizing array to add snarl: length " << (*SnarlTreeRecordConstructor::records)->size() << " -> "  << (*SnarlTreeRecordConstructor::records)->size() + extra_size << endl;
 #endif

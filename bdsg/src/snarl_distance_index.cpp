@@ -1583,7 +1583,7 @@ size_t SnarlDistanceIndex::SnarlRecord::distance_vector_size(record_t type, size
         //matrix of distances
         size_t node_side_count = node_count * 2 + 2;
         size_t vector_size =  (((node_side_count+1)*node_side_count) / 2);
-        size_t distance_values_per_vector_element = (*SnarlTreeRecord::records)->width() / bit_width(max_distance) 
+        size_t distance_values_per_vector_element = (*SnarlTreeRecord::records)->width() / bit_width(max_distance); 
         return vector_size / distance_values_per_vector_element + 
                 (vector_size % distance_values_per_vector_element == 0 ? 0 : 1);
     } else if (type ==  OVERSIZED_SNARL){
@@ -1602,9 +1602,9 @@ size_t SnarlDistanceIndex::SnarlRecord::distance_vector_size(record_t type, size
 size_t SnarlDistanceIndex::SnarlRecord::record_size (record_t type, size_t node_count, size_t max_distance) {
     return SNARL_RECORD_SIZE + distance_vector_size(type, node_count, max_distance) + node_count;
 }
-size_t SnarlDistanceIndex::SnarlRecord::record_size() {
+size_t SnarlDistanceIndex::SnarlRecord::record_size(size_t max_distance) {
     record_t type = get_record_type();
-    return record_size(type, get_node_count());
+    return record_size(type, get_node_count(), get_distance_values_per_vector_element);
 }
 
 
@@ -2231,7 +2231,7 @@ SnarlDistanceIndex::SnarlRecordConstructor SnarlDistanceIndex::ChainRecordConstr
     (*SnarlTreeRecordConstructor::records)->resize(start_i+1);
     (*SnarlTreeRecordConstructor::records)->at(start_i) = snarl_record_size;
     (*SnarlTreeRecordConstructor::records)->reserve(start_i + snarl_record_size);
-    SnarlRecordConstructor snarl_record(snarl_size, SnarlTreeRecordConstructor::records, type);
+    SnarlRecordConstructor snarl_record(snarl_size, SnarlTreeRecordConstructor::records, type, max_snarl_distance);
     snarl_record.set_distance_bit_width(max_snarl_distance);
 #ifdef debug_indexing
     cerr << (*SnarlTreeRecordConstructor::records)->size() << " Adding child snarl length to the end of the array " << endl;
@@ -2631,7 +2631,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                 const TemporaryDistanceIndex::TemporarySnarlRecord& temp_snarl_record = temp_index->temp_snarl_records[current_record_index    .second];
                 record_to_offset.emplace(make_pair(temp_index_i,current_record_index), snarl_tree_records->size());
 
-                SnarlRecordConstructor snarl_record_constructor (temp_snarl_record.node_count, &snarl_tree_records, record_type);
+                SnarlRecordConstructor snarl_record_constructor (temp_snarl_record.node_count, &snarl_tree_records, record_type, temp_snarl_record.max_length);
 
                 //Fill in snarl info
                 snarl_record_constructor.set_parent_record_offset(0);
