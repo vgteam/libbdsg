@@ -1118,7 +1118,7 @@ private:
         void add_trivial_snarl();
 
         //Add a snarl to the end of the chain and return a SnarlRecordConstructor pointing to it
-        SnarlRecordConstructor add_snarl(size_t snarl_size, record_t type); 
+        SnarlRecordConstructor add_snarl(size_t snarl_size, record_t type, size_t max_snarl_distance); 
 
         //This gets called when we've added all of the chain's children
         void finish_chain();
@@ -1271,9 +1271,8 @@ public:
         }
     }
     //How many bits are needed to represent this value (with some wiggle room)
-    //This uses sdsl's formula
     static size_t bit_width(size_t value) {
-        return log2(value-1) + 1;
+        return value >= 1 ? 3 : log2(value+1) + 2;
 
     }
 public:
