@@ -1574,7 +1574,7 @@ void SnarlDistanceIndex::RootRecordConstructor::add_component(size_t index, size
 }
 
 
-size_t SnarlDistanceIndex::SnarlRecord::distance_vector_size(record_t type, size_t node_count) {
+size_t SnarlDistanceIndex::SnarlRecord::distance_vector_size(record_t type, size_t node_count, size_t max_distance) {
     if (type == SNARL || type == ROOT_SNARL){
         //For a normal snarl, its just the record size and the pointers to children
         return 0;
@@ -1583,8 +1583,9 @@ size_t SnarlDistanceIndex::SnarlRecord::distance_vector_size(record_t type, size
         //matrix of distances
         size_t node_side_count = node_count * 2 + 2;
         size_t vector_size =  (((node_side_count+1)*node_side_count) / 2);
-        return vector_size / get_distance_values_per_vector_element + 
-                (vector_size % get_distance_values_per_vector_element == 0 ? 0 : 1);
+        size_t distance_values_per_vector_element = (*SnarlTreeRecord::records)->width() / bit_width(max_distance) 
+        return vector_size / distance_values_per_vector_element + 
+                (vector_size % distance_values_per_vector_element == 0 ? 0 : 1);
     } else if (type ==  OVERSIZED_SNARL){
         //For a large min_distance snarl, record the side, pointers to children, and just
         //the min distances from each node side to the two boundary nodes
@@ -1598,8 +1599,8 @@ size_t SnarlDistanceIndex::SnarlRecord::distance_vector_size(record_t type, size
     }
 }
 
-size_t SnarlDistanceIndex::SnarlRecord::record_size (record_t type, size_t node_count) {
-    return SNARL_RECORD_SIZE + distance_vector_size(type, node_count) + node_count;
+size_t SnarlDistanceIndex::SnarlRecord::record_size (record_t type, size_t node_count, size_t max_distance) {
+    return SNARL_RECORD_SIZE + distance_vector_size(type, node_count, max_distance) + node_count;
 }
 size_t SnarlDistanceIndex::SnarlRecord::record_size() {
     record_t type = get_record_type();

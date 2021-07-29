@@ -916,8 +916,8 @@ private:
         }
 
         //How big is the entire snarl record?
-        static size_t distance_vector_size(record_t type, size_t node_count);
-        static size_t record_size (record_t type, size_t node_count) ;
+        static size_t distance_vector_size(record_t type, size_t node_count, size_t max_distance);
+        static size_t record_size (record_t type, size_t node_count, size_t max_distance) ;
         virtual size_t record_size() ;
 
         //We're going to store multiple distance values in each vector slot to save bits
@@ -1272,7 +1272,7 @@ public:
     }
     //How many bits are needed to represent this value (with some wiggle room)
     static size_t bit_width(size_t value) {
-        return value >= 1 ? 3 : log2(value+1) + 2;
+        return value <= 1 ? 3 : log2(value+1) + 2;
 
     }
 public:
