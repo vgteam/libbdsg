@@ -2324,7 +2324,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
 
 
     //Set the width of the values to the minimum needed to fit everything
-    size_t maximum_value = std::max(maximum_index_size, maximum_distance);
+    size_t maximum_value = std::max(maximum_index_size, std::max(maximum_distance, max_node_id));
     size_t new_width = std::max(bit_width(maximum_value), (size_t)13); //13 is the width of the tags
     snarl_tree_records->width(new_width);
 
