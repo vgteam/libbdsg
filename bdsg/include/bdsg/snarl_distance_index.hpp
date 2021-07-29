@@ -916,7 +916,7 @@ private:
         }
 
         //How big is the entire snarl record?
-        static size_t distance_vector_size(record_t type, size_t node_count, size_t max_distance);
+        static size_t distance_vector_size(record_t type, size_t node_count, size_t max_distance, size_t snarl_tree_record_bit_width);
         static size_t record_size (record_t type, size_t node_count, size_t max_distance) ;
         virtual size_t record_size() ;
 
