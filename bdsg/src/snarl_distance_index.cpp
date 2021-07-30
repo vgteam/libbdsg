@@ -2232,7 +2232,7 @@ SnarlDistanceIndex::SnarlRecordConstructor SnarlDistanceIndex::ChainRecordConstr
     (*SnarlTreeRecordConstructor::records)->at(start_i) = snarl_record_size;
     (*SnarlTreeRecordConstructor::records)->reserve(start_i + snarl_record_size);
     SnarlRecordConstructor snarl_record(snarl_size, SnarlTreeRecordConstructor::records, type, max_snarl_distance);
-    snarl_record.set_distance_bit_width(max_distance);
+    snarl_record.set_distance_bit_width(max_snarl_distance);
 #ifdef debug_indexing
     cerr << (*SnarlTreeRecordConstructor::records)->size() << " Adding child snarl length to the end of the array " << endl;
 #endif
@@ -2643,7 +2643,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                     for (const auto& it : temp_snarl_record.distances) {
                         max_snarl_distance = std::max(max_snarl_distance, it.second);
                     }
-                    snarl_record_constructor.set_distance_bit_width(max_snarl_distance);
+                    snarl_record_constructor.set_distance_bit_width(max_distance);
 
                     for (const auto& it : temp_snarl_record.distances) {
                         const pair<pair<size_t, bool>, pair<size_t, bool>>& node_ranks = it.first;
