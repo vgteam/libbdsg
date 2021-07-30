@@ -1759,7 +1759,7 @@ size_t SnarlDistanceIndex::SnarlRecord::get_distance(size_t rank1, bool right_si
     size_t entry = (*records)->at(distance_vector_start + snarl_tree_record_vector_offset);
     size_t bits_to_the_right =  (*SnarlTreeRecord::records)->width() - 
         ((snarl_tree_record_entry_offset+1)* get_distance_bit_width());
-    size_t bit_mask = pow(2, get_distance_bit_width())-1;
+    size_t bit_mask = (1 << get_distance_bit_width())-1;
     size_t val = (entry >> bits_to_the_right) & bit_mask;
 
     return  val == 0 ? std::numeric_limits<size_t>::max() : val-1;
