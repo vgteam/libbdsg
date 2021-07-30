@@ -2220,7 +2220,7 @@ void SnarlDistanceIndex::ChainRecordConstructor::add_trivial_snarl() {
 }
 //Add a snarl to the end of the chain and return a SnarlRecordConstructor pointing to it
 SnarlDistanceIndex::SnarlRecordConstructor SnarlDistanceIndex::ChainRecordConstructor::add_snarl(size_t snarl_size, record_t type, size_t max_snarl_distance) {
-    size_t snarl_record_size = SnarlRecord::record_size(type, snarl_size, max_snarl_distance, (*SnarlRecord::records)->width());
+    size_t snarl_record_size = SnarlRecord::record_size(type, snarl_size, max_snarl_distance, (*ChainRecord::records)->width());
 #ifdef debug_indexing
     cerr << (*SnarlTreeRecordConstructor::records)->size() << " Adding child snarl length to the end of the array " << endl;
 #endif
@@ -2232,7 +2232,7 @@ SnarlDistanceIndex::SnarlRecordConstructor SnarlDistanceIndex::ChainRecordConstr
     (*SnarlTreeRecordConstructor::records)->at(start_i) = snarl_record_size;
     (*SnarlTreeRecordConstructor::records)->reserve(start_i + snarl_record_size);
     SnarlRecordConstructor snarl_record(snarl_size, SnarlTreeRecordConstructor::records, type, max_snarl_distance);
-    snarl_record.set_distance_bit_width(max_snarl_distance);
+    snarl_record.set_distance_bit_width(max_distance);
 #ifdef debug_indexing
     cerr << (*SnarlTreeRecordConstructor::records)->size() << " Adding child snarl length to the end of the array " << endl;
 #endif

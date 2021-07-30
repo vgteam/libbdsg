@@ -963,7 +963,7 @@ private:
             SnarlRecord::record_offset = (*records)->size();
             SnarlTreeRecordConstructor::record_offset = (*records)->size();
 
-            size_t extra_size = record_size(type, node_count, max_distance);
+            size_t extra_size = record_size(type, node_count, max_distance, (*records)->width());
 #ifdef debug_indexing
             cerr << " Resizing array to add snarl: length " << (*SnarlTreeRecordConstructor::records)->size() << " -> "  << (*SnarlTreeRecordConstructor::records)->size() + extra_size << endl;
 #endif
@@ -1208,6 +1208,7 @@ public:
             size_t node_count;
             size_t min_length; //Not including boundary nodes
             size_t max_length;
+            size_t max_distance = 0;
             pair<temp_record_t, size_t> parent;
             vector<pair<temp_record_t, size_t>> children; //All children, nodes and chains, in arbitrary order
             unordered_set<size_t> tippy_child_ranks; //The ranks of children that are tips
