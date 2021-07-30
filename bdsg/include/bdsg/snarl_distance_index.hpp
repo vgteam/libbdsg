@@ -916,8 +916,8 @@ private:
         }
 
         //How big is the entire snarl record?
-        static size_t distance_vector_size(record_t type, size_t node_count, size_t max_distance, size_t snarl_tree_record_bit_width);
-        static size_t record_size (record_t type, size_t node_count, size_t max_distance, size_t snarl_tree_record_bit_width) ;
+        static size_t distance_vector_size(record_t type, size_t node_count, size_t distance_values_per_vector_element, size_t snarl_tree_record_bit_width);
+        static size_t record_size (record_t type, size_t node_count, size_t distance_vectors_per_element, size_t snarl_tree_record_bit_width) ;
         virtual size_t record_size() ;
 
         //We're going to store multiple distance values in each vector slot to save bits
@@ -962,8 +962,9 @@ private:
 
             SnarlRecord::record_offset = (*records)->size();
             SnarlTreeRecordConstructor::record_offset = (*records)->size();
+            size_t distance_values_per_vector_element = (*records)->width() / bit_width(max_distance);
 
-            size_t extra_size = record_size(type, node_count, max_distance, (*records)->width());
+            size_t extra_size = record_size(type, node_count, distance_values_per_vector_element, (*records)->width());
 #ifdef debug_indexing
             cerr << " Resizing array to add snarl: length " << (*SnarlTreeRecordConstructor::records)->size() << " -> "  << (*SnarlTreeRecordConstructor::records)->size() + extra_size << endl;
 #endif
@@ -1273,7 +1274,7 @@ public:
     }
     //How many bits are needed to represent this value (with some wiggle room)
     static size_t bit_width(size_t value) {
-        return value <= 1 ? 3 : log2(value+1) + 2;
+        return log2(value+1) + 2;
 
     }
 public:
