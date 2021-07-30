@@ -24,3 +24,5 @@ bdsg/overlays/packed_path_position_overlay_1.cpp
 bdsg/overlays/path_position_overlays.cpp
 bdsg/overlays/vectorizable_overlays.cpp
 bdsg/overlays/vectorizable_overlays_1.cpp
+handlegraph/snarl_decomposition.cpp
+bdsg/snarl_distance_index.cpp
