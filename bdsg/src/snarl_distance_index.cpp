@@ -2643,7 +2643,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                     for (const auto& it : temp_snarl_record.distances) {
                         max_snarl_distance = std::max(max_snarl_distance, it.second);
                     }
-                    snarl_record_constructor.set_distance_bit_width(max_distance);
+                    snarl_record_constructor.set_distance_bit_width(temp_snarl_record.max_distance);
 
                     for (const auto& it : temp_snarl_record.distances) {
                         const pair<pair<size_t, bool>, pair<size_t, bool>>& node_ranks = it.first;
