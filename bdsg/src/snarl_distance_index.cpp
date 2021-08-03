@@ -508,7 +508,7 @@ void SnarlDistanceIndex::load(string& filename) {
     snarl_tree_records.dissociate();
     snarl_tree_records.reset();
     std::ifstream in (filename);
-    snarl_tree_records.load(in);
+    snarl_tree_records.load(in, tag);
 }
 void SnarlDistanceIndex::load(int fd) {
     snarl_tree_records.dissociate();

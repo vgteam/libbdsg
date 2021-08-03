@@ -460,5 +460,6 @@ void bind_bdsg_snarl_distance_index(std::function< pybind11::module &(std::strin
 		cl.def_static("sum", (unsigned long (*)(const class std::vector<unsigned long>)) &bdsg::SnarlDistanceIndex::sum, "Add integers, returning max() if any of them are max()\n\nC++: bdsg::SnarlDistanceIndex::sum(const class std::vector<unsigned long>) --> unsigned long", pybind11::arg("vals"));
 		cl.def_static("minus", (unsigned long (*)(unsigned long, unsigned long)) &bdsg::SnarlDistanceIndex::minus, "C++: bdsg::SnarlDistanceIndex::minus(unsigned long, unsigned long) --> unsigned long", pybind11::arg("x"), pybind11::arg("y"));
 		cl.def_static("bit_width", (unsigned long (*)(unsigned long)) &bdsg::SnarlDistanceIndex::bit_width, "C++: bdsg::SnarlDistanceIndex::bit_width(unsigned long) --> unsigned long", pybind11::arg("value"));
+		cl.def("assign", (class bdsg::SnarlDistanceIndex & (bdsg::SnarlDistanceIndex::*)(const class bdsg::SnarlDistanceIndex &)) &bdsg::SnarlDistanceIndex::operator=, "C++: bdsg::SnarlDistanceIndex::operator=(const class bdsg::SnarlDistanceIndex &) --> class bdsg::SnarlDistanceIndex &", pybind11::return_value_policy::automatic, pybind11::arg(""));
 	}
 }
