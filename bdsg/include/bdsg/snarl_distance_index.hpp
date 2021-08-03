@@ -379,7 +379,7 @@ private:
      *
      */
     
-public:
+private:
     bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector> snarl_tree_records;
 
     /* If this is 0, then don't store distances

@@ -421,8 +421,6 @@ void bind_bdsg_snarl_distance_index(std::function< pybind11::module &(std::strin
 			.value("TEMP_ROOT", bdsg::SnarlDistanceIndex::TEMP_ROOT)
 			.export_values();
 
-		cl.def_readwrite("snarl_tree_records", &bdsg::SnarlDistanceIndex::snarl_tree_records);
-		cl.def_readwrite("snarl_size_limit", &bdsg::SnarlDistanceIndex::snarl_size_limit);
 		cl.def("get_root", (struct handlegraph::net_handle_t (bdsg::SnarlDistanceIndex::*)() const) &bdsg::SnarlDistanceIndex::get_root, "Get a net handle referring to a tip-to-tip traversal of the contents of the root snarl.\n TODO: Special handling for circular things in the root snarl? Circular traversal type?\n\nC++: bdsg::SnarlDistanceIndex::get_root() const --> struct handlegraph::net_handle_t");
 		cl.def("is_root", (bool (bdsg::SnarlDistanceIndex::*)(const struct handlegraph::net_handle_t &) const) &bdsg::SnarlDistanceIndex::is_root, "Return true if the given handle refers to (a traversal of) the root\n snarl, and false otherwise.\n\nC++: bdsg::SnarlDistanceIndex::is_root(const struct handlegraph::net_handle_t &) const --> bool", pybind11::arg("net"));
 		cl.def("is_snarl", (bool (bdsg::SnarlDistanceIndex::*)(const struct handlegraph::net_handle_t &) const) &bdsg::SnarlDistanceIndex::is_snarl, "Returns true if the given net handle refers to (a traversal of) a snarl.\n\nC++: bdsg::SnarlDistanceIndex::is_snarl(const struct handlegraph::net_handle_t &) const --> bool", pybind11::arg("net"));
@@ -460,6 +458,5 @@ void bind_bdsg_snarl_distance_index(std::function< pybind11::module &(std::strin
 		cl.def_static("sum", (unsigned long (*)(const class std::vector<unsigned long>)) &bdsg::SnarlDistanceIndex::sum, "Add integers, returning max() if any of them are max()\n\nC++: bdsg::SnarlDistanceIndex::sum(const class std::vector<unsigned long>) --> unsigned long", pybind11::arg("vals"));
 		cl.def_static("minus", (unsigned long (*)(unsigned long, unsigned long)) &bdsg::SnarlDistanceIndex::minus, "C++: bdsg::SnarlDistanceIndex::minus(unsigned long, unsigned long) --> unsigned long", pybind11::arg("x"), pybind11::arg("y"));
 		cl.def_static("bit_width", (unsigned long (*)(unsigned long)) &bdsg::SnarlDistanceIndex::bit_width, "C++: bdsg::SnarlDistanceIndex::bit_width(unsigned long) --> unsigned long", pybind11::arg("value"));
-		cl.def("assign", (class bdsg::SnarlDistanceIndex & (bdsg::SnarlDistanceIndex::*)(const class bdsg::SnarlDistanceIndex &)) &bdsg::SnarlDistanceIndex::operator=, "C++: bdsg::SnarlDistanceIndex::operator=(const class bdsg::SnarlDistanceIndex &) --> class bdsg::SnarlDistanceIndex &", pybind11::return_value_policy::automatic, pybind11::arg(""));
 	}
 }
