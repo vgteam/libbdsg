@@ -407,10 +407,11 @@ private:
 /////// These tell the record how big it is and the offsets of each of its values
     
     //Root record
-    const static size_t ROOT_RECORD_SIZE = 4;
+    const static size_t ROOT_RECORD_SIZE = 5;
     const static size_t COMPONENT_COUNT_OFFSET = 1;
     const static size_t NODE_COUNT_OFFSET = 2;
     const static size_t MIN_NODE_ID_OFFSET = 3;
+    const static size_t MAX_TREE_DEPTH_OFFSET = 4;
 
     //Node record
     const static size_t NODE_RECORD_SIZE = 5;
@@ -803,6 +804,7 @@ private:
         }
         virtual size_t get_connected_component_count() const {return (*records)->at(record_offset+COMPONENT_COUNT_OFFSET);}
         virtual size_t get_node_count() const {return (*records)->at(record_offset+NODE_COUNT_OFFSET);}
+        virtual size_t get_max_tree_depth() const {return (*records)->at(record_offset+MAX_TREE_DEPTH_OFFSET);}
         virtual size_t get_min_node_id() const {return (*records)->at(record_offset+MIN_NODE_ID_OFFSET);}
         virtual SnarlTreeRecord get_component_record(size_t component_number) const {return SnarlTreeRecord((*records)->at(record_offset+2+component_number), records);}
         virtual bool for_each_child(const std::function<bool(const handlegraph::net_handle_t&)>& iteratee) const;
@@ -813,7 +815,7 @@ private:
 
         //Constructor meant for creating a new record, at the end of snarl_tree_records
         //TODO: The way I wrote this pointer should be 0
-        RootRecordConstructor (size_t pointer, size_t connected_component_count, size_t node_count, 
+        RootRecordConstructor (size_t pointer, size_t connected_component_count, size_t node_count, size_t max_tree_depth, 
                     handlegraph::nid_t min_node_id, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records){
             RootRecord::record_offset = pointer;
             SnarlTreeRecordConstructor::record_offset = pointer;
@@ -828,10 +830,12 @@ private:
             set_record_type(ROOT);
             set_min_node_id(min_node_id);
             set_node_count(node_count);
+            set_max_tree_depth(max_tree_depth);
             set_connected_component_count(connected_component_count);
         }
         virtual void set_connected_component_count(size_t connected_component_count);
         virtual void set_node_count(size_t node_count);
+        virtual void set_max_tree_depth(size_t tree_depth);
         virtual void set_min_node_id(handlegraph::nid_t node_id);
         virtual void add_component(size_t index, size_t offset);
     };
@@ -1165,6 +1169,7 @@ public:
         handlegraph::nid_t min_node_id=0;
         handlegraph::nid_t max_node_id=0;
         size_t root_structure_count=0; //How many things are in the root
+        size_t max_tree_depth = 0;
         size_t max_index_size=ROOT_RECORD_SIZE;//TODO: This will change depending on how the actual index is represented
         size_t max_distance = 0;
         size_t get_max_record_length() const {return root_structure_count + (max_node_id-min_node_id) * NODE_RECORD_SIZE + max_index_size;} 
@@ -1179,6 +1184,7 @@ public:
             handlegraph::nid_t end_node_id;
             bool end_node_rev;
             size_t end_node_length;
+            size_t tree_depth = 0;
             //Type of the parent and offset into the appropriate vector
             //(TEMP_ROOT, 0) if this is a root level chain
             pair<temp_record_t, size_t> parent;
@@ -1210,6 +1216,7 @@ public:
             size_t min_length; //Not including boundary nodes
             size_t max_length;
             size_t max_distance = 0;
+            size_t tree_depth = 0;
             pair<temp_record_t, size_t> parent;
             vector<pair<temp_record_t, size_t>> children; //All children, nodes and chains, in arbitrary order
             unordered_set<size_t> tippy_child_ranks; //The ranks of children that are tips
