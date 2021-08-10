@@ -124,6 +124,10 @@ public:
      */
     bool is_chain(const net_handle_t& net) const;
     /**
+     * Returns true if the given net handle refers to (a traversal of) a chain that loops (a chain where the first and last node are the same).
+     */
+    bool is_looping_chain(const net_handle_t& net) const;
+    /**
      * Returns true if the given net handle refers to (a traversal of) a trivial chain that represents a single node.
      */
     bool is_trivial_chain(const net_handle_t& net) const;
@@ -276,6 +280,12 @@ public:
      * or if they are not children of the parent
      */
     size_t distance_in_parent(const net_handle_t& parent, const net_handle_t& child1, const net_handle_t& child2, const HandleGraph* graph=nullptr) const;
+    
+    //Get the rank of the handle in the parent. This is only really 
+    //relevant for children of chains. It returns the offset of the
+    //record in the parent, so all that really matters is that the
+    //rank will be bigger for children later in the chain
+    size_t rank_in_parent(const net_handle_t& net) const;
 
 
     /** 
@@ -303,7 +313,21 @@ public:
      * What is the node id of the node represented by this net handle
      * net must be a node or a sentinel
      */
-    size_t node_id(const net_handle_t& net) const ;
+    nid_t node_id(const net_handle_t& net) const ;
+    /**
+     * Get a net handle from a node
+     */
+    net_handle_t get_node_net_handle(const nid_t id) const;
+
+    /**
+     * How deep is the snarl tree? The root is 0, top-level chain is 1, its snarls are 2, etc. doesn't count nodes
+     */
+    size_t get_max_tree_depth() const;
+
+    /**
+     * What is the depth of this net handle. Nodes get the depth of their parent, the epth of the root is 0
+     */
+    size_t get_depth(const net_handle_t& net) const;
 
     bool has_connectivity(const net_handle_t& net, endpoint_t start, endpoint_t end) const ;
     bool has_external_connectivity(const net_handle_t& net, endpoint_t start, endpoint_t end) const ; 
@@ -317,7 +341,7 @@ public:
      * Returns std::numeric_limits<size_t>::max() if there is no path between the two positions
      */
     //TODO: The positions can't be const?
-    size_t minimum_distance(handlegraph::nid_t id1, bool rev1, size_t offset1, handlegraph::nid_t id2, bool rev2, size_t offset2, bool unoriented_distance = false, const HandleGraph* graph=nullptr) const ;
+    size_t minimum_distance(const handlegraph::nid_t id1, const bool rev1, const size_t offset1, const handlegraph::nid_t id2, const bool rev2, const size_t offset2, bool unoriented_distance = false, const HandleGraph* graph=nullptr) const ;
 
 
     
@@ -421,7 +445,7 @@ private:
     const static size_t NODE_COMPONENT_OFFSET = 4;
  
     //Chain record
-    const static size_t CHAIN_RECORD_SIZE = 9;
+    const static size_t CHAIN_RECORD_SIZE = 10;
     const static size_t CHAIN_NODE_COUNT_OFFSET = 1;
     const static size_t CHAIN_PARENT_OFFSET = 2;
     const static size_t CHAIN_MIN_LENGTH_OFFSET = 3; //If this is a multicomponent chain, then the actual min length is 0, but this will be the length of the first component since it is the only length that matters when looping around the outside of the chain
@@ -430,10 +454,11 @@ private:
     const static size_t CHAIN_START_NODE_OFFSET = 6;
     const static size_t CHAIN_END_NODE_OFFSET = 7;
     const static size_t CHAIN_LAST_CHILD_OFFSET = 8; //The offset of the last thing in the chain - node or (if looping chain) snarl
+    const static size_t CHAIN_DEPTH_OFFSET = 9;
 
    
     //Snarl record (which occurs within a chain)
-    const static size_t SNARL_RECORD_SIZE = 10;
+    const static size_t SNARL_RECORD_SIZE = 11;
     const static size_t SNARL_NODE_COUNT_OFFSET = 1;
     const static size_t SNARL_PARENT_OFFSET = 2;
     const static size_t SNARL_MIN_LENGTH_OFFSET = 3;
@@ -443,7 +468,9 @@ private:
     //TODO: This could also be found from the list of the snarl's children, but probably better here, even if it's duplicative
     const static size_t SNARL_START_NODE_OFFSET = 7;
     const static size_t SNARL_END_NODE_OFFSET = 8;
-    const static size_t SNARL_BIT_WIDTH_OFFSET = 9;
+    const static size_t SNARL_DEPTH_OFFSET = 9;
+    const static size_t SNARL_BIT_WIDTH_OFFSET = 10;
+
     
     //Node record within a chain
     const static size_t CHAIN_NODE_RECORD_SIZE = 5; //# things for a node (not including snarl record)
@@ -946,6 +973,7 @@ private:
         virtual size_t get_node_count() const;
 
         virtual size_t get_child_record_pointer() const;
+        virtual size_t get_depth() const;
 
         virtual bool for_each_child(const std::function<bool(const net_handle_t&)>& iteratee) const;
 
@@ -993,6 +1021,7 @@ private:
         void set_node_count(size_t node_count);
 
         void set_child_record_pointer(size_t pointer) ;
+        void set_depth(size_t depth);
 
         //Add a reference to a child of this snarl. Assumes that the index is completed up
         //to here
@@ -1046,6 +1075,7 @@ private:
         virtual size_t get_forward_loop_value(size_t pointer) const;
         virtual size_t get_reverse_loop_value(size_t pointer) const;
         virtual size_t get_chain_component(size_t pointer, bool get_end=false) const;
+        virtual size_t get_depth() const;
 
         //Get the distance between the given node sides (relative to the orientation of the chain)
         //Nodes represent a tuple of <pointer, right_side, and length of the node>
@@ -1116,6 +1146,7 @@ private:
         void add_node(handlegraph::nid_t id, size_t prefix_sum, size_t forward_loop, size_t reverse_loop);
         void add_node(handlegraph::nid_t id, size_t prefix_sum, size_t forward_loop, size_t reverse_loop, size_t component);
         void set_node_count(size_t node_count);
+        void set_depth(size_t depth);
 
         //The offset of the last child, if it is a snarl, and if it can loop 
         void set_last_child_offset(size_t offset, bool is_snarl, bool loopable);

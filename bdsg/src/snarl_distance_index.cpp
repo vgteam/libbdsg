@@ -73,6 +73,21 @@ bool SnarlDistanceIndex::is_chain(const net_handle_t& net) const {
             && (SnarlTreeRecord(net, &snarl_tree_records).get_record_handle_type() == CHAIN_HANDLE
             || SnarlTreeRecord(net, &snarl_tree_records).get_record_handle_type() == NODE_HANDLE);
 }
+bool SnarlDistanceIndex::is_looping_chain(const net_handle_t& net) const {
+    if (!is_chain(net)) {
+        return false;
+    }
+    ChainRecord chain_record(net, &snarl_tree_records);
+    return chain_record.get_start_id() == chain_record.get_end_id();
+}
+size_t SnarlDistanceIndex::rank_in_parent(const net_handle_t& net) const {
+    if (!(is_snarl(net) || is_node(net))){
+        cerr << "warning: finding rank in anything not a chain is meaningless" << endl;
+        return 0;
+    } else {
+        return SnarlTreeRecord(net, &snarl_tree_records).get_rank_in_parent();
+    }
+}
 
 bool SnarlDistanceIndex::is_trivial_chain(const net_handle_t& net) const {
     return get_handle_type(net) == CHAIN_HANDLE
@@ -768,7 +783,7 @@ pair<net_handle_t, bool> SnarlDistanceIndex::lowest_common_ancestor(const net_ha
     return make_pair(parent2, is_connected);
 }
 
-size_t SnarlDistanceIndex::minimum_distance(handlegraph::nid_t id1, bool rev1, size_t offset1, handlegraph::nid_t id2, bool rev2, size_t offset2, bool unoriented_distance, const HandleGraph* graph) const {
+size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const bool rev1, const size_t offset1, const handlegraph::nid_t id2, const bool rev2, const size_t offset2, bool unoriented_distance, const HandleGraph* graph) const {
 
 
 #ifdef debug_distances
@@ -1043,7 +1058,7 @@ size_t SnarlDistanceIndex::node_length(const net_handle_t& net) const {
 size_t SnarlDistanceIndex::minimum_length(const net_handle_t& net) const {
         return SnarlTreeRecord(net, &snarl_tree_records).get_min_length();
 }
-size_t SnarlDistanceIndex::node_id(const net_handle_t& net) const {
+nid_t SnarlDistanceIndex::node_id(const net_handle_t& net) const {
     assert(is_node(net) || is_sentinel(net));
     if (is_node(net)) {
         return NodeRecord(net, &snarl_tree_records).get_node_id();
@@ -1060,6 +1075,29 @@ size_t SnarlDistanceIndex::node_id(const net_handle_t& net) const {
     }
 
 }
+net_handle_t SnarlDistanceIndex::get_node_net_handle(const nid_t id) const {
+    return get_net_handle(get_offset_from_node_id(id), START_END, NODE_HANDLE); 
+}
+
+size_t SnarlDistanceIndex::get_max_tree_depth() const {
+    return RootRecord(get_root(), &snarl_tree_records).get_max_tree_depth();
+}
+
+size_t SnarlDistanceIndex::get_depth(const net_handle_t& net) const {
+    if (is_root(net)) {
+        return 0;
+    } else if (is_sentinel(net) || is_node(net)) {
+        return get_depth(get_parent(net));
+    } else if (is_snarl(net)) {
+        return SnarlRecord(net, &snarl_tree_records).get_depth();
+    } else if (is_chain(net)) {
+        return ChainRecord(net, &snarl_tree_records).get_depth();
+    } else {
+        throw runtime_error("error: Unknown handle type");
+    }
+        
+}
+
 
 bool SnarlDistanceIndex::has_connectivity(const net_handle_t& net, endpoint_t start, endpoint_t end) const {
     SnarlTreeRecord record(net, &snarl_tree_records);
@@ -1800,6 +1838,18 @@ void SnarlDistanceIndex::SnarlRecordConstructor::set_child_record_pointer(size_t
 
     (*SnarlTreeRecordConstructor::records)->at(SnarlRecord::record_offset+SNARL_CHILD_RECORD_OFFSET) = pointer;
 }
+size_t SnarlDistanceIndex::SnarlRecord::get_depth() const {
+    return (*records)->at(record_offset+SNARL_DEPTH_OFFSET) ;
+}
+
+void SnarlDistanceIndex::SnarlRecordConstructor::set_depth(size_t depth) {
+#ifdef debug_indexing
+    cerr << SnarlRecord::record_offset+SNARL_DEPTH_OFFSET << " set snarl depth " << depth << endl;
+    assert((*SnarlTreeRecordConstructor::records)->at(SnarlRecord::record_offset+SNARL_DEPTH_OFFSET) == 0);
+#endif
+
+    (*SnarlTreeRecordConstructor::records)->at(SnarlRecord::record_offset+SNARL_DEPTH_OFFSET) = depth;
+}
 //Add a reference to a child of this snarl. Assumes that the index is completed up
 //to here
 void SnarlDistanceIndex::SnarlRecordConstructor::add_child(size_t pointer){
@@ -2200,6 +2250,17 @@ void SnarlDistanceIndex::ChainRecordConstructor::set_node_count(size_t node_coun
 #endif
 
     (*SnarlTreeRecordConstructor::records)->at(ChainRecord::record_offset + CHAIN_NODE_COUNT_OFFSET) = node_count;
+}
+size_t SnarlDistanceIndex::ChainRecord::get_depth() const {
+    return (*records)->at(record_offset+CHAIN_DEPTH_OFFSET) ;
+}
+void SnarlDistanceIndex::ChainRecordConstructor::set_depth(size_t depth) {
+#ifdef debug_indexing
+    cerr << ChainRecord::record_offset + CHAIN_DEPTH_OFFSET << " set chain depth " << depth << endl;
+    assert((*SnarlTreeRecordConstructor::records)->at(ChainRecord::record_offset + CHAIN_DEPTH_OFFSET) == 0);
+#endif
+
+    (*SnarlTreeRecordConstructor::records)->at(ChainRecord::record_offset + CHAIN_DEPTH_OFFSET) = depth;
 }
 
 //The offset of the last child, if it is a snarl, and if it can loop
