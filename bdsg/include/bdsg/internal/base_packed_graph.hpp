@@ -1334,7 +1334,7 @@ bool BasePackedGraph<Backend>::for_each_handle_impl(const std::function<bool(con
 template<typename Backend>
 size_t BasePackedGraph<Backend>::get_edge_count() const {
     // each edge (except reversing self edges) are stored twice in the edge vector
-    return ((edge_lists_iv.size() / EDGE_RECORD_SIZE) + reversing_self_edge_records) / 2 - deleted_edge_records;
+    return (edge_lists_iv.size() / EDGE_RECORD_SIZE + reversing_self_edge_records - deleted_edge_records) / 2;
 }
 
 template<typename Backend>
@@ -1632,7 +1632,7 @@ std::vector<handle_t> BasePackedGraph<Backend>::divide_handle(const handle_t& ha
 
 template<typename Backend>
 void BasePackedGraph<Backend>::destroy_handle(const handle_t& handle) {
-
+    
     // Clear out any paths on this handle.
     // We need to first compose a list of distinct visiting paths.
     std::unordered_set<path_handle_t> visiting_paths;
@@ -2067,7 +2067,6 @@ void BasePackedGraph<Backend>::defragment(bool force) {
     
     uint64_t num_nodes = graph_iv.size() / GRAPH_RECORD_SIZE - deleted_node_records;
     if (deleted_node_records > defrag_factor * (graph_iv.size() / GRAPH_RECORD_SIZE) || force) {
-        
         // what's the real number of undeleted nodes in the graph?
         uint64_t num_nodes = graph_iv.size() / GRAPH_RECORD_SIZE - deleted_node_records;
         
