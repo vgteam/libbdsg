@@ -144,7 +144,7 @@ class Pointer {
 public:
     /// Be constructable.
     /// Constructs as a pointer that equals nullptr.
-    Pointer() = default;
+    Pointer();
     
     Pointer(T* destination);
     
@@ -1330,6 +1330,10 @@ void CompatVector<T, Alloc>::reserve(size_t new_reserved_length) {
         // Allocate space for the new data, and get the position in the context
         T* new_first  = alloc.allocate(new_reserved_length);
         
+        assert(yomo::Manager::get_chain(new_first) == yomo::Manager::get_chain(&alloc));
+        assert(yomo::Manager::get_chain(new_first) == yomo::Manager::get_chain(this));
+        assert(yomo::Manager::get_chain(new_first) == yomo::Manager::get_chain(&first));
+        
         // Record the new reserved length
         reserved_length = new_reserved_length;
         
@@ -1848,6 +1852,14 @@ void CompatIntVector<Alloc>::load(std::istream& in) {
 namespace yomo {
 
 template<typename T>
+Pointer<T>::Pointer() {
+    // These pointers must always exist in a chain.
+    if (Manager::get_chain(this) == Manager::NO_CHAIN) {
+        throw std::runtime_error("Made yomo::Pointer<> outside of a chain.");
+    }
+}
+
+template<typename T>
 Pointer<T>::Pointer(T* destination) {
     *this = destination;
 }
@@ -1879,6 +1891,11 @@ Pointer<T>& Pointer<T>::operator=(T* addr) {
         position = std::numeric_limits<size_t>::max();
     } else {
         // Get the position, requiring that it is in the same chain as us.
+        auto our_chain = Manager::get_chain(this);
+        auto dest_chain = Manager::get_chain(addr);
+        if (our_chain != dest_chain) {
+            throw std::runtime_error("Assigned to yomo::Pointer<> across chains (" + std::to_string(our_chain) + " -> " + std::to_string(dest_chain) + ").");
+        }
         position = Manager::get_position_in_same_chain(this, addr);
     }
     return *this;
@@ -1921,7 +1938,10 @@ bool Allocator<T>::operator!=(const Allocator& other) const {
 
 template<typename T>
 auto Allocator<T>::allocate(size_type n, const T* hint) -> T* {
-    return (T*) Manager::allocate_from(get_chain(), n * sizeof(T));
+    auto our_chain = get_chain();
+    T* allocated = (T*) Manager::allocate_from(get_chain(), n * sizeof(T));
+    assert(Manager::get_chain(allocated) == our_chain);
+    return allocated;
 }
 
 template<typename T>

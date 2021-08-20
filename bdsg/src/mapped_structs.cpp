@@ -519,6 +519,8 @@ void* Manager::allocate_from(chainid_t chain, size_t bytes) {
 #ifdef debug_manager
         cerr << "Allocated from heap at " << (intptr_t) allocated << endl;
 #endif
+
+        assert(get_chain(allocated) == chain);
         
         return allocated;
     }
@@ -670,7 +672,11 @@ void* Manager::allocate_from(chainid_t chain, size_t bytes) {
 #endif
     
     // Give out the address of its data
-    return found->get_user_data();
+    void* allocated = found->get_user_data();
+    
+    assert(get_chain(allocated) == chain);
+    
+    return allocated;
 }
 
 void* Manager::allocate_from_same_chain(void* here, size_t bytes) {
