@@ -407,7 +407,19 @@ size_t Manager::get_position_in_same_chain(const void* here, const void* address
     std::pair<chainid_t, size_t> chain_and_pos = get_chain_and_position(address);
     
     // TODO: skip the check for speed?
-    if (chain_and_pos.first != get_chain(here)) {
+    auto our_chain = get_chain(here);
+    if (chain_and_pos.first != our_chain) {
+        std::cerr << "Error: We are at " << (intptr_t)here << " in chain " << our_chain
+                  << " but are attempting to point to " << (intptr_t)address
+                  << " which is actually in chain " << chain_and_pos.first << " at offset " << chain_and_pos.second << std::endl;
+        if (our_chain != NO_CHAIN) {
+            std::cerr << "Our chain:" << std::endl;
+            dump(our_chain);
+        }
+        if (chain_and_pos.first != NO_CHAIN) {
+            std::cerr << "Destination chain:" << std::endl;
+            dump(chain_and_pos.first);
+        }
         throw std::runtime_error("Attempted to refer across chains!");
     }
     
@@ -890,7 +902,7 @@ std::pair<Manager::chainid_t, bool> Manager::open_chain(int fd, size_t start_siz
         record.fd = our_fd;
         
         // We may have had data
-        had_data  = (file_size != 0);
+        had_data = (file_size != 0);
     } else {
         // Use boring allocated memory
         
