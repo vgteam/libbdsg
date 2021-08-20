@@ -1878,15 +1878,8 @@ Pointer<T>& Pointer<T>::operator=(T* addr) {
         // Adopt our special null value
         position = std::numeric_limits<size_t>::max();
     } else {
-        auto our_chain = Manager::get_chain(this);
-        if (our_chain == Manager::NO_CHAIN) {
-            // Point directly, because we aren't actually in a chain.
-            position = (intptr_t) addr;
-        } else {
-            // Get the position, requiring that it is in the same chain as us.
-            // TODO: save a chain lookup on our address
-            position = Manager::get_position_in_same_chain(this, addr);
-        }
+        // Get the position, requiring that it is in the same chain as us.
+        position = Manager::get_position_in_same_chain(this, addr);
     }
     return *this;
 }
@@ -1901,13 +1894,7 @@ T* Pointer<T>::get() const {
     if (position == std::numeric_limits<size_t>::max()) {
         return nullptr;
     } else {
-        auto our_chain = Manager::get_chain((const void*) this);
-        if (our_chain == Manager::NO_CHAIN) {
-            // We must be pointing directly, because we aren't actually in a chain.
-            return (T*) (intptr_t) position;
-        } else {
-            return (T*) Manager::get_address_in_same_chain((const void*) this, position);
-        }
+        return (T*) Manager::get_address_in_same_chain((const void*) this, position);
     }
 }
 
