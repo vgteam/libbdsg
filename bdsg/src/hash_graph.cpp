@@ -55,6 +55,7 @@ namespace bdsg {
                 path_mapping_t* mapping = (path_mapping_t*) intptr_t(as_integers(step)[1]);
                 graph[get_id(mapping->handle)].occurrences.push_back(mapping);
             });
+            return true;
         });
         return *this;
     }

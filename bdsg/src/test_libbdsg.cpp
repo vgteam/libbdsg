@@ -4122,12 +4122,12 @@ void test_hash_graph() {
     HashGraph g_copy_4(g);
     
     HashGraph g_move_1 = move(g_copy_3);
-    HashGraph g_move_2(move(g_copy_3));
+    HashGraph g_move_2(move(g_copy_4));
     
-    assert(handlegraph::algorithms::are_equivalent_with_paths(&g, &g_copy_1));
-    assert(handlegraph::algorithms::are_equivalent_with_paths(&g, &g_copy_2));
-    assert(handlegraph::algorithms::are_equivalent_with_paths(&g, &g_move_1));
-    assert(handlegraph::algorithms::are_equivalent_with_paths(&g, &g_move_2));
+    assert(handlegraph::algorithms::are_equivalent_with_paths(&g, &g_copy_1, true));
+    assert(handlegraph::algorithms::are_equivalent_with_paths(&g, &g_copy_2, true));
+    assert(handlegraph::algorithms::are_equivalent_with_paths(&g, &g_move_1, true));
+    assert(handlegraph::algorithms::are_equivalent_with_paths(&g, &g_move_2, true));
     
     // delete a handle on a path to trigger the occurrence index to be accessed
     g_copy_1.destroy_handle(g_copy_1.get_handle(g.get_id(h2)));
@@ -4136,10 +4136,10 @@ void test_hash_graph() {
     g_move_2.destroy_handle(g_move_2.get_handle(g.get_id(h2)));
     g.destroy_handle(h2);
     
-    assert(handlegraph::algorithms::are_equivalent_with_paths(&g, &g_copy_1));
-    assert(handlegraph::algorithms::are_equivalent_with_paths(&g, &g_copy_2));
-    assert(handlegraph::algorithms::are_equivalent_with_paths(&g, &g_move_1));
-    assert(handlegraph::algorithms::are_equivalent_with_paths(&g, &g_move_2));
+    assert(handlegraph::algorithms::are_equivalent_with_paths(&g, &g_copy_1, true));
+    assert(handlegraph::algorithms::are_equivalent_with_paths(&g, &g_copy_2, true));
+    assert(handlegraph::algorithms::are_equivalent_with_paths(&g, &g_move_1, true));
+    assert(handlegraph::algorithms::are_equivalent_with_paths(&g, &g_move_2, true));
     
     cerr << "HashGraph tests successful!" << endl;
 }
