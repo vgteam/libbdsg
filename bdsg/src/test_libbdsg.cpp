@@ -17,6 +17,7 @@
 #include <stdexcept>
 
 #include <sys/stat.h>
+#include <handlegraph/algorithms/are_equivalent.hpp>
 
 #include "bdsg/odgi.hpp"
 #include "bdsg/packed_graph.hpp"
@@ -4181,6 +4182,51 @@ void test_mapped_packed_graph() {
     cerr << "MappedPackedGraph tests successful!" << endl;
 }
 
+void test_hash_graph() {
+    
+    // make sure the copy and moves work as expected
+    
+    HashGraph g;
+    
+    handle_t h1 = g.create_handle("A");
+    handle_t h2 = g.create_handle("T");
+    handle_t h3 = g.create_handle("G");
+    
+    g.create_edge(h1, h2);
+    g.create_edge(h2, h3);
+    
+    path_handle_t p = g.create_path_handle("p");
+    g.append_step(p, h1);
+    g.append_step(p, h2);
+    g.append_step(p, h3);
+    
+    HashGraph g_copy_1 = g;
+    HashGraph g_copy_2(g);
+    HashGraph g_copy_3(g);
+    HashGraph g_copy_4(g);
+    
+    HashGraph g_move_1 = move(g_copy_3);
+    HashGraph g_move_2(move(g_copy_4));
+    
+    assert(handlegraph::algorithms::are_equivalent_with_paths(&g, &g_copy_1, true));
+    assert(handlegraph::algorithms::are_equivalent_with_paths(&g, &g_copy_2, true));
+    assert(handlegraph::algorithms::are_equivalent_with_paths(&g, &g_move_1, true));
+    assert(handlegraph::algorithms::are_equivalent_with_paths(&g, &g_move_2, true));
+    
+    // delete a handle on a path to trigger the occurrence index to be accessed
+    g_copy_1.destroy_handle(g_copy_1.get_handle(g.get_id(h2)));
+    g_copy_2.destroy_handle(g_copy_2.get_handle(g.get_id(h2)));
+    g_move_1.destroy_handle(g_move_1.get_handle(g.get_id(h2)));
+    g_move_2.destroy_handle(g_move_2.get_handle(g.get_id(h2)));
+    g.destroy_handle(h2);
+    
+    assert(handlegraph::algorithms::are_equivalent_with_paths(&g, &g_copy_1, true));
+    assert(handlegraph::algorithms::are_equivalent_with_paths(&g, &g_copy_2, true));
+    assert(handlegraph::algorithms::are_equivalent_with_paths(&g, &g_move_1, true));
+    assert(handlegraph::algorithms::are_equivalent_with_paths(&g, &g_move_2, true));
+    
+    cerr << "HashGraph tests successful!" << endl;
+}
 
 int main(void) {
     test_mmap_backend();
@@ -4205,4 +4251,5 @@ int main(void) {
     test_vectorizable_overlays();
     test_packed_subgraph_overlay();
     test_mapped_packed_graph();
+    test_hash_graph();
 }
