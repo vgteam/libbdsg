@@ -2086,7 +2086,8 @@ template<typename T>
 void UniqueMappedPointer<T>::load(std::istream& in, const std::string& prefix) {
     if (!prefix.empty()) {
         // First read and check the prefix
-        std::string prefix_buffer(prefix.size());
+        std::string prefix_buffer;
+        prefix_buffer.resize(prefix.size());
         in.read(&prefix_buffer.at(0), prefix_buffer.size());
         if (!in || prefix_buffer != prefix) {
             // Hit EOF or got the wrong thing
