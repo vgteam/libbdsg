@@ -388,23 +388,28 @@ std::pair<Manager::chainid_t, size_t> Manager::get_chain_and_position(const void
     std::cerr << "The link before is at " << link_base << " and runs for " << link_length << std::endl;
 #endif
     
-    if (link_base + link_length < sought + length) {
-        // We aren't fully in a link.
-        if (link_base + link_length > sought) {
-            // The link we found covers the start but not the end of our range. This is a problem.
-            throw std::runtime_error("Attempted to place address range that crosses a link boundary");
-        } else {
-            // Otherwise we just aren't in a link at all.
-            return std::make_pair(NO_CHAIN, (size_t)address); 
-        }
-    }
+    if (link_base + link_length > sought) {
+        // Start of sought range is in the link (exclusive end coordinate passed it)
     
+        if (link_base + link_length >= sought + length) {
+            // End of sought range (if different) is also in the link (exclusive end coordinate nearer or coinciding)
+            
 #ifdef debug_pointers
-    std::cerr << "This fully covers " << sought << " so it is in chain " << chain << std::endl;
+            std::cerr << "This fully covers " << sought << " so it is in chain " << chain << std::endl;
 #endif
     
-    // Translate first link's address to chain ID, and address to link local offset to chain position.
-    return std::make_pair(chain, link_offset + (sought - link_base));
+            // Emit link's chain ID, and translate address to link local offset to chain position.
+            return std::make_pair(chain, link_offset + (sought - link_base));
+                    
+        } else {
+            // End of sought range is not in the link
+            // The link we found covers the start but not the end of our range. This is a problem.
+            throw std::runtime_error("Attempted to place address range that crosses a link boundary");
+        }
+    } else {
+        // Otherwise we just aren't in a link at all.
+        return std::make_pair(NO_CHAIN, (size_t)address); 
+    }
 }
 
 void* Manager::get_address_in_same_chain(const void* here, size_t position) {
