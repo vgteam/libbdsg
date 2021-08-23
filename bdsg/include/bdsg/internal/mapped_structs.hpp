@@ -44,10 +44,6 @@
 // And we need to stock our non-mmapped backend with an int vector.
 #include <sdsl/int_vector.hpp>
 
-// Define this to do cross-checking of allocated addresses to make sure they
-// are in the chains we expect them to be in.
-//#define check_chains
-
 namespace bdsg {
     
 using namespace std;
@@ -187,6 +183,11 @@ public:
 
     using chainid_t = intptr_t;
     static const chainid_t NO_CHAIN = 0;
+    
+    /**
+     * Set this to true to enable additional self-checks on memory management correctness.
+     */
+    static bool check_chains;
 
     /**
      * Create a chain not backed by any file. The given prefix data will occur
@@ -1339,11 +1340,14 @@ void CompatVector<T, Alloc>::reserve(size_t new_reserved_length) {
         // Allocate space for the new data, and get the position in the context
         T* new_first  = alloc.allocate(new_reserved_length);
 
-#ifdef check_chains
-        assert(yomo::Manager::get_chain(new_first) == yomo::Manager::get_chain(&alloc));
-        assert(yomo::Manager::get_chain(new_first) == yomo::Manager::get_chain(this));
-        assert(yomo::Manager::get_chain(new_first) == yomo::Manager::get_chain(&first));
-#endif
+        if (yomo::Manager::check_chains) {
+            // make sure we got back memory in the right chain, and that all
+            // our notions of the right chain agree.
+            auto new_chain = yomo::Manager::get_chain(new_first);
+            assert(new_chain == yomo::Manager::get_chain(&alloc));
+            assert(new_chain == yomo::Manager::get_chain(this));
+            assert(new_chain == yomo::Manager::get_chain(&first));
+        }
         
         // Record the new reserved length
         reserved_length = new_reserved_length;
@@ -1951,9 +1955,10 @@ template<typename T>
 auto Allocator<T>::allocate(size_type n, const T* hint) -> T* {
     auto our_chain = get_chain();
     T* allocated = (T*) Manager::allocate_from(get_chain(), n * sizeof(T));
-#ifdef check_chains
-    assert(Manager::get_chain(allocated) == our_chain);
-#endif
+    if (yomo::Manager::check_chains) {
+        // Make sure we got the right chain for our allocated memory.
+        assert(Manager::get_chain(allocated) == our_chain);
+    }
     return allocated;
 }
 

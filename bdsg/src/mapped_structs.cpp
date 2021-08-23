@@ -24,6 +24,9 @@ namespace bdsg {
 
 namespace yomo {
 
+// Leave extra chain debugging checks off by default.
+bool Manager::check_chains = false;
+
 // we hide our LinkRecord in here because we can't forward-declare the MIO
 // stuff it stores.
 
