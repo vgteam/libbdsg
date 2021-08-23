@@ -21,14 +21,15 @@ jobs:
       - name: Checkout code with submodules
         uses: actions/checkout@v2
         with:
-          - submodules: recursive
+          submodules: recursive
       
       - name: Run build and test
         run: |
           set -e
+          brew install libomp doxygen
           mkdir -p build
           cd build
-          cmake .. -DRUN_DOXYGEN=OFF
+          cmake .. -DRUN_DOXYGEN=ON -DPYTHON_EXECUTABLE="$(which python3)"
           echo "Build with $(nproc) threads"
           make -j$(nproc)
           ../bin/test_libbdsg
