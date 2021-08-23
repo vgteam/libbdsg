@@ -44,6 +44,9 @@
 // And we need to stock our non-mmapped backend with an int vector.
 #include <sdsl/int_vector.hpp>
 
+// Define this to do cross-checking of allocated addresses to make sure they
+// are in the chains we expect them to be in.
+//#define check_chains
 
 namespace bdsg {
     
@@ -1335,10 +1338,12 @@ void CompatVector<T, Alloc>::reserve(size_t new_reserved_length) {
     if (new_reserved_length > old_reserved_length) {
         // Allocate space for the new data, and get the position in the context
         T* new_first  = alloc.allocate(new_reserved_length);
-        
+
+#ifdef check_chains
         assert(yomo::Manager::get_chain(new_first) == yomo::Manager::get_chain(&alloc));
         assert(yomo::Manager::get_chain(new_first) == yomo::Manager::get_chain(this));
         assert(yomo::Manager::get_chain(new_first) == yomo::Manager::get_chain(&first));
+#endif
         
         // Record the new reserved length
         reserved_length = new_reserved_length;
@@ -1946,7 +1951,9 @@ template<typename T>
 auto Allocator<T>::allocate(size_type n, const T* hint) -> T* {
     auto our_chain = get_chain();
     T* allocated = (T*) Manager::allocate_from(get_chain(), n * sizeof(T));
+#ifdef check_chains
     assert(Manager::get_chain(allocated) == our_chain);
+#endif
     return allocated;
 }
 

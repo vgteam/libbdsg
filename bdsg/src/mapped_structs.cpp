@@ -20,6 +20,10 @@
 //#define debug_manager
 //#define debug_pointers
 
+// Define this to do cross-checking of allocated addresses to make sure they
+// are in the chains we expect them to be in.
+//#define check_chains
+
 namespace bdsg {
 
 namespace yomo {
@@ -550,14 +554,15 @@ void* Manager::allocate_from(chainid_t chain, size_t bytes) {
         cerr << "Allocated from heap at " << (intptr_t) allocated << endl;
 #endif
         
-        // Did ti come from a chain?
+#ifdef check_chains
+        // Did it come from a chain when it shouldn't have?
         auto source_chain = get_chain(allocated);
         if (source_chain != NO_CHAIN) {
             std::cerr << "Error: tried to allocate non-chain memory but got memory at " << (intptr_t)allocated << " that appears to be in chain " << source_chain << std::endl;
             dump_links();
         }
-
-        assert(get_chain(allocated) == NO_CHAIN);
+        assert(source_chain == NO_CHAIN);
+#endif
         
         return allocated;
     }
@@ -711,7 +716,9 @@ void* Manager::allocate_from(chainid_t chain, size_t bytes) {
     // Give out the address of its data
     void* allocated = found->get_user_data();
     
+#ifdef check_chains
     assert(get_chain(allocated) == chain);
+#endif
     
     return allocated;
 }
