@@ -18,7 +18,7 @@
 #include <mio/mmap.hpp>
 
 //#define debug_manager
-
+//#define debug_pointers
 
 namespace bdsg {
 
@@ -356,16 +356,25 @@ std::pair<Manager::chainid_t, size_t> Manager::get_chain_and_position(const void
         // Get read access to manager data structures
         std::shared_lock<std::shared_timed_mutex> lock(Manager::mutex);
         
-        // Find the earliest block starting after the address
+        // Find the earliest link starting after the address
         auto found = Manager::address_space_index.upper_bound((intptr_t)address);
         
         if (found == Manager::address_space_index.begin() || Manager::address_space_index.empty()) {
             // There won't be a link covering the address.
             // Say this is an address not in any chain.
+            
+#ifdef debug_pointers
+            std::cerr << "Address " << sought << " has no links starting after it, or no link before such a link, so is not in any chain" << std::endl;
+#endif
+            
             return std::make_pair(NO_CHAIN, (size_t)address); 
         }
         
-        // Go left to the block that must include the address if any does.
+#ifdef debug_pointers
+        std::cerr << "Address " << sought << " has a link starting after it at " << found->first << std::endl;
+#endif
+        
+        // Go left to the link that must include the address if any does.
         --found;
         
         // Copy out link info
@@ -374,6 +383,10 @@ std::pair<Manager::chainid_t, size_t> Manager::get_chain_and_position(const void
         link_length = found->second.length;
         chain = (chainid_t) found->second.first;
     }
+    
+#ifdef debug_pointers
+    std::cerr << "The link before is at " << link_base << " and runs for " << link_length << std::endl;
+#endif
     
     if (link_base + link_length < sought + length) {
         // We aren't fully in a link.
@@ -385,6 +398,10 @@ std::pair<Manager::chainid_t, size_t> Manager::get_chain_and_position(const void
             return std::make_pair(NO_CHAIN, (size_t)address); 
         }
     }
+    
+#ifdef debug_pointers
+    std::cerr << "This fully covers " << sought << " so it is in chain " << chain << std::endl;
+#endif
     
     // Translate first link's address to chain ID, and address to link local offset to chain position.
     return std::make_pair(chain, link_offset + (sought - link_base));
@@ -500,6 +517,14 @@ void Manager::dump(chainid_t chain) {
     }
 }
 
+void Manager::dump_links() {
+    std::cerr << "All chain links: " << std::endl;
+    for (auto& link : address_space_index) {
+        std::cerr << "\t" << link.first << "-" << (link.first + link.second.length) << " in chain " << link.second.first << " with next link at " << link.second.next << std::endl; 
+    }
+}
+    
+
 void* Manager::allocate_from(chainid_t chain, size_t bytes) {
 #ifdef debug_manager
     cerr << "Allocate " << bytes << " bytes from chain " << chain << endl;
@@ -519,8 +544,15 @@ void* Manager::allocate_from(chainid_t chain, size_t bytes) {
 #ifdef debug_manager
         cerr << "Allocated from heap at " << (intptr_t) allocated << endl;
 #endif
+        
+        // Did ti come from a chain?
+        auto source_chain = get_chain(allocated);
+        if (source_chain != NO_CHAIN) {
+            std::cerr << "Error: tried to allocate non-chain memory but got memory at " << (intptr_t)allocated << " that appears to be in chain " << source_chain << std::endl;
+            dump_links();
+        }
 
-        assert(get_chain(allocated) == chain);
+        assert(get_chain(allocated) == NO_CHAIN);
         
         return allocated;
     }
