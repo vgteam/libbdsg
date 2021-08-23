@@ -446,6 +446,13 @@ private:
     
     /// Replace the ID in a handle with a different number
     static handle_t set_id(const handle_t& internal, nid_t new_id);
+    
+public:
+    /// Move/copy constructors/assignment operators
+    HashGraph(const HashGraph& other);
+    HashGraph& operator=(const HashGraph& other);
+    HashGraph(HashGraph&& other);
+    HashGraph& operator=(HashGraph&& other);
 };
     
     

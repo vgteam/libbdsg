@@ -18,6 +18,57 @@ namespace bdsg {
     HashGraph::~HashGraph() {
         
     }
+
+    HashGraph::HashGraph(const HashGraph& other) {
+        *this = other;
+    }
+
+    HashGraph::HashGraph(HashGraph&& other) {
+        *this = move(other);
+    }
+
+    HashGraph& HashGraph::operator=(const HashGraph& other) {
+        
+        max_id = other.max_id;
+        min_id = other.min_id;
+        path_id = other.path_id;
+        paths = other.paths;
+        next_path_id = other.next_path_id;
+        
+        // can't directly copy the nodes, because their pointers to path mappings
+        // will be different in the copy
+        graph.reserve(other.graph.size());
+        for (const auto& node_rec : other.graph) {
+            
+            graph[node_rec.first] = node_t(node_rec.second.sequence);
+            
+            node_t& node = graph[node_rec.first];
+            node.left_edges = node_rec.second.left_edges;
+            node.right_edges = node_rec.second.right_edges;
+            
+            node.occurrences.reserve(node_rec.second.occurrences.size());
+        }
+        
+        // and rebuild the occurrence index for the new pointers
+        for_each_path_handle_impl([&](const path_handle_t& path) {
+            for_each_step_in_path(path, [&](const step_handle_t& step) {
+                path_mapping_t* mapping = (path_mapping_t*) intptr_t(as_integers(step)[1]);
+                graph[get_id(mapping->handle)].occurrences.push_back(mapping);
+            });
+            return true;
+        });
+        return *this;
+    }
+
+    HashGraph& HashGraph::operator=(HashGraph&& other) {
+        max_id = other.max_id;
+        min_id = other.min_id;
+        graph = move(other.graph);
+        path_id = move(other.path_id);
+        paths = move(other.paths);
+        next_path_id = other.next_path_id;
+        return *this;
+    }
     
     HashGraph::HashGraph(istream& in) {
         deserialize(in);
