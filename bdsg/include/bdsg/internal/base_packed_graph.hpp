@@ -1130,10 +1130,8 @@ handle_t BasePackedGraph<Backend>::create_handle(const string& sequence, const n
         throw std::runtime_error("error:[BasePackedGraph] tried to create a node with non-positive ID " + std::to_string(id));
     }
     
-    if (id >= min_id && id < min_id + nid_to_graph_iv.size()) {
-        if (nid_to_graph_iv.get(id - min_id) != 0) {
-            throw std::runtime_error("error:[BasePackedGraph] tried to create a node with ID " + std::to_string(id) + ", but this ID already belongs to a different node");
-        }
+    if (id >= min_id && id < min_id + nid_to_graph_iv.size() && nid_to_graph_iv.get(id - min_id) != 0) {
+        throw std::runtime_error("error:[BasePackedGraph] tried to create a node with ID " + std::to_string(id) + ", but this ID already belongs to a different node");
     }
     
     size_t g_iv_idx = new_node_record(id);
@@ -1336,7 +1334,7 @@ bool BasePackedGraph<Backend>::for_each_handle_impl(const std::function<bool(con
 template<typename Backend>
 size_t BasePackedGraph<Backend>::get_edge_count() const {
     // each edge (except reversing self edges) are stored twice in the edge vector
-    return ((edge_lists_iv.size() / EDGE_RECORD_SIZE) + reversing_self_edge_records) / 2 - deleted_edge_records;
+    return (edge_lists_iv.size() / EDGE_RECORD_SIZE + reversing_self_edge_records - deleted_edge_records) / 2;
 }
 
 template<typename Backend>
@@ -1634,7 +1632,7 @@ std::vector<handle_t> BasePackedGraph<Backend>::divide_handle(const handle_t& ha
 
 template<typename Backend>
 void BasePackedGraph<Backend>::destroy_handle(const handle_t& handle) {
-
+    
     // Clear out any paths on this handle.
     // We need to first compose a list of distinct visiting paths.
     std::unordered_set<path_handle_t> visiting_paths;
@@ -1680,7 +1678,7 @@ void BasePackedGraph<Backend>::destroy_handle(const handle_t& handle) {
     ++deleted_node_records;
     
     // maybe reallocate to address fragmentation
-    defragment();
+    defragment(get_node_count() == 0);
 }
 
 template<typename Backend>
@@ -2069,20 +2067,25 @@ void BasePackedGraph<Backend>::defragment(bool force) {
     
     uint64_t num_nodes = graph_iv.size() / GRAPH_RECORD_SIZE - deleted_node_records;
     if (deleted_node_records > defrag_factor * (graph_iv.size() / GRAPH_RECORD_SIZE) || force) {
-        
         // what's the real number of undeleted nodes in the graph?
         uint64_t num_nodes = graph_iv.size() / GRAPH_RECORD_SIZE - deleted_node_records;
         
         // adjust the start
-        while (nid_to_graph_iv.empty() ? false : nid_to_graph_iv.get(0) == 0) {
+        while (!nid_to_graph_iv.empty() && nid_to_graph_iv.get(0) == 0) {
             nid_to_graph_iv.pop_front();
             min_id++;
         }
         // adjust the end
-        while (nid_to_graph_iv.empty() ? false : nid_to_graph_iv.get(nid_to_graph_iv.size() - 1) == 0) {
+        while (!nid_to_graph_iv.empty() && nid_to_graph_iv.get(nid_to_graph_iv.size() - 1) == 0) {
             nid_to_graph_iv.pop_back();
         }
-        max_id = min_id + nid_to_graph_iv.size() - 1;
+        if (nid_to_graph_iv.empty()) {
+            min_id = numeric_limits<nid_t>::max();
+            max_id = 0;
+        }
+        else {
+            max_id = min_id + nid_to_graph_iv.size() - 1;
+        }
         
         // initialize new vectors to construct defragged copies in
         decltype(graph_iv) new_graph_iv;

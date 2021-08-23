@@ -17,6 +17,7 @@
 #include <stdexcept>
 
 #include <sys/stat.h>
+#include <handlegraph/algorithms/are_equivalent.hpp>
 
 #include "bdsg/odgi.hpp"
 #include "bdsg/packed_graph.hpp"
@@ -754,7 +755,7 @@ void test_deletable_handle_graphs() {
 
         ODGI og;
         implementations.push_back(&og);
-        
+
         MappedPackedGraph mpg;
         implementations.push_back(&mpg);
 
@@ -1839,7 +1840,7 @@ void test_deletable_handle_graphs() {
 
         ODGI og;
         implementations.push_back(&og);
-        
+
         MappedPackedGraph mpg;
         implementations.push_back(&mpg);
 
@@ -2038,7 +2039,7 @@ void test_deletable_handle_graphs() {
 
         PackedGraph pg;
         implementations.push_back(&pg);
-        
+
         MappedPackedGraph mpg;
         implementations.push_back(&mpg);
 
@@ -2070,39 +2071,39 @@ void test_deletable_handle_graphs() {
 
         }
     }
-    
+
     // another batch of tests that deal with deleting after dividing
     {
         vector<pair<MutablePathDeletableHandleGraph*, MutablePathDeletableHandleGraph*>> implementations;
-        
+
         // Add implementations
-        
+
         PackedGraph pg, pg2;
         implementations.push_back(make_pair(&pg, &pg2));
-        
+
         ODGI og, og2;
         implementations.push_back(make_pair(&og, &og2));
 
         HashGraph hg, hg2;
         implementations.push_back(make_pair(&hg, &hg2));
-        
+
         MappedPackedGraph mpg, mpg2;
         implementations.push_back(make_pair(&mpg, &mpg2));
-        
+
         // And test them
         for (int imp = 0; imp < implementations.size(); ++imp) {
-            
+
             for (bool backwards : {false, true}) {
-                
+
                 MutablePathDeletableHandleGraph* g = backwards ? implementations[imp].first : implementations[imp].second;
-                
+
                 assert(g->get_node_count() == 0);
-                
+
                 handle_t handle1 = g->create_handle("CAAATAAGGCTTGGAAATTTTCTGGAGTTCTA");
                 handle_t handle2 = g->create_handle("TTATATTCCAACTCTCTG");
                 path_handle_t path_handle = g->create_path_handle("x");
                 g->create_edge(handle1, handle2);
-                
+
                 if (backwards) {
                     handle1 = g->flip(handle1);
                     handle2 = g->flip(handle2);
@@ -2112,15 +2113,15 @@ void test_deletable_handle_graphs() {
                     g->append_step(path_handle, handle1);
                     g->append_step(path_handle, handle2);
                 }
-                                
+
                 auto parts1 = g->divide_handle(handle1, vector<size_t>({2, 7, 22, 31}));
                 auto parts2 = g->divide_handle(handle2, vector<size_t>({1, 5, 10}));
-                                
+
                 vector<handle_t> steps;
                 g->for_each_step_in_path(path_handle, [&](step_handle_t step_handle) {
                     steps.push_back(g->get_handle_of_step(step_handle));
                 });
-                                
+
                 assert(steps.size() == 9);
                 int i = 0;
                 vector<handle_t> to_delete;
@@ -2137,22 +2138,210 @@ void test_deletable_handle_graphs() {
                 to_delete.push_back(steps[i++]);
                 g->append_step(g->create_path_handle(to_string(i)), steps[i]);
                 ++i;
-                
+
                 g->destroy_path(path_handle);
-                                
+
                 for (auto handle : to_delete) {
                     g->destroy_handle(handle);
                 }
-                
+
                 g->for_each_path_handle([&](const path_handle_t& p) {
                     g->for_each_step_in_path(p, [&](const step_handle_t& s) {
                         auto h = g->get_handle_of_step(s);
                     });
                 });
-                
+
                 assert(g->get_node_count() == 4);
                 assert(g->get_path_count() == 4);
             }
+        }
+    }
+
+    // another batch of tests that deal with deleting down to an empty graph
+    {
+        vector<MutablePathDeletableHandleGraph*> implementations;
+
+        // Add implementations
+
+        PackedGraph pg;
+        implementations.push_back(&pg);
+
+        ODGI og;
+        implementations.push_back(&og);
+
+        HashGraph hg;
+        implementations.push_back(&hg);
+
+        MappedPackedGraph mpg;
+        implementations.push_back(&mpg);
+
+        // And test them
+        for (int imp = 0; imp < implementations.size(); ++imp) {
+
+            MutablePathDeletableHandleGraph* g = implementations[imp];
+
+            // the graph that i discovered the bug this tests for
+            vector<tuple<int, string, vector<int>>> graph_spec{
+                {1, "C", {19}},
+                {2, "A", {4, 5}},
+                {3, "G", {4, 5}},
+                {4, "T", {6, 16, 18}},
+                {5, "C", {6, 16, 18}},
+                {6, "TTG", {7, 8}},
+                {7, "A", {9}},
+                {8, "G", {9}},
+                {9, "AAATT", {16}},
+                {10, "A", {12}},
+                {11, "T", {12}},
+                {12, "ATAT", {13, 14}},
+                {13, "A", {15}},
+                {14, "T", {15}},
+                {15, "C", {20}},
+                {16, "TTCTGG", {17, 18}},
+                {17, "AGT", {18}},
+                {18, "TCTAT", {10, 11}},
+                {19, "AAATAAG", {2, 3}},
+                {20, "CAACTCTCTG", {}},
+            };
+
+            for (auto rec : graph_spec) {
+                g->create_handle(get<1>(rec), get<0>(rec));
+            }
+            for (auto rec : graph_spec) {
+                for (auto n : get<2>(rec)) {
+                    g->create_edge(g->get_handle(get<0>(rec)), g->get_handle(n));
+                }
+            }
+
+            // a series of deletes that elicits the behavior
+            vector<pair<handle_t, handle_t>> delete_edges{
+                {g->get_handle(10, 1), g->get_handle(18, 1)},
+                {g->get_handle(3, 0), g->get_handle(5, 0)},
+                {g->get_handle(4, 0), g->get_handle(6, 0)},
+                {g->get_handle(6, 0), g->get_handle(7, 0)},
+                {g->get_handle(2, 0), g->get_handle(5, 0)},
+                {g->get_handle(7, 0), g->get_handle(9, 0)},
+                {g->get_handle(16, 0), g->get_handle(17, 0)},
+                {g->get_handle(12, 0), g->get_handle(14, 0)},
+                {g->get_handle(9, 0), g->get_handle(16, 0)},
+                {g->get_handle(11, 1), g->get_handle(18, 1)},
+                {g->get_handle(6, 0), g->get_handle(8, 0)},
+                {g->get_handle(12, 0), g->get_handle(13, 0)},
+                {g->get_handle(5, 0), g->get_handle(16, 0)},
+                {g->get_handle(4, 0), g->get_handle(16, 0)},
+                {g->get_handle(16, 0), g->get_handle(18, 0)},
+                {g->get_handle(5, 0), g->get_handle(6, 0)},
+                {g->get_handle(3, 0), g->get_handle(4, 0)},
+                {g->get_handle(8, 0), g->get_handle(9, 0)},
+                {g->get_handle(2, 0), g->get_handle(4, 0)}
+            };
+            for (auto edge : delete_edges) {
+                g->destroy_edge(edge.first, edge.second);
+            }
+            g->destroy_handle(g->get_handle(16, 0));
+            g->destroy_handle(g->get_handle(13, 0));
+            g->destroy_handle(g->get_handle(15, 0));
+            g->destroy_handle(g->get_handle(20, 0));
+            g->destroy_handle(g->get_handle(14, 0));
+            g->destroy_handle(g->get_handle(10, 0));
+            g->destroy_handle(g->get_handle(12, 0));
+            g->destroy_handle(g->get_handle(11, 0));
+            g->destroy_handle(g->get_handle(9, 0));
+            g->destroy_handle(g->get_handle(4, 0));
+            g->destroy_handle(g->get_handle(7, 0));
+            g->destroy_handle(g->get_handle(18, 0));
+            g->destroy_handle(g->get_handle(5, 0));
+            g->destroy_handle(g->get_handle(1, 0));
+            g->destroy_handle(g->get_handle(8, 0));
+            g->destroy_handle(g->get_handle(19, 0));
+            g->destroy_handle(g->get_handle(3, 0));
+            g->destroy_handle(g->get_handle(6, 0));
+            g->destroy_handle(g->get_handle(17, 0));
+            g->destroy_handle(g->get_handle(2, 0));
+
+            g->create_handle("GATTACA", 4);
+            assert(g->get_node_count() == 1);
+        }
+    }
+    
+    // Edge counts stay accurate after deleting nodes
+    {
+        vector<MutablePathDeletableHandleGraph*> implementations;
+        
+        // Add implementations
+        
+        PackedGraph pg;
+        implementations.push_back(&pg);
+        
+        ODGI og;
+        implementations.push_back(&og);
+        
+        HashGraph hg;
+        implementations.push_back(&hg);
+        
+        MappedPackedGraph mpg;
+        implementations.push_back(&mpg);
+        
+        // note: not valid in graph with reversing self edges
+        auto count_edges = [&](const HandleGraph& g) {
+            int cnt = 0;
+            g.for_each_handle([&](const handle_t& h) {
+                for (bool r : {true, false}) {
+                    g.follow_edges(h, r, [&](const handle_t& n) {
+                        ++cnt;
+                    });
+                }
+            });
+            assert(cnt % 2 == 0);
+            return cnt / 2;
+        };
+        
+        // And test them
+        for (int imp = 0; imp < implementations.size(); ++imp) {
+            
+            MutablePathDeletableHandleGraph* graph = implementations[imp];
+            
+            handle_t h1 = graph->create_handle("A");
+            handle_t h2 = graph->create_handle("AAA");
+            handle_t h3 = graph->create_handle("CC");
+            handle_t h4 = graph->create_handle("G");
+            handle_t h5 = graph->create_handle("T");
+            handle_t h6 = graph->create_handle("T");
+            handle_t h7 = graph->create_handle("TT");
+            handle_t h8 = graph->create_handle("T");
+            handle_t h9 = graph->create_handle("TTT");
+            handle_t h10 = graph->create_handle("C");
+            handle_t h11 = graph->create_handle("CC");
+            handle_t h12 = graph->create_handle("A");
+            handle_t h13 = graph->create_handle("AA");
+            
+            graph->create_edge(h1, h2);
+            graph->create_edge(h2, h3);
+            graph->create_edge(h2, h4);
+            graph->create_edge(h3, h4);
+            graph->create_edge(h3, h5);
+            graph->create_edge(h5, h6);
+            graph->create_edge(h6, h7);
+            graph->create_edge(h7, h8);
+            graph->create_edge(h8, h9);
+            graph->create_edge(h9, h10);
+            graph->create_edge(h9, h12);
+            graph->create_edge(h10, h11);
+            graph->create_edge(h11, h12);
+            graph->create_edge(h12, h13);
+            graph->create_edge(h5, h7);
+            graph->create_edge(h5, h11);
+            graph->create_edge(h7, h13);
+            graph->create_edge(h8, h12);
+            
+            graph->destroy_handle(h1);
+            assert(graph->get_edge_count() == count_edges(*graph));
+            graph->destroy_handle(h6);
+            assert(graph->get_edge_count() == count_edges(*graph));
+            graph->destroy_handle(h9);
+            assert(graph->get_edge_count() == count_edges(*graph));
+            graph->destroy_handle(h10);
+            assert(graph->get_edge_count() == count_edges(*graph));
         }
     }
     
@@ -3993,6 +4182,51 @@ void test_mapped_packed_graph() {
     cerr << "MappedPackedGraph tests successful!" << endl;
 }
 
+void test_hash_graph() {
+    
+    // make sure the copy and moves work as expected
+    
+    HashGraph g;
+    
+    handle_t h1 = g.create_handle("A");
+    handle_t h2 = g.create_handle("T");
+    handle_t h3 = g.create_handle("G");
+    
+    g.create_edge(h1, h2);
+    g.create_edge(h2, h3);
+    
+    path_handle_t p = g.create_path_handle("p");
+    g.append_step(p, h1);
+    g.append_step(p, h2);
+    g.append_step(p, h3);
+    
+    HashGraph g_copy_1 = g;
+    HashGraph g_copy_2(g);
+    HashGraph g_copy_3(g);
+    HashGraph g_copy_4(g);
+    
+    HashGraph g_move_1 = move(g_copy_3);
+    HashGraph g_move_2(move(g_copy_4));
+    
+    assert(handlegraph::algorithms::are_equivalent_with_paths(&g, &g_copy_1, true));
+    assert(handlegraph::algorithms::are_equivalent_with_paths(&g, &g_copy_2, true));
+    assert(handlegraph::algorithms::are_equivalent_with_paths(&g, &g_move_1, true));
+    assert(handlegraph::algorithms::are_equivalent_with_paths(&g, &g_move_2, true));
+    
+    // delete a handle on a path to trigger the occurrence index to be accessed
+    g_copy_1.destroy_handle(g_copy_1.get_handle(g.get_id(h2)));
+    g_copy_2.destroy_handle(g_copy_2.get_handle(g.get_id(h2)));
+    g_move_1.destroy_handle(g_move_1.get_handle(g.get_id(h2)));
+    g_move_2.destroy_handle(g_move_2.get_handle(g.get_id(h2)));
+    g.destroy_handle(h2);
+    
+    assert(handlegraph::algorithms::are_equivalent_with_paths(&g, &g_copy_1, true));
+    assert(handlegraph::algorithms::are_equivalent_with_paths(&g, &g_copy_2, true));
+    assert(handlegraph::algorithms::are_equivalent_with_paths(&g, &g_move_1, true));
+    assert(handlegraph::algorithms::are_equivalent_with_paths(&g, &g_move_2, true));
+    
+    cerr << "HashGraph tests successful!" << endl;
+}
 
 int main(void) {
     test_mmap_backend();
@@ -4017,4 +4251,5 @@ int main(void) {
     test_vectorizable_overlays();
     test_packed_subgraph_overlay();
     test_mapped_packed_graph();
+    test_hash_graph();
 }

@@ -21,6 +21,9 @@ namespace bdsg {
 using namespace std;
 using namespace handlegraph;
 
+/*
+ * In-memory implementation of MutablePathDeletableHandleGraph
+ */
 class PackedGraph : public GraphProxy<BasePackedGraph<>> {
 protected:
     /**
@@ -40,6 +43,9 @@ protected:
     BasePackedGraph<> implementation;
 };
 
+/*
+ * Memory-mapped implementation of MutablePathDeletableHandleGraph
+ */
 class MappedPackedGraph : public GraphProxy<BasePackedGraph<MappedBackend>>, public TriviallySerializable {
 public:
 
