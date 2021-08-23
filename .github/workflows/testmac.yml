@@ -28,7 +28,7 @@ jobs:
           set -e
           mkdir -p build
           cd build
-          cmake .. -DRUN_DOXYGEN=OFF
+          cmake .. -DRUN_DOXYGEN=OFF -DPYTHON_EXECUTABLE="$(which python3)"
           echo "Build with $(nproc) threads"
           make -j$(nproc)
           ../bin/test_libbdsg
