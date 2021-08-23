@@ -143,7 +143,7 @@ class Pointer {
 public:
     /// Be constructable.
     /// Constructs as a pointer that equals nullptr.
-    Pointer();
+    Pointer() = default;
     
     Pointer(T* destination);
     
@@ -1867,14 +1867,6 @@ void CompatIntVector<Alloc>::load(std::istream& in) {
 namespace yomo {
 
 template<typename T>
-Pointer<T>::Pointer() {
-    // These pointers must always exist in a chain.
-    if (Manager::get_chain(this) == Manager::NO_CHAIN) {
-        throw std::runtime_error("Made yomo::Pointer<> outside of a chain.");
-    }
-}
-
-template<typename T>
 Pointer<T>::Pointer(T* destination) {
     *this = destination;
 }
@@ -1906,11 +1898,6 @@ Pointer<T>& Pointer<T>::operator=(T* addr) {
         position = std::numeric_limits<size_t>::max();
     } else {
         // Get the position, requiring that it is in the same chain as us.
-        auto our_chain = Manager::get_chain(this);
-        auto dest_chain = Manager::get_chain(addr);
-        if (our_chain != dest_chain) {
-            throw std::runtime_error("Assigned to yomo::Pointer<> across chains (" + std::to_string(our_chain) + " -> " + std::to_string(dest_chain) + ").");
-        }
         position = Manager::get_position_in_same_chain(this, addr);
     }
     return *this;
@@ -1954,7 +1941,7 @@ bool Allocator<T>::operator!=(const Allocator& other) const {
 template<typename T>
 auto Allocator<T>::allocate(size_type n, const T* hint) -> T* {
     auto our_chain = get_chain();
-    T* allocated = (T*) Manager::allocate_from(get_chain(), n * sizeof(T));
+    T* allocated = (T*) Manager::allocate_from(our_chain, n * sizeof(T));
     if (yomo::Manager::check_chains) {
         // Make sure we got the right chain for our allocated memory.
         assert(Manager::get_chain(allocated) == our_chain);
