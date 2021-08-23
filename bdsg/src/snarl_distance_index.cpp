@@ -1086,10 +1086,12 @@ size_t SnarlDistanceIndex::get_max_tree_depth() const {
 size_t SnarlDistanceIndex::get_depth(const net_handle_t& net) const {
     if (is_root(net)) {
         return 0;
-    } else if (is_sentinel(net) || is_node(net)) {
-        return get_depth(get_parent(net));
     } else if (is_snarl(net)) {
         return SnarlRecord(net, &snarl_tree_records).get_depth();
+    } else if (is_trivial_chain(net)) {
+        return get_depth(get_parent(net)) + 1;
+    } else if (is_sentinel(net) || is_node(net)) {
+        return get_depth(get_parent(net));
     } else if (is_chain(net)) {
         return ChainRecord(net, &snarl_tree_records).get_depth();
     } else {
@@ -1566,7 +1568,13 @@ bool SnarlDistanceIndex::RootRecord::for_each_child(const std::function<bool(con
             }
         } else {
             //Otherwise, it is a separate connected component
-            net_handle_t child_handle =  get_net_handle(child_offset, START_END, type);
+            net_handle_t child_handle;
+            if (type == NODE_HANDLE) {
+                //If this child is a node, then pretend it's a chain
+                child_handle = get_net_handle(child_offset, START_END, CHAIN_HANDLE);
+            } else {
+                child_handle =  get_net_handle(child_offset, START_END, type);
+            }
             if (!iteratee(child_handle)) {
                 return false;
             }
@@ -2463,6 +2471,13 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                     }
                     chain_record_constructor.set_parent_record_offset(
                             record_to_offset[make_pair(temp_index_i, temp_chain_record.parent)]);//TODO: Get the actual parent
+                    if (temp_chain_record.parent.first == TEMP_ROOT) {
+                        chain_record_constructor.set_depth(1);
+                    } else {
+                        chain_record_constructor.set_depth(
+                            SnarlRecord(chain_record_constructor.get_parent_record_offset(), &snarl_tree_records).get_depth() + 1);
+                    }
+
 
                     chain_record_constructor.set_min_length(temp_chain_record.min_length);
                     chain_record_constructor.set_max_length(temp_chain_record.max_length);
@@ -2569,6 +2584,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                                                                          temp_snarl_record.end_node_rev);
                                 snarl_record_constructor.set_min_length(temp_snarl_record.min_length);
                                 snarl_record_constructor.set_max_length(temp_snarl_record.max_length);
+                                snarl_record_constructor.set_depth(chain_record_constructor.get_depth() + 1);
 
                                 //Add distances and record connectivity
                                 for (const auto& it : temp_snarl_record.distances) {
@@ -2700,13 +2716,14 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                 //This is a root-level snarl
                 record_t record_type = snarl_size_limit == 0 ? ROOT_SNARL : DISTANCED_ROOT_SNARL;
 
-                const TemporaryDistanceIndex::TemporarySnarlRecord& temp_snarl_record = temp_index->temp_snarl_records[current_record_index    .second];
+                const TemporaryDistanceIndex::TemporarySnarlRecord& temp_snarl_record = temp_index->temp_snarl_records[current_record_index.second];
                 record_to_offset.emplace(make_pair(temp_index_i,current_record_index), snarl_tree_records->size());
 
                 SnarlRecordConstructor snarl_record_constructor (temp_snarl_record.node_count, &snarl_tree_records, record_type, temp_snarl_record.max_distance);
 
                 //Fill in snarl info
                 snarl_record_constructor.set_parent_record_offset(0);
+                snarl_record_constructor.set_depth(1);
                 //Add distances and record connectivity
 
                 if (snarl_size_limit != 0 ) {
