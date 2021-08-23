@@ -21,7 +21,7 @@ jobs:
       - name: Checkout code with submodules
         uses: actions/checkout@v2
         with:
-          - submodules: recursive
+          submodules: recursive
       
       - name: Run build and test
         run: |
