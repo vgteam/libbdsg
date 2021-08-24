@@ -1086,12 +1086,10 @@ size_t SnarlDistanceIndex::get_max_tree_depth() const {
 size_t SnarlDistanceIndex::get_depth(const net_handle_t& net) const {
     if (is_root(net)) {
         return 0;
-    } else if (is_snarl(net)) {
-        return SnarlRecord(net, &snarl_tree_records).get_depth();
+    } else if (is_snarl(net) || is_sentinel(net) || is_node(net)) {
+        return get_depth(get_parent(net));
     } else if (is_trivial_chain(net)) {
         return get_depth(get_parent(net)) + 1;
-    } else if (is_sentinel(net) || is_node(net)) {
-        return get_depth(get_parent(net));
     } else if (is_chain(net)) {
         return ChainRecord(net, &snarl_tree_records).get_depth();
     } else {
@@ -1846,18 +1844,7 @@ void SnarlDistanceIndex::SnarlRecordConstructor::set_child_record_pointer(size_t
 
     (*SnarlTreeRecordConstructor::records)->at(SnarlRecord::record_offset+SNARL_CHILD_RECORD_OFFSET) = pointer;
 }
-size_t SnarlDistanceIndex::SnarlRecord::get_depth() const {
-    return (*records)->at(record_offset+SNARL_DEPTH_OFFSET) ;
-}
 
-void SnarlDistanceIndex::SnarlRecordConstructor::set_depth(size_t depth) {
-#ifdef debug_indexing
-    cerr << SnarlRecord::record_offset+SNARL_DEPTH_OFFSET << " set snarl depth " << depth << endl;
-    assert((*SnarlTreeRecordConstructor::records)->at(SnarlRecord::record_offset+SNARL_DEPTH_OFFSET) == 0);
-#endif
-
-    (*SnarlTreeRecordConstructor::records)->at(SnarlRecord::record_offset+SNARL_DEPTH_OFFSET) = depth;
-}
 //Add a reference to a child of this snarl. Assumes that the index is completed up
 //to here
 void SnarlDistanceIndex::SnarlRecordConstructor::add_child(size_t pointer){
@@ -2471,11 +2458,28 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                     }
                     chain_record_constructor.set_parent_record_offset(
                             record_to_offset[make_pair(temp_index_i, temp_chain_record.parent)]);//TODO: Get the actual parent
-                    if (temp_chain_record.parent.first == TEMP_ROOT) {
+
+                    //If this chain's parent is a root snarl, then the temporary parent is a snarl but we consider 
+                    //the parent to be the root and the chain to have depth 1
+                    bool is_child_of_root_snarl = false;
+                    if (temp_chain_record.parent.first == TEMP_SNARL) {
+                        const TemporaryDistanceIndex::TemporarySnarlRecord& temp_parent_record =
+                             temp_index->temp_snarl_records[temp_chain_record.parent.second];
+                        if (temp_parent_record.is_root_snarl) {
+                            is_child_of_root_snarl = true;
+                        }
+                    }
+
+                    //Set the depth of this chain
+                    if (temp_chain_record.parent.first == TEMP_ROOT || is_child_of_root_snarl) {
+                        //If the parent is the root, then its depth is 0
                         chain_record_constructor.set_depth(1);
                     } else {
+                        //Otherwise, go to the grandparent chain and add 1
+                        size_t parent_record_offset = chain_record_constructor.get_parent_record_offset();
+                        size_t grandparent_record_offset = SnarlRecord(parent_record_offset, &snarl_tree_records).get_parent_record_offset();  
                         chain_record_constructor.set_depth(
-                            SnarlRecord(chain_record_constructor.get_parent_record_offset(), &snarl_tree_records).get_depth() + 1);
+                            ChainRecord(grandparent_record_offset, &snarl_tree_records).get_depth() + 1);
                     }
 
 
@@ -2584,7 +2588,6 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                                                                          temp_snarl_record.end_node_rev);
                                 snarl_record_constructor.set_min_length(temp_snarl_record.min_length);
                                 snarl_record_constructor.set_max_length(temp_snarl_record.max_length);
-                                snarl_record_constructor.set_depth(chain_record_constructor.get_depth() + 1);
 
                                 //Add distances and record connectivity
                                 for (const auto& it : temp_snarl_record.distances) {
@@ -2723,7 +2726,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
 
                 //Fill in snarl info
                 snarl_record_constructor.set_parent_record_offset(0);
-                snarl_record_constructor.set_depth(1);
+
                 //Add distances and record connectivity
 
                 if (snarl_size_limit != 0 ) {
