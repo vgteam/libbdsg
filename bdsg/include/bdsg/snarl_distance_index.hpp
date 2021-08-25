@@ -281,11 +281,8 @@ public:
      */
     size_t distance_in_parent(const net_handle_t& parent, const net_handle_t& child1, const net_handle_t& child2, const HandleGraph* graph=nullptr) const;
     
-    //Get the rank of the handle in the parent. This is only really 
-    //relevant for children of chains. It returns the offset of the
-    //record in the parent, so all that really matters is that the
-    //rank will be bigger for children later in the chain
-    size_t rank_in_parent(const net_handle_t& net) const;
+    //Return true if child1 comes before child2 in the chain. 
+    bool is_ordered_in_chain(const net_handle_t& child1, const net_handle_t& child2) const;
 
 
     /** 

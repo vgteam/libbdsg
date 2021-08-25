@@ -80,12 +80,12 @@ bool SnarlDistanceIndex::is_looping_chain(const net_handle_t& net) const {
     ChainRecord chain_record(net, &snarl_tree_records);
     return chain_record.get_start_id() == chain_record.get_end_id();
 }
-size_t SnarlDistanceIndex::rank_in_parent(const net_handle_t& net) const {
-    if (!(is_snarl(net) || is_node(net))){
-        cerr << "warning: finding rank in anything not a chain is meaningless" << endl;
-        return 0;
+bool SnarlDistanceIndex::is_ordered_in_chain(const net_handle_t& child1, const net_handle_t& child2) const {
+    if (!(is_chain(get_parent(child1)) && get_parent(child1) == get_parent(child2))) {
+        throw runtime_error("error: trying to get a handle from a snarl, chain, or root");
     } else {
-        return SnarlTreeRecord(net, &snarl_tree_records).get_rank_in_parent();
+
+        return SnarlTreeRecord(child1, &snarl_tree_records).get_rank_in_parent() < SnarlTreeRecord(child2, &snarl_tree_records).get_rank_in_parent();
     }
 }
 
@@ -1169,7 +1169,7 @@ size_t SnarlDistanceIndex::SnarlTreeRecord::get_rank_in_parent() const {
         return (*records)->at(record_offset + NODE_RANK_OFFSET) >> 1;
     } else if (type == SNARL || type == DISTANCED_SNARL || type == OVERSIZED_SNARL
             || type == ROOT_SNARL || type == DISTANCED_ROOT_SNARL)  {
-        return (*records)->at(record_offset + SNARL_RANK_OFFSET) >> 1;
+        return record_offset;
     } else if (type == CHAIN || type == DISTANCED_CHAIN || type == MULTICOMPONENT_CHAIN)  {
         return (*records)->at(record_offset + CHAIN_RANK_OFFSET) >> 1;
     } else {
