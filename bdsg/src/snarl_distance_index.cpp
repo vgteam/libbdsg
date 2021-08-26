@@ -2001,8 +2001,14 @@ size_t SnarlDistanceIndex::ChainRecord::get_distance(tuple<size_t, bool, size_t>
 
 size_t SnarlDistanceIndex::ChainRecord::get_distance_taking_chain_loop(tuple<size_t, bool, size_t> node1,
                      tuple<size_t, bool, size_t> node2) const {
+    //Each node is a tuple of <pointer, left_side, and length of the node>
     //This is only called by get_distance, so the nodes should be ordered
     assert (std::get<0>(node1) <= std::get<0>(node2));
+
+    /*Note: Because we assume that the nodes are ordered and that we want to take the loop in the chain,
+     * we leave the start node going left (either by going left or taking a loop to the right), and
+     * enter the end node from the right (from the right or from the left and then looping)
+     */
 
     if (get_record_handle_type() == NODE_HANDLE) {
         throw runtime_error("error: Trying to get chain distances from a node");
@@ -2015,6 +2021,21 @@ size_t SnarlDistanceIndex::ChainRecord::get_distance_taking_chain_loop(tuple<siz
         if (!can_loop || !first_in_first_component || ! second_in_first_component) {
             //If this is a multicomponent chain then it can only reach around backwards if both nodes
             //are in the first (last) component
+            return std::numeric_limits<size_t>::max();
+        } 
+
+        //The first component of a multicomponent chain is the same as the last component
+        //If we want to find the distance ending at the right side of a node in the first component
+        //or starting at the left side of a node in the last component, then the chain has to be connected.
+        //This is because this function assumes that we're taking the loop around the back of the chain,
+        //and taking one of these paths would require the chain to be connected. 
+        //eg. if we want to end at the right side of a node in the first component, then the start node must have
+        //also been in the first component, so we'd go left, take the chain loop, then walk through the chain 
+        //backwards from the end boundary node of the chain to the end node. If the end node is in the first component,
+        //then the chain must be connected for the path to be valid
+        bool end_at_right_of_first = get_chain_component(std::get<0>(node2)) == 0 && !std::get<1>(node2);
+        bool start_at_left_of_last = get_chain_component(std::get<0>(node1)) == last_component && std::get<1>(node1); 
+        if (end_at_right_of_first || start_at_left_of_last) {
             return std::numeric_limits<size_t>::max();
         }
     }
