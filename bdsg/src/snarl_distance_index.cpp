@@ -570,6 +570,24 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
 //#ifdef debug_distances
 //            cerr << "            => " << std::numeric_limits<size_t>::max() << endl;
 //#endif
+            if (canonical(child1) == canonical(child2)) {
+                //If they are the same child of the root but not in a snarl, then check the external connectivity
+                if (ends_at(child1) == START && ends_at(child2) == START) {
+                    return has_external_connectivity(child1, START, START) ? 0 : std::numeric_limits<size_t>::max();
+                } else if (ends_at(child1) == END && ends_at(child2) == END) {
+                    return has_external_connectivity(child1, END, END) ? 0 : std::numeric_limits<size_t>::max();
+                } else if ((ends_at(child1) == START && ends_at(child2) == END) ||
+                            (ends_at(child1) == END && ends_at(child2) == START)) {
+                    if (has_external_connectivity(child1, START, END)) {
+                        //If we can take an edge around the snarl
+                        return 0;
+                    } else if (has_external_connectivity(child1, START, START) && has_external_connectivity(child1, END, END)) {
+                        //If we can take the loops on the two ends of the snarl, walk through the snarl
+                        return minimum_length(child1);
+                    } else {
+                        std::numeric_limits<size_t>::max();
+                    }
+                }             }
             return std::numeric_limits<size_t>::max();
         } else {
             //They are in the same root snarl, so find the distance between them
@@ -986,30 +1004,6 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
             net2 = common_ancestor;
             common_ancestor = get_parent(common_ancestor);
         } else {
-            //If net1 and net2 are the same, check if they have external connectivity in the root
-            if ( canonical(net1) == canonical(net2) ) {
-#ifdef debug_distances
-                cerr << "    Checking external connectivity" << endl;
-#endif
-                if (has_external_connectivity(net1, START, START)) {
-                    minimum_distance = std::min(minimum_distance, sum({distance_to_start1, distance_to_start2}));
-                }
-                if (has_external_connectivity(net1, END, END)) {
-                    minimum_distance = std::min(minimum_distance, sum({distance_to_end1, distance_to_end2}));
-                }
-                if (has_external_connectivity(net1, START, END)) {
-                    minimum_distance = std::min(minimum_distance, 
-                                       std::min(sum({distance_to_start1, distance_to_end2}),
-                                                sum({distance_to_end1, distance_to_start2})));
-                }
-
-                if (has_external_connectivity(net1, START, START) && has_external_connectivity(net1, END, END)) {
-                    minimum_distance = std::min(minimum_distance, 
-                                       sum({std::min(sum({distance_to_start1, distance_to_end2}),
-                                                sum({distance_to_end1, distance_to_start2})), 
-                                           minimum_length(net1)}));
-                }
-            }
             //Just update this one to break out of the loop
             net1 = common_ancestor;
 
