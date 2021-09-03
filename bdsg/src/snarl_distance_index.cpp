@@ -1122,7 +1122,7 @@ size_t SnarlDistanceIndex::SnarlTreeRecord::get_min_length() const {
     record_t type = get_record_type();
     size_t val;
     if (type == DISTANCED_NODE) {
-        val =  (*records)->at(record_offset + NODE_LENGTH_OFFSET);
+        return (*records)->at(record_offset + NODE_LENGTH_OFFSET);
     } else if (type == DISTANCED_SNARL || type == OVERSIZED_SNARL)  {
         val =  (*records)->at(record_offset + SNARL_MIN_LENGTH_OFFSET);
     } else if (type == DISTANCED_CHAIN || type == MULTICOMPONENT_CHAIN)  {

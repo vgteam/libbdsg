@@ -335,7 +335,7 @@ public:
      * Get the minimum distance between two positions in the graph
      * If unoriented_distance is true, then ignore the orientations of the positions
      * Otherwise, distance is calculated from the first position going forward to the second position going forward
-     * The distance includes one of the positions; the distance from one position to itself is 1
+     * The distance includes one of the positions; the distance from one position to itself is 0
      * Returns std::numeric_limits<size_t>::max() if there is no path between the two positions
      */
     //TODO: The positions can't be const?
