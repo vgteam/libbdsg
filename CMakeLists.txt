@@ -22,6 +22,9 @@ set(CMAKE_CXX_STANDARD 14)
 # linker options.
 set(CMAKE_BUILD_RPATH_USE_ORIGIN ON)
 
+# And GNU ideas of install directories
+include(GNUInstallDirs)
+
 # Use all standard-compliant optimizations
 set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -g")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -g")
@@ -82,8 +85,6 @@ include_directories("${PROJECT_SOURCE_DIR}")
 
 # Add external projects
 include(ExternalProject)
-# And GNU ideas of install directories
-include(GNUInstallDirs)
 
 # sdsl-lite (gives an "sdsl" target)
 set(BUILD_SHARED_LIBS ON CACHE BOOL "Build sdsl-lite shared libraries")
