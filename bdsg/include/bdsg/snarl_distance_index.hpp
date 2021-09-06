@@ -954,6 +954,10 @@ private:
         //And how many distance values are we keeping in each slot in the snarl_tree_records vector
         size_t get_distance_values_per_vector_element() const;
 
+        //Helper function to get the offsets for packing distance values into a vector by adjusting the bit width
+        //returns pair<offset of the element in snarl_tree_records, bits to the right of the distance value in the vector element>
+        pair<size_t, size_t> get_offset_of_distance_entry_in_vector_and_element(size_t distance_vector_offset) const;  
+
 
         //Get the index into the distance vector for the calculating distance between the given node sides
         static size_t get_distance_vector_offset(size_t rank1, bool right_side1, size_t rank2, 
@@ -1196,9 +1200,9 @@ public:
         handlegraph::nid_t max_node_id=0;
         size_t root_structure_count=0; //How many things are in the root
         size_t max_tree_depth = 0;
-        size_t max_index_size=ROOT_RECORD_SIZE;//TODO: This will change depending on how the actual index is represented
+        size_t max_index_size= 0;//TODO: This will change depending on how the actual index is represented
         size_t max_distance = 0;
-        size_t get_max_record_length() const {return root_structure_count + (max_node_id-min_node_id) * NODE_RECORD_SIZE + max_index_size;} 
+        size_t get_max_record_length() const {return ROOT_RECORD_SIZE + root_structure_count + (max_node_id-min_node_id+1) * NODE_RECORD_SIZE + max_index_size;} 
 
         //This will actually store each individual record separately, and each 
         //will have real pointers to their parents/children (as opposed to offsets)
@@ -1229,7 +1233,7 @@ public:
             //What is the index of this record in root_snarl_components
             size_t root_snarl_index = std::numeric_limits<size_t>::max();
             bool loopable = true; //If this is a looping snarl, this is false if the last snarl is not start-end connected
-            size_t get_max_record_length() const {return CHAIN_RECORD_SIZE + CHAIN_NODE_MULTICOMPONENT_RECORD_SIZE*prefix_sum.size();} 
+            size_t get_max_record_length() const {return CHAIN_RECORD_SIZE + (CHAIN_NODE_MULTICOMPONENT_RECORD_SIZE+1)*prefix_sum.size() + 3;} 
         };
         struct TemporarySnarlRecord : TemporaryRecord{
             handlegraph::nid_t start_node_id;
@@ -1307,7 +1311,7 @@ public:
     }
     //How many bits are needed to represent this value (with some wiggle room)
     static size_t bit_width(size_t value) {
-        return log2(value+1) + 2;
+        return log2(value+1) + 3;
 
     }
 public:
