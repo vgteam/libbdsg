@@ -1,4 +1,4 @@
-#define debug_distance_indexing
+//#define debug_distance_indexing
 //#define debug_snarl_traversal
 //#define debug_distances
 
@@ -2789,7 +2789,6 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                         //If we are keeping track of distances and either this is a small enough snarl,
                         //or the snarl is too big but we are looking at the boundaries
                         assert(distance <= temp_snarl_record.max_distance);
-                        cerr << "Adding distance between ranks " << node_ranks.first.first << " and " << node_ranks.second.first << ": " << distance << endl;
                         snarl_record_constructor.set_distance(node_ranks.first.first, node_ranks.first.second,
                             node_ranks.second.first, node_ranks.second.second, distance);
                         assert(snarl_record_constructor.get_distance(node_ranks.first.first, node_ranks.first.second,
@@ -2907,8 +2906,10 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
             }
         }
     }
+#ifdef debug_distance_indexing
     cerr << "Predicted size: " << maximum_index_size << " actual size: " <<  snarl_tree_records->size() << endl;
     assert(snarl_tree_records->size() <= maximum_index_size); 
+#endif
 
 
 }
