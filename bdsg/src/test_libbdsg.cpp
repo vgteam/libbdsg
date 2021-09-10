@@ -527,12 +527,13 @@ void test_mapped_structs() {
         std::tuple<size_t, size_t, size_t> total_free_reclaimable = numbers_holder.get_usage();
         // Total bytes must be no less than free bytes
         assert(get<0>(total_free_reclaimable) >= get<1>(total_free_reclaimable));
-        // Total bytes must be no less than reclaimable bytes
-        assert(get<0>(total_free_reclaimable) >= get<2>(total_free_reclaimable));
+        // Free bytes must be no less than reclaimable bytes
+        assert(get<1>(total_free_reclaimable) >= get<2>(total_free_reclaimable));
+        
         // Some bytes should be free in the initial chain link
         assert(get<1>(total_free_reclaimable) > 0);
-        // But they should all be reclaimable, plus the block header
-        assert(get<1>(total_free_reclaimable) < get<2>(total_free_reclaimable));
+        // But they should all be reclaimable, including the block header
+        assert(get<1>(total_free_reclaimable) == get<2>(total_free_reclaimable));
         
         { 
         
@@ -598,8 +599,8 @@ void test_mapped_structs() {
             total_free_reclaimable = numbers_holder.get_usage();
             // Total bytes must be no less than free bytes
             assert(get<0>(total_free_reclaimable) >= get<1>(total_free_reclaimable));
-            // Total bytes must be no less than reclaimable bytes
-            assert(get<0>(total_free_reclaimable) >= get<2>(total_free_reclaimable));
+            // Free bytes must be no less than reclaimable bytes
+            assert(get<1>(total_free_reclaimable) >= get<2>(total_free_reclaimable));
             
             // At this point we've made it bigger than ever before and required
             // a new link probably, so nothing should be reclaimable.
@@ -620,8 +621,8 @@ void test_mapped_structs() {
             total_free_reclaimable = numbers_holder.get_usage();
             // Total bytes must be no less than free bytes
             assert(get<0>(total_free_reclaimable) >= get<1>(total_free_reclaimable));
-            // Total bytes must be no less than reclaimable bytes
-            assert(get<0>(total_free_reclaimable) >= get<2>(total_free_reclaimable));
+            // Free bytes must be no less than reclaimable bytes
+            assert(get<1>(total_free_reclaimable) >= get<2>(total_free_reclaimable));
             
             // At this point some memory should be reclaimable
             assert(get<2>(total_free_reclaimable) > 0);
@@ -646,8 +647,8 @@ void test_mapped_structs() {
         total_free_reclaimable = numbers_holder.get_usage();
         // Total bytes must be no less than free bytes
         assert(get<0>(total_free_reclaimable) >= get<1>(total_free_reclaimable));
-        // Total bytes must be no less than reclaimable bytes
-        assert(get<0>(total_free_reclaimable) >= get<2>(total_free_reclaimable));
+        // Free bytes must be no less than reclaimable bytes
+        assert(get<1>(total_free_reclaimable) >= get<2>(total_free_reclaimable));
         
         // No bytes should be reclaimable because we saved this through a mapping.
         assert(get<2>(total_free_reclaimable) == 0);

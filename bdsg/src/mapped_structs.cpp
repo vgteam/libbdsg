@@ -818,8 +818,8 @@ std::tuple<size_t, size_t, size_t> Manager::get_usage(chainid_t chain) {
     // chain-contiguous run of free blocks abuts the end of the chain.
     size_t total_length = get_chain_size(chain);
     
-    // How many bytes of free payload have we seen?
-    size_t free_payload_bytes = 0;
+    // How many bytes of free payload (and associated headers) have we seen?
+    size_t free_bytes = 0;
     
     // How many free bytes are at the end?
     size_t reclaimable = 0;
@@ -827,8 +827,8 @@ std::tuple<size_t, size_t, size_t> Manager::get_usage(chainid_t chain) {
     with_allocator_header(chain, [&](AllocatorHeader* header) {
         AllocatorBlock* free_block = header->last_free;
         while (free_block) {
-            // The block has some free payload
-            free_payload_bytes += free_block->size;
+            // The block is free, so count it and its header as free
+            free_bytes += free_block->size + sizeof(AllocatorBlock);
             
             // Where in the chain does it end?
             size_t block_end = get_chain_and_position(free_block).second +
@@ -847,11 +847,11 @@ std::tuple<size_t, size_t, size_t> Manager::get_usage(chainid_t chain) {
 
 #ifdef debug_manager
     std::cerr << "Memory usage: " << total_length << " total, "
-        << free_payload_bytes << " free, "
+        << free_bytes << " free, "
         << reclaimable << " reclaimable" << endl;
 #endif
     
-    return std::make_tuple(total_length, free_payload_bytes, reclaimable);
+    return std::make_tuple(total_length, free_bytes, reclaimable);
 }
 
 void Manager::scan_chain(chainid_t chain, const std::function<void(const void*, size_t)>& iteratee) {

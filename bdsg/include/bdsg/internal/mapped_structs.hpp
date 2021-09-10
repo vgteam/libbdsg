@@ -314,8 +314,8 @@ public:
     /**
      * Get statistics about the memory in a chain. Returns all 0s if not a managed chain.
      *
-     * Returns the total bytes in the chain, the number of allocateable bytes,
-     * and the number of bytes reclaimable when the chain is closed. 
+     * Returns the total bytes in the chain, the number of free bytes,
+     * and the number of free bytes reclaimable when the chain is closed. 
      */
     static std::tuple<size_t, size_t, size_t> get_usage(chainid_t chain);
     
@@ -695,8 +695,8 @@ public:
     /*
      * Get statistics about the pointer's associated memory chain.
      *
-     * Returns the total bytes, the number of allocateable bytes,
-     * and the number of bytes reclaimable when closed as a mapped file. 
+     * Returns the total bytes, the number of free bytes, and the number of
+     * free bytes reclaimable when closed as a mapped file. 
      */
     std::tuple<size_t, size_t, size_t> get_usage();
 private:
