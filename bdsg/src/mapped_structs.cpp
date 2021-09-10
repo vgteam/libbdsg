@@ -789,6 +789,71 @@ void* Manager::find_first_allocation(chainid_t chain, size_t bytes) {
     return first_allocated;
 }
 
+size_t Manager::get_chain_size(chainid_t chain) {
+    if (chain == NO_CHAIN) {
+        return 0;
+    }
+
+    LinkRecord* first;
+    
+    {
+        // Get read access to manager data structures
+        std::shared_lock<std::shared_timed_mutex> lock(Manager::mutex);
+        
+        // Find the first link
+        first = &address_space_index.at((intptr_t) chain);
+    }
+    
+    // The size is recorded here
+    return first->total_size;
+
+}
+
+std::tuple<size_t, size_t, size_t> Manager::get_usage(chainid_t chain) {
+    if (chain == NO_CHAIN) {
+        return std::make_tuple<size_t, size_t, size_t>(0, 0, 0);
+    }
+    
+    // We need the total chain length so we can tell if the last
+    // chain-contiguous run of free blocks abuts the end of the chain.
+    size_t total_length = get_chain_size(chain);
+    
+    // How many bytes of free payload have we seen?
+    size_t free_payload_bytes = 0;
+    
+    // How many free bytes are at the end?
+    size_t reclaimable = 0;
+    
+    with_allocator_header(chain, [&](AllocatorHeader* header) {
+        AllocatorBlock* free_block = header->last_free;
+        while (free_block) {
+            // The block has some free payload
+            free_payload_bytes += free_block->size;
+            
+            // Where in the chain does it end?
+            size_t block_end = get_chain_and_position(free_block).second +
+                free_block->size + sizeof(AllocatorBlock);
+            
+            if (block_end == total_length - reclaimable) {
+                // This abuts the existing trailing reclaimable space, so
+                // expand it over this block.
+                reclaimable += free_block->size + sizeof(AllocatorBlock);
+            }
+            
+            // Go left to the previous free block in the chain, if any.
+            free_block = free_block->prev;
+        }
+    });
+
+#ifdef debug_manager
+    std::cerr << "Memory usage: " << total_length << " total, "
+        << free_payload_bytes << " free, "
+        << reclaimable << " reclaimable" << endl;
+#endif
+    
+    return std::make_tuple(total_length, free_payload_bytes, reclaimable);
+}
+
 void Manager::scan_chain(chainid_t chain, const std::function<void(const void*, size_t)>& iteratee) {
     // Start a cursor in the chain
     size_t chain_offset = 0;
@@ -858,60 +923,56 @@ size_t Manager::reclaim_tail(chainid_t chain) {
         return 0;
     }
     
-    LinkRecord* first;
-    
-    {
-        // Get read access to manager data structures
-        std::shared_lock<std::shared_timed_mutex> lock(Manager::mutex);
-        
-        // Find the first link
-        first = &address_space_index.at((intptr_t) chain);
-    }
+    // Get the past-end position in the chain, and use that as our cursor to walk backward.
+    size_t first_unused_byte = get_chain_size(chain);
     
     // Track how many bytes we removed
     size_t reclaimed_bytes = 0;
     
-    // Find the header
-    AllocatorHeader* header = (AllocatorHeader*)(((char*) chain) + first->prefix_size);
-    
-    {
-        // Get exclusive access to the allocator
-        std::unique_lock<std::mutex> lock(*(first->allocator_mutex));
-        
-        // Get the past-end position in the chain, and use that as our cursor to walk backward.
-        assert(first->total_size > 0);
-        size_t first_unused_byte = first->total_size;
-    
+    with_allocator_header(chain, [&](AllocatorHeader* header) {
         while (header->last_free) {
             // For each free block, end to start
-            size_t total_block_size = header->last_free->size + sizeof(AllocatorBlock);
+            AllocatorBlock* last_free = header->last_free;
+            size_t total_block_size = last_free->size + sizeof(AllocatorBlock);
             
             // Get its past-end position in the chain
-            size_t past_block_end = get_chain_and_position(header->last_free).second + total_block_size;
+            size_t past_block_end = get_chain_and_position(last_free).second + total_block_size;
                 
             if (first_unused_byte == past_block_end) {
                 // We can pop off this block
                 
 #ifdef debug_manager
-                std::cerr << "Reclaiming trailing free block " << header->last_free << std::endl;
+                std::cerr << "Reclaiming trailing free block " << last_free << std::endl;
 #endif
                 
+                // Record reclaiming these bytes
                 reclaimed_bytes += total_block_size;
-                past_block_end -= total_block_size;
-                header->last_free->detach();
+                // Bring the cursor back to before the block we reclaimed.
+                first_unused_byte -= total_block_size;
+                
+                // Remove the block from the free list. We have to update the
+                // header pointers ourselves.
+                auto connected = last_free->detach();
+                header->last_free = connected.first;
+                if (header->first_free == last_free) {
+                    // This was the first free block.
+                    // The first free block is now the right neighbor, if any.
+                    header->first_free = connected.second;
+                }
+                
                 // Now last_free has moved, so check that block, if it exists.
             } else {
                 // We've reached a block we can't reclaim. We have to stop the scan.
                 
 #ifdef debug_manager
-                std::cerr << "Last free block ends at " << first_unused_byte
-                    << " and not " << past_block_end << std::endl;
+                std::cerr << "Last free block ends at " << past_block_end
+                    << " and not " << first_unused_byte << std::endl;
 #endif
                 
                 break;
             }
         }
-    }
+    });
     
 #ifdef debug_manager
     std::cerr << "Reclaimed " << reclaimed_bytes << " bytes at end of chain " << chain << std::endl;

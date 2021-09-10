@@ -523,6 +523,17 @@ void test_mapped_structs() {
         // Construct it
         numbers_holder.construct("GATTACA");
         
+        // See how much memory we are using
+        std::tuple<size_t, size_t, size_t> total_free_reclaimable = numbers_holder.get_usage();
+        // Total bytes must be no less than free bytes
+        assert(get<0>(total_free_reclaimable) >= get<1>(total_free_reclaimable));
+        // Total bytes must be no less than reclaimable bytes
+        assert(get<0>(total_free_reclaimable) >= get<2>(total_free_reclaimable));
+        // Some bytes should be free in the initial chain link
+        assert(get<1>(total_free_reclaimable) > 0);
+        // But they should all be reclaimable, plus the block header
+        assert(get<1>(total_free_reclaimable) < get<2>(total_free_reclaimable));
+        
         { 
         
             // Get a reference to it, which will be valid unless we save() or something
@@ -582,6 +593,39 @@ void test_mapped_structs() {
             vec2.resize(4000);
             fill_to(vec2, 4000, 2);
             verify_to(vec2, 4000, 2);
+            
+            // Check memory usage
+            total_free_reclaimable = numbers_holder.get_usage();
+            // Total bytes must be no less than free bytes
+            assert(get<0>(total_free_reclaimable) >= get<1>(total_free_reclaimable));
+            // Total bytes must be no less than reclaimable bytes
+            assert(get<0>(total_free_reclaimable) >= get<2>(total_free_reclaimable));
+            
+            // At this point we've made it bigger than ever before and required
+            // a new link probably, so nothing should be reclaimable.
+            assert(get<2>(total_free_reclaimable) == 0);
+            // But some space should be free because we've deallocated smaller vectors.
+            assert(get<1>(total_free_reclaimable) > 0);
+            
+            // Make it even bigger!
+            vec2.resize(10000);
+            
+            // And smaller again
+            vec2.resize(4000);
+            
+            // And reallocate smaller
+            vec2.shrink_to_fit();
+            
+            // Check memory usage
+            total_free_reclaimable = numbers_holder.get_usage();
+            // Total bytes must be no less than free bytes
+            assert(get<0>(total_free_reclaimable) >= get<1>(total_free_reclaimable));
+            // Total bytes must be no less than reclaimable bytes
+            assert(get<0>(total_free_reclaimable) >= get<2>(total_free_reclaimable));
+            
+            // At this point some memory should be reclaimable
+            assert(get<2>(total_free_reclaimable) > 0);
+            
         }
         
         numbers_holder.dissociate();
@@ -597,6 +641,16 @@ void test_mapped_structs() {
         
         numbers_holder.reset();
         numbers_holder.load(tmpfd, "GATTACA");
+        
+        // Check memory usage
+        total_free_reclaimable = numbers_holder.get_usage();
+        // Total bytes must be no less than free bytes
+        assert(get<0>(total_free_reclaimable) >= get<1>(total_free_reclaimable));
+        // Total bytes must be no less than reclaimable bytes
+        assert(get<0>(total_free_reclaimable) >= get<2>(total_free_reclaimable));
+        
+        // No bytes should be reclaimable because we saved this through a mapping.
+        assert(get<2>(total_free_reclaimable) == 0);
         
         {
             auto& vec4 = *numbers_holder;
