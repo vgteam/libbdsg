@@ -884,7 +884,7 @@ size_t Manager::reclaim_tail(chainid_t chain) {
     
         while (header->last_free) {
             // For each free block, end to start
-            size_t total_block_size = header->last_free->size() + sizeof(AllocatorBlock);
+            size_t total_block_size = header->last_free->size + sizeof(AllocatorBlock);
             
             // Get its past-end position in the chain
             size_t past_block_end = get_chain_and_position(header->last_free).second + total_block_size;
