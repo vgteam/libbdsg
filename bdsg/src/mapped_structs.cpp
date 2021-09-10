@@ -228,6 +228,11 @@ Manager::chainid_t Manager::get_associated_chain(chainid_t chain, int fd) {
 
 void Manager::destroy_chain(chainid_t chain) {
 
+    // Reclaim any bytes from the end of the file that we can.
+    size_t bytes_to_drop = reclaim_tail(chain);
+    // We'll need to get the total chain size out of the first link.
+    size_t total_size;
+
     // Remember the FD of the chain for closing the file.
     int fd;
     
@@ -246,7 +251,9 @@ void Manager::destroy_chain(chainid_t chain) {
             throw std::runtime_error("Trying to destroy nonexistent chain");
         }
         
+        // Store the info we need to tear down the backing file.
         fd = head_entry->second.fd;
+        total_size = head_entry->second.total_size;
         
         auto link_entry = head_entry;
         
@@ -291,6 +298,13 @@ void Manager::destroy_chain(chainid_t chain) {
     }
     
     if (fd) {
+        // We have a backing file.
+        // Truncate off any bytes we reclaimed as trailing free space.
+        if (ftruncate(fd, total_size - bytes_to_drop)) {
+            throw std::runtime_error("Could not truncate " + std::to_string(bytes_to_drop) +
+                " bytes off of file: " + std::string(strerror(errno)));
+        }
+        
         // Close the backing file
         if (close(fd)) {
             throw std::runtime_error("Could not close file: " + std::string(strerror(errno)));
@@ -836,6 +850,76 @@ void Manager::with_allocator_header(chainid_t chain,
         callback(header);
         
     }
+}
+
+size_t Manager::reclaim_tail(chainid_t chain) {
+    if (chain == NO_CHAIN) {
+        // Nothing to free here.
+        return 0;
+    }
+    
+    LinkRecord* first;
+    
+    {
+        // Get read access to manager data structures
+        std::shared_lock<std::shared_timed_mutex> lock(Manager::mutex);
+        
+        // Find the first link
+        first = &address_space_index.at((intptr_t) chain);
+    }
+    
+    // Track how many bytes we removed
+    size_t reclaimed_bytes = 0;
+    
+    // Find the header
+    AllocatorHeader* header = (AllocatorHeader*)(((char*) chain) + first->prefix_size);
+    
+    {
+        // Get exclusive access to the allocator
+        std::unique_lock<std::mutex> lock(*(first->allocator_mutex));
+        
+        // Get the past-end position in the chain, and use that as our cursor to walk backward.
+        assert(first->total_size > 0);
+        size_t first_unused_byte = first->total_size;
+    
+        while (header->last_free) {
+            // For each free block, end to start
+            size_t total_block_size = header->last_free->size() + sizeof(AllocatorBlock);
+            
+            // Get its past-end position in the chain
+            size_t past_block_end = get_chain_and_position(header->last_free).second + total_block_size;
+                
+            if (first_unused_byte == past_block_end) {
+                // We can pop off this block
+                
+#ifdef debug_manager
+                std::cerr << "Reclaiming trailing free block " << header->last_free << std::endl;
+#endif
+                
+                reclaimed_bytes += total_block_size;
+                past_block_end -= total_block_size;
+                header->last_free->detach();
+                // Now last_free has moved, so check that block, if it exists.
+            } else {
+                // We've reached a block we can't reclaim. We have to stop the scan.
+                
+#ifdef debug_manager
+                std::cerr << "Last free block ends at " << first_unused_byte
+                    << " and not " << past_block_end << std::endl;
+#endif
+                
+                break;
+            }
+        }
+    }
+    
+#ifdef debug_manager
+    std::cerr << "Reclaimed " << reclaimed_bytes << " bytes at end of chain " << chain << std::endl;
+#endif
+    
+    // We reclaimed all those blocks and their headers from the allocator's management.
+    // Now they're totally unused at the end of the chain.
+    return reclaimed_bytes;
 }
 
 std::pair<Manager::chainid_t, bool> Manager::open_chain(int fd, size_t start_size) {

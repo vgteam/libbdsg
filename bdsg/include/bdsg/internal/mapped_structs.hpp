@@ -237,6 +237,9 @@ public:
     /**
      * Destroy the given chain and unmap all of its memory, and close any
      * associated file.
+     *
+     * Also drops trailing free blocks and truncates them out of the backing
+     * file.
      */
     static void destroy_chain(chainid_t chain);
     
@@ -304,6 +307,12 @@ public:
     static void* find_first_allocation(chainid_t chain, size_t bytes);
     
     /**
+     * Get the fraction of bytes in the chain which are free, or NaN if the
+     * chain is empty or not a chain.
+     */
+    static float get_portion_free(chainid_t chain);
+    
+    /**
      * Scan all memory regions in the given chain. Calls the iteratee with each
      * region's start address and length, in order.
      */
@@ -329,7 +338,7 @@ protected:
         Pointer<AllocatorBlock> prev;
         /// Next block. Only used when block is free. Null if allocated.
         Pointer<AllocatorBlock> next;
-        /// Size fo the block in bytes, not counting this header. Used for free
+        /// Size of the block in bytes, not counting this header. Used for free
         /// and allocated blocks.
         big_endian<size_t> size;
         
@@ -471,6 +480,15 @@ protected:
      */
     static void with_allocator_header(chainid_t chain,
                                       const std::function<void(AllocatorHeader*)>& callback);
+                                      
+    /**
+     * While a final free block exists, drop it from the freee list.
+     * Return the total number of bytes after the last allocated block.
+     *
+     * Note that you should not map anything after calling this function! You
+     * should close the chain and trim down the backing file!
+     */
+    static size_t reclaim_tail(chainid_t chain);
 
 };
 
