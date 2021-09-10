@@ -2395,6 +2395,42 @@ string SnarlDistanceIndex::net_handle_as_string(const net_handle_t& net) const {
     result += (ends_at(net) == START ? "start" : (ends_at(net) == END ? "end" : "tip"));
     return result;
 }
+
+
+//Print entire index to cout as csv:
+//self, parent, # children, depth
+void SnarlDistanceIndex::print_self() const {
+    cout << "#self,parent,#children,depth" << endl; 
+    print_descendants_of(get_root());
+
+}
+void SnarlDistanceIndex::print_descendants_of(const net_handle_t net) const {
+    SnarlTreeRecord record (net, &snarl_tree_records);
+    //What the record thinks it is
+    net_handle_record_t record_type = record.get_record_handle_type();
+    if (record_type == NODE_HANDLE) {
+        net_handle_t parent = get_parent(net);
+        cout << net_handle_as_string(net) << "," << net_handle_as_string(parent) << ",1,"<< get_depth(net) << endl; 
+        return;
+    } else {
+        size_t child_count;
+        string parent;
+        if (record_type == ROOT_HANDLE) {
+            parent = "none";
+            child_count = RootRecord(net, &snarl_tree_records).get_node_count();
+        } else {
+            parent = net_handle_as_string(get_parent(net));
+            child_count = record_type == CHAIN_HANDLE ? ChainRecord(net, &snarl_tree_records).get_node_count() 
+                                                   : SnarlRecord(net, &snarl_tree_records).get_node_count();
+                                
+        }
+        cout << net_handle_as_string(net) << "," << parent << "," << child_count << ","<< get_depth(net) << endl; 
+        for_each_child(net, [&](const net_handle_t& child) {
+            print_descendants_of(child);
+        });
+    }
+}
+
 void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDistanceIndex*>& temporary_indexes, const HandleGraph* graph) {
 
 #ifdef debug_distance_indexing

@@ -341,17 +341,7 @@ public:
     //TODO: The positions can't be const?
     size_t minimum_distance(const handlegraph::nid_t id1, const bool rev1, const size_t offset1, const handlegraph::nid_t id2, const bool rev2, const size_t offset2, bool unoriented_distance = false, const HandleGraph* graph=nullptr) const ;
 
-
     
-     //TODO: Get rid of this
-     public:
-        void print_self() {
-            cerr << "Entire index:" << endl;
-            for (size_t i = 0 ; i < snarl_tree_records->size() ; i++) {
-                cerr << "(" << i << "):" << snarl_tree_records->at(i) << "   " ;
-            }
-            cerr << endl;
-        }
 //////////////////////////////////////////  The actual distance index
 private:
     
@@ -1176,8 +1166,17 @@ private:
     }
 
 public:
-//TODO: Move this
+
+    //Return a string of what the handle is
     std::string net_handle_as_string(const net_handle_t& net) const;
+
+    //Print the entire index to cout
+    //Prints each snarl, chain, and node in the index, top down, one per line as a csv: 
+    // self, parent, # children, depth
+    void print_self() const;
+    //Helper function for print self that recursively prints a net handle
+    //and all its descendants
+    void print_descendants_of(const net_handle_t net) const;
 
 
 public:
