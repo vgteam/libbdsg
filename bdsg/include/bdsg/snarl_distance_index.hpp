@@ -311,6 +311,11 @@ public:
      * net must be a node or a sentinel
      */
     nid_t node_id(const net_handle_t& net) const ;
+
+    /**
+     * Does the graph have this node?
+     */
+    bool has_node(const nid_t id) const;
     /**
      * Get a net handle from a node
      */
@@ -1177,6 +1182,14 @@ public:
     //Helper function for print self that recursively prints a net handle
     //and all its descendants
     void print_descendants_of(const net_handle_t net) const;
+
+    //Validate the distance index. Without debug turned on, this will only
+    //assert a bunch of stuff and try to write the thing that fails to cerr
+    //With debug turned on, write the whole index the same as print_self
+
+    void validate_index() const;
+    void validate_descendants_of(const net_handle_t net) const;
+    void validate_ancestors_of(const net_handle_t net) const;
 
 
 public:

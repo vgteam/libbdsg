@@ -1065,6 +1065,9 @@ nid_t SnarlDistanceIndex::node_id(const net_handle_t& net) const {
     }
 
 }
+bool SnarlDistanceIndex::has_node(const nid_t id) const {
+    return snarl_tree_records->at(get_offset_from_node_id(id)) != 0;
+}
 net_handle_t SnarlDistanceIndex::get_node_net_handle(const nid_t id) const {
     return get_net_handle(get_offset_from_node_id(id), START_END, NODE_HANDLE); 
 }
@@ -2417,7 +2420,7 @@ void SnarlDistanceIndex::print_descendants_of(const net_handle_t net) const {
         string parent;
         if (record_type == ROOT_HANDLE) {
             parent = "none";
-            child_count = RootRecord(net, &snarl_tree_records).get_node_count();
+            child_count = RootRecord(net, &snarl_tree_records).get_connected_component_count();
         } else {
             parent = net_handle_as_string(get_parent(net));
             child_count = record_type == CHAIN_HANDLE ? ChainRecord(net, &snarl_tree_records).get_node_count() 
@@ -2429,6 +2432,54 @@ void SnarlDistanceIndex::print_descendants_of(const net_handle_t net) const {
             print_descendants_of(child);
         });
     }
+}
+
+void SnarlDistanceIndex::validate_index() const {
+    //Go down tree and validate
+    net_handle_t root = get_root();
+    validate_descendants_of(root);
+    RootRecord root_record(root, &snarl_tree_records); 
+
+    //Go up tree and validate
+    size_t node_count = 0;
+    size_t max_node_id = root_record.get_min_node_id() + root_record.get_node_count();
+    for (nid_t id = root_record.get_min_node_id() ; id < max_node_id ; id++){
+        if (has_node(id)) {
+            validate_ancestors_of(get_node_net_handle(id));
+            node_count++;
+        }
+    }
+
+}
+//Recursively check descendants of net
+void SnarlDistanceIndex::validate_descendants_of(net_handle_t net) const {
+    cerr << "Looking at descendants of " << net_handle_as_string(net) << endl;
+
+    SnarlTreeRecord record (net, &snarl_tree_records);
+    //What the record thinks it is
+    net_handle_record_t record_type = record.get_record_handle_type();
+    if (record_type == NODE_HANDLE) {
+        cerr << "\tIt's a node so we're done" << endl;
+        return;
+    } else {
+        for_each_child(net, [&](const net_handle_t& child) {
+            cerr << "for parent " << net_handle_as_string(net) << " check it's child " << net_handle_as_string(child) << endl;
+            assert(is_root(child) || canonical(get_parent(child)) == canonical(net));
+            validate_descendants_of(child);
+        });
+    }
+}
+//Recursively check ancestors of net
+void SnarlDistanceIndex::validate_ancestors_of(net_handle_t net) const {
+    cerr << "Looking at ancestors of " << net_handle_as_string(net) << endl;
+    SnarlTreeRecord record (net, &snarl_tree_records);
+    //What the record thinks it is
+    net_handle_record_t record_type = record.get_record_handle_type();
+    if (record_type == ROOT_HANDLE) {
+        return;
+    }
+    net_handle_t parent_handle = get_parent(net);
+    validate_ancestors_of(parent_handle);
 }
 
 void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDistanceIndex*>& temporary_indexes, const HandleGraph* graph) {
