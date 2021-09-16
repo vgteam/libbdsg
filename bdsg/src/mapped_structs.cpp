@@ -25,7 +25,7 @@ namespace bdsg {
 namespace yomo {
 
 // Leave extra chain debugging checks off by default.
-bool Manager::check_chains = false;
+bool Manager::check_chains = true;
 
 // we hide our LinkRecord in here because we can't forward-declare the MIO
 // stuff it stores.
@@ -1045,6 +1045,48 @@ size_t Manager::reclaim_tail(chainid_t chain) {
     return reclaimed_bytes;
 }
 
+void Manager::check_heap_integrity(chainid_t chain) {
+     if (chain == NO_CHAIN) {
+        // Nothing to scan.
+        return;
+    }
+    
+    // All blocks, allocated or free, form a linked list connected by block length.
+    
+    with_allocator_header(chain, [&](AllocatorHeader* header) {
+        // Get the past-end position in the chain, where we expect out scan to end.
+        size_t first_unused_byte = get_chain_size(chain);
+        
+        // Get the position that the next block (allocated or free) should be at
+        size_t block_cursor = get_chain_and_position(header).second + sizeof(AllocatorHeader);
+        
+        while (block_cursor < first_unused_byte) {
+            // Find this block
+            AllocatorBlock* block = (AllocatorBlock*) get_address_in_chain(chain, block_cursor, sizeof(AllocatorBlock));
+            
+            // Make sure its size isn't some enormous garbage that will make us overflow
+            if (block->size > first_unused_byte) {
+                throw std::runtime_error("An allocator block at offset " + std::to_string(block_cursor) +
+                    " in chain " + std::to_string(chain) +
+                    " has a size of " + std::to_string(block->size) +
+                    " which is larger then the whole chain's length of " +
+                    std::to_string(first_unused_byte) + " bytes. This indicated data corruption.");
+            }
+            
+            // Advance to the next block
+            block_cursor += sizeof(AllocatorBlock) + block->size;
+        }
+        
+        if (block_cursor != first_unused_byte) {
+            // We've blown past the end of the chain.
+            throw std::runtime_error("An allocator block in chain " + std::to_string(chain) +
+                " runs to byte " + std::to_string(block_cursor) +
+                " but the chain only has " + std::to_string(first_unused_byte) +
+                " bytes in it. Is the backing file truncated?");
+        }
+    });
+}
+
 std::pair<Manager::chainid_t, bool> Manager::open_chain(int fd, size_t start_size) {
 
     // Set up our return value
@@ -1394,6 +1436,11 @@ void Manager::connect_allocator_at(chainid_t chain, size_t offset) {
         LinkRecord& head = Manager::address_space_index.at((intptr_t) chain);
         // Save the allocator position
         head.prefix_size = offset;
+    }
+    
+    if (check_chains) {
+        // Make sure that we never allow an allocator to come up broken.
+        check_heap_integrity(chain);
     }
 }
 

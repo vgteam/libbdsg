@@ -185,7 +185,8 @@ public:
     static const chainid_t NO_CHAIN = 0;
     
     /**
-     * Set this to true to enable additional self-checks on memory management correctness.
+     * Set this to true to enable additional self-checks on memory management
+     * correctness, and false to disable them.
      */
     static bool check_chains;
 
@@ -342,6 +343,12 @@ public:
      * Not thread safe!
      */
     static void dump_links(ostream& out = std::cerr);
+    
+    /**
+     * Walk all allocated and free blocks in the heap in the chain and make
+     * sure that they are actually in memory. If not, throws std::runtime_error.
+     */
+    static void check_heap_integrity(chainid_t chain);
     
 protected:
     
@@ -508,7 +515,6 @@ protected:
      * should close the chain and trim down the backing file!
      */
     static size_t reclaim_tail(chainid_t chain);
-
 };
 
 /**
@@ -721,13 +727,20 @@ public:
      */
     void reset();
     
-    /*
+    /**
      * Get statistics about the pointer's associated memory chain.
      *
      * Returns the total bytes, the number of free bytes, and the number of
      * free bytes reclaimable when closed as a mapped file. 
      */
     std::tuple<size_t, size_t, size_t> get_usage();
+    
+    /**
+     * Make sure that internal heap data structures are consistent with the
+     * memory mapping. Raises std::runtime_error if not.
+     */
+    void check_heap_integrity();
+    
 private:
     Manager::chainid_t chain = Manager::NO_CHAIN;
 };
@@ -1871,38 +1884,42 @@ uint64_t CompatIntVector<Alloc>::unpack(size_t index, size_t width_override) con
     // And a start bit in that slot
     size_t start_slot_bit_offset = start_bit % std::numeric_limits<uint64_t>::digits;
     
-    // Work out if we span into the next slot
-    bool into_next_slot = (start_slot_bit_offset + effective_width > std::numeric_limits<uint64_t>::digits);
-    if (start_slot >= data.size() || (into_next_slot && start_slot + 1 >= data.size())) {
-        // We want to go out of range of the vector.
-        throw std::out_of_range("Reading item " + std::to_string(index) +
-            " of width " + std::to_string(effective_width) + " accesses slot " + std::to_string(start_slot) +
-            (into_next_slot ? ("and slot " + std::to_string(into_next_slot + 1)) : "") +
-            " but we only have " + std::to_string(data.size()) + " slots and " +
-            std::to_string(size()) + " items");
-    }
+    if (yomo::Manager::check_chains) {
+        // Do some bounds checking
     
-    // Define the memory range we plan to access, inclusive
-    const uint64_t* access_first = &data[start_slot];
-    const uint64_t* access_last =  access_first + into_next_slot;
-    
-    // Make sure we aren't trying to go across chains
-    auto our_chain = yomo::Manager::get_chain(this);
-    for (const uint64_t* access_addr = access_first; access_addr != access_last + 1; access_addr++) {
-        // For each slot we need to read
+        // Work out if we span into the next slot
+        bool into_next_slot = (start_slot_bit_offset + effective_width > std::numeric_limits<uint64_t>::digits);
+        if (start_slot >= data.size() || (into_next_slot && start_slot + 1 >= data.size())) {
+            // We want to go out of range of the vector.
+            throw std::out_of_range("Reading item " + std::to_string(index) +
+                " of width " + std::to_string(effective_width) + " accesses slot " + std::to_string(start_slot) +
+                (into_next_slot ? ("and slot " + std::to_string(into_next_slot + 1)) : "") +
+                " but we only have " + std::to_string(data.size()) + " slots and " +
+                std::to_string(size()) + " items");
+        }
         
-        auto other_chain = yomo::Manager::get_chain(access_addr);
+        // Define the memory range we plan to access, inclusive
+        const uint64_t* access_first = &data[start_slot];
+        const uint64_t* access_last =  access_first + into_next_slot;
         
-        if (other_chain != our_chain) {
-            // We're accessing something past the end of the chain somehow.
-            std::stringstream msg;
-            msg << "error[CompatIntVector]: Attempting to access address " << access_addr
-                << " for vector at " << this << " with data at " << &data[0]
-                << " but we are in chain " << our_chain
-                << " and accessed address is in chain " << other_chain
-                << ". Is the entire file mapped?" << std::endl;
-            yomo::Manager::dump_links(msg);
-            throw std::out_of_range(msg.str());
+        // Make sure we aren't trying to go across chains
+        auto our_chain = yomo::Manager::get_chain(this);
+        for (const uint64_t* access_addr = access_first; access_addr != access_last + 1; access_addr++) {
+            // For each slot we need to read
+            
+            auto other_chain = yomo::Manager::get_chain(access_addr);
+            
+            if (other_chain != our_chain) {
+                // We're accessing something past the end of the chain somehow.
+                std::stringstream msg;
+                msg << "error[CompatIntVector]: Attempting to access address " << access_addr
+                    << " for vector at " << this << " with data at " << &data[0]
+                    << " but we are in chain " << our_chain
+                    << " and accessed address is in chain " << other_chain
+                    << ". Is the entire file mapped?" << std::endl;
+                yomo::Manager::dump_links(msg);
+                throw std::out_of_range(msg.str());
+            }
         }
     }
     
@@ -2320,6 +2337,11 @@ void UniqueMappedPointer<T>::reset() {
 template<typename T>
 std::tuple<size_t, size_t, size_t> UniqueMappedPointer<T>::get_usage() {
     return Manager::get_usage(chain);
+}
+
+template<typename T>
+void UniqueMappedPointer<T>::check_heap_integrity() {
+    return Manager::check_heap_integrity(chain);
 }
 
 }
