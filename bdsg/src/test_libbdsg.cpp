@@ -112,7 +112,7 @@ void verify_to(const Vectorish& data, size_t count, int64_t nonce) {
         auto correct_value = mix(i, nonce);
         auto observed_value = data.at(i);
         if (observed_value != correct_value) {
-            cerr << "At index " << i << " observed " << observed_value << " at " << &data.at(i) << " but expected " << correct_value << endl;
+            cerr << "At index " << i << " observed " << observed_value << " but expected " << correct_value << endl;
         }
         assert(observed_value == correct_value);
     }
@@ -728,6 +728,44 @@ void test_mapped_structs() {
                 throw std::runtime_error("Expected " + std::to_string(i % 8) + " at " + std::to_string(i) + " but got " + std::to_string(vec.at(i)));
             }
         }
+    }
+    
+    {
+        // Make sure our bit-packing vector checks bound
+        
+        // Make a vector
+        bdsg::yomo::UniqueMappedPointer<MappedIntVector> vec;
+        vec.construct();
+        vec->width(60);
+        vec->resize(1000);
+        fill_to(*vec, 1000, 1);
+        
+        // Save it out
+        char filename[] = "tmpXXXXXX";
+        int tmpfd = mkstemp(filename);
+        assert(tmpfd != -1);
+        vec.save(tmpfd);
+        vec.reset();
+        
+        // Drop part of the file
+        auto file_size = lseek(tmpfd, 0, SEEK_END);
+        assert(ftruncate(tmpfd, file_size/2) == 0);
+        
+        // Reload
+        vec.load(tmpfd, "");
+        
+        try {
+            verify_to(*vec, 1000, 1);
+            // We shouldn't be able to complete this; we should run off the end of the chain.
+            assert(false);
+        } catch (std::out_of_range& e) {
+            // This is the exception we expect to get.
+        }
+        
+        vec.reset();
+        
+        close(tmpfd);
+        unlink(filename);
     }
     
     cerr << "Mapped Structs tests successful!" << endl;

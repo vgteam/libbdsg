@@ -338,10 +338,10 @@ public:
     static void dump(chainid_t chain);
     
     /**
-     * Dump information about where all chain links fall in memory.
+     * Dump information about where all chain links fall in memory into the given stream.
      * Not thread safe!
      */
-    static void dump_links();
+    static void dump_links(ostream& out = std::cerr);
     
 protected:
     
@@ -1894,13 +1894,15 @@ uint64_t CompatIntVector<Alloc>::unpack(size_t index, size_t width_override) con
         auto other_chain = yomo::Manager::get_chain(access_addr);
         
         if (other_chain != our_chain) {
-            std::cerr << "error[CompatIntVector]: Attempting to access address " << access_addr
+            // We're accessing something past the end of the chain somehow.
+            std::stringstream msg;
+            msg << "error[CompatIntVector]: Attempting to access address " << access_addr
                 << " for vector at " << this << " with data at " << &data[0]
                 << " but we are in chain " << our_chain
                 << " and accessed address is in chain " << other_chain
                 << ". Is the entire file mapped?" << std::endl;
-            yomo::Manager::dump_links();
-            throw std::out_of_range("Out of bounds access in chain " + std::to_string(our_chain));
+            yomo::Manager::dump_links(msg);
+            throw std::out_of_range(msg.str());
         }
     }
     
