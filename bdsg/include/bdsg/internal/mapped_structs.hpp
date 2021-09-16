@@ -208,6 +208,8 @@ public:
      * If the file is nonempty, data after the length of the passed prefix must
      * contain the chain allocator data structures. If it is empty, the prefix
      * and the chain allocator data structures will be written to it.
+     *
+     * The entire file will be mapped in one contiguous link.
      */
     static chainid_t create_chain(int fd, const std::string& prefix = "");
     
@@ -217,6 +219,9 @@ public:
      *
      * The result must begin with the given prefix, if specified, or an error
      * will occur.
+     *
+     * All content from the iterator will be stored in one contiguous link,
+     * despite the length not being known ahead of time.
      */
     static chainid_t create_chain(const std::function<std::string(void)>& iterator, const std::string& prefix = "");
     
@@ -465,8 +470,13 @@ protected:
      * Create a chain with one link and no allocator setup.
      * Block will either be the entire size of an existing file, or the given starting size.
      * Returns the chain ID and a flag for if there was data in an open file to read.
+     *
+     * If link_data is set, the chain must not be filoe-backed, and link_data
+     * it must point to a block of memory of length start_size already allocated
+     * using malloc() and which can be freed using free(). The chain will take
+     * ownership of the memory block.
      */
-    static std::pair<chainid_t, bool> open_chain(int fd = 0, size_t start_size = BASE_SIZE);
+    static std::pair<chainid_t, bool> open_chain(int fd = 0, size_t start_size = BASE_SIZE, void* link_data = nullptr);
     
     /**
      * Extend the given chain to the given new total size.
@@ -483,8 +493,13 @@ protected:
     /**
      * Add a link into a chain. The caller must hold a write lock on the manager data structures.
      * The number of bytes must be nonzero.
+     *
+     * If link_data is set, the chain must not be filoe-backed, and link_data
+     * it must point to a block of memory of length new_bytes already allocated
+     * using malloc() and which can be freed using free(). The chain will take
+     * ownership of the memory block.
      */
-    static LinkRecord& add_link(LinkRecord& head, size_t new_bytes);
+    static LinkRecord& add_link(LinkRecord& head, size_t new_bytes, void* link_data = nullptr);
     
     /**
      * Create a new chain, using the given file if set, and copy data from the
