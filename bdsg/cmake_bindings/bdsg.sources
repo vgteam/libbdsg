@@ -23,6 +23,7 @@ handlegraph/path_position_handle_graph.cpp
 bdsg/overlays/packed_path_position_overlay.cpp
 bdsg/overlays/packed_path_position_overlay_1.cpp
 bdsg/overlays/path_position_overlays.cpp
+bdsg/overlays/path_subgraph_overlay.cpp
 bdsg/overlays/vectorizable_overlays.cpp
 bdsg/overlays/vectorizable_overlays_1.cpp
 bdsg/snarl_distance_index.cpp

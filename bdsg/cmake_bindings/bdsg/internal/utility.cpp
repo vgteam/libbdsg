@@ -961,6 +961,6 @@ void bind_bdsg_internal_utility(std::function< pybind11::module &(std::string co
 		cl.def("increment_node_ids", (void (bdsg::HashGraph::*)(long long)) &bdsg::HashGraph::increment_node_ids, "Add the given value to all node IDs\n\nC++: bdsg::HashGraph::increment_node_ids(long long) --> void", pybind11::arg("increment"));
 		cl.def("reassign_node_ids", (void (bdsg::HashGraph::*)(const class std::function<long long (const long long &)> &)) &bdsg::HashGraph::reassign_node_ids, "Reassign all node IDs as specified by the old->new mapping function.\n\nC++: bdsg::HashGraph::reassign_node_ids(const class std::function<long long (const long long &)> &) --> void", pybind11::arg("get_new_id"));
 		cl.def("get_magic_number", (unsigned int (bdsg::HashGraph::*)() const) &bdsg::HashGraph::get_magic_number, "Returns a static high-entropy number to indicate the class\n\nC++: bdsg::HashGraph::get_magic_number() const --> unsigned int");
-		cl.def("assign", (class bdsg::HashGraph & (bdsg::HashGraph::*)(const class bdsg::HashGraph &)) &bdsg::HashGraph::operator=, "C++: bdsg::HashGraph::operator=(const class bdsg::HashGraph &) --> class bdsg::HashGraph &", pybind11::return_value_policy::automatic, pybind11::arg(""));
+		cl.def("assign", (class bdsg::HashGraph & (bdsg::HashGraph::*)(const class bdsg::HashGraph &)) &bdsg::HashGraph::operator=, "C++: bdsg::HashGraph::operator=(const class bdsg::HashGraph &) --> class bdsg::HashGraph &", pybind11::return_value_policy::automatic, pybind11::arg("other"));
 	}
 }

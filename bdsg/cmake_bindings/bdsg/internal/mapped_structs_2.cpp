@@ -29,11 +29,11 @@
 
 void bind_bdsg_internal_mapped_structs_2(std::function< pybind11::module &(std::string const &namespace_) > &M)
 {
-	{ // bdsg::CompatBackend file:bdsg/internal/mapped_structs.hpp line:983
+	{ // bdsg::CompatBackend file:bdsg/internal/mapped_structs.hpp line:1084
 		pybind11::class_<bdsg::CompatBackend, std::shared_ptr<bdsg::CompatBackend>> cl(M("bdsg"), "CompatBackend", "Type enum value for selecting data structures that use memory-mappable data\n structures but with the standard allocator.");
 		cl.def( pybind11::init( [](){ return new bdsg::CompatBackend(); } ) );
 	}
-	{ // bdsg::MappedBackend file:bdsg/internal/mapped_structs.hpp line:994
+	{ // bdsg::MappedBackend file:bdsg/internal/mapped_structs.hpp line:1095
 		pybind11::class_<bdsg::MappedBackend, std::shared_ptr<bdsg::MappedBackend>> cl(M("bdsg"), "MappedBackend", "Type enum value for selecting data structures that use YOMO memory mapping\n and the YOMO allocator.\n\n They can safely exist outside of mapped memory, but are probably slower\n there since YOMO's internal tables still need to be consulted when following\n pointers.");
 		cl.def( pybind11::init( [](){ return new bdsg::MappedBackend(); } ) );
 	}
