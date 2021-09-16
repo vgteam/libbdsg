@@ -23,6 +23,7 @@ void bind_bdsg_internal_is_single_stranded(std::function< pybind11::module &(std
 void bind_bdsg_internal_eades_algorithm(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_internal_graph_proxy(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_internal_graph_proxy_1(std::function< pybind11::module &(std::string const &namespace_) > &M);
+void bind_handlegraph_snarl_decomposition(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_std_bdsg_internal_binder_hook_bind(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_handlegraph_trivially_serializable(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_internal_mmap_backend(std::function< pybind11::module &(std::string const &namespace_) > &M);
@@ -33,6 +34,7 @@ void bind_bdsg_overlays_packed_path_position_overlay_1(std::function< pybind11::
 void bind_bdsg_overlays_path_position_overlays(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_overlays_vectorizable_overlays(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_overlays_vectorizable_overlays_1(std::function< pybind11::module &(std::string const &namespace_) > &M);
+void bind_bdsg_snarl_distance_index(std::function< pybind11::module &(std::string const &namespace_) > &M);
 
 
 PYBIND11_MODULE(bdsg, root_module) {
@@ -73,6 +75,7 @@ PYBIND11_MODULE(bdsg, root_module) {
 	bind_bdsg_internal_eades_algorithm(M);
 	bind_bdsg_internal_graph_proxy(M);
 	bind_bdsg_internal_graph_proxy_1(M);
+	bind_handlegraph_snarl_decomposition(M);
 	bind_std_bdsg_internal_binder_hook_bind(M);
 	bind_handlegraph_trivially_serializable(M);
 	bind_bdsg_internal_mmap_backend(M);
@@ -83,5 +86,6 @@ PYBIND11_MODULE(bdsg, root_module) {
 	bind_bdsg_overlays_path_position_overlays(M);
 	bind_bdsg_overlays_vectorizable_overlays(M);
 	bind_bdsg_overlays_vectorizable_overlays_1(M);
+	bind_bdsg_snarl_distance_index(M);
 
 }
