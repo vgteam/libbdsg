@@ -1832,6 +1832,39 @@ uint64_t CompatIntVector<Alloc>::unpack(size_t index, size_t width_override) con
     size_t start_slot = start_bit / std::numeric_limits<uint64_t>::digits;
     // And a start bit in that slot
     size_t start_slot_bit_offset = start_bit % std::numeric_limits<uint64_t>::digits;
+    
+    // Work out if we span into the next slot
+    bool into_next_slot = (start_slot_bit_offset + effective_width > std::numeric_limits<uint64_t>::digits);
+    if (start_slot >= data.size() || (into_next_slot && start_slot + 1 >= data.size())) {
+        // We want to go out of range of the vector.
+        throw std::out_of_range("Reading item " + std::to_string(index) +
+            " of width " + std::to_string(effective_width) + " accesses slot " + std::to_string(start_slot) +
+            (into_next_slot ? ("and slot " + std::to_string(into_next_slot + 1)) : "") +
+            " but we only have " + std::to_string(data.size()) + " slots and " +
+            std::to_string(size()) + " items");
+    }
+    
+    // Define the memory range we plan to access, inclusive
+    uint64_t* access_first = &data[start_slot];
+    uint64_t* access_last =  access_first + into_next_slot;
+    
+    // Make sure we aren't trying to go across chains
+    auto our_chain = Manager::get_chain(this);
+    for (uint64_t* access_addr = access_first; access_addr != access_last + 1; access_addr++) {
+        // For each slot we need to read
+        
+        auto other_chain = Manager::get_chain(access_addr);
+        
+        if (other_chain != our_chain) {
+            std::cerr << "error[CompatIntVector]: Attempting to access address " << access_addr
+                << " for vector at " << this << " with data at " << data
+                << " but we are in chain " << our_chain
+                << " and accessed address is in chain " << other_chain
+                << ". Is the entire file mapped?" << std::endl;
+            
+        }
+    }
+    
     // And then load
 #ifdef debug_bit_packing
     std::cerr << "Read value of width " << effective_width
