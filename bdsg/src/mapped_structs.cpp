@@ -1087,6 +1087,22 @@ void Manager::check_heap_integrity(chainid_t chain) {
     });
 }
 
+size_t Manager::count_chains() {
+    // Get write access to manager data structures
+    std::unique_lock<std::shared_timed_mutex> lock(mutex);
+    
+    // Count the chains
+    return chain_space_index.size();
+}
+
+size_t Manager::count_links() {
+    // Get write access to manager data structures
+    std::unique_lock<std::shared_timed_mutex> lock(mutex);
+    
+    // Count the links
+    return address_space_index.size();
+}
+
 std::pair<Manager::chainid_t, bool> Manager::open_chain(int fd, size_t start_size) {
 
     // Set up our return value

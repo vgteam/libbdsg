@@ -350,6 +350,16 @@ public:
      */
     static void check_heap_integrity(chainid_t chain);
     
+    /**
+     * Return the total number of chains that exist right now.
+     */
+    static size_t count_chains();
+    
+    /**
+     * Return the total number of links that exist right now across all chains.
+     */
+    static size_t count_links();
+    
 protected:
     
     
@@ -613,6 +623,7 @@ public:
     UniqueMappedPointer(UniqueMappedPointer&& other) = default;
     UniqueMappedPointer& operator=(const UniqueMappedPointer& other) = delete;
     UniqueMappedPointer& operator=(UniqueMappedPointer&& other) = default;
+    ~UniqueMappedPointer();
     
     operator bool () const;
     T& operator*();
@@ -2110,6 +2121,11 @@ size_t Allocator<T>::max_size() const {
 template<typename T>
 Manager::chainid_t Allocator<T>::get_chain() const {
     return Manager::get_chain((void*) this);
+}
+
+template<typename T>
+UniqueMappedPointer<T>::~UniqueMappedPointer() {
+    reset();
 }
 
 template<typename T>
