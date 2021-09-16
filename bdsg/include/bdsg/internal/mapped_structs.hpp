@@ -237,6 +237,9 @@ public:
     /**
      * Destroy the given chain and unmap all of its memory, and close any
      * associated file.
+     *
+     * Also drops trailing free blocks and truncates them out of the backing
+     * file.
      */
     static void destroy_chain(chainid_t chain);
     
@@ -304,6 +307,19 @@ public:
     static void* find_first_allocation(chainid_t chain, size_t bytes);
     
     /**
+     * Return the total number of bytes in the given chain.
+     */
+    static size_t get_chain_size(chainid_t chain);
+    
+    /**
+     * Get statistics about the memory in a chain. Returns all 0s if not a managed chain.
+     *
+     * Returns the total bytes in the chain, the number of free bytes,
+     * and the number of free bytes reclaimable when the chain is closed. 
+     */
+    static std::tuple<size_t, size_t, size_t> get_usage(chainid_t chain);
+    
+    /**
      * Scan all memory regions in the given chain. Calls the iteratee with each
      * region's start address and length, in order.
      */
@@ -329,7 +345,7 @@ protected:
         Pointer<AllocatorBlock> prev;
         /// Next block. Only used when block is free. Null if allocated.
         Pointer<AllocatorBlock> next;
-        /// Size fo the block in bytes, not counting this header. Used for free
+        /// Size of the block in bytes, not counting this header. Used for free
         /// and allocated blocks.
         big_endian<size_t> size;
         
@@ -471,6 +487,15 @@ protected:
      */
     static void with_allocator_header(chainid_t chain,
                                       const std::function<void(AllocatorHeader*)>& callback);
+                                      
+    /**
+     * While a final free block exists, drop it from the free list.
+     * Return the total number of bytes after the last allocated block.
+     *
+     * Note that you should not map anything after calling this function! You
+     * should close the chain and trim down the backing file!
+     */
+    static size_t reclaim_tail(chainid_t chain);
 
 };
 
@@ -666,6 +691,14 @@ public:
      * Free any associated memory and become empty.
      */
     void reset();
+    
+    /*
+     * Get statistics about the pointer's associated memory chain.
+     *
+     * Returns the total bytes, the number of free bytes, and the number of
+     * free bytes reclaimable when closed as a mapped file. 
+     */
+    std::tuple<size_t, size_t, size_t> get_usage();
 private:
     Manager::chainid_t chain = Manager::NO_CHAIN;
 };
@@ -1381,8 +1414,6 @@ void CompatVector<T, Alloc>::resize(size_t new_size) {
         reserve(std::max(new_size, size() * RESIZE_FACTOR));
     }
    
-    // TODO: throw away excess memory when shrinking
-   
     if (new_size < size()) {
         // We shrank, and we had at least one item.
 #ifdef debug_compat_vector
@@ -1411,7 +1442,50 @@ void CompatVector<T, Alloc>::resize(size_t new_size) {
 
 template<typename T, typename Alloc>
 void CompatVector<T, Alloc>::shrink_to_fit() {
-    // TODO: actually reallocate smaller.
+    // Actually reallocate smaller.
+    if (length == reserved_length) {
+        // Nothing to do!
+        return;
+    }
+    
+    // TODO: unify some code with reserve()?
+    
+    // Find where the data is. This can't be null since we have a
+    // reserved_length > length (since it isn't equal and can never be less).
+    T* old_first = first;
+    // And how much there is
+    size_t old_reserved_length = reserved_length;
+    
+#ifdef debug_compat_vector
+    std::cerr << "Shrinking vector at " << (intptr_t)this
+        << " with " << old_reserved_length << " spaces at "
+        << (intptr_t) old_first << " to have " << length  << " spaces" << std::endl;
+#endif
+    
+    // Allocate space for the new data, and get the position in the context
+    T* new_first  = alloc.allocate(length);
+    
+    // Record the new reserved length
+    reserved_length = length;
+    
+#ifdef debug_compat_vector
+    std::cerr << "Vector data moving from " << (intptr_t) old_first
+        << " to " << (intptr_t) new_first << std::endl;
+#endif
+    for (size_t i = 0; i < size(); i++) {
+        // Move over the preserved values.
+        new (new_first + i) T(std::move(*(old_first + i)));
+    }
+    
+    for (size_t i = 0; i < size(); i++) {
+        // Destroy all the original values
+        (old_first + i)->~T();
+    }
+    
+    // Free old memory
+    alloc.deallocate(old_first, old_reserved_length);
+    
+    first = new_first;
 }
 
 template<typename T, typename Alloc>
@@ -2118,6 +2192,11 @@ void UniqueMappedPointer<T>::reset() {
         Manager::destroy_chain(chain);
         chain = Manager::NO_CHAIN;
     }
+}
+
+template<typename T>
+std::tuple<size_t, size_t, size_t> UniqueMappedPointer<T>::get_usage() {
+    return Manager::get_usage(chain);
 }
 
 }

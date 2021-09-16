@@ -11,7 +11,21 @@ INSTALL_INC_DIR=$(INSTALL_PREFIX)/include
 
 LIB_FLAGS:=-lbdsg -lsdsl -lhandlegraph -lomp
 
-OBJS:=$(OBJ_DIR)/eades_algorithm.o $(OBJ_DIR)/hash_graph.o $(OBJ_DIR)/is_single_stranded.o $(OBJ_DIR)/mapped_structs.o $(OBJ_DIR)/node.o $(OBJ_DIR)/odgi.o $(OBJ_DIR)/packed_graph.o $(OBJ_DIR)/path_position_overlays.o $(OBJ_DIR)/packed_path_position_overlay.o $(OBJ_DIR)/vectorizable_overlays.o $(OBJ_DIR)/packed_subgraph_overlay.o $(OBJ_DIR)/strand_split_overlay.o $(OBJ_DIR)/utility.o $(OBJ_DIR)/snarl_distance_index.o
+OBJS = $(OBJ_DIR)/eades_algorithm.o 
+OBJS += $(OBJ_DIR)/hash_graph.o 
+OBJS += $(OBJ_DIR)/is_single_stranded.o 
+OBJS += $(OBJ_DIR)/mapped_structs.o 
+OBJS += $(OBJ_DIR)/mmap_backend.o 
+OBJS += $(OBJ_DIR)/node.o 
+OBJS += $(OBJ_DIR)/odgi.o 
+OBJS += $(OBJ_DIR)/packed_graph.o 
+OBJS += $(OBJ_DIR)/path_position_overlays.o 
+OBJS += $(OBJ_DIR)/packed_path_position_overlay.o 
+OBJS += $(OBJ_DIR)/vectorizable_overlays.o 
+OBJS += $(OBJ_DIR)/packed_subgraph_overlay.o 
+OBJS += $(OBJ_DIR)/strand_split_overlay.o 
+OBJS += $(OBJ_DIR)/utility.o
+OBJS += $(OBJ_DIR)/snarl_distance_index.o
 
 CXXFLAGS :=-MMD -MP -O3 -Werror=return-type -std=c++14 -ggdb -g -I$(INC_DIR) $(CXXFLAGS)
 
@@ -62,7 +76,8 @@ $(LIB_DIR)/libbdsg.a: $(OBJS)
 	rm -f $@
 	ar rs $@ $(OBJS)
 
-$(BIN_DIR)/test_libbdsg: $(LIB_DIR)/libbdsg.a $(SRC_DIR)/test_libbdsg.cpp 
+$(BIN_DIR)/test_libbdsg: $(LIB_DIR)/libbdsg.a $(SRC_DIR)/test_libbdsg.cpp
+	mkdir -p $(BIN_DIR)
 	$(CXX) $(LDFLAGS) $(CPPFLAGS) $(CXXFLAGS) -L $(LIB_DIR) $(SRC_DIR)/test_libbdsg.cpp -o $(BIN_DIR)/test_libbdsg $(LIB_FLAGS)
 	chmod +x $(BIN_DIR)/test_libbdsg
 
