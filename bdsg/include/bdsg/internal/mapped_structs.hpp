@@ -44,7 +44,6 @@
 // And we need to stock our non-mmapped backend with an int vector.
 #include <sdsl/int_vector.hpp>
 
-
 namespace bdsg {
     
 using namespace std;
@@ -184,15 +183,21 @@ public:
 
     using chainid_t = intptr_t;
     static const chainid_t NO_CHAIN = 0;
+    
+    /**
+     * Set this to true to enable additional self-checks on memory management correctness.
+     */
+    static bool check_chains;
 
     /**
-     * Create a chain not backed by any file. The given prefix data will occur
-     * before the chain allocator data structures.
+     * Create a chain not backed by any file. The given prefix data will be
+     * placed before the chain allocator data structures.
      */
     static chainid_t create_chain(const std::string& prefix = "");
     
     /**
-     * Create a chain by mapping all of the given open file.
+     * Create a chain by mapping all of the given open file. The file must
+     * begin with the given prefix, if specified, or an error will occur.
      *
      * Modifications to the chain will affect the file, and it will grow as
      * necessary.
@@ -209,7 +214,8 @@ public:
      * Create a chain by calling the given function until it returns an empty
      * string, and concatenating all the results.
      *
-     * The result must begin with the given prefix, if specified.
+     * The result must begin with the given prefix, if specified, or an error
+     * will occur.
      */
     static chainid_t create_chain(const std::function<std::string(void)>& iterator, const std::string& prefix = "");
     
@@ -326,10 +332,16 @@ public:
     static void scan_chain(chainid_t chain, const std::function<void(const void*, size_t)>& iteratee);
     
     /**
-     * Dump information about free and allocated memory.
+     * Dump information about free and allocated memory in the gievn chain.
      * Not thread safe!
      */
-    static void dump(chainid_t chain);  
+    static void dump(chainid_t chain);
+    
+    /**
+     * Dump information about where all chain links fall in memory.
+     * Not thread safe!
+     */
+    static void dump_links();
     
 protected:
     
@@ -645,21 +657,32 @@ public:
     
     /**
      * Point to the already-constructed T saved to the file at fd by a previous
-     * save() call.
+     * save() call. The file must begin with the given prefix, or an error will
+     * occur.
      */
-    void load(int fd, const std::string& prefix = "");
+    void load(int fd, const std::string& prefix);
     
     /**
      * Load into memory and point to the already-constructed T saved to the
-     * given stream by a previous save() call.
+     * given stream by a previous save() call. The stream must begin with the
+     * given prefix, or an error will occur.
      */
-    void load(std::istream& in, const std::string& prefix = "");
+    void load(std::istream& in, const std::string& prefix);
     
     /**
      * Load into memory and point to the already-constructed T emitted in
-     * blocks by the given function.
+     * blocks by the given function. The data must begin with the given prefix,
+     * or an error will occur.
      */
-    void load(const std::function<std::string(void)>& iterator, const std::string& prefix = "");
+    void load(const std::function<std::string(void)>& iterator, const std::string& prefix);
+    
+    /** 
+     * Load into memory and point to the already-constructed T saved to the
+     * given stream by a previous save() call. The stream is expected to have
+     * had the prefix read from it already, but the prefix must still be
+     * provided.
+     */
+    void load_after_prefix(std::istream& in, const std::string& prefix);
     
     /**
      * Break any write-back association with a backing file and move the object
@@ -686,6 +709,12 @@ public:
      * pointer must not be null.
      */
     void save(const std::function<void(const void*, size_t)>& iteratee) const;
+    
+    /**
+     * Save the stored item to the given stream. The pointer must not be null.
+     * The stream is expected to have already had the prefix written to it.
+     */
+    void save_after_prefix(std::ostream& out, const std::string& prefix) const;
     
     /**
      * Free any associated memory and become empty.
@@ -1362,6 +1391,15 @@ void CompatVector<T, Alloc>::reserve(size_t new_reserved_length) {
     if (new_reserved_length > old_reserved_length) {
         // Allocate space for the new data, and get the position in the context
         T* new_first  = alloc.allocate(new_reserved_length);
+
+        if (yomo::Manager::check_chains) {
+            // make sure we got back memory in the right chain, and that all
+            // our notions of the right chain agree.
+            auto new_chain = yomo::Manager::get_chain(new_first);
+            assert(new_chain == yomo::Manager::get_chain(&alloc));
+            assert(new_chain == yomo::Manager::get_chain(this));
+            assert(new_chain == yomo::Manager::get_chain(&first));
+        }
         
         // Record the new reserved length
         reserved_length = new_reserved_length;
@@ -2028,7 +2066,13 @@ bool Allocator<T>::operator!=(const Allocator& other) const {
 
 template<typename T>
 auto Allocator<T>::allocate(size_type n, const T* hint) -> T* {
-    return (T*) Manager::allocate_from(get_chain(), n * sizeof(T));
+    auto our_chain = get_chain();
+    T* allocated = (T*) Manager::allocate_from(our_chain, n * sizeof(T));
+    if (yomo::Manager::check_chains) {
+        // Make sure we got the right chain for our allocated memory.
+        assert(Manager::get_chain(allocated) == our_chain);
+    }
+    return allocated;
 }
 
 template<typename T>
@@ -2147,26 +2191,18 @@ void UniqueMappedPointer<T>::load(int fd, const std::string& prefix) {
 
 template<typename T>
 void UniqueMappedPointer<T>::load(std::istream& in, const std::string& prefix) {
-    // Drop any existing chain.
-    reset();
-    
-    const size_t MAX_CHUNK_SIZE = 4096;
-    
-    // Fill up this buffer with chunks of a certian size
-    std::string buffer;
-    
-    chain = Manager::create_chain([&]() {
-        buffer.resize(MAX_CHUNK_SIZE);
-        // Grab a chunk
-        in.read(&buffer.at(0), MAX_CHUNK_SIZE);
-        if (!in) {
-            // Didn't read all the characters, so shrink down (maybe to 0)
-            buffer.resize(in.gcount());
+    if (!prefix.empty()) {
+        // First read and check the prefix
+        std::string prefix_buffer;
+        prefix_buffer.resize(prefix.size());
+        in.read(&prefix_buffer.at(0), prefix_buffer.size());
+        if (!in || prefix_buffer != prefix) {
+            // Hit EOF or got the wrong thing
+            throw std::runtime_error("Expected prefix not found in input. Check file type.");
         }
-        // Copy the buffer over to the caller.
-        // TODO: can we save a copy here?
-        return buffer;
-    }, prefix);
+    }
+    // Then read everything after the prefix.
+    load_after_prefix(in, prefix);
 }
 
 template<typename T>
@@ -2176,6 +2212,37 @@ void UniqueMappedPointer<T>::load(const std::function<std::string(void)>& iterat
     
     // Just pass through to the Manager
     chain = Manager::create_chain(iterator, prefix);
+}
+
+template<typename T>
+void UniqueMappedPointer<T>::load_after_prefix(std::istream& in, const std::string& prefix) {
+    // Drop any existing chain.
+    reset();
+    
+    const size_t MAX_CHUNK_SIZE = 4096;
+    
+    // Fill up this buffer with chunks of a certian size
+    std::string buffer;
+    
+    chain = Manager::create_chain([&]() {
+        if (buffer.empty() && !prefix.empty()) {
+            // Inject the prefix on the first call
+            buffer = prefix;
+        } else {
+            // Other calls read data, until the last call shows an empty buffer
+            // for EOF.
+            buffer.resize(MAX_CHUNK_SIZE);
+            // Grab a chunk
+            in.read(&buffer.at(0), MAX_CHUNK_SIZE);
+            if (!in) {
+                // Didn't read all the characters, so shrink down (maybe to 0)
+                buffer.resize(in.gcount());
+            }
+        }
+        // Copy the buffer over to the caller.
+        // TODO: can we save a copy here?
+        return buffer;
+    }, prefix);
 }
 
 template<typename T>
@@ -2217,6 +2284,26 @@ template<typename T>
 void UniqueMappedPointer<T>::save(const std::function<void(const void*, size_t)>& iteratee) const {
     // Just pass through to the Manager.
     Manager::scan_chain(chain, iteratee);
+}
+
+template<typename T>
+void UniqueMappedPointer<T>::save_after_prefix(std::ostream& out, const std::string& prefix) const {
+    // We need to drop as many characters from the chain as are in the prefix.
+    size_t dropped = 0;
+     
+    Manager::scan_chain(chain, [&](const void* start, size_t length) {
+        // Go through all the data in the chain
+        const char* start_char = (const char*) start;
+        
+        // Adjust to skip any part of the prefix that's still here.
+        size_t to_drop = std::min(length, prefix.size() - dropped);
+        start_char += to_drop;
+        length -= to_drop;
+        dropped += to_drop;
+        
+        // And save it to the stream.
+        out.write(start_char, length); 
+    });
 }
 
 template<typename T>

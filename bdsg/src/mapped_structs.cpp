@@ -18,11 +18,14 @@
 #include <mio/mmap.hpp>
 
 //#define debug_manager
-
+//#define debug_pointers
 
 namespace bdsg {
 
 namespace yomo {
+
+// Leave extra chain debugging checks off by default.
+bool Manager::check_chains = false;
 
 // we hide our LinkRecord in here because we can't forward-declare the MIO
 // stuff it stores.
@@ -370,16 +373,25 @@ std::pair<Manager::chainid_t, size_t> Manager::get_chain_and_position(const void
         // Get read access to manager data structures
         std::shared_lock<std::shared_timed_mutex> lock(Manager::mutex);
         
-        // Find the earliest block starting after the address
+        // Find the earliest link starting after the address
         auto found = Manager::address_space_index.upper_bound((intptr_t)address);
         
         if (found == Manager::address_space_index.begin() || Manager::address_space_index.empty()) {
             // There won't be a link covering the address.
             // Say this is an address not in any chain.
+            
+#ifdef debug_pointers
+            std::cerr << "Address " << sought << " has no links starting after it, or no link before such a link, so is not in any chain" << std::endl;
+#endif
+            
             return std::make_pair(NO_CHAIN, (size_t)address); 
         }
         
-        // Go left to the block that must include the address if any does.
+#ifdef debug_pointers
+        std::cerr << "Address " << sought << " has a link starting after it at " << found->first << std::endl;
+#endif
+        
+        // Go left to the link that must include the address if any does.
         --found;
         
         // Copy out link info
@@ -389,19 +401,32 @@ std::pair<Manager::chainid_t, size_t> Manager::get_chain_and_position(const void
         chain = (chainid_t) found->second.first;
     }
     
-    if (link_base + link_length < sought + length) {
-        // We aren't fully in a link.
-        if (link_base + link_length > sought) {
+#ifdef debug_pointers
+    std::cerr << "The link before is at " << link_base << " and runs for " << link_length << std::endl;
+#endif
+    
+    if (link_base + link_length > sought) {
+        // Start of sought range is in the link (exclusive end coordinate passed it)
+    
+        if (link_base + link_length >= sought + length) {
+            // End of sought range (if different) is also in the link (exclusive end coordinate nearer or coinciding)
+            
+#ifdef debug_pointers
+            std::cerr << "This fully covers " << sought << " so it is in chain " << chain << std::endl;
+#endif
+    
+            // Emit link's chain ID, and translate address to link local offset to chain position.
+            return std::make_pair(chain, link_offset + (sought - link_base));
+                    
+        } else {
+            // End of sought range is not in the link
             // The link we found covers the start but not the end of our range. This is a problem.
             throw std::runtime_error("Attempted to place address range that crosses a link boundary");
-        } else {
-            // Otherwise we just aren't in a link at all.
-            return std::make_pair(NO_CHAIN, (size_t)address); 
         }
+    } else {
+        // Otherwise we just aren't in a link at all.
+        return std::make_pair(NO_CHAIN, (size_t)address); 
     }
-    
-    // Translate first link's address to chain ID, and address to link local offset to chain position.
-    return std::make_pair(chain, link_offset + (sought - link_base));
 }
 
 void* Manager::get_address_in_same_chain(const void* here, size_t position) {
@@ -421,7 +446,19 @@ size_t Manager::get_position_in_same_chain(const void* here, const void* address
     std::pair<chainid_t, size_t> chain_and_pos = get_chain_and_position(address);
     
     // TODO: skip the check for speed?
-    if (chain_and_pos.first != get_chain(here)) {
+    auto our_chain = get_chain(here);
+    if (chain_and_pos.first != our_chain) {
+        std::cerr << "Error: We are at " << (intptr_t)here << " in chain " << our_chain
+                  << " but are attempting to point to " << (intptr_t)address
+                  << " which is actually in chain " << chain_and_pos.first << " at offset " << chain_and_pos.second << std::endl;
+        if (our_chain != NO_CHAIN) {
+            std::cerr << "Our chain:" << std::endl;
+            dump(our_chain);
+        }
+        if (chain_and_pos.first != NO_CHAIN) {
+            std::cerr << "Destination chain:" << std::endl;
+            dump(chain_and_pos.first);
+        }
         throw std::runtime_error("Attempted to refer across chains!");
     }
     
@@ -502,6 +539,14 @@ void Manager::dump(chainid_t chain) {
     }
 }
 
+void Manager::dump_links() {
+    std::cerr << "All chain links: " << std::endl;
+    for (auto& link : address_space_index) {
+        std::cerr << "\t" << link.first << "-" << (link.first + link.second.length) << " in chain " << link.second.first << " with next link at " << link.second.next << std::endl; 
+    }
+}
+    
+
 void* Manager::allocate_from(chainid_t chain, size_t bytes) {
 #ifdef debug_manager
     cerr << "Allocate " << bytes << " bytes from chain " << chain << endl;
@@ -521,6 +566,17 @@ void* Manager::allocate_from(chainid_t chain, size_t bytes) {
 #ifdef debug_manager
         cerr << "Allocated from heap at " << (intptr_t) allocated << endl;
 #endif
+        
+        if (check_chains) {
+            // Make sure it didn't come from a chain, because it should have come from the heap.
+            auto source_chain = get_chain(allocated);
+            if (source_chain != NO_CHAIN) {
+                // Report error with some debugging details.
+                std::cerr << "Error: tried to allocate non-chain memory but got memory at " << (intptr_t)allocated << " that appears to be in chain " << source_chain << std::endl;
+                dump_links();
+            }
+            assert(source_chain == NO_CHAIN);
+        }
         
         return allocated;
     }
@@ -672,7 +728,13 @@ void* Manager::allocate_from(chainid_t chain, size_t bytes) {
 #endif
     
     // Give out the address of its data
-    return found->get_user_data();
+    void* allocated = found->get_user_data();
+    
+    if (check_chains) {
+        assert(get_chain(allocated) == chain);
+    }
+    
+    return allocated;
 }
 
 void* Manager::allocate_from_same_chain(void* here, size_t bytes) {
@@ -1035,7 +1097,7 @@ std::pair<Manager::chainid_t, bool> Manager::open_chain(int fd, size_t start_siz
         record.fd = our_fd;
         
         // We may have had data
-        had_data  = (file_size != 0);
+        had_data = (file_size != 0);
     } else {
         // Use boring allocated memory
         
