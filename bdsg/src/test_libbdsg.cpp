@@ -524,14 +524,8 @@ void test_mapped_structs() {
         // Make a thing to hold onto a test array.
         bdsg::yomo::UniqueMappedPointer<V> numbers_holder;
         
-        std::cerr << "Made pointer. Chain count: " << yomo::Manager::count_chains() << std::endl;
-        yomo::Manager::dump_links();
-        
         // Construct it
         numbers_holder.construct("GATTACA");
-        
-        std::cerr << "Constructed vector. Chain count: " << yomo::Manager::count_chains() << std::endl;
-        yomo::Manager::dump_links();
         
         // See how much memory we are using
         std::tuple<size_t, size_t, size_t> total_free_reclaimable = numbers_holder.get_usage();
@@ -585,9 +579,6 @@ void test_mapped_structs() {
             
         }
         
-        std::cerr << "Exercised vector. Chain count: " << yomo::Manager::count_chains() << std::endl;
-        yomo::Manager::dump_links();
-            
         // We're going to need a temporary file
         // This filename fill be filled in with the actual filename.
         char filename[] = "tmpXXXXXX";
@@ -595,9 +586,6 @@ void test_mapped_structs() {
         assert(tmpfd != -1);
         
         numbers_holder.save(tmpfd);
-        
-        std::cerr << "Saved vector to FD. Chain count: " << yomo::Manager::count_chains() << std::endl;
-        yomo::Manager::dump_links();
         
         { 
             auto& vec2 = *numbers_holder;
@@ -645,13 +633,7 @@ void test_mapped_structs() {
             
         }
         
-        std::cerr << "Exercised backed vector. Chain count: " << yomo::Manager::count_chains() << std::endl;
-        yomo::Manager::dump_links();
-        
         numbers_holder.dissociate();
-        
-        std::cerr << "Dissociated vector. Chain count: " << yomo::Manager::count_chains() << std::endl;
-        yomo::Manager::dump_links();
         
         {
             auto& vec3 = *numbers_holder;
@@ -664,13 +646,7 @@ void test_mapped_structs() {
         
         numbers_holder.reset();
         
-        std::cerr << "Reset pointer. Chain count: " << yomo::Manager::count_chains() << std::endl;
-        yomo::Manager::dump_links();
-        
         numbers_holder.load(tmpfd, "GATTACA");
-        
-        std::cerr << "Loaded vector from FD. Chain count: " << yomo::Manager::count_chains() << std::endl;
-        yomo::Manager::dump_links();
         
         // Check memory usage
         total_free_reclaimable = numbers_holder.get_usage();
@@ -692,14 +668,7 @@ void test_mapped_structs() {
         
         close(tmpfd);
         unlink(filename);
-        
-        std::cerr << "Closed FD. Chain count: " << yomo::Manager::count_chains() << std::endl;
-        yomo::Manager::dump_links();
-        
     }
-    
-    std::cerr << "Pointer out of scope. Chain count: " << yomo::Manager::count_chains() << std::endl;
-    yomo::Manager::dump_links();
     
     assert(yomo::Manager::count_chains() == 0);
     assert(yomo::Manager::count_links() == 0);
