@@ -1883,23 +1883,24 @@ uint64_t CompatIntVector<Alloc>::unpack(size_t index, size_t width_override) con
     }
     
     // Define the memory range we plan to access, inclusive
-    uint64_t* access_first = &data[start_slot];
-    uint64_t* access_last =  access_first + into_next_slot;
+    const uint64_t* access_first = &data[start_slot];
+    const uint64_t* access_last =  access_first + into_next_slot;
     
     // Make sure we aren't trying to go across chains
-    auto our_chain = Manager::get_chain(this);
-    for (uint64_t* access_addr = access_first; access_addr != access_last + 1; access_addr++) {
+    auto our_chain = yomo::Manager::get_chain(this);
+    for (const uint64_t* access_addr = access_first; access_addr != access_last + 1; access_addr++) {
         // For each slot we need to read
         
-        auto other_chain = Manager::get_chain(access_addr);
+        auto other_chain = yomo::Manager::get_chain(access_addr);
         
         if (other_chain != our_chain) {
             std::cerr << "error[CompatIntVector]: Attempting to access address " << access_addr
-                << " for vector at " << this << " with data at " << data
+                << " for vector at " << this << " with data at " << &data[0]
                 << " but we are in chain " << our_chain
                 << " and accessed address is in chain " << other_chain
                 << ". Is the entire file mapped?" << std::endl;
-            
+            yomo::Manager::dump_links();
+            throw std::out_of_range("Out of bounds access in chain " + std::to_string(our_chain));
         }
     }
     
