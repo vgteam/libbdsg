@@ -718,7 +718,7 @@ struct PyCallBack_bdsg_PathPositionVectorizableOverlay : public bdsg::PathPositi
 	}
 };
 
-// bdsg::PackedGraph file:bdsg/packed_graph.hpp line:24
+// bdsg::PackedGraph file:bdsg/packed_graph.hpp line:27
 struct PyCallBack_bdsg_PackedGraph : public bdsg::PackedGraph {
 	using bdsg::PackedGraph::PackedGraph;
 
@@ -1557,7 +1557,7 @@ struct PyCallBack_bdsg_PackedGraph : public bdsg::PackedGraph {
 	}
 };
 
-// bdsg::MappedPackedGraph file:bdsg/packed_graph.hpp line:43
+// bdsg::MappedPackedGraph file:bdsg/packed_graph.hpp line:49
 struct PyCallBack_bdsg_MappedPackedGraph : public bdsg::MappedPackedGraph {
 	using bdsg::MappedPackedGraph::MappedPackedGraph;
 
@@ -2433,14 +2433,14 @@ void bind_bdsg_overlays_vectorizable_overlays_1(std::function< pybind11::module 
 		cl.def("get_position_of_step", (unsigned long (bdsg::PathPositionVectorizableOverlay::*)(const struct handlegraph::step_handle_t &) const) &bdsg::PathPositionVectorizableOverlay::get_position_of_step, "Returns the position along the path of the beginning of this step measured in\n bases of sequence. In a circular path, positions start at the step returned by\n path_begin().\n\nC++: bdsg::PathPositionVectorizableOverlay::get_position_of_step(const struct handlegraph::step_handle_t &) const --> unsigned long", pybind11::arg("step"));
 		cl.def("get_step_at_position", (struct handlegraph::step_handle_t (bdsg::PathPositionVectorizableOverlay::*)(const struct handlegraph::path_handle_t &, const unsigned long &) const) &bdsg::PathPositionVectorizableOverlay::get_step_at_position, "Returns the step at this position, measured in bases of sequence starting at\n the step returned by path_begin(). If the position is past the end of the\n path, returns path_end().\n\nC++: bdsg::PathPositionVectorizableOverlay::get_step_at_position(const struct handlegraph::path_handle_t &, const unsigned long &) const --> struct handlegraph::step_handle_t", pybind11::arg("path"), pybind11::arg("position"));
 	}
-	{ // bdsg::PackedGraph file:bdsg/packed_graph.hpp line:24
+	{ // bdsg::PackedGraph file:bdsg/packed_graph.hpp line:27
 		pybind11::class_<bdsg::PackedGraph, std::shared_ptr<bdsg::PackedGraph>, PyCallBack_bdsg_PackedGraph, bdsg::GraphProxy<bdsg::BasePackedGraph<bdsg::STLBackend>>> cl(M("bdsg"), "PackedGraph", "");
 		cl.def( pybind11::init( [](){ return new bdsg::PackedGraph(); }, [](){ return new PyCallBack_bdsg_PackedGraph(); } ) );
 		cl.def( pybind11::init( [](PyCallBack_bdsg_PackedGraph const &o){ return new PyCallBack_bdsg_PackedGraph(o); } ) );
 		cl.def( pybind11::init( [](bdsg::PackedGraph const &o){ return new bdsg::PackedGraph(o); } ) );
 		cl.def("assign", (class bdsg::PackedGraph & (bdsg::PackedGraph::*)(const class bdsg::PackedGraph &)) &bdsg::PackedGraph::operator=, "C++: bdsg::PackedGraph::operator=(const class bdsg::PackedGraph &) --> class bdsg::PackedGraph &", pybind11::return_value_policy::automatic, pybind11::arg(""));
 	}
-	{ // bdsg::MappedPackedGraph file:bdsg/packed_graph.hpp line:43
+	{ // bdsg::MappedPackedGraph file:bdsg/packed_graph.hpp line:49
 		pybind11::class_<bdsg::MappedPackedGraph, std::shared_ptr<bdsg::MappedPackedGraph>, PyCallBack_bdsg_MappedPackedGraph, bdsg::GraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend>>, handlegraph::TriviallySerializable> cl(M("bdsg"), "MappedPackedGraph", "");
 		cl.def( pybind11::init( [](){ return new bdsg::MappedPackedGraph(); }, [](){ return new PyCallBack_bdsg_MappedPackedGraph(); } ) );
 		cl.def( pybind11::init( [](PyCallBack_bdsg_MappedPackedGraph const &o){ return new PyCallBack_bdsg_MappedPackedGraph(o); } ) );

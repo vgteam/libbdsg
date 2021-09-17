@@ -25,7 +25,7 @@ namespace bdsg {
 namespace yomo {
 
 // Leave extra chain debugging checks off by default.
-bool Manager::check_chains = false;
+bool Manager::check_chains = true;
 
 // we hide our LinkRecord in here because we can't forward-declare the MIO
 // stuff it stores.
@@ -152,14 +152,35 @@ Manager::chainid_t Manager::create_chain(const std::function<std::string(void)>&
             " is longer than limit of " + std::to_string(MAX_PREFIX_SIZE));
     }
     
-    // TODO: Could we elide a copy here like if we were a Protobuf stream?
+    // We need to get all the data into one contiguous memory block, but we
+    // don't know how long it is yet. So we'll manage a buffer ourselves, keep
+    // realloc()ing it bigger until we've fit everything, then realloc() it
+    // smaller to the size we needed, and then give it to the chain as an
+    // externally-allocated link.
+    //
+    // As long as the virtual memory system doesn't actually give us the pages
+    // we don't touch at the end of the last allocation, we shouldn't have too
+    // much of a memory usage problem by doubling the allocation sizes, and if
+    // realloc() is smart it can probably extend in place at least sometimes.
+    //
+    // If it was *really* smart it would move everything around with page table
+    // magic, but it's probably not.
     
-    // Make a no-file chain with definitely enough room for the prefix in the
-    // first block.
-    chainid_t chain = open_chain(0, BASE_SIZE).first;
+    // Start with a buffer size that is probably about a whole page in hopes
+    // that we'll get it.
+    size_t buffer_size = 4096;
+    void* buffer = malloc(buffer_size);
     
-    // Start a cursor at the start of the chain
-    size_t chain_offset = 0;
+    if (!buffer) {
+        throw std::runtime_error("Could not allocate buffer!");
+    }
+    
+    // We'll set this when we've verified the prefix
+    bool prefix_checked = false;
+    
+    // Start a cursor at the start of the buffer, pointing to where the next
+    // block will go.
+    size_t cursor = 0;
     
     // Go and get some data
     std::string block = iterator();
@@ -169,49 +190,69 @@ Manager::chainid_t Manager::create_chain(const std::function<std::string(void)>&
 #endif
     
     while (!block.empty()) {
-        // Make sure the chain is big enough for the whole block
-#ifdef debug_manager
-        std::cerr << "Extend chain to " << chain_offset + block.size() << endl;
-#endif
-        extend_chain_to(chain, chain_offset + block.size());
+        if (cursor + block.size() > buffer_size) {
+            // Embiggen the buffer
+            buffer_size *= 2;
+            void* new_buffer = realloc(buffer, buffer_size);
+            if (!new_buffer) {
+                // Make sure to free the old buffer (and not have clobbered it)
+                free(buffer);
+                throw std::runtime_error("Could not expand buffer to " +
+                    std::to_string(buffer_size) + " bytes");
+            }
+            buffer = new_buffer;
+        }
         
-        // Start a cursor in the block
-        size_t block_offset = 0;
+        // Put the new data in the buffer
+        memcpy((char*)buffer + cursor, block.c_str(), block.size());
+        // And move the cursor
+        cursor += block.size();
         
-        while (block_offset < block.size()) {
-            // Find how big the next contiguous block of chain memory is.
-            std::pair<void*, size_t> range = get_address_and_length_in_chain(chain, chain_offset);
+        if (!prefix_checked && cursor >= prefix.size()) {
+            // We've read in enough to check the prefix.
             
-            // Work out how much of the block will fit
-            size_t bytes_to_copy = std::min(range.second, block.size());
+            // Go find where the prefix should be
+            char* start = (char*)buffer;
+            if (!std::equal(prefix.begin(), prefix.end(), start)) {
+                // It's not the right prefix so clean up and bail out.
+                free(buffer);
+                throw std::runtime_error("Expected prefix not found in input. Check file type.");
+            }
             
-#ifdef debug_manager
-            std::cerr << "Copy contiguous range of " << bytes_to_copy << " bytes into " << range.first << endl;
-#endif
-            
-            // Copy it over
-            memcpy(range.first, (void*)(&block.at(block_offset)), bytes_to_copy);
-            
-            // Update the cursors
-            block_offset += bytes_to_copy;
-            chain_offset += bytes_to_copy;
+            // If we get here we got the right prefix.
+            prefix_checked = true;
         }
         
         // We copied the whole block so go get another block.
         block = iterator();
+        
+#ifdef debug_manager
+        std::cerr << "Received block of size " << block.size() << endl;
+#endif
+        
     }
     
-    if (chain_offset < prefix.size()) {
+    if (cursor < prefix.size()) {
         // We should have copied the whole prefix
+        free(buffer);
         throw std::runtime_error("Input ended before expected prefix could be read");
     }
     
-    // Go find where the prefix should be
-    char* start = (char*)get_address_in_chain(chain, 0, prefix.size());
-    if (!std::equal(prefix.begin(), prefix.end(), start)) {
-        // And make sure it is what we expected.
-        throw std::runtime_error("Expected prefix not found in input. Check file type.");
+    // Shrink the buffer to jsut what we filled
+    void* new_buffer = realloc(buffer, cursor);
+    if (!new_buffer) {
+        free(buffer);
+        throw std::runtime_error("Could not shrink buffer to " +
+            std::to_string(cursor) + " bytes");
     }
+    buffer = new_buffer;
+    
+#ifdef debug_manager
+    std::cerr << "Create chain with preallocated link of size " << cursor << endl;
+#endif
+    
+    // Just hand the whole block over
+    chainid_t chain = open_chain(0, cursor, buffer).first;
     
     // Assume the allocator data structures are ready.
     connect_allocator_at(chain, prefix.size());
@@ -231,13 +272,18 @@ Manager::chainid_t Manager::get_associated_chain(chainid_t chain, int fd) {
 
 void Manager::destroy_chain(chainid_t chain) {
 
+    // Reclaim any bytes from the end of the file that we can.
+    size_t bytes_to_drop = reclaim_tail(chain);
+    // We'll need to get the total chain size out of the first link.
+    size_t total_size;
+
     // Remember the FD of the chain for closing the file.
     int fd;
     
     // Remember any MIO mappings to unmap
     std::vector<std::unique_ptr<mio::mmap_sink>> mio_clean;
     // Remember any normal memory to clean up
-    std::vector<char*> normal_clean;
+    std::vector<void*> normal_clean;
 
     {
         // Get write access to manager data structures
@@ -249,7 +295,9 @@ void Manager::destroy_chain(chainid_t chain) {
             throw std::runtime_error("Trying to destroy nonexistent chain");
         }
         
+        // Store the info we need to tear down the backing file.
         fd = head_entry->second.fd;
+        total_size = head_entry->second.total_size;
         
         auto link_entry = head_entry;
         
@@ -261,7 +309,7 @@ void Manager::destroy_chain(chainid_t chain) {
                 mio_clean.emplace_back(std::move(link_entry->second.mapping));
             } else {
                 // This is just a normal char array allocation.
-                normal_clean.emplace_back((char*)link_entry->first);
+                normal_clean.emplace_back((void*)link_entry->first);
             }
             
             // Work out where we are going to look next
@@ -290,10 +338,17 @@ void Manager::destroy_chain(chainid_t chain) {
     }
     
     for (auto& mapping : normal_clean) {
-        delete[] mapping;
+        free(mapping);
     }
     
     if (fd) {
+        // We have a backing file.
+        // Truncate off any bytes we reclaimed as trailing free space.
+        if (ftruncate(fd, total_size - bytes_to_drop)) {
+            throw std::runtime_error("Could not truncate " + std::to_string(bytes_to_drop) +
+                " bytes off of file: " + std::string(strerror(errno)));
+        }
+        
         // Close the backing file
         if (close(fd)) {
             throw std::runtime_error("Could not close file: " + std::string(strerror(errno)));
@@ -525,10 +580,10 @@ void Manager::dump(chainid_t chain) {
     }
 }
 
-void Manager::dump_links() {
-    std::cerr << "All chain links: " << std::endl;
+void Manager::dump_links(ostream& out) {
+    out << "All chain links: " << std::endl;
     for (auto& link : address_space_index) {
-        std::cerr << "\t" << link.first << "-" << (link.first + link.second.length) << " in chain " << link.second.first << " with next link at " << link.second.next << std::endl; 
+        out << "\t" << (void*)link.first << "-" << (void*)(link.first + link.second.length) << " in chain " << link.second.first << " with next link at " << link.second.next << std::endl; 
     }
 }
     
@@ -837,6 +892,71 @@ void* Manager::find_first_allocation(chainid_t chain, size_t bytes) {
     return first_allocated;
 }
 
+size_t Manager::get_chain_size(chainid_t chain) {
+    if (chain == NO_CHAIN) {
+        return 0;
+    }
+
+    LinkRecord* first;
+    
+    {
+        // Get read access to manager data structures
+        std::shared_lock<std::shared_timed_mutex> lock(Manager::mutex);
+        
+        // Find the first link
+        first = &address_space_index.at((intptr_t) chain);
+    }
+    
+    // The size is recorded here
+    return first->total_size;
+
+}
+
+std::tuple<size_t, size_t, size_t> Manager::get_usage(chainid_t chain) {
+    if (chain == NO_CHAIN) {
+        return std::make_tuple<size_t, size_t, size_t>(0, 0, 0);
+    }
+    
+    // We need the total chain length so we can tell if the last
+    // chain-contiguous run of free blocks abuts the end of the chain.
+    size_t total_length = get_chain_size(chain);
+    
+    // How many bytes of free payload (and associated headers) have we seen?
+    size_t free_bytes = 0;
+    
+    // How many free bytes are at the end?
+    size_t reclaimable = 0;
+    
+    with_allocator_header(chain, [&](AllocatorHeader* header) {
+        AllocatorBlock* free_block = header->last_free;
+        while (free_block) {
+            // The block is free, so count it and its header as free
+            free_bytes += free_block->size + sizeof(AllocatorBlock);
+            
+            // Where in the chain does it end?
+            size_t block_end = get_chain_and_position(free_block).second +
+                free_block->size + sizeof(AllocatorBlock);
+            
+            if (block_end == total_length - reclaimable) {
+                // This abuts the existing trailing reclaimable space, so
+                // expand it over this block.
+                reclaimable += free_block->size + sizeof(AllocatorBlock);
+            }
+            
+            // Go left to the previous free block in the chain, if any.
+            free_block = free_block->prev;
+        }
+    });
+
+#ifdef debug_manager
+    std::cerr << "Memory usage: " << total_length << " total, "
+        << free_bytes << " free, "
+        << reclaimable << " reclaimable" << endl;
+#endif
+    
+    return std::make_tuple(total_length, free_bytes, reclaimable);
+}
+
 void Manager::scan_chain(chainid_t chain, const std::function<void(const void*, size_t)>& iteratee) {
     // Start a cursor in the chain
     size_t chain_offset = 0;
@@ -900,7 +1020,131 @@ void Manager::with_allocator_header(chainid_t chain,
     }
 }
 
-std::pair<Manager::chainid_t, bool> Manager::open_chain(int fd, size_t start_size) {
+size_t Manager::reclaim_tail(chainid_t chain) {
+    if (chain == NO_CHAIN) {
+        // Nothing to free here.
+        return 0;
+    }
+    
+    // Get the past-end position in the chain, and use that as our cursor to walk backward.
+    size_t first_unused_byte = get_chain_size(chain);
+    
+    // Track how many bytes we removed
+    size_t reclaimed_bytes = 0;
+    
+    with_allocator_header(chain, [&](AllocatorHeader* header) {
+        while (header->last_free) {
+            // For each free block, end to start
+            AllocatorBlock* last_free = header->last_free;
+            size_t total_block_size = last_free->size + sizeof(AllocatorBlock);
+            
+            // Get its past-end position in the chain
+            size_t past_block_end = get_chain_and_position(last_free).second + total_block_size;
+                
+            if (first_unused_byte == past_block_end) {
+                // We can pop off this block
+                
+#ifdef debug_manager
+                std::cerr << "Reclaiming trailing free block " << last_free << std::endl;
+#endif
+                
+                // Record reclaiming these bytes
+                reclaimed_bytes += total_block_size;
+                // Bring the cursor back to before the block we reclaimed.
+                first_unused_byte -= total_block_size;
+                
+                // Remove the block from the free list. We have to update the
+                // header pointers ourselves.
+                auto connected = last_free->detach();
+                header->last_free = connected.first;
+                if (header->first_free == last_free) {
+                    // This was the first free block.
+                    // The first free block is now the right neighbor, if any.
+                    header->first_free = connected.second;
+                }
+                
+                // Now last_free has moved, so check that block, if it exists.
+            } else {
+                // We've reached a block we can't reclaim. We have to stop the scan.
+                
+#ifdef debug_manager
+                std::cerr << "Last free block ends at " << past_block_end
+                    << " and not " << first_unused_byte << std::endl;
+#endif
+                
+                break;
+            }
+        }
+    });
+    
+#ifdef debug_manager
+    std::cerr << "Reclaimed " << reclaimed_bytes << " bytes at end of chain " << chain << std::endl;
+#endif
+    
+    // We reclaimed all those blocks and their headers from the allocator's management.
+    // Now they're totally unused at the end of the chain.
+    return reclaimed_bytes;
+}
+
+void Manager::check_heap_integrity(chainid_t chain) {
+     if (chain == NO_CHAIN) {
+        // Nothing to scan.
+        return;
+    }
+    
+    // All blocks, allocated or free, form a linked list connected by block length.
+    
+    with_allocator_header(chain, [&](AllocatorHeader* header) {
+        // Get the past-end position in the chain, where we expect out scan to end.
+        size_t first_unused_byte = get_chain_size(chain);
+        
+        // Get the position that the next block (allocated or free) should be at
+        size_t block_cursor = get_chain_and_position(header).second + sizeof(AllocatorHeader);
+        
+        while (block_cursor < first_unused_byte) {
+            // Find this block
+            AllocatorBlock* block = (AllocatorBlock*) get_address_in_chain(chain, block_cursor, sizeof(AllocatorBlock));
+            
+            // Make sure its size isn't some enormous garbage that will make us overflow
+            if (block->size > first_unused_byte) {
+                throw std::runtime_error("An allocator block at offset " + std::to_string(block_cursor) +
+                    " in chain " + std::to_string(chain) +
+                    " has a size of " + std::to_string(block->size) +
+                    " which is larger then the whole chain's length of " +
+                    std::to_string(first_unused_byte) + " bytes. This indicated data corruption.");
+            }
+            
+            // Advance to the next block
+            block_cursor += sizeof(AllocatorBlock) + block->size;
+        }
+        
+        if (block_cursor != first_unused_byte) {
+            // We've blown past the end of the chain.
+            throw std::runtime_error("An allocator block in chain " + std::to_string(chain) +
+                " runs to byte " + std::to_string(block_cursor) +
+                " but the chain only has " + std::to_string(first_unused_byte) +
+                " bytes in it. Is the backing file truncated?");
+        }
+    });
+}
+
+size_t Manager::count_chains() {
+    // Get write access to manager data structures
+    std::unique_lock<std::shared_timed_mutex> lock(mutex);
+    
+    // Count the chains
+    return chain_space_index.size();
+}
+
+size_t Manager::count_links() {
+    // Get write access to manager data structures
+    std::unique_lock<std::shared_timed_mutex> lock(mutex);
+    
+    // Count the links
+    return address_space_index.size();
+}
+
+std::pair<Manager::chainid_t, bool> Manager::open_chain(int fd, size_t start_size, void* link_data) {
 
     // Set up our return value
     std::pair<chainid_t, bool> to_return;
@@ -918,8 +1162,15 @@ std::pair<Manager::chainid_t, bool> Manager::open_chain(int fd, size_t start_siz
     record.next = 0;
     record.allocator_mutex = std::make_unique<std::mutex>();
     
+    // TODO: deduplicate initial link and add_link?
+    
     if (fd) {
         // Use file-mapped memory
+        
+        if (link_data) {
+            // If there's a file, we have to make all the memory.
+            throw std::logic_error("Cannot use preallocated block of memory with a backing file!");
+        }
         
         // Duplicate the FD so we can own our own and close it later.
         int our_fd = dup(fd);
@@ -934,8 +1185,8 @@ std::pair<Manager::chainid_t, bool> Manager::open_chain(int fd, size_t start_siz
         }
         size_t file_size = fileinfo.st_size;
         // TODO: check st_blksize and try to use a multiple of that for allocating.
-        if (file_size == 0) {
-            // The file is currently empty and we need to expand it to be able to write to it.
+        if (file_size < start_size) {
+            // The file is currently too small and we need to expand it to be able to write to it.
             if (ftruncate(our_fd, start_size)) {
                 throw std::runtime_error("Could not grow file to be mapped: " + std::string(strerror(errno)));
             }
@@ -958,13 +1209,16 @@ std::pair<Manager::chainid_t, bool> Manager::open_chain(int fd, size_t start_siz
         
         // TODO: when MIO gets anonymous mapping support, use that.
         
-        char* link = new char[start_size];
-        if (!link) {
-            throw std::runtime_error("Could not allocate " + std::to_string(start_size) + " bytes");
+        if (!link_data) {
+            // Allocate our own link
+            link_data = malloc(start_size);
+        }
+        if (!link_data) {
+            throw std::runtime_error("Could not allocate initial " + std::to_string(start_size) + " bytes");
         }
         
         // Remember where the memory starts
-        mapping_address = (intptr_t) link;
+        mapping_address = (intptr_t) link_data;
         
         // Fill in the record for normal memory
         record.length = start_size;
@@ -1055,7 +1309,7 @@ std::pair<void*, size_t> Manager::get_address_and_length_in_chain(chainid_t chai
     return std::make_pair((void*)(found->second + (position - found->first)), link.length - (position - link.offset));
 }
 
-Manager::LinkRecord& Manager::add_link(LinkRecord& head, size_t new_bytes) {
+Manager::LinkRecord& Manager::add_link(LinkRecord& head, size_t new_bytes, void* link_data) {
     // Assume we're already locked.
     
     // What used to be the last link?
@@ -1072,6 +1326,11 @@ Manager::LinkRecord& Manager::add_link(LinkRecord& head, size_t new_bytes) {
     intptr_t mapping_address;
     
     if (head.fd) {
+        if (link_data) {
+            // If there's a file, we have to make all the memory.
+            throw std::logic_error("Cannot use preallocated block of memory with a backing file!");
+        }
+    
         // Grow the file
         if (ftruncate(head.fd, new_total)) {
             throw std::runtime_error("Could not grow mapped file: " + std::string(strerror(errno)));
@@ -1083,13 +1342,16 @@ Manager::LinkRecord& Manager::add_link(LinkRecord& head, size_t new_bytes) {
         // Find its address
         mapping_address = (intptr_t)&((*new_tail.mapping)[0]);
     } else {
-        char* link = new char[new_bytes];
-        if (!link) {
+        if (!link_data) {
+            // Allocate our own link
+            link_data = malloc(new_bytes);
+        }
+        if (!link_data) {
             throw std::runtime_error("Could not allocate an additional " + std::to_string(new_bytes) + " bytes");
         }
         
         // Remember where the memory starts
-        mapping_address = (intptr_t) link;
+        mapping_address = (intptr_t) link_data;
     }
     
     // Fill in the link record
@@ -1249,6 +1511,11 @@ void Manager::connect_allocator_at(chainid_t chain, size_t offset) {
         LinkRecord& head = Manager::address_space_index.at((intptr_t) chain);
         // Save the allocator position
         head.prefix_size = offset;
+    }
+    
+    if (check_chains) {
+        // Make sure that we never allow an allocator to come up broken.
+        check_heap_integrity(chain);
     }
 }
 

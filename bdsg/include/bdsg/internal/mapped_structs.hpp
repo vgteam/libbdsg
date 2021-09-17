@@ -185,7 +185,8 @@ public:
     static const chainid_t NO_CHAIN = 0;
     
     /**
-     * Set this to true to enable additional self-checks on memory management correctness.
+     * Set this to true to enable additional self-checks on memory management
+     * correctness, and false to disable them.
      */
     static bool check_chains;
 
@@ -207,6 +208,8 @@ public:
      * If the file is nonempty, data after the length of the passed prefix must
      * contain the chain allocator data structures. If it is empty, the prefix
      * and the chain allocator data structures will be written to it.
+     *
+     * The entire file will be mapped in one contiguous link.
      */
     static chainid_t create_chain(int fd, const std::string& prefix = "");
     
@@ -216,6 +219,9 @@ public:
      *
      * The result must begin with the given prefix, if specified, or an error
      * will occur.
+     *
+     * All content from the iterator will be stored in one contiguous link,
+     * despite the length not being known ahead of time.
      */
     static chainid_t create_chain(const std::function<std::string(void)>& iterator, const std::string& prefix = "");
     
@@ -243,6 +249,9 @@ public:
     /**
      * Destroy the given chain and unmap all of its memory, and close any
      * associated file.
+     *
+     * Also drops trailing free blocks and truncates them out of the backing
+     * file.
      */
     static void destroy_chain(chainid_t chain);
     
@@ -310,6 +319,19 @@ public:
     static void* find_first_allocation(chainid_t chain, size_t bytes);
     
     /**
+     * Return the total number of bytes in the given chain.
+     */
+    static size_t get_chain_size(chainid_t chain);
+    
+    /**
+     * Get statistics about the memory in a chain. Returns all 0s if not a managed chain.
+     *
+     * Returns the total bytes in the chain, the number of free bytes,
+     * and the number of free bytes reclaimable when the chain is closed. 
+     */
+    static std::tuple<size_t, size_t, size_t> get_usage(chainid_t chain);
+    
+    /**
      * Scan all memory regions in the given chain. Calls the iteratee with each
      * region's start address and length, in order.
      */
@@ -322,10 +344,26 @@ public:
     static void dump(chainid_t chain);
     
     /**
-     * Dump information about where all chain links fall in memory.
+     * Dump information about where all chain links fall in memory into the given stream.
      * Not thread safe!
      */
-    static void dump_links();
+    static void dump_links(ostream& out = std::cerr);
+    
+    /**
+     * Walk all allocated and free blocks in the heap in the chain and make
+     * sure that they are actually in memory. If not, throws std::runtime_error.
+     */
+    static void check_heap_integrity(chainid_t chain);
+    
+    /**
+     * Return the total number of chains that exist right now.
+     */
+    static size_t count_chains();
+    
+    /**
+     * Return the total number of links that exist right now across all chains.
+     */
+    static size_t count_links();
     
 protected:
     
@@ -341,7 +379,7 @@ protected:
         Pointer<AllocatorBlock> prev;
         /// Next block. Only used when block is free. Null if allocated.
         Pointer<AllocatorBlock> next;
-        /// Size fo the block in bytes, not counting this header. Used for free
+        /// Size of the block in bytes, not counting this header. Used for free
         /// and allocated blocks.
         big_endian<size_t> size;
         
@@ -432,8 +470,13 @@ protected:
      * Create a chain with one link and no allocator setup.
      * Block will either be the entire size of an existing file, or the given starting size.
      * Returns the chain ID and a flag for if there was data in an open file to read.
+     *
+     * If link_data is set, the chain must not be filoe-backed, and link_data
+     * it must point to a block of memory of length start_size already allocated
+     * using malloc() and which can be freed using free(). The chain will take
+     * ownership of the memory block.
      */
-    static std::pair<chainid_t, bool> open_chain(int fd = 0, size_t start_size = BASE_SIZE);
+    static std::pair<chainid_t, bool> open_chain(int fd = 0, size_t start_size = BASE_SIZE, void* link_data = nullptr);
     
     /**
      * Extend the given chain to the given new total size.
@@ -450,8 +493,13 @@ protected:
     /**
      * Add a link into a chain. The caller must hold a write lock on the manager data structures.
      * The number of bytes must be nonzero.
+     *
+     * If link_data is set, the chain must not be filoe-backed, and link_data
+     * it must point to a block of memory of length new_bytes already allocated
+     * using malloc() and which can be freed using free(). The chain will take
+     * ownership of the memory block.
      */
-    static LinkRecord& add_link(LinkRecord& head, size_t new_bytes);
+    static LinkRecord& add_link(LinkRecord& head, size_t new_bytes, void* link_data = nullptr);
     
     /**
      * Create a new chain, using the given file if set, and copy data from the
@@ -483,7 +531,15 @@ protected:
      */
     static void with_allocator_header(chainid_t chain,
                                       const std::function<void(AllocatorHeader*)>& callback);
-
+                                      
+    /**
+     * While a final free block exists, drop it from the free list.
+     * Return the total number of bytes after the last allocated block.
+     *
+     * Note that you should not map anything after calling this function! You
+     * should close the chain and trim down the backing file!
+     */
+    static size_t reclaim_tail(chainid_t chain);
 };
 
 /**
@@ -582,6 +638,7 @@ public:
     UniqueMappedPointer(UniqueMappedPointer&& other) = default;
     UniqueMappedPointer& operator=(const UniqueMappedPointer& other) = delete;
     UniqueMappedPointer& operator=(UniqueMappedPointer&& other) = default;
+    ~UniqueMappedPointer();
     
     operator bool () const;
     T& operator*();
@@ -695,6 +752,21 @@ public:
      * Free any associated memory and become empty.
      */
     void reset();
+    
+    /**
+     * Get statistics about the pointer's associated memory chain.
+     *
+     * Returns the total bytes, the number of free bytes, and the number of
+     * free bytes reclaimable when closed as a mapped file. 
+     */
+    std::tuple<size_t, size_t, size_t> get_usage();
+    
+    /**
+     * Make sure that internal heap data structures are consistent with the
+     * memory mapping. Raises std::runtime_error if not.
+     */
+    void check_heap_integrity();
+    
 private:
     Manager::chainid_t chain = Manager::NO_CHAIN;
 };
@@ -1419,8 +1491,6 @@ void CompatVector<T, Alloc>::resize(size_t new_size) {
         reserve(std::max(new_size, size() * RESIZE_FACTOR));
     }
    
-    // TODO: throw away excess memory when shrinking
-   
     if (new_size < size()) {
         // We shrank, and we had at least one item.
 #ifdef debug_compat_vector
@@ -1449,7 +1519,50 @@ void CompatVector<T, Alloc>::resize(size_t new_size) {
 
 template<typename T, typename Alloc>
 void CompatVector<T, Alloc>::shrink_to_fit() {
-    // TODO: actually reallocate smaller.
+    // Actually reallocate smaller.
+    if (length == reserved_length) {
+        // Nothing to do!
+        return;
+    }
+    
+    // TODO: unify some code with reserve()?
+    
+    // Find where the data is. This can't be null since we have a
+    // reserved_length > length (since it isn't equal and can never be less).
+    T* old_first = first;
+    // And how much there is
+    size_t old_reserved_length = reserved_length;
+    
+#ifdef debug_compat_vector
+    std::cerr << "Shrinking vector at " << (intptr_t)this
+        << " with " << old_reserved_length << " spaces at "
+        << (intptr_t) old_first << " to have " << length  << " spaces" << std::endl;
+#endif
+    
+    // Allocate space for the new data, and get the position in the context
+    T* new_first  = alloc.allocate(length);
+    
+    // Record the new reserved length
+    reserved_length = length;
+    
+#ifdef debug_compat_vector
+    std::cerr << "Vector data moving from " << (intptr_t) old_first
+        << " to " << (intptr_t) new_first << std::endl;
+#endif
+    for (size_t i = 0; i < size(); i++) {
+        // Move over the preserved values.
+        new (new_first + i) T(std::move(*(old_first + i)));
+    }
+    
+    for (size_t i = 0; i < size(); i++) {
+        // Destroy all the original values
+        (old_first + i)->~T();
+    }
+    
+    // Free old memory
+    alloc.deallocate(old_first, old_reserved_length);
+    
+    first = new_first;
 }
 
 template<typename T, typename Alloc>
@@ -1796,6 +1909,46 @@ uint64_t CompatIntVector<Alloc>::unpack(size_t index, size_t width_override) con
     size_t start_slot = start_bit / std::numeric_limits<uint64_t>::digits;
     // And a start bit in that slot
     size_t start_slot_bit_offset = start_bit % std::numeric_limits<uint64_t>::digits;
+    
+    if (yomo::Manager::check_chains) {
+        // Do some bounds checking
+    
+        // Work out if we span into the next slot
+        bool into_next_slot = (start_slot_bit_offset + effective_width > std::numeric_limits<uint64_t>::digits);
+        if (start_slot >= data.size() || (into_next_slot && start_slot + 1 >= data.size())) {
+            // We want to go out of range of the vector.
+            throw std::out_of_range("Reading item " + std::to_string(index) +
+                " of width " + std::to_string(effective_width) + " accesses slot " + std::to_string(start_slot) +
+                (into_next_slot ? ("and slot " + std::to_string(into_next_slot + 1)) : "") +
+                " but we only have " + std::to_string(data.size()) + " slots and " +
+                std::to_string(size()) + " items");
+        }
+        
+        // Define the memory range we plan to access, inclusive
+        const uint64_t* access_first = &data[start_slot];
+        const uint64_t* access_last =  access_first + into_next_slot;
+        
+        // Make sure we aren't trying to go across chains
+        auto our_chain = yomo::Manager::get_chain(this);
+        for (const uint64_t* access_addr = access_first; access_addr != access_last + 1; access_addr++) {
+            // For each slot we need to read
+            
+            auto other_chain = yomo::Manager::get_chain(access_addr);
+            
+            if (other_chain != our_chain) {
+                // We're accessing something past the end of the chain somehow.
+                std::stringstream msg;
+                msg << "error[CompatIntVector]: Attempting to access address " << access_addr
+                    << " for vector at " << this << " with data at " << &data[0]
+                    << " but we are in chain " << our_chain
+                    << " and accessed address is in chain " << other_chain
+                    << ". Is the entire file mapped?" << std::endl;
+                yomo::Manager::dump_links(msg);
+                throw std::out_of_range(msg.str());
+            }
+        }
+    }
+    
     // And then load
 #ifdef debug_bit_packing
     std::cerr << "Read value of width " << effective_width
@@ -1983,6 +2136,11 @@ size_t Allocator<T>::max_size() const {
 template<typename T>
 Manager::chainid_t Allocator<T>::get_chain() const {
     return Manager::get_chain((void*) this);
+}
+
+template<typename T>
+UniqueMappedPointer<T>::~UniqueMappedPointer() {
+    reset();
 }
 
 template<typename T>
@@ -2205,6 +2363,16 @@ void UniqueMappedPointer<T>::reset() {
         Manager::destroy_chain(chain);
         chain = Manager::NO_CHAIN;
     }
+}
+
+template<typename T>
+std::tuple<size_t, size_t, size_t> UniqueMappedPointer<T>::get_usage() {
+    return Manager::get_usage(chain);
+}
+
+template<typename T>
+void UniqueMappedPointer<T>::check_heap_integrity() {
+    return Manager::check_heap_integrity(chain);
 }
 
 }
