@@ -112,7 +112,7 @@ void verify_to(const Vectorish& data, size_t count, int64_t nonce) {
         auto correct_value = mix(i, nonce);
         auto observed_value = data.at(i);
         if (observed_value != correct_value) {
-            cerr << "At index " << i << " observed " << observed_value << " at " << &data.at(i) << " but expected " << correct_value << endl;
+            cerr << "At index " << i << " observed " << observed_value << " but expected " << correct_value << endl;
         }
         assert(observed_value == correct_value);
     }
@@ -512,6 +512,10 @@ void test_mmap_backend() {
 }
 
 void test_mapped_structs() {
+    
+    assert(yomo::Manager::count_chains() == 0);
+    assert(yomo::Manager::count_links() == 0);
+    
     {
     
         using T = big_endian<int64_t>;
@@ -574,7 +578,7 @@ void test_mapped_structs() {
             verify_to(vec1, 1000, 1);
             
         }
-            
+        
         // We're going to need a temporary file
         // This filename fill be filled in with the actual filename.
         char filename[] = "tmpXXXXXX";
@@ -641,6 +645,7 @@ void test_mapped_structs() {
         }
         
         numbers_holder.reset();
+        
         numbers_holder.load(tmpfd, "GATTACA");
         
         // Check memory usage
@@ -663,8 +668,10 @@ void test_mapped_structs() {
         
         close(tmpfd);
         unlink(filename);
-        
     }
+    
+    assert(yomo::Manager::count_chains() == 0);
+    assert(yomo::Manager::count_links() == 0);
     
     {
         using T = big_endian<int64_t>;
@@ -681,6 +688,9 @@ void test_mapped_structs() {
         bother_vector(*numbers_holder_holder);
     }
     
+    assert(yomo::Manager::count_chains() == 0);
+    assert(yomo::Manager::count_links() == 0);
+    
     {
         using T = big_endian<int64_t>;
         using A = bdsg::yomo::Allocator<T>;
@@ -695,6 +705,9 @@ void test_mapped_structs() {
         // Now do a vigorous test comparing to a normal vector
         bother_vector(numbers);
     }
+    
+    assert(yomo::Manager::count_chains() == 0);
+    assert(yomo::Manager::count_links() == 0);
     
     {
         // Make sure our bit-packing vector works
@@ -729,6 +742,71 @@ void test_mapped_structs() {
             }
         }
     }
+    
+    assert(yomo::Manager::count_chains() == 0);
+    assert(yomo::Manager::count_links() == 0);
+    
+    {
+        // Make sure our bit-packing vector checks bound
+        
+        // Make sure checks that prevent opening corrupted files aren't on.
+        bool saved = bdsg::yomo::Manager::check_chains;
+        bdsg::yomo::Manager::check_chains = false;
+        
+        // Make a vector
+        bdsg::yomo::UniqueMappedPointer<MappedIntVector> vec;
+        vec.construct();
+        vec->width(60);
+        vec->resize(1000);
+        fill_to(*vec, 1000, 1);
+        verify_to(*vec, 1000, 1);
+        
+        // We should pass heap verification
+        vec.check_heap_integrity();
+        
+        // Save it out
+        char filename[] = "tmpXXXXXX";
+        int tmpfd = mkstemp(filename);
+        assert(tmpfd != -1);
+        vec.save(tmpfd);
+        vec.reset();
+        
+        // Drop part of the file
+        auto file_size = lseek(tmpfd, 0, SEEK_END);
+        assert(ftruncate(tmpfd, file_size/2) == 0);
+        
+        // Reload
+        vec.load(tmpfd, "");
+        
+        // Turn on checking of accesses
+        bdsg::yomo::Manager::check_chains = true;
+        try {
+            verify_to(*vec, 1000, 1);
+            // We shouldn't be able to complete this; we should run off the end of the chain.
+            assert(false);
+        } catch (std::out_of_range& e) {
+            // This is the exception we expect to get.
+        }
+        bdsg::yomo::Manager::check_chains = false;
+        
+        try {
+            // We shouldn't pass heap verification even when not checking accesses.
+            vec.check_heap_integrity();
+            assert(false);
+        } catch (std::runtime_error& e) {
+            // This is the exception we expect to get.
+        }
+        
+        vec.reset();
+        
+        close(tmpfd);
+        unlink(filename);
+        
+        bdsg::yomo::Manager::check_chains = saved;
+    }
+    
+    assert(yomo::Manager::count_chains() == 0);
+    assert(yomo::Manager::count_links() == 0);
     
     cerr << "Mapped Structs tests successful!" << endl;
 }

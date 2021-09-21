@@ -525,7 +525,7 @@ net_handle_t SnarlDistanceIndex::get_parent_traversal(const net_handle_t& traver
 
 }
 
-void SnarlDistanceIndex::load(string& filename) {
+void SnarlDistanceIndex::load(const string& filename) {
     snarl_tree_records.dissociate();
     snarl_tree_records.reset();
     std::ifstream in (filename);
@@ -541,7 +541,7 @@ void SnarlDistanceIndex::load(std::istream& in) {
     snarl_tree_records.reset();
     snarl_tree_records.load(in, tag);
 }
-void SnarlDistanceIndex::save(string& filename) const {
+void SnarlDistanceIndex::save(const string& filename) const {
     std::ofstream out(filename);
     snarl_tree_records.save(out);
 }

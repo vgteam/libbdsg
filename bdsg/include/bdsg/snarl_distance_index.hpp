@@ -258,11 +258,11 @@ public:
     net_handle_t get_parent_traversal(const net_handle_t& traversal_start, const net_handle_t& traversal_end) const;
 
 public:
-    void load(std::string& filename);
+    void load(const std::string& filename);
     void load(int fd);
     void load(std::istream&in);
 
-    void save(std::string& filename) const;
+    void save(const std::string& filename) const;
     void save(int fd) ;
     void save(std::ostream&out) const;
 

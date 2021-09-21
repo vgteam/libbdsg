@@ -32,6 +32,7 @@ void bind_handlegraph_path_position_handle_graph(std::function< pybind11::module
 void bind_bdsg_overlays_packed_path_position_overlay(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_overlays_packed_path_position_overlay_1(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_overlays_path_position_overlays(std::function< pybind11::module &(std::string const &namespace_) > &M);
+void bind_bdsg_overlays_path_subgraph_overlay(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_overlays_vectorizable_overlays(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_overlays_vectorizable_overlays_1(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_snarl_distance_index(std::function< pybind11::module &(std::string const &namespace_) > &M);
@@ -84,6 +85,7 @@ PYBIND11_MODULE(bdsg, root_module) {
 	bind_bdsg_overlays_packed_path_position_overlay(M);
 	bind_bdsg_overlays_packed_path_position_overlay_1(M);
 	bind_bdsg_overlays_path_position_overlays(M);
+	bind_bdsg_overlays_path_subgraph_overlay(M);
 	bind_bdsg_overlays_vectorizable_overlays(M);
 	bind_bdsg_overlays_vectorizable_overlays_1(M);
 	bind_bdsg_snarl_distance_index(M);
