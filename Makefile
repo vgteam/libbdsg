@@ -28,7 +28,6 @@ OBJS += $(OBJ_DIR)/packed_subgraph_overlay.o
 OBJS += $(OBJ_DIR)/snarl_distance_index.o
 OBJS += $(OBJ_DIR)/strand_split_overlay.o 
 OBJS += $(OBJ_DIR)/utility.o
-OBJS += $(OBJ_DIR)/snarl_distance_index.o
 
 CXXFLAGS :=-MMD -MP -O3 -Werror=return-type -std=c++14 -ggdb -g -I$(INC_DIR) $(CXXFLAGS)
 
