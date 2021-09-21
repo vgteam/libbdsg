@@ -1191,6 +1191,8 @@ public:
     void validate_descendants_of(const net_handle_t net) const;
     void validate_ancestors_of(const net_handle_t net) const;
 
+    std::tuple<size_t, size_t, size_t> get_usage() ;
+
 
 public:
 

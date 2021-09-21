@@ -2481,6 +2481,10 @@ void SnarlDistanceIndex::validate_ancestors_of(net_handle_t net) const {
     net_handle_t parent_handle = get_parent(net);
     validate_ancestors_of(parent_handle);
 }
+std::tuple<size_t, size_t, size_t> SnarlDistanceIndex::get_usage() {
+    return snarl_tree_records.get_usage();
+}
+
 
 void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDistanceIndex*>& temporary_indexes, const HandleGraph* graph) {
 
