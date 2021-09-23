@@ -261,22 +261,15 @@ public:
 public:
 
     //Serialize and deserialize from TriviallySerializable
-    virtual void serialize(int fd) const;
+    virtual void dissociate();
+
+    virtual void serialize(const std::function<void(const void*, size_t)>& iteratee) const;
     virtual void serialize(int fd);
     virtual void deserialize(int fd);
-
-    //virtual void serialize(const std::string& filename) const;
-    virtual void serialize(const std::string& filename);
-    virtual void deserialize(const std::string& filename);
-
-    virtual void serialize(std::ostream& out) const;
-    virtual void serialize(std::ostream& out);
-    virtual void deserialize(std::istream& in);
 
     void serialize_members(std::ostream& out) const;
     void deserialize_members(std::istream& in);
 
-    virtual void dissociate();
 
     virtual uint32_t get_magic_number() const;
     std::string get_prefix() const;
