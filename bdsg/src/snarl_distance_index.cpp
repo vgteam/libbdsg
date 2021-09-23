@@ -531,7 +531,7 @@ net_handle_t SnarlDistanceIndex::get_parent_traversal(const net_handle_t& traver
 void SnarlDistanceIndex::dissociate() {
     snarl_tree_records.dissociate();
     snarl_tree_records.reset();
-}/
+}
 void SnarlDistanceIndex::serialize(const std::function<void(const void*, size_t)>& iteratee)  const {
     snarl_tree_records.save(iteratee);
 }
