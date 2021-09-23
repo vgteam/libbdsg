@@ -525,31 +525,100 @@ net_handle_t SnarlDistanceIndex::get_parent_traversal(const net_handle_t& traver
 
 }
 
-void SnarlDistanceIndex::load(const string& filename) {
-    snarl_tree_records.dissociate();
-    snarl_tree_records.reset();
-    std::ifstream in (filename);
-    snarl_tree_records.load(in, tag);
+
+//Serialize and deserialize from TriviallySerializable will just call save and load
+//
+void SnarlDistanceIndex::serialize(int fd) const {
+    snarl_tree_records.save(fd);
+//    //TODO: I don't know if this is ok
 }
-void SnarlDistanceIndex::load(int fd) {
-    snarl_tree_records.dissociate();
-    snarl_tree_records.reset();
-    snarl_tree_records.load(fd, tag);
-}
-void SnarlDistanceIndex::load(std::istream& in) {
-    snarl_tree_records.dissociate();
-    snarl_tree_records.reset();
-    snarl_tree_records.load(in, tag);
-}
-void SnarlDistanceIndex::save(const string& filename) const {
-    std::ofstream out(filename);
-    snarl_tree_records.save(out);
-}
-void SnarlDistanceIndex::save(int fd) {
+void SnarlDistanceIndex::serialize(int fd) {
     snarl_tree_records.save(fd);
 }
-void SnarlDistanceIndex::save(std::ostream& out) const {
+void SnarlDistanceIndex::deserialize(int fd) {
+    snarl_tree_records.load(fd, tag);
+}
+//void SnarlDistanceIndex::serialize(const std::string& filename) const {
+//
+//    // Use the file descriptor version
+//
+//    // Try to open in read write mode
+//    int fd = ::open(filename.c_str(), O_RDWR);
+//    if (fd == -1) {
+//        // Try to open in read only mode instead.
+//        // Changes won't write back.
+//        fd = ::open(filename.c_str(), O_RDONLY);
+//    }
+//
+//    if (fd == -1) {
+//        // Open failed; report a sensible problem.
+//        auto problem = errno;
+//        std::stringstream ss;
+//        ss << "Could not load from file " << filename << ": " << ::strerror(problem);
+//        throw std::runtime_error(ss.str());
+//    }
+//
+//    snarl_tree_records.save(fd);
+//    close_fd(fd);
+//}
+void SnarlDistanceIndex::serialize(const std::string& filename) {
+
+    // Use the file descriptor version
+
+    // Try to open in read write mode
+    int fd = ::open(filename.c_str(), O_RDWR);
+    if (fd == -1) {
+        // Try to open in read only mode instead.
+        // Changes won't write back.
+        fd = ::open(filename.c_str(), O_RDONLY);
+    }
+
+    if (fd == -1) {
+        // Open failed; report a sensible problem.
+        auto problem = errno;
+        std::stringstream ss;
+        ss << "Could not load from file " << filename << ": " << ::strerror(problem);
+        throw std::runtime_error(ss.str());
+    }
+
+    snarl_tree_records.save(fd);
+    close_fd(fd);
+}
+void SnarlDistanceIndex::deserialize(const std::string& filename) {
+    int fd = open_fd(filename);
+    snarl_tree_records.load(fd, tag);
+    close_fd(fd);
+}
+void SnarlDistanceIndex::serialize(std::ostream& out) const {
     snarl_tree_records.save(out);
+}
+void SnarlDistanceIndex::serialize(std::ostream& out) {
+    snarl_tree_records.save(out);
+}
+void SnarlDistanceIndex::deserialize(std::istream& in) {
+    snarl_tree_records.dissociate();
+    snarl_tree_records.reset();
+    snarl_tree_records.load(in, tag);
+}
+void SnarlDistanceIndex::serialize_members(std::ostream& out) const {
+    snarl_tree_records.save_after_prefix(out, get_prefix());
+}
+void SnarlDistanceIndex::deserialize_members(std::istream& in){
+    snarl_tree_records.load_after_prefix(in, get_prefix());
+}
+
+void SnarlDistanceIndex::dissociate() {
+    snarl_tree_records.dissociate();
+    snarl_tree_records.reset();
+}
+uint32_t SnarlDistanceIndex::get_magic_number()const {
+    //TODO: Change this
+    return 5239348204;
+}
+//Copied from MappedPackedGraph
+std::string SnarlDistanceIndex::get_prefix() const {
+    //TODO: I don't know if this is ok
+    return tag;
 }
 
 

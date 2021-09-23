@@ -6,6 +6,7 @@
 #include <handlegraph/snarl_decomposition.hpp>
 #include <handlegraph/algorithms/dijkstra.hpp>
 #include <handlegraph/util.hpp>
+#include <handlegraph/trivially_serializable.hpp>
 #include <bdsg/internal/mapped_structs.hpp>
 #include <string>
 
@@ -93,7 +94,7 @@ using namespace handlegraph;
  */
 
 
-class SnarlDistanceIndex : public SnarlDecomposition {
+class SnarlDistanceIndex : public SnarlDecomposition, public TriviallySerializable {
 
 public:
     ~SnarlDistanceIndex();
@@ -258,13 +259,27 @@ public:
     net_handle_t get_parent_traversal(const net_handle_t& traversal_start, const net_handle_t& traversal_end) const;
 
 public:
-    void load(const std::string& filename);
-    void load(int fd);
-    void load(std::istream&in);
 
-    void save(const std::string& filename) const;
-    void save(int fd) ;
-    void save(std::ostream&out) const;
+    //Serialize and deserialize from TriviallySerializable
+    virtual void serialize(int fd) const;
+    virtual void serialize(int fd);
+    virtual void deserialize(int fd);
+
+    //virtual void serialize(const std::string& filename) const;
+    virtual void serialize(const std::string& filename);
+    virtual void deserialize(const std::string& filename);
+
+    virtual void serialize(std::ostream& out) const;
+    virtual void serialize(std::ostream& out);
+    virtual void deserialize(std::istream& in);
+
+    void serialize_members(std::ostream& out) const;
+    void deserialize_members(std::istream& in);
+
+    virtual void dissociate();
+
+    virtual uint32_t get_magic_number() const;
+    std::string get_prefix() const;
 
 ///////////////////////////// More public functions for distance calculations using net_handle_t's 
 
