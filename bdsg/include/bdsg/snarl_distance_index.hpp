@@ -261,11 +261,14 @@ public:
 public:
 
     //Serialize and deserialize from TriviallySerializable
-    virtual void dissociate();
+    //
+    using TriviallySerializable::serialize;
+    using TriviallySerializable::deserialize;
+    void dissociate();
 
-    virtual void serialize(const std::function<void(const void*, size_t)>& iteratee) const;
-    virtual void serialize(int fd);
-    virtual void deserialize(int fd);
+    void serialize(const std::function<void(const void*, size_t)>& iteratee) const;
+    void serialize(int fd);
+    void deserialize(int fd);
 
     void serialize_members(std::ostream& out) const;
     void deserialize_members(std::istream& in);

@@ -74,7 +74,7 @@ public:
     /**
      * Serialize us to the given file descriptor. We must not change at all.
      */
-    void serialize(int fd) const;
+    void MappedPackedGraph::serialize(const std::function<void(const void*, size_t)>& iteratee ) co    nst;
     
     /**
      * Serialize us to the given file descriptor.
