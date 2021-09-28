@@ -16,8 +16,6 @@ bdsg/internal/graph_proxy.cpp
 bdsg/internal/graph_proxy_1.cpp
 handlegraph/snarl_decomposition.cpp
 std/bdsg/internal/binder_hook_bind.cpp
-handlegraph/trivially_serializable.cpp
-bdsg/internal/mmap_backend.cpp
 bdsg/odgi.cpp
 handlegraph/path_position_handle_graph.cpp
 bdsg/overlays/packed_path_position_overlay.cpp
@@ -26,4 +24,6 @@ bdsg/overlays/path_position_overlays.cpp
 bdsg/overlays/path_subgraph_overlay.cpp
 bdsg/overlays/vectorizable_overlays.cpp
 bdsg/overlays/vectorizable_overlays_1.cpp
+handlegraph/trivially_serializable.cpp
+bdsg/packed_graph.cpp
 bdsg/snarl_distance_index.cpp
