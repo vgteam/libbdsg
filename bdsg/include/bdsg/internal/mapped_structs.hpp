@@ -510,6 +510,14 @@ protected:
     static LinkRecord& add_link(LinkRecord& head, size_t new_bytes, void* link_data = nullptr);
     
     /**
+     * Find the link overlapping the given address, or
+     * address_space_index.end() if no link overlaps the given address. Must be
+     * called while you hold a read lock on the chain data structures.
+     */
+    static std::map<intptr_t, LinkRecord>::iterator Manager::find_link(std::shared_lock<std::shared_timed_mutex>& lock, const void* address) {
+}
+    
+    /**
      * Create a new chain, using the given file if set, and copy data from the
      * given existing chain.
      */
@@ -518,7 +526,7 @@ protected:
     /**
      * Set up the allocator data structures in the first link, assuming they
      * aren't present. Put them at the given offset, and carve them out of the
-     * given amoutn of remaining space in the link. 
+     * given amount of remaining space in the link. 
      */
     static void set_up_allocator_at(chainid_t chain, size_t offset, size_t space);
     
@@ -1964,16 +1972,23 @@ T* Pointer<T>::operator+(size_t items) const {
     return get() + items;
 }
 
-template<typename T>
 T* Pointer<T>::get() const {
-    if (position == std::numeric_limits<size_t>::max()) {
+    if (offset == std::numeric_limits<int64_t>::max()) {
         return nullptr;
+    } else if (local.load()) {
+        // Just apply the offset directly
+        return (T*) ((intptr_t) this + offset);
     } else {
-        return (T*) Manager::get_address_in_same_chain((const void*) this, position);
+        auto result = Manager::follow_offset_in_same_chain((const void*) this, offset);
+        if (result.second) {
+            // We're going to the same offset in memory as in the chain.
+            // Might clobber part of a simultaneous write, but simultaneous
+            // read and write is undefined bahavior anyway.
+            local.store(true);
+        }
+        return (T*) result.first;
     }
 }
-
-
 
 template<typename T>
 template<typename U>

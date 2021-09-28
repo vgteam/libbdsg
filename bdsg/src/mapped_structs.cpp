@@ -377,8 +377,6 @@ void* Manager::get_address_in_chain(chainid_t chain, size_t position, size_t len
     
     if (found == chain_map.begin() || chain_map.empty()) {
         // There won't be a link covering the position
-        // We really should never end up with no link over position 0, though,
-        // so this should mostly mean empty.
         throw std::runtime_error("Attempted to find address for position that has no link.");
     }
     
@@ -401,6 +399,41 @@ void* Manager::get_address_in_chain(chainid_t chain, size_t position, size_t len
    
 }
 
+std::map<intptr_t, LinkRecord>::iterator Manager::find_link(std::shared_lock<std::shared_timed_mutex>& lock, const void* address) {
+
+    // Determine what we're looking for
+    intptr_t sought = (intptr_t) address;
+    
+    // Find the earliest link starting after the address
+    auto found = Manager::address_space_index.upper_bound((intptr_t)address);
+        
+    if (found == Manager::address_space_index.begin() || Manager::address_space_index.empty()) {
+        // There won't be a link covering the address.
+        // Say this is an address not in any chain.
+        
+#ifdef debug_pointers
+        std::cerr << "Address " << sought << " has no links starting after it, or no link before such a link, so is not in any chain" << std::endl;
+#endif
+        
+        return Manager::address_space_index.end();
+    }
+        
+#ifdef debug_pointers
+    std::cerr << "Address " << sought << " has a link starting after it at " << found->first << std::endl;
+#endif
+        
+    // Go left to the link that must include the address if any does.
+    --found;
+    
+    if (found->first + found->second.length > sought) {
+        // The address is inside the link
+        return found;
+    } else {
+        // The link ends before the address
+        return Manager::address_space_index.end();
+    }
+}
+
 std::pair<Manager::chainid_t, size_t> Manager::get_chain_and_position(const void* address, size_t length) {
     // Determine what we're looking for
     intptr_t sought = (intptr_t) address;
@@ -415,25 +448,12 @@ std::pair<Manager::chainid_t, size_t> Manager::get_chain_and_position(const void
         std::shared_lock<std::shared_timed_mutex> lock(Manager::mutex);
         
         // Find the earliest link starting after the address
-        auto found = Manager::address_space_index.upper_bound((intptr_t)address);
+        auto found = find_link(lock, address);
         
-        if (found == Manager::address_space_index.begin() || Manager::address_space_index.empty()) {
+        if (found == Manager::address_space_index.end()) {
             // There won't be a link covering the address.
-            // Say this is an address not in any chain.
-            
-#ifdef debug_pointers
-            std::cerr << "Address " << sought << " has no links starting after it, or no link before such a link, so is not in any chain" << std::endl;
-#endif
-            
-            return std::make_pair(NO_CHAIN, (size_t)address); 
+            return std::make_pair(NO_CHAIN, (size_t) address); 
         }
-        
-#ifdef debug_pointers
-        std::cerr << "Address " << sought << " has a link starting after it at " << found->first << std::endl;
-#endif
-        
-        // Go left to the link that must include the address if any does.
-        --found;
         
         // Copy out link info
         link_base = found->first;
@@ -446,27 +466,20 @@ std::pair<Manager::chainid_t, size_t> Manager::get_chain_and_position(const void
     std::cerr << "The link before is at " << link_base << " and runs for " << link_length << std::endl;
 #endif
     
-    if (link_base + link_length > sought) {
-        // Start of sought range is in the link (exclusive end coordinate passed it)
-    
-        if (link_base + link_length >= sought + length) {
-            // End of sought range (if different) is also in the link (exclusive end coordinate nearer or coinciding)
-            
+    if (link_base + link_length >= sought + length) {
+        // End of sought range (if different) is also in the link (exclusive end coordinate nearer or coinciding)
+        
 #ifdef debug_pointers
-            std::cerr << "This fully covers " << sought << " so it is in chain " << chain << std::endl;
+        std::cerr << "This fully covers " << sought << " so it is in chain " << chain << std::endl;
 #endif
-    
-            // Emit link's chain ID, and translate address to link local offset to chain position.
-            return std::make_pair(chain, link_offset + (sought - link_base));
-                    
-        } else {
-            // End of sought range is not in the link
-            // The link we found covers the start but not the end of our range. This is a problem.
-            throw std::runtime_error("Attempted to place address range that crosses a link boundary");
-        }
+
+        // Emit link's chain ID, and translate address to link local offset to chain position.
+        return std::make_pair(chain, link_offset + (sought - link_base));
+                
     } else {
-        // Otherwise we just aren't in a link at all.
-        return std::make_pair(NO_CHAIN, (size_t)address); 
+        // End of sought range is not in the link
+        // The link we found covers the start but not the end of our range. This is a problem.
+        throw std::runtime_error("Attempted to place address range that crosses a link boundary");
     }
 }
 
@@ -482,28 +495,97 @@ void* Manager::get_address_in_same_chain(const void* here, size_t position) {
 }
     
 size_t Manager::get_position_in_same_chain(const void* here, const void* address) {
-    // TODO: accelerate with some kind of alignment and mod scheme
-
-    std::pair<chainid_t, size_t> chain_and_pos = get_chain_and_position(address);
-    
-    // TODO: skip the check for speed?
-    auto our_chain = get_chain(here);
-    if (chain_and_pos.first != our_chain) {
-        std::cerr << "Error: We are at " << (intptr_t)here << " in chain " << our_chain
-                  << " but are attempting to point to " << (intptr_t)address
-                  << " which is actually in chain " << chain_and_pos.first << " at offset " << chain_and_pos.second << std::endl;
-        if (our_chain != NO_CHAIN) {
-            std::cerr << "Our chain:" << std::endl;
-            dump(our_chain);
+    {
+        // Get read access to manager data structures
+        std::shared_lock<std::shared_timed_mutex> lock(Manager::mutex);
+        
+        auto here_link = find_link(lock, here);
+        auto there_link = find_link(lock, address);
+        
+        if (here_link == Manager::address_space_index.end()) {
+            if (there_link == Manager::address_space_index.end()) {
+                // We're not actually in a chain. Use a raw position
+                return (size_t) address;
+            } else {
+                throw std::runtime_error("Attempted to refer into or out of a chain!");
+            }
+        } else {
+            if (here_link->second.first != there_link->second.first) {
+                // These are links of different chains
+                throw std::runtime_error("Attempted to refer across chains!");
+            } else {
+                // These are the same chain.
+                // Get how far the address is into its link, plus the start
+                // offset of the link in the chain.
+                return ((intptr_t) address - (intptr_t) there_link->first) + there_link->second.offset; 
+            }
         }
-        if (chain_and_pos.first != NO_CHAIN) {
-            std::cerr << "Destination chain:" << std::endl;
-            dump(chain_and_pos.first);
-        }
-        throw std::runtime_error("Attempted to refer across chains!");
     }
+}
+
+std::pair<int64_t, bool> Manager::get_offset_in_same_chain(const void* here, const void* address) {
+    // Get read access to manager data structures
+    std::shared_lock<std::shared_timed_mutex> lock(Manager::mutex);
     
-    return chain_and_pos.second;
+    // Find where the pointers fall in the chain.
+    auto here_link = find_link(lock, here);
+    auto there_link = find_link(lock, address);
+    
+    if (here_link == there_link) {
+        // Same link (possibly no link).
+        // Just do a straight offset.
+        return std::make_pair((int64_t) ((intptr_t) address - (intptr_t) here), true);
+    } else if (here_link == Manager::address_space_index.end() ||
+        there_link == Manager::address_space_index.end()) {
+        
+        // One of them is not in a chain 
+        throw std::runtime_error("Attempted to refer into or out of a chain!");
+    } else if (here_link->second.first != there_link->second.first) {
+        // These are links of different chains
+        throw std::runtime_error("Attempted to refer across chains!");
+    } else {
+        // These are the same chain, but different links. Compute offset along chain.
+        int64_t here_in_chain = (intptr_t) here - here_link->first + here_link->second.offset;
+        int64_t there_in_chain = (intptr_t) address - there_link->first + there_link->second.offset;
+        return std::make_pair(there_in_chain - here_in_chain, false); 
+    }
+}
+
+std::pair<void*, bool> Manager::follow_offset_in_same_chain(const void* here, int64_t offset) {
+    // Get read access to manager data structures
+    std::shared_lock<std::shared_timed_mutex> lock(Manager::mutex);
+    
+    // Find the link we are starting in.
+    auto link = find_link(lock, here);
+    
+    if (link == Manager::address_space_index.end() ||
+        (link->first <= (intptr_t) here + offset &&
+        link->second.length > (intptr_t) here - link->first + offset)) {
+        // We are actually in the same link (possibly no link)
+        // Just need to move in memory.
+        return std::make_pair((void*)((intptr_t) here + offset), true);
+    } else {
+        // Need to move in this chain to a different link
+        chainid_t chain = (chainid_t) link->second.first;
+        
+        // These are all the links along the chain
+        auto& chain_map = Manager::chain_space_index.at(chain);
+    
+        // This is where we're going along the chain
+        size_t position = link->second.offset + ((intptr_t) here - link->first) + offset;
+        
+        // Find the first chain link starting after our position 
+        auto found = chain_map.upper_bound(position);
+        if (found == chain_map.begin() || chain_map.empty()) {
+            // There won't be a link covering the position
+            throw std::runtime_error("Attempted to find address for position that has no link.");
+        }
+        // Look left and find the link we are looking for that covers the position
+        --found;
+        
+        // Return a pointer to that offset in the found link along the chain.
+        return std::make_pair((void*)(found->second + (position - found->first)), false);
+    }
 }
 
 void Manager::dump(chainid_t chain) {
