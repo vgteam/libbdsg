@@ -524,6 +524,10 @@ size_t Manager::get_position_in_same_chain(const void* here, const void* address
 }
 
 std::pair<int64_t, bool> Manager::get_offset_in_same_chain(const void* here, const void* address) {
+    
+    // Compute tha address offset
+    int64_t in_memory_offset = (intptr_t) address - (intptr_t) here;
+
     // Get read access to manager data structures
     std::shared_lock<std::shared_timed_mutex> lock(Manager::mutex);
     
@@ -534,7 +538,7 @@ std::pair<int64_t, bool> Manager::get_offset_in_same_chain(const void* here, con
     if (here_link == there_link) {
         // Same link (possibly no link).
         // Just do a straight offset.
-        return std::make_pair((int64_t) ((intptr_t) address - (intptr_t) here), true);
+        return std::make_pair(in_memory_offset, true);
     } else if (here_link == Manager::address_space_index.end() ||
         there_link == Manager::address_space_index.end()) {
         
@@ -544,14 +548,27 @@ std::pair<int64_t, bool> Manager::get_offset_in_same_chain(const void* here, con
         // These are links of different chains
         throw std::runtime_error("Attempted to refer across chains!");
     } else {
-        // These are the same chain, but different links. Compute offset along chain.
-        int64_t here_in_chain = (intptr_t) here - here_link->first + here_link->second.offset;
-        int64_t there_in_chain = (intptr_t) address - there_link->first + there_link->second.offset;
-        return std::make_pair(there_in_chain - here_in_chain, false); 
+        // These are the same chain, but different links. Compute how the
+        // distance between the links in the chain differs from the distance
+        // between them in memory. If the links are on the same diagonal in
+        // memory, this is 0. If the link we are going to is further along in
+        // memory than we expect, this is positive.
+        // So we take the distance in memory and subtract the distance in the chain.
+        int64_t correction = (there_link->first - here_link->first) -
+            ((int64_t) there_link->second.offset - (int64_t) here_link->second.offset);
+        // Then we take the distance in memory, and subtract the correction
+        // (which is positive if the distance in memory is too big) to get the
+        // distance in the chain.
+        // We can still accelerate future accesses if the links happen to line
+        // up so the distances match and the correction is 0.
+        return std::make_pair(in_memory_offset - correction, correction == 0); 
     }
 }
 
 std::pair<void*, bool> Manager::follow_offset_in_same_chain(const void* here, int64_t offset) {
+    // Determine where we would be if we just applied the offset directly to the address
+    void* applied_local = (void*)((intptr_t) here + offset);
+    
     // Get read access to manager data structures
     std::shared_lock<std::shared_timed_mutex> lock(Manager::mutex);
     
@@ -563,7 +580,7 @@ std::pair<void*, bool> Manager::follow_offset_in_same_chain(const void* here, in
         link->second.length > (intptr_t) here - link->first + offset)) {
         // We are actually in the same link (possibly no link)
         // Just need to move in memory.
-        return std::make_pair((void*)((intptr_t) here + offset), true);
+        return std::make_pair(applied_local, true);
     } else {
         // Need to move in this chain to a different link
         chainid_t chain = (chainid_t) link->second.first;
@@ -583,8 +600,12 @@ std::pair<void*, bool> Manager::follow_offset_in_same_chain(const void* here, in
         // Look left and find the link we are looking for that covers the position
         --found;
         
-        // Return a pointer to that offset in the found link along the chain.
-        return std::make_pair((void*)(found->second + (position - found->first)), false);
+        // Work out where we are going: that offset in the found link along the chain.
+        void* applied_chain = (void*)(found->second + (position - found->first));
+        
+        // Return the result, and check if it's actually the same as the local
+        // offset, so we can just do that in the future.
+        return std::make_pair(applied_chain, applied_chain == applied_local);
     }
 }
 
