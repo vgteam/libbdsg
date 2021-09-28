@@ -784,7 +784,10 @@ public:
     void check_heap_integrity();
     
 private:
+    /// THe memory chain managed by this pointer.
     Manager::chainid_t chain = Manager::NO_CHAIN;
+    /// The address of the pointed-to value, as mapped into memory.
+    T* cached_value = nullptr;
 };
 
 };
@@ -2044,7 +2047,7 @@ UniqueMappedPointer<T>::~UniqueMappedPointer() {
 
 template<typename T>
 UniqueMappedPointer<T>::operator bool () const {
-    return chain != Manager::NO_CHAIN;
+    return (bool) cached_value;
 }
 
 template<typename T>
@@ -2079,20 +2082,12 @@ UniqueMappedPointer<T>::operator const T*() const {
 
 template<typename T>
 T* UniqueMappedPointer<T>::get() {
-    if (chain == Manager::NO_CHAIN) {
-        return nullptr;
-    } else {
-        return (T*) Manager::find_first_allocation(chain, sizeof(T));
-    }
+    return cached_value;
 }
 
 template<typename T>
 const T* UniqueMappedPointer<T>::get() const {
-    if (chain == Manager::NO_CHAIN) {
-        return nullptr;
-    } else {
-        return (T*) Manager::find_first_allocation(chain, sizeof(T));
-    }
+    return cached_value;
 }
 
 template<typename T>
@@ -2107,6 +2102,9 @@ void UniqueMappedPointer<T>::construct_internal(const std::string& prefix, Args&
     // Can't use the Allocator because we don't have a place in the chain to
     // store one.
     T* item = (T*) Manager::allocate_from(chain, sizeof(T));
+    
+    // Save it
+    cached_value = item;
     
     // Run the constructor.
     new (item) T(std::forward<Args>(constructor_args)...);
@@ -2135,8 +2133,11 @@ template<typename T>
 void UniqueMappedPointer<T>::load(int fd, const std::string& prefix) {
     // Drop any existing chain.
     reset();
-
+    
+    // Just pass through to the Manager
     chain = Manager::create_chain(fd, prefix);
+    // And find the item
+    cached_value = Manager::find_first_allocation(chain, sizeof(T));
 }
 
 template<typename T>
@@ -2162,6 +2163,9 @@ void UniqueMappedPointer<T>::load(const std::function<std::string(void)>& iterat
     
     // Just pass through to the Manager
     chain = Manager::create_chain(iterator, prefix);
+    // And find the item
+    cached_value = Manager::find_first_allocation(chain, sizeof(T));
+    
 }
 
 template<typename T>
@@ -2174,6 +2178,7 @@ void UniqueMappedPointer<T>::load_after_prefix(std::istream& in, const std::stri
     // Fill up this buffer with chunks of a certian size
     std::string buffer;
     
+    // Make the chain through the Manager
     chain = Manager::create_chain([&]() {
         if (buffer.empty() && !prefix.empty()) {
             // Inject the prefix on the first call
@@ -2193,6 +2198,8 @@ void UniqueMappedPointer<T>::load_after_prefix(std::istream& in, const std::stri
         // TODO: can we save a copy here?
         return buffer;
     }, prefix);
+    // And find the item
+    cached_value = Manager::find_first_allocation(chain, sizeof(T));
 }
 
 template<typename T>
@@ -2206,6 +2213,8 @@ void UniqueMappedPointer<T>::dissociate() {
     Manager::destroy_chain(chain);
     // Adopt the new chain
     chain = new_chain;
+    // And find the item
+    cached_value = Manager::find_first_allocation(chain, sizeof(T));
 }
 
 template<typename T>
@@ -2219,6 +2228,8 @@ void UniqueMappedPointer<T>::save(int fd) {
     Manager::destroy_chain(chain);
     // Adopt the new chain
     chain = new_chain;
+    // And find the item
+    cached_value = Manager::find_first_allocation(chain, sizeof(T));
 }
 
 template<typename T>
@@ -2262,6 +2273,7 @@ void UniqueMappedPointer<T>::reset() {
         Manager::destroy_chain(chain);
         chain = Manager::NO_CHAIN;
     }
+    cached_value = nullptr;
 }
 
 template<typename T>
