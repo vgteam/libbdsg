@@ -34,7 +34,6 @@
 // And we need to stock our non-mmapped backend with an int vector.
 #include <sdsl/int_vector.hpp>
 
-
 namespace bdsg {
     
 using namespace std;
@@ -177,15 +176,22 @@ public:
 
     using chainid_t = intptr_t;
     static const chainid_t NO_CHAIN = 0;
+    
+    /**
+     * Set this to true to enable additional self-checks on memory management
+     * correctness, and false to disable them.
+     */
+    static bool check_chains;
 
     /**
-     * Create a chain not backed by any file. The given prefix data will occur
-     * before the chain allocator data structures.
+     * Create a chain not backed by any file. The given prefix data will be
+     * placed before the chain allocator data structures.
      */
     static chainid_t create_chain(const std::string& prefix = "");
     
     /**
-     * Create a chain by mapping all of the given open file.
+     * Create a chain by mapping all of the given open file. The file must
+     * begin with the given prefix, if specified, or an error will occur.
      *
      * Modifications to the chain will affect the file, and it will grow as
      * necessary.
@@ -195,6 +201,8 @@ public:
      * If the file is nonempty, data after the length of the passed prefix must
      * contain the chain allocator data structures. If it is empty, the prefix
      * and the chain allocator data structures will be written to it.
+     *
+     * The entire file will be mapped in one contiguous link.
      */
     static chainid_t create_chain(int fd, const std::string& prefix = "");
     
@@ -202,7 +210,11 @@ public:
      * Create a chain by calling the given function until it returns an empty
      * string, and concatenating all the results.
      *
-     * The result must begin with the given prefix, if specified.
+     * The result must begin with the given prefix, if specified, or an error
+     * will occur.
+     *
+     * All content from the iterator will be stored in one contiguous link,
+     * despite the length not being known ahead of time.
      */
     static chainid_t create_chain(const std::function<std::string(void)>& iterator, const std::string& prefix = "");
     
@@ -230,6 +242,9 @@ public:
     /**
      * Destroy the given chain and unmap all of its memory, and close any
      * associated file.
+     *
+     * Also drops trailing free blocks and truncates them out of the backing
+     * file.
      */
     static void destroy_chain(chainid_t chain);
     
@@ -312,16 +327,51 @@ public:
     static void* find_first_allocation(chainid_t chain, size_t bytes);
     
     /**
+     * Return the total number of bytes in the given chain.
+     */
+    static size_t get_chain_size(chainid_t chain);
+    
+    /**
+     * Get statistics about the memory in a chain. Returns all 0s if not a managed chain.
+     *
+     * Returns the total bytes in the chain, the number of free bytes,
+     * and the number of free bytes reclaimable when the chain is closed. 
+     */
+    static std::tuple<size_t, size_t, size_t> get_usage(chainid_t chain);
+    
+    /**
      * Scan all memory regions in the given chain. Calls the iteratee with each
      * region's start address and length, in order.
      */
     static void scan_chain(chainid_t chain, const std::function<void(const void*, size_t)>& iteratee);
     
     /**
-     * Dump information about free and allocated memory.
+     * Dump information about free and allocated memory in the gievn chain.
      * Not thread safe!
      */
-    static void dump(chainid_t chain);  
+    static void dump(chainid_t chain);
+    
+    /**
+     * Dump information about where all chain links fall in memory into the given stream.
+     * Not thread safe!
+     */
+    static void dump_links(ostream& out = std::cerr);
+    
+    /**
+     * Walk all allocated and free blocks in the heap in the chain and make
+     * sure that they are actually in memory. If not, throws std::runtime_error.
+     */
+    static void check_heap_integrity(chainid_t chain);
+    
+    /**
+     * Return the total number of chains that exist right now.
+     */
+    static size_t count_chains();
+    
+    /**
+     * Return the total number of links that exist right now across all chains.
+     */
+    static size_t count_links();
     
 protected:
     
@@ -337,7 +387,7 @@ protected:
         Pointer<AllocatorBlock> prev;
         /// Next block. Only used when block is free. Null if allocated.
         Pointer<AllocatorBlock> next;
-        /// Size fo the block in bytes, not counting this header. Used for free
+        /// Size of the block in bytes, not counting this header. Used for free
         /// and allocated blocks.
         size_t size;
         
@@ -428,8 +478,13 @@ protected:
      * Create a chain with one link and no allocator setup.
      * Block will either be the entire size of an existing file, or the given starting size.
      * Returns the chain ID and a flag for if there was data in an open file to read.
+     *
+     * If link_data is set, the chain must not be filoe-backed, and link_data
+     * it must point to a block of memory of length start_size already allocated
+     * using malloc() and which can be freed using free(). The chain will take
+     * ownership of the memory block.
      */
-    static std::pair<chainid_t, bool> open_chain(int fd = 0, size_t start_size = BASE_SIZE);
+    static std::pair<chainid_t, bool> open_chain(int fd = 0, size_t start_size = BASE_SIZE, void* link_data = nullptr);
     
     /**
      * Extend the given chain to the given new total size.
@@ -446,8 +501,13 @@ protected:
     /**
      * Add a link into a chain. The caller must hold a write lock on the manager data structures.
      * The number of bytes must be nonzero.
+     *
+     * If link_data is set, the chain must not be filoe-backed, and link_data
+     * it must point to a block of memory of length new_bytes already allocated
+     * using malloc() and which can be freed using free(). The chain will take
+     * ownership of the memory block.
      */
-    static LinkRecord& add_link(LinkRecord& head, size_t new_bytes);
+    static LinkRecord& add_link(LinkRecord& head, size_t new_bytes, void* link_data = nullptr);
     
     /**
      * Create a new chain, using the given file if set, and copy data from the
@@ -479,7 +539,15 @@ protected:
      */
     static void with_allocator_header(chainid_t chain,
                                       const std::function<void(AllocatorHeader*)>& callback);
-
+                                      
+    /**
+     * While a final free block exists, drop it from the free list.
+     * Return the total number of bytes after the last allocated block.
+     *
+     * Note that you should not map anything after calling this function! You
+     * should close the chain and trim down the backing file!
+     */
+    static size_t reclaim_tail(chainid_t chain);
 };
 
 /**
@@ -578,6 +646,7 @@ public:
     UniqueMappedPointer(UniqueMappedPointer&& other) = default;
     UniqueMappedPointer& operator=(const UniqueMappedPointer& other) = delete;
     UniqueMappedPointer& operator=(UniqueMappedPointer&& other) = default;
+    ~UniqueMappedPointer();
     
     operator bool () const;
     T& operator*();
@@ -628,21 +697,32 @@ public:
     
     /**
      * Point to the already-constructed T saved to the file at fd by a previous
-     * save() call.
+     * save() call. The file must begin with the given prefix, or an error will
+     * occur.
      */
-    void load(int fd, const std::string& prefix = "");
+    void load(int fd, const std::string& prefix);
     
     /**
      * Load into memory and point to the already-constructed T saved to the
-     * given stream by a previous save() call.
+     * given stream by a previous save() call. The stream must begin with the
+     * given prefix, or an error will occur.
      */
-    void load(std::istream& in, const std::string& prefix = "");
+    void load(std::istream& in, const std::string& prefix);
     
     /**
      * Load into memory and point to the already-constructed T emitted in
-     * blocks by the given function.
+     * blocks by the given function. The data must begin with the given prefix,
+     * or an error will occur.
      */
-    void load(const std::function<std::string(void)>& iterator, const std::string& prefix = "");
+    void load(const std::function<std::string(void)>& iterator, const std::string& prefix);
+    
+    /** 
+     * Load into memory and point to the already-constructed T saved to the
+     * given stream by a previous save() call. The stream is expected to have
+     * had the prefix read from it already, but the prefix must still be
+     * provided.
+     */
+    void load_after_prefix(std::istream& in, const std::string& prefix);
     
     /**
      * Break any write-back association with a backing file and move the object
@@ -671,9 +751,30 @@ public:
     void save(const std::function<void(const void*, size_t)>& iteratee) const;
     
     /**
+     * Save the stored item to the given stream. The pointer must not be null.
+     * The stream is expected to have already had the prefix written to it.
+     */
+    void save_after_prefix(std::ostream& out, const std::string& prefix) const;
+    
+    /**
      * Free any associated memory and become empty.
      */
     void reset();
+    
+    /**
+     * Get statistics about the pointer's associated memory chain.
+     *
+     * Returns the total bytes, the number of free bytes, and the number of
+     * free bytes reclaimable when closed as a mapped file. 
+     */
+    std::tuple<size_t, size_t, size_t> get_usage();
+    
+    /**
+     * Make sure that internal heap data structures are consistent with the
+     * memory mapping. Raises std::runtime_error if not.
+     */
+    void check_heap_integrity();
+    
 private:
     Manager::chainid_t chain = Manager::NO_CHAIN;
 };
@@ -1211,6 +1312,15 @@ void CompatVector<T, Alloc>::reserve(size_t new_reserved_length) {
     if (new_reserved_length > old_reserved_length) {
         // Allocate space for the new data, and get the position in the context
         T* new_first  = alloc.allocate(new_reserved_length);
+
+        if (yomo::Manager::check_chains) {
+            // make sure we got back memory in the right chain, and that all
+            // our notions of the right chain agree.
+            auto new_chain = yomo::Manager::get_chain(new_first);
+            assert(new_chain == yomo::Manager::get_chain(&alloc));
+            assert(new_chain == yomo::Manager::get_chain(this));
+            assert(new_chain == yomo::Manager::get_chain(&first));
+        }
         
         // Record the new reserved length
         reserved_length = new_reserved_length;
@@ -1263,8 +1373,6 @@ void CompatVector<T, Alloc>::resize(size_t new_size) {
         reserve(std::max(new_size, size() * RESIZE_FACTOR));
     }
    
-    // TODO: throw away excess memory when shrinking
-   
     if (new_size < size()) {
         // We shrank, and we had at least one item.
 #ifdef debug_compat_vector
@@ -1293,7 +1401,50 @@ void CompatVector<T, Alloc>::resize(size_t new_size) {
 
 template<typename T, typename Alloc>
 void CompatVector<T, Alloc>::shrink_to_fit() {
-    // TODO: actually reallocate smaller.
+    // Actually reallocate smaller.
+    if (length == reserved_length) {
+        // Nothing to do!
+        return;
+    }
+    
+    // TODO: unify some code with reserve()?
+    
+    // Find where the data is. This can't be null since we have a
+    // reserved_length > length (since it isn't equal and can never be less).
+    T* old_first = first;
+    // And how much there is
+    size_t old_reserved_length = reserved_length;
+    
+#ifdef debug_compat_vector
+    std::cerr << "Shrinking vector at " << (intptr_t)this
+        << " with " << old_reserved_length << " spaces at "
+        << (intptr_t) old_first << " to have " << length  << " spaces" << std::endl;
+#endif
+    
+    // Allocate space for the new data, and get the position in the context
+    T* new_first  = alloc.allocate(length);
+    
+    // Record the new reserved length
+    reserved_length = length;
+    
+#ifdef debug_compat_vector
+    std::cerr << "Vector data moving from " << (intptr_t) old_first
+        << " to " << (intptr_t) new_first << std::endl;
+#endif
+    for (size_t i = 0; i < size(); i++) {
+        // Move over the preserved values.
+        new (new_first + i) T(std::move(*(old_first + i)));
+    }
+    
+    for (size_t i = 0; i < size(); i++) {
+        // Destroy all the original values
+        (old_first + i)->~T();
+    }
+    
+    // Free old memory
+    alloc.deallocate(old_first, old_reserved_length);
+    
+    first = new_first;
 }
 
 template<typename T, typename Alloc>
@@ -1640,6 +1791,46 @@ uint64_t CompatIntVector<Alloc>::unpack(size_t index, size_t width_override) con
     size_t start_slot = start_bit / std::numeric_limits<uint64_t>::digits;
     // And a start bit in that slot
     size_t start_slot_bit_offset = start_bit % std::numeric_limits<uint64_t>::digits;
+    
+    if (yomo::Manager::check_chains) {
+        // Do some bounds checking
+    
+        // Work out if we span into the next slot
+        bool into_next_slot = (start_slot_bit_offset + effective_width > std::numeric_limits<uint64_t>::digits);
+        if (start_slot >= data.size() || (into_next_slot && start_slot + 1 >= data.size())) {
+            // We want to go out of range of the vector.
+            throw std::out_of_range("Reading item " + std::to_string(index) +
+                " of width " + std::to_string(effective_width) + " accesses slot " + std::to_string(start_slot) +
+                (into_next_slot ? ("and slot " + std::to_string(into_next_slot + 1)) : "") +
+                " but we only have " + std::to_string(data.size()) + " slots and " +
+                std::to_string(size()) + " items");
+        }
+        
+        // Define the memory range we plan to access, inclusive
+        const uint64_t* access_first = &data[start_slot];
+        const uint64_t* access_last =  access_first + into_next_slot;
+        
+        // Make sure we aren't trying to go across chains
+        auto our_chain = yomo::Manager::get_chain(this);
+        for (const uint64_t* access_addr = access_first; access_addr != access_last + 1; access_addr++) {
+            // For each slot we need to read
+            
+            auto other_chain = yomo::Manager::get_chain(access_addr);
+            
+            if (other_chain != our_chain) {
+                // We're accessing something past the end of the chain somehow.
+                std::stringstream msg;
+                msg << "error[CompatIntVector]: Attempting to access address " << access_addr
+                    << " for vector at " << this << " with data at " << &data[0]
+                    << " but we are in chain " << our_chain
+                    << " and accessed address is in chain " << other_chain
+                    << ". Is the entire file mapped?" << std::endl;
+                yomo::Manager::dump_links(msg);
+                throw std::out_of_range(msg.str());
+            }
+        }
+    }
+    
     // And then load
 #ifdef debug_bit_packing
     std::cerr << "Read value of width " << effective_width
@@ -1805,7 +1996,13 @@ bool Allocator<T>::operator!=(const Allocator& other) const {
 
 template<typename T>
 auto Allocator<T>::allocate(size_type n, const T* hint) -> T* {
-    return (T*) Manager::allocate_from(get_chain(), n * sizeof(T));
+    auto our_chain = get_chain();
+    T* allocated = (T*) Manager::allocate_from(our_chain, n * sizeof(T));
+    if (yomo::Manager::check_chains) {
+        // Make sure we got the right chain for our allocated memory.
+        assert(Manager::get_chain(allocated) == our_chain);
+    }
+    return allocated;
 }
 
 template<typename T>
@@ -1823,6 +2020,11 @@ size_t Allocator<T>::max_size() const {
 template<typename T>
 Manager::chainid_t Allocator<T>::get_chain() const {
     return Manager::get_chain((void*) this);
+}
+
+template<typename T>
+UniqueMappedPointer<T>::~UniqueMappedPointer() {
+    reset();
 }
 
 template<typename T>
@@ -1924,26 +2126,18 @@ void UniqueMappedPointer<T>::load(int fd, const std::string& prefix) {
 
 template<typename T>
 void UniqueMappedPointer<T>::load(std::istream& in, const std::string& prefix) {
-    // Drop any existing chain.
-    reset();
-    
-    const size_t MAX_CHUNK_SIZE = 4096;
-    
-    // Fill up this buffer with chunks of a certian size
-    std::string buffer;
-    
-    chain = Manager::create_chain([&]() {
-        buffer.resize(MAX_CHUNK_SIZE);
-        // Grab a chunk
-        in.read(&buffer.at(0), MAX_CHUNK_SIZE);
-        if (!in) {
-            // Didn't read all the characters, so shrink down (maybe to 0)
-            buffer.resize(in.gcount());
+    if (!prefix.empty()) {
+        // First read and check the prefix
+        std::string prefix_buffer;
+        prefix_buffer.resize(prefix.size());
+        in.read(&prefix_buffer.at(0), prefix_buffer.size());
+        if (!in || prefix_buffer != prefix) {
+            // Hit EOF or got the wrong thing
+            throw std::runtime_error("Expected prefix not found in input. Check file type.");
         }
-        // Copy the buffer over to the caller.
-        // TODO: can we save a copy here?
-        return buffer;
-    }, prefix);
+    }
+    // Then read everything after the prefix.
+    load_after_prefix(in, prefix);
 }
 
 template<typename T>
@@ -1953,6 +2147,37 @@ void UniqueMappedPointer<T>::load(const std::function<std::string(void)>& iterat
     
     // Just pass through to the Manager
     chain = Manager::create_chain(iterator, prefix);
+}
+
+template<typename T>
+void UniqueMappedPointer<T>::load_after_prefix(std::istream& in, const std::string& prefix) {
+    // Drop any existing chain.
+    reset();
+    
+    const size_t MAX_CHUNK_SIZE = 4096;
+    
+    // Fill up this buffer with chunks of a certian size
+    std::string buffer;
+    
+    chain = Manager::create_chain([&]() {
+        if (buffer.empty() && !prefix.empty()) {
+            // Inject the prefix on the first call
+            buffer = prefix;
+        } else {
+            // Other calls read data, until the last call shows an empty buffer
+            // for EOF.
+            buffer.resize(MAX_CHUNK_SIZE);
+            // Grab a chunk
+            in.read(&buffer.at(0), MAX_CHUNK_SIZE);
+            if (!in) {
+                // Didn't read all the characters, so shrink down (maybe to 0)
+                buffer.resize(in.gcount());
+            }
+        }
+        // Copy the buffer over to the caller.
+        // TODO: can we save a copy here?
+        return buffer;
+    }, prefix);
 }
 
 template<typename T>
@@ -1997,11 +2222,41 @@ void UniqueMappedPointer<T>::save(const std::function<void(const void*, size_t)>
 }
 
 template<typename T>
+void UniqueMappedPointer<T>::save_after_prefix(std::ostream& out, const std::string& prefix) const {
+    // We need to drop as many characters from the chain as are in the prefix.
+    size_t dropped = 0;
+     
+    Manager::scan_chain(chain, [&](const void* start, size_t length) {
+        // Go through all the data in the chain
+        const char* start_char = (const char*) start;
+        
+        // Adjust to skip any part of the prefix that's still here.
+        size_t to_drop = std::min(length, prefix.size() - dropped);
+        start_char += to_drop;
+        length -= to_drop;
+        dropped += to_drop;
+        
+        // And save it to the stream.
+        out.write(start_char, length); 
+    });
+}
+
+template<typename T>
 void UniqueMappedPointer<T>::reset() {
     if (chain != Manager::NO_CHAIN) {
         Manager::destroy_chain(chain);
         chain = Manager::NO_CHAIN;
     }
+}
+
+template<typename T>
+std::tuple<size_t, size_t, size_t> UniqueMappedPointer<T>::get_usage() {
+    return Manager::get_usage(chain);
+}
+
+template<typename T>
+void UniqueMappedPointer<T>::check_heap_integrity() {
+    return Manager::check_heap_integrity(chain);
 }
 
 }

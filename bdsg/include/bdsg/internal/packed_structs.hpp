@@ -102,6 +102,9 @@ public:
     /// If necessary, expand capacity so that the given number of entries can
     /// be included in the vector without reallocating. Never shrinks capacity.
     inline void reserve(const size_t& future_size);
+    
+    /// Reallocate smaller after having been resized down.
+    inline void shrink_to_fit();
         
     /// Returns the number of values.
     inline size_t size() const;
@@ -195,6 +198,9 @@ public:
     /// be included in the vector without reallocating. Never shrinks capacity.
     inline void reserve(const size_t& future_size);
     
+    /// Reallocate smaller after having been resized down.
+    inline void shrink_to_fit();
+    
     /// Returns the number of values
     inline size_t size() const;
     
@@ -282,6 +288,9 @@ public:
     /// If necessary, expand capacity so that the given number of entries can
     /// be included in the vector without reallocating. Never shrinks capacity.
     inline void reserve(const size_t& future_size);
+    
+    /// Reallocate smaller after having been resized down.
+    inline void shrink_to_fit();
     
     /// Returns the number of values
     inline size_t size() const;
@@ -617,6 +626,11 @@ inline void PackedVector<Backend>::reserve(const size_t& future_size) {
     if (future_size > vec.size()) {
         repack(vec, vec.width(), future_size);
     }
+}
+
+template<typename Backend>
+inline void PackedVector<Backend>::shrink_to_fit() {
+    vec.shrink_to_fit();
 }
 
 template<typename Backend>
@@ -997,6 +1011,12 @@ inline void PagedVector<page_size, Backend>::reserve(const size_t& future_size) 
 }
 
 template<size_t page_size, typename Backend>
+inline void PagedVector<page_size, Backend>::shrink_to_fit() {
+    anchors.shrink_to_fit();
+    pages.shrink_to_fit();
+}
+
+template<size_t page_size, typename Backend>
 inline size_t PagedVector<page_size, Backend>::size() const {
     return filled;
 }
@@ -1153,6 +1173,12 @@ inline void RobustPagedVector<page_size, Backend>::reserve(const size_t& future_
     else {
         first_page.reserve(future_size);
     }
+}
+
+template<size_t page_size, typename Backend>
+inline void RobustPagedVector<page_size, Backend>::shrink_to_fit() {
+    first_page.shrink_to_fit();
+    latter_pages.shrink_to_fit();
 }
 
 template<size_t page_size, typename Backend>

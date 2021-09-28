@@ -13,6 +13,7 @@
 // And also all the classes we instantiate methods on
 #include <handlegraph/handle_graph.hpp>
 #include <handlegraph/path_handle_graph.hpp>
+#include <handlegraph/snarl_decomposition.hpp>
 
 // Binder can only bind functions that deal in templates if those template
 // types are actually instantiated elsewhere. See:
@@ -35,6 +36,13 @@ template bool handlegraph::HandleGraph::for_each_edge(const std::function<bool(c
 template bool handlegraph::PathHandleGraph::for_each_path_handle(const std::function<bool(const handlegraph::path_handle_t&)>& iteratee) const;
 template bool handlegraph::PathHandleGraph::for_each_step_in_path(const path_handle_t& path, const std::function<bool(const handlegraph::step_handle_t&)>& iteratee) const;
 template bool handlegraph::PathHandleGraph::for_each_step_on_handle(const handle_t& handle, const std::function<bool(const handlegraph::step_handle_t&)>& iteratee) const;
+
+template bool handlegraph::SnarlDecomposition::for_each_child(const net_handle_t& parent, const std::function<bool(const net_handle_t&)>& iteratee) const;
+template bool handlegraph::SnarlDecomposition::for_each_traversal(const net_handle_t& item, const std::function<bool(const net_handle_t&)>& iteratee) const;
+template bool handlegraph::SnarlDecomposition::follow_net_edges(const net_handle_t& here, const HandleGraph* graph, bool go_left, const std::function<bool(const net_handle_t&)>& iteratee) const;
+template bool handlegraph::SnarlDecomposition::for_each_tippy_child(const net_handle_t& parent, const std::function<bool(const net_handle_t&)>& iteratee) const;
+template bool handlegraph::SnarlDecomposition::for_each_traversal_start(const net_handle_t& traversal, const std::function<bool(const net_handle_t&)>& iteratee) const;
+template bool handlegraph::SnarlDecomposition::for_each_traversal_end(const net_handle_t& traversal, const std::function<bool(const net_handle_t&)>& iteratee) const;
 
 
 #endif

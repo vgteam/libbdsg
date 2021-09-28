@@ -20,7 +20,7 @@
 
 void bind_bdsg_internal_mapped_structs(std::function< pybind11::module &(std::string const &namespace_) > &M)
 {
-	{ // bdsg::STLBackend file:bdsg/internal/mapped_structs.hpp line:45
+	{ // bdsg::STLBackend file:bdsg/internal/mapped_structs.hpp line:74
 		pybind11::class_<bdsg::STLBackend, std::shared_ptr<bdsg::STLBackend>> cl(M("bdsg"), "STLBackend", "Type enum value for selecting data structures that use the STL and SDSL.");
 		cl.def( pybind11::init( [](){ return new bdsg::STLBackend(); } ) );
 	}

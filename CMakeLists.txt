@@ -22,6 +22,9 @@ set(CMAKE_CXX_STANDARD 14)
 # linker options.
 set(CMAKE_BUILD_RPATH_USE_ORIGIN ON)
 
+# And GNU ideas of install directories
+include(GNUInstallDirs)
+
 # Use all standard-compliant optimizations
 set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -g")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -g")
@@ -82,8 +85,6 @@ include_directories("${PROJECT_SOURCE_DIR}")
 
 # Add external projects
 include(ExternalProject)
-# And GNU ideas of install directories
-include(GNUInstallDirs)
 
 # sdsl-lite (gives an "sdsl" target)
 set(BUILD_SHARED_LIBS ON CACHE BOOL "Build sdsl-lite shared libraries")
@@ -215,9 +216,12 @@ add_library(bdsg_objs OBJECT
   ${bdsg_DIR}/src/packed_path_position_overlay.cpp
   ${bdsg_DIR}/src/packed_subgraph_overlay.cpp
   ${bdsg_DIR}/src/path_position_overlays.cpp
+  ${bdsg_DIR}/src/path_subgraph_overlay.cpp
+  ${bdsg_DIR}/src/subgraph_overlay.cpp
   ${bdsg_DIR}/src/strand_split_overlay.cpp
   ${bdsg_DIR}/src/utility.cpp
   ${bdsg_DIR}/src/vectorizable_overlays.cpp
+  ${bdsg_DIR}/src/snarl_distance_index.cpp
   )
 
 set(bdsg_INCLUDES
