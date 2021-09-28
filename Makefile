@@ -15,7 +15,6 @@ OBJS = $(OBJ_DIR)/eades_algorithm.o
 OBJS += $(OBJ_DIR)/hash_graph.o 
 OBJS += $(OBJ_DIR)/is_single_stranded.o 
 OBJS += $(OBJ_DIR)/mapped_structs.o 
-OBJS += $(OBJ_DIR)/mmap_backend.o 
 OBJS += $(OBJ_DIR)/node.o 
 OBJS += $(OBJ_DIR)/odgi.o 
 OBJS += $(OBJ_DIR)/packed_graph.o 
