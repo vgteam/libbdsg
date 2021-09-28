@@ -108,6 +108,9 @@ namespace yomo {
  * We interpret constness as applying to the value of the pointer and not the
  * pointed-to object. If you want a pointer to a const object, you need a
  * Pointer<const T>.
+ *
+ * Note that you *need* to use the constructors, destructors, and assignment
+ * operators! You can't just bitwise copy this!
  */
 template<typename T>
 class Pointer {
@@ -118,6 +121,12 @@ public:
     
     Pointer(T* destination);
     
+    // Copy and move and comparison has to go through actual memory addresses
+    Pointer(const Pointer& other) = delete;
+    Pointer(Pointer&& other) = delete;
+    operator=(const Pointer& other) = delete;
+    operator=(Pointer&& other) = delete;
+     
     // Be a good pointer
     operator bool () const;
     // We use this template instead of T& to let us have a Pointer<void>.
@@ -132,8 +141,22 @@ public:
     T* get() const;
     
 protected:
-    /// Stores the destination position in the chain, or max size_t for null.
-    size_t position = std::numeric_limits<size_t>::max();
+    /// Stores the offset from this pointer to the pointed-to object in the
+    /// chain, or the max int64_t if the pointer is null.
+    int64_t offset = std::numeric_limits<int64_t>::max();
+    
+    // TODO: Replace this hack with a C++20 atomic_ref when possible.
+    // For now, we check the size, and then assume that an atomic and the
+    // item behind it are bitwise compatible.
+    static_assert(sizeof(std::atomic<bool>) == sizeof(bool),
+        "bdsg::yomo::Pointer requires atomic access to bool");
+    
+    /// Stores true if the destination is known to be in the same link as the
+    /// pointer, if the pointer is not null. Once two things are in the same
+    /// link, they never end up in different links on subsequent loads. Needs
+    /// to be mutable and atomic because it is updated on reads if we find that
+    /// the destination is now in the same link.
+    mutable std::atomic<bool> local = false;
 };
 
 /**
@@ -243,6 +266,21 @@ public:
      * For NO_CHAIN just uses an offset from address 0 in memory.
      */
     static size_t get_position_in_same_chain(const void* here, const void* address);
+    
+    /**
+     * Find the offset from the given here to the given address, constraining
+     * them to come from the same chain (or NO_CHAIN). Also returns a flag that
+     * is true if the offset in the chain equals the offset in memory, and
+     * false otherwise.
+     */
+    static std::pair<int64_t, bool> get_offset_in_same_chain(const void* here, const void* address);
+    
+    /**
+     * Apply an offset from the given here to get an address, within the chain
+     * that here is in (or NO_CHAIN). Also returns a flag that is true if the
+     * offset in the chain equals the offset in memory, and false otherwise.
+     */
+    static std::pair<void*, bool> follow_offset_in_same_chain(const void* here, int64_t offset);
     
     /**
      * Allocate the given number of bytes from the given chain.
@@ -1698,7 +1736,7 @@ Pointer<T>::Pointer(T* destination) {
 
 template<typename T>
 Pointer<T>::operator bool () const {
-    return position != std::numeric_limits<size_t>::max();
+    return offset != std::numeric_limits<int64_t>::max();
 }
 
 template<typename T>
@@ -1720,10 +1758,12 @@ template<typename T>
 Pointer<T>& Pointer<T>::operator=(T* addr) {
     if (addr == nullptr) {
         // Adopt our special null value
-        position = std::numeric_limits<size_t>::max();
+        offset = std::numeric_limits<int64_t>::max();
     } else {
-        // Get the position, requiring that it is in the same chain as us.
-        position = Manager::get_position_in_same_chain(this, addr);
+        // Get the offset, requiring that it is in the same chain as us.
+        auto result = Manager::get_offset_in_same_chain(this, addr);
+        offset = result.first;
+        local.set(result.second);
     }
     return *this;
 }
