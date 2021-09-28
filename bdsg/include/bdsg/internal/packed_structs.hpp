@@ -513,22 +513,22 @@ private:
     PackedVec table;
     
     /// A value that we greedily choose from the input to anchor differences
-    big_endian<uint64_t> anchor = 0;
+    uint64_t anchor = 0;
         
     /// Coefficients of a degree 4 polynomial over Z_p
-    big_endian<size_t> coefs[5] = {0, 0, 0, 0, 0};
+    size_t coefs[5] = {0, 0, 0, 0, 0};
     
     /// Index of the current size within the schedule of sizes
-    big_endian<size_t> schedule_val = 0;
+    size_t schedule_val = 0;
     
     /// Minimum load factor on the array
-    big_endian<double> min_load = 0.33;
+    double min_load = 0.33;
     
     /// Maximum load factor on the array
-    big_endian<double> max_load = 0.67;
+    double max_load = 0.67;
     
     /// Number of items in the set
-    big_endian<size_t> num_items = 0;
+    size_t num_items = 0;
     
     /// Let the iterator access the internals
     friend class iterator;
