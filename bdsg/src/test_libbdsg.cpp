@@ -514,7 +514,7 @@ void test_mmap_backend() {
 void test_mapped_structs() {
     {
     
-        using T = big_endian<int64_t>;
+        using T = int64_t;
         using A = bdsg::yomo::Allocator<T>;
         using V = CompatVector<T, A>;
         // Make a thing to hold onto a test array.
@@ -612,7 +612,7 @@ void test_mapped_structs() {
     }
     
     {
-        using T = big_endian<int64_t>;
+        using T = int64_t;
         using A = bdsg::yomo::Allocator<T>;
         using V1 = CompatVector<T, A>;
         using A2 = bdsg::yomo::Allocator<V1>;
@@ -627,7 +627,7 @@ void test_mapped_structs() {
     }
     
     {
-        using T = big_endian<int64_t>;
+        using T = int64_t;
         using A = bdsg::yomo::Allocator<T>;
         using V1 = CompatVector<T, A>;
         using A2 = bdsg::yomo::Allocator<V1>;

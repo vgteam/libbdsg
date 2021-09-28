@@ -20,22 +20,12 @@
 #include <vector>
 #include <shared_mutex>
 
-// Find the endian conversion functions.
-// See: <https://stackoverflow.com/a/58418801>
-#ifdef __APPLE__
-    // See <https://gist.github.com/yinyin/2027912>
-    #include <libkern/OSByteOrder.h> // BINDER_IGNORE
+// TODO: We only target little-endian systems, like x86_64 and ARM64 Linux and
+// MacOS. Porting to big-endian systems will require wrapping all the numbers
+// in little_endian<T> templates or something.
 
-    #define htobe16(x) OSSwapHostToBigInt16(x)
-    #define be16toh(x) OSSwapBigToHostInt16(x)
-
-    #define htobe32(x) OSSwapHostToBigInt32(x)
-    #define be32toh(x) OSSwapBigToHostInt32(x)
-
-    #define htobe64(x) OSSwapHostToBigInt64(x)
-    #define be64toh(x) OSSwapBigToHostInt64(x)
-#else
-    #include <endian.h> // BINDER_IGNORE
+#if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
+    #error The libbdsg memory-mapping system must be ported to this non-little-endian machine in order to build!
 #endif
 
 // Since the library already depends on SDSL we might as well use their fast
@@ -48,26 +38,6 @@
 namespace bdsg {
     
 using namespace std;
-
-/**
- * Wrapper that stores a number in a defined endian-ness.
- */
-template<typename T>
-class big_endian {
-public:
-    big_endian();
-    big_endian(const T& value);
-    operator T () const;
-    big_endian<T>& operator=(const T& x);
-    big_endian<T>& operator+=(const T& other);
-    big_endian<T>& operator-=(const T& other);
-    big_endian<T>& operator++();
-    big_endian<T>& operator--();
-    T operator++(int);
-    T operator--(int);
-protected:
-    char storage[sizeof(T)];
-};
 
 /**
  * Type enum value for selecting data structures that use the STL and SDSL.
@@ -163,7 +133,7 @@ public:
     
 protected:
     /// Stores the destination position in the chain, or max size_t for null.
-    big_endian<size_t> position = std::numeric_limits<size_t>::max();
+    size_t position = std::numeric_limits<size_t>::max();
 };
 
 /**
@@ -331,7 +301,7 @@ protected:
         Pointer<AllocatorBlock> next;
         /// Size fo the block in bytes, not counting this header. Used for free
         /// and allocated blocks.
-        big_endian<size_t> size;
+        size_t size;
         
         /// Get the address of the first byte of memory we manage.
         void* get_user_data() const;
@@ -750,8 +720,8 @@ protected:
     // We keep the allocator in ourselves, so if working in a chain we allocate
     // in the right chain.
     Alloc alloc;
-    big_endian<size_t> length = 0;
-    big_endian<size_t> reserved_length = 0;
+    size_t length = 0;
+    size_t reserved_length = 0;
     typename std::allocator_traits<Alloc>::pointer first = nullptr;
     
     static const int RESIZE_FACTOR = 2;
@@ -962,9 +932,9 @@ public:
     
 protected:
     /// How many items are stored?
-    big_endian<size_t> length = 0;
+    size_t length = 0;
     /// How many bits are used to represent each item?
-    big_endian<size_t> bit_width = 1;
+    size_t bit_width = 1;
     
     /// We store our actual data in this vector, which manages memory for us.
     CompatVector<uint64_t, Alloc> data;
@@ -1027,132 +997,6 @@ struct IntVectorFor<CompatBackend> {
 
 
 // Implementations
-
-template<typename T>
-big_endian<T>::big_endian() {
-    for (auto& byte : storage) {
-        byte = 0;
-    }
-#ifdef debug_big_endian
-    std::cerr << "Zeroed " << sizeof(T) << " bytes for a big_endian at " << (intptr_t) this << std::endl;
-#endif
-    assert(*this == 0);
-}
-
-template<typename T>
-big_endian<T>::big_endian(const T& value) {
-    *this = value;
-}
-
-template<typename T>
-big_endian<T>::operator T () const {
-    
-    // We assume an IEEE floating point representation and the same endian-ness
-    // as the integer type of the same width.
-    
-    // I had no luck partially specializing the conversion operator for all
-    // integral types of a given width, so we switch and call only the
-    // conversion that will work.
-    // TODO: manually write all the specializations?
-    // Note that signed types report 1 fewer bits (i.e. 63)
-    switch (CHAR_BIT * sizeof(T)) {
-    case 64:
-        {
-            uint64_t scratch = be64toh(*(reinterpret_cast<const uint64_t*>(storage)));
-            return *reinterpret_cast<T*>(&scratch);
-        }
-        break;
-    case 32:
-        {
-            uint32_t scratch = be32toh(*(reinterpret_cast<const uint32_t*>(storage)));
-            return *reinterpret_cast<T*>(&scratch);
-        }
-        break;
-    case 16:
-        {
-            uint16_t scratch = be16toh(*(reinterpret_cast<const uint16_t*>(storage)));
-            return *reinterpret_cast<T*>(&scratch);
-        }
-        break;
-    default:
-        throw runtime_error("Unimplemented bit width: " + std::to_string(CHAR_BIT * sizeof(T)));
-    }
-}
-
-template<typename T>
-big_endian<T>& big_endian<T>::operator=(const T& x) {
-
-    // We assume an IEEE floating point representation and the same endian-ness
-    // as the integer type of the same width.
-    
-    // We make sure to reinterpret the input as an int type in case it is floating point.
-
-    switch (CHAR_BIT * sizeof(T)) {
-    case 64:
-        *((uint64_t*)storage) = htobe64(reinterpret_cast<const uint64_t&>(x));
-        break;
-    case 32:
-        *((uint32_t*)storage) = htobe32(reinterpret_cast<const uint32_t&>(x));
-        break;
-    case 16:
-        *((uint16_t*)storage) = htobe16(reinterpret_cast<const uint16_t&>(x));
-        break;
-    default:
-        throw runtime_error("Unimplemented bit width: " + std::to_string(CHAR_BIT * sizeof(T)));
-    }
-    
-#ifdef debug_big_endian
-    std::cerr << "Set a big_endian at " << (intptr_t) this << " to " << x << std::endl;
-    std::cerr << "Contents:";
-    for (auto& b : storage) {
-        std::cerr << " " << (int)b;
-    }
-    std::cerr << std::endl;
-    std::cerr << "Reads back as " << (T)*this << std::endl;
-#endif
-    
-    return *this;
-}
-
-template<typename T>
-big_endian<T>& big_endian<T>::operator+=(const T& other) {
-    *this = ((T)*this) + other;
-    return *this;
-}
-
-template<typename T>
-big_endian<T>& big_endian<T>::operator-=(const T& other) {
-    *this = ((T)*this) - other;
-    return *this;
-}
-
-template<typename T>
-big_endian<T>& big_endian<T>::operator++() {
-    *this += 1;
-    return *this;
-}
-
-template<typename T>
-big_endian<T>& big_endian<T>::operator--() {
-    *this -= 1;
-    return *this;
-}
-
-template<typename T>
-T big_endian<T>::operator++(int) {
-    T old = *this;
-    ++*this;
-    return old;
-}
-
-template<typename T>
-T big_endian<T>::operator--(int) {
-    T old = *this;
-    --*this;
-    return old;
-}
-
-////////////////////
 
 template<typename T, typename Alloc>
 CompatVector<T, Alloc>::~CompatVector() {
