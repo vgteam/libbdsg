@@ -373,8 +373,7 @@ private:
      *   node, snarl, or chain
      * 
      * - The (single) node vector stores a record for each node and has the format:
-     *   [[node tag, pointer to parent, node length, rank in parent,
-     *       component #]] x N TODO: Could add extra stuff here, I'm not sure where to define it
+     *   [[node tag, pointer to parent, node length, rank in parent]] x N
      *   Rank in a chain is actually the offset in the chain, so it points to that node in the chain
      * 
      * - A chain record for each chain, which is interspersed with snarl records:
@@ -442,11 +441,10 @@ private:
     const static size_t MAX_TREE_DEPTH_OFFSET = 4;
 
     //Node record
-    const static size_t NODE_RECORD_SIZE = 5;
+    const static size_t NODE_RECORD_SIZE = 4;
     const static size_t NODE_PARENT_OFFSET = 1;
     const static size_t NODE_LENGTH_OFFSET = 2;
     const static size_t NODE_RANK_OFFSET = 3;
-    const static size_t NODE_COMPONENT_OFFSET = 4;
  
     //Chain record
     const static size_t CHAIN_RECORD_SIZE = 10;
@@ -894,8 +892,6 @@ private:
         //TODO: This one is a bit redundant but fine I think
         virtual size_t get_node_length() const {return (*records)->at(record_offset + NODE_LENGTH_OFFSET);}
 
-        virtual size_t get_root_component() const {return (*records)->at(record_offset + NODE_COMPONENT_OFFSET);}
-
         virtual bool in_chain() const {return SnarlTreeRecord(get_parent_record_offset(), records).get_record_handle_type() == CHAIN_HANDLE;}
 
     };
@@ -920,13 +916,6 @@ private:
             assert((*SnarlTreeRecordConstructor::records)->at(NodeRecord::record_offset + NODE_LENGTH_OFFSET) == 0);
 #endif
             (*SnarlTreeRecordConstructor::records)->at(NodeRecord::record_offset + NODE_LENGTH_OFFSET) = length;
-        }
-        virtual void set_root_component(size_t component) {
-#ifdef debug_indexing
-            cerr <<NodeRecord::record_offset + NODE_COMPONENT_OFFSET << " set root component " << component << endl;
-            assert((*SnarlTreeRecordConstructor::records)->at(NodeRecord::record_offset + NODE_COMPONENT_OFFSET) == 0);
-#endif
-            (*SnarlTreeRecordConstructor::records)->at(NodeRecord::record_offset + NODE_COMPONENT_OFFSET) = component;
         }
     };
 
