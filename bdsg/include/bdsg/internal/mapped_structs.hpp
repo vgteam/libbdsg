@@ -116,15 +116,15 @@ class Pointer {
 public:
     /// Be constructable.
     /// Constructs as a pointer that equals nullptr.
-    Pointer() = default;
+    Pointer();
     
     Pointer(T* destination);
     
     // Copy and move and comparison has to go through actual memory addresses
-    Pointer(const Pointer& other) = delete;
-    Pointer(Pointer&& other) = delete;
-    operator=(const Pointer& other) = delete;
-    operator=(Pointer&& other) = delete;
+    Pointer(const Pointer& other);
+    Pointer(Pointer&& other);
+    Pointer& operator=(const Pointer& other);
+    Pointer& operator=(Pointer&& other);
      
     // Be a good pointer
     operator bool () const;
@@ -142,7 +142,7 @@ public:
 protected:
     /// Stores the offset from this pointer to the pointed-to object in the
     /// chain, or the max int64_t if the pointer is null.
-    int64_t offset = std::numeric_limits<int64_t>::max();
+    int64_t offset;
     
     // TODO: Replace this hack with a C++20 atomic_ref when possible.
     // For now, we check the size, and then assume that an atomic and the
@@ -155,7 +155,7 @@ protected:
     /// link, they never end up in different links on subsequent loads. Needs
     /// to be mutable and atomic because it is updated on reads if we find that
     /// the destination is now in the same link.
-    mutable std::atomic<bool> local = false;
+    mutable std::atomic<bool> local;
 };
 
 /**
@@ -514,8 +514,7 @@ protected:
      * address_space_index.end() if no link overlaps the given address. Must be
      * called while you hold a read lock on the chain data structures.
      */
-    static std::map<intptr_t, LinkRecord>::iterator Manager::find_link(std::shared_lock<std::shared_timed_mutex>& lock, const void* address) {
-}
+    static std::map<intptr_t, LinkRecord>::iterator find_link(std::shared_lock<std::shared_timed_mutex>& lock, const void* address);
     
     /**
      * Create a new chain, using the given file if set, and copy data from the
@@ -1931,9 +1930,35 @@ void CompatIntVector<Alloc>::load(std::istream& in) {
 
 namespace yomo {
 
+// For some reason putting the default values in the class did not work for std::atomic.
 template<typename T>
-Pointer<T>::Pointer(T* destination) {
+Pointer<T>::Pointer() : offset(std::numeric_limits<int64_t>::max()), local(false) {
+    // Nothing to do!
+}
+
+template<typename T>
+Pointer<T>::Pointer(T* destination) : Pointer() {
     *this = destination;
+}
+
+template<typename T>
+Pointer<T>::Pointer(const Pointer& other) : Pointer(other.get()) {
+    // Nothing to do!
+}
+
+template<typename T>
+Pointer<T>::Pointer(Pointer&& other) : Pointer(other.get()) {
+    // Nothing to do!
+}
+
+template<typename T>
+Pointer<T>& Pointer<T>::operator=(const Pointer& other) {
+    return *this = other.get();
+}
+
+template<typename T>
+Pointer<T>& Pointer<T>::operator=(Pointer&& other) {
+    return *this = other.get();
 }
 
 template<typename T>
@@ -1965,7 +1990,7 @@ Pointer<T>& Pointer<T>::operator=(T* addr) {
         // Get the offset, requiring that it is in the same chain as us.
         auto result = Manager::get_offset_in_same_chain(this, addr);
         offset = result.first;
-        local.set(result.second);
+        local.store(result.second);
     }
     return *this;
 }
@@ -1975,6 +2000,7 @@ T* Pointer<T>::operator+(size_t items) const {
     return get() + items;
 }
 
+template<typename T>
 T* Pointer<T>::get() const {
     if (offset == std::numeric_limits<int64_t>::max()) {
         return nullptr;
@@ -2137,7 +2163,7 @@ void UniqueMappedPointer<T>::load(int fd, const std::string& prefix) {
     // Just pass through to the Manager
     chain = Manager::create_chain(fd, prefix);
     // And find the item
-    cached_value = Manager::find_first_allocation(chain, sizeof(T));
+    cached_value = (T*) Manager::find_first_allocation(chain, sizeof(T));
 }
 
 template<typename T>
@@ -2164,7 +2190,7 @@ void UniqueMappedPointer<T>::load(const std::function<std::string(void)>& iterat
     // Just pass through to the Manager
     chain = Manager::create_chain(iterator, prefix);
     // And find the item
-    cached_value = Manager::find_first_allocation(chain, sizeof(T));
+    cached_value = (T*) Manager::find_first_allocation(chain, sizeof(T));
     
 }
 
@@ -2199,7 +2225,7 @@ void UniqueMappedPointer<T>::load_after_prefix(std::istream& in, const std::stri
         return buffer;
     }, prefix);
     // And find the item
-    cached_value = Manager::find_first_allocation(chain, sizeof(T));
+    cached_value = (T*) Manager::find_first_allocation(chain, sizeof(T));
 }
 
 template<typename T>
@@ -2214,7 +2240,7 @@ void UniqueMappedPointer<T>::dissociate() {
     // Adopt the new chain
     chain = new_chain;
     // And find the item
-    cached_value = Manager::find_first_allocation(chain, sizeof(T));
+    cached_value = (T*) Manager::find_first_allocation(chain, sizeof(T));
 }
 
 template<typename T>
@@ -2229,7 +2255,7 @@ void UniqueMappedPointer<T>::save(int fd) {
     // Adopt the new chain
     chain = new_chain;
     // And find the item
-    cached_value = Manager::find_first_allocation(chain, sizeof(T));
+    cached_value = (T*) Manager::find_first_allocation(chain, sizeof(T));
 }
 
 template<typename T>

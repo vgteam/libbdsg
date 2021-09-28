@@ -399,7 +399,7 @@ void* Manager::get_address_in_chain(chainid_t chain, size_t position, size_t len
    
 }
 
-std::map<intptr_t, LinkRecord>::iterator Manager::find_link(std::shared_lock<std::shared_timed_mutex>& lock, const void* address) {
+std::map<intptr_t, Manager::LinkRecord>::iterator Manager::find_link(std::shared_lock<std::shared_timed_mutex>& lock, const void* address) {
 
     // Determine what we're looking for
     intptr_t sought = (intptr_t) address;
