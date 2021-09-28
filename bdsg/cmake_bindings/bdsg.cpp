@@ -25,8 +25,6 @@ void bind_bdsg_internal_graph_proxy(std::function< pybind11::module &(std::strin
 void bind_bdsg_internal_graph_proxy_1(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_handlegraph_snarl_decomposition(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_std_bdsg_internal_binder_hook_bind(std::function< pybind11::module &(std::string const &namespace_) > &M);
-void bind_handlegraph_trivially_serializable(std::function< pybind11::module &(std::string const &namespace_) > &M);
-void bind_bdsg_internal_mmap_backend(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_odgi(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_handlegraph_path_position_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_overlays_packed_path_position_overlay(std::function< pybind11::module &(std::string const &namespace_) > &M);
@@ -35,6 +33,8 @@ void bind_bdsg_overlays_path_position_overlays(std::function< pybind11::module &
 void bind_bdsg_overlays_path_subgraph_overlay(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_overlays_vectorizable_overlays(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_overlays_vectorizable_overlays_1(std::function< pybind11::module &(std::string const &namespace_) > &M);
+void bind_handlegraph_trivially_serializable(std::function< pybind11::module &(std::string const &namespace_) > &M);
+void bind_bdsg_packed_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_snarl_distance_index(std::function< pybind11::module &(std::string const &namespace_) > &M);
 
 
@@ -78,8 +78,6 @@ PYBIND11_MODULE(bdsg, root_module) {
 	bind_bdsg_internal_graph_proxy_1(M);
 	bind_handlegraph_snarl_decomposition(M);
 	bind_std_bdsg_internal_binder_hook_bind(M);
-	bind_handlegraph_trivially_serializable(M);
-	bind_bdsg_internal_mmap_backend(M);
 	bind_bdsg_odgi(M);
 	bind_handlegraph_path_position_handle_graph(M);
 	bind_bdsg_overlays_packed_path_position_overlay(M);
@@ -88,6 +86,8 @@ PYBIND11_MODULE(bdsg, root_module) {
 	bind_bdsg_overlays_path_subgraph_overlay(M);
 	bind_bdsg_overlays_vectorizable_overlays(M);
 	bind_bdsg_overlays_vectorizable_overlays_1(M);
+	bind_handlegraph_trivially_serializable(M);
+	bind_bdsg_packed_graph(M);
 	bind_bdsg_snarl_distance_index(M);
 
 }

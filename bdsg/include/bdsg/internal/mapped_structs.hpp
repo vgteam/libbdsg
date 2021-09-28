@@ -20,22 +20,12 @@
 #include <vector>
 #include <shared_mutex>
 
-// Find the endian conversion functions.
-// See: <https://stackoverflow.com/a/58418801>
-#ifdef __APPLE__
-    // See <https://gist.github.com/yinyin/2027912>
-    #include <libkern/OSByteOrder.h> // BINDER_IGNORE
+// TODO: We only target little-endian systems, like x86_64 and ARM64 Linux and
+// MacOS. Porting to big-endian systems will require wrapping all the numbers
+// in little_endian<T> templates or something.
 
-    #define htobe16(x) OSSwapHostToBigInt16(x)
-    #define be16toh(x) OSSwapBigToHostInt16(x)
-
-    #define htobe32(x) OSSwapHostToBigInt32(x)
-    #define be32toh(x) OSSwapBigToHostInt32(x)
-
-    #define htobe64(x) OSSwapHostToBigInt64(x)
-    #define be64toh(x) OSSwapBigToHostInt64(x)
-#else
-    #include <endian.h> // BINDER_IGNORE
+#if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
+    #error The libbdsg memory-mapping system must be ported to this non-little-endian machine in order to build!
 #endif
 
 // Since the library already depends on SDSL we might as well use their fast
@@ -47,26 +37,6 @@
 namespace bdsg {
     
 using namespace std;
-
-/**
- * Wrapper that stores a number in a defined endian-ness.
- */
-template<typename T>
-class big_endian {
-public:
-    big_endian();
-    big_endian(const T& value);
-    operator T () const;
-    big_endian<T>& operator=(const T& x);
-    big_endian<T>& operator+=(const T& other);
-    big_endian<T>& operator-=(const T& other);
-    big_endian<T>& operator++();
-    big_endian<T>& operator--();
-    T operator++(int);
-    T operator--(int);
-protected:
-    char storage[sizeof(T)];
-};
 
 /**
  * Type enum value for selecting data structures that use the STL and SDSL.
@@ -137,16 +107,25 @@ namespace yomo {
  * We interpret constness as applying to the value of the pointer and not the
  * pointed-to object. If you want a pointer to a const object, you need a
  * Pointer<const T>.
+ *
+ * Note that you *need* to use the constructors, destructors, and assignment
+ * operators! You can't just bitwise copy this!
  */
 template<typename T>
 class Pointer {
 public:
     /// Be constructable.
     /// Constructs as a pointer that equals nullptr.
-    Pointer() = default;
+    Pointer();
     
     Pointer(T* destination);
     
+    // Copy and move and comparison has to go through actual memory addresses
+    Pointer(const Pointer& other);
+    Pointer(Pointer&& other);
+    Pointer& operator=(const Pointer& other);
+    Pointer& operator=(Pointer&& other);
+     
     // Be a good pointer
     operator bool () const;
     // We use this template instead of T& to let us have a Pointer<void>.
@@ -161,8 +140,22 @@ public:
     T* get() const;
     
 protected:
-    /// Stores the destination position in the chain, or max size_t for null.
-    big_endian<size_t> position = std::numeric_limits<size_t>::max();
+    /// Stores the offset from this pointer to the pointed-to object in the
+    /// chain, or the max int64_t if the pointer is null.
+    int64_t offset;
+    
+    // TODO: Replace this hack with a C++20 atomic_ref when possible.
+    // For now, we check the size, and then assume that an atomic and the
+    // item behind it are bitwise compatible.
+    static_assert(sizeof(std::atomic<bool>) == sizeof(bool),
+        "bdsg::yomo::Pointer requires atomic access to bool");
+    
+    /// Stores true if the destination is known to be in the same link as the
+    /// pointer, if the pointer is not null. Once two things are in the same
+    /// link, they never end up in different links on subsequent loads. Needs
+    /// to be mutable and atomic because it is updated on reads if we find that
+    /// the destination is now in the same link.
+    mutable std::atomic<bool> local;
 };
 
 /**
@@ -290,6 +283,21 @@ public:
     static size_t get_position_in_same_chain(const void* here, const void* address);
     
     /**
+     * Find the offset from the given here to the given address, constraining
+     * them to come from the same chain (or NO_CHAIN). Also returns a flag that
+     * is true if the offset in the chain equals the offset in memory, and
+     * false otherwise.
+     */
+    static std::pair<int64_t, bool> get_offset_in_same_chain(const void* here, const void* address);
+    
+    /**
+     * Apply an offset from the given here to get an address, within the chain
+     * that here is in (or NO_CHAIN). Also returns a flag that is true if the
+     * offset in the chain equals the offset in memory, and false otherwise.
+     */
+    static std::pair<void*, bool> follow_offset_in_same_chain(const void* here, int64_t offset);
+    
+    /**
      * Allocate the given number of bytes from the given chain.
      * For NO_CHAIN just allocates with malloc().
      */
@@ -381,7 +389,7 @@ protected:
         Pointer<AllocatorBlock> next;
         /// Size of the block in bytes, not counting this header. Used for free
         /// and allocated blocks.
-        big_endian<size_t> size;
+        size_t size;
         
         /// Get the address of the first byte of memory we manage.
         void* get_user_data() const;
@@ -502,6 +510,13 @@ protected:
     static LinkRecord& add_link(LinkRecord& head, size_t new_bytes, void* link_data = nullptr);
     
     /**
+     * Find the link overlapping the given address, or
+     * address_space_index.end() if no link overlaps the given address. Must be
+     * called while you hold a read lock on the chain data structures.
+     */
+    static std::map<intptr_t, LinkRecord>::iterator find_link(std::shared_lock<std::shared_timed_mutex>& lock, const void* address);
+    
+    /**
      * Create a new chain, using the given file if set, and copy data from the
      * given existing chain.
      */
@@ -510,7 +525,7 @@ protected:
     /**
      * Set up the allocator data structures in the first link, assuming they
      * aren't present. Put them at the given offset, and carve them out of the
-     * given amoutn of remaining space in the link. 
+     * given amount of remaining space in the link. 
      */
     static void set_up_allocator_at(chainid_t chain, size_t offset, size_t space);
     
@@ -768,7 +783,10 @@ public:
     void check_heap_integrity();
     
 private:
+    /// THe memory chain managed by this pointer.
     Manager::chainid_t chain = Manager::NO_CHAIN;
+    /// The address of the pointed-to value, as mapped into memory.
+    T* cached_value = nullptr;
 };
 
 };
@@ -851,8 +869,8 @@ protected:
     // We keep the allocator in ourselves, so if working in a chain we allocate
     // in the right chain.
     Alloc alloc;
-    big_endian<size_t> length = 0;
-    big_endian<size_t> reserved_length = 0;
+    size_t length = 0;
+    size_t reserved_length = 0;
     typename std::allocator_traits<Alloc>::pointer first = nullptr;
     
     static const int RESIZE_FACTOR = 2;
@@ -1063,9 +1081,9 @@ public:
     
 protected:
     /// How many items are stored?
-    big_endian<size_t> length = 0;
+    size_t length = 0;
     /// How many bits are used to represent each item?
-    big_endian<size_t> bit_width = 1;
+    size_t bit_width = 1;
     
     /// We store our actual data in this vector, which manages memory for us.
     CompatVector<uint64_t, Alloc> data;
@@ -1128,132 +1146,6 @@ struct IntVectorFor<CompatBackend> {
 
 
 // Implementations
-
-template<typename T>
-big_endian<T>::big_endian() {
-    for (auto& byte : storage) {
-        byte = 0;
-    }
-#ifdef debug_big_endian
-    std::cerr << "Zeroed " << sizeof(T) << " bytes for a big_endian at " << (intptr_t) this << std::endl;
-#endif
-    assert(*this == 0);
-}
-
-template<typename T>
-big_endian<T>::big_endian(const T& value) {
-    *this = value;
-}
-
-template<typename T>
-big_endian<T>::operator T () const {
-    
-    // We assume an IEEE floating point representation and the same endian-ness
-    // as the integer type of the same width.
-    
-    // I had no luck partially specializing the conversion operator for all
-    // integral types of a given width, so we switch and call only the
-    // conversion that will work.
-    // TODO: manually write all the specializations?
-    // Note that signed types report 1 fewer bits (i.e. 63)
-    switch (CHAR_BIT * sizeof(T)) {
-    case 64:
-        {
-            uint64_t scratch = be64toh(*(reinterpret_cast<const uint64_t*>(storage)));
-            return *reinterpret_cast<T*>(&scratch);
-        }
-        break;
-    case 32:
-        {
-            uint32_t scratch = be32toh(*(reinterpret_cast<const uint32_t*>(storage)));
-            return *reinterpret_cast<T*>(&scratch);
-        }
-        break;
-    case 16:
-        {
-            uint16_t scratch = be16toh(*(reinterpret_cast<const uint16_t*>(storage)));
-            return *reinterpret_cast<T*>(&scratch);
-        }
-        break;
-    default:
-        throw runtime_error("Unimplemented bit width: " + std::to_string(CHAR_BIT * sizeof(T)));
-    }
-}
-
-template<typename T>
-big_endian<T>& big_endian<T>::operator=(const T& x) {
-
-    // We assume an IEEE floating point representation and the same endian-ness
-    // as the integer type of the same width.
-    
-    // We make sure to reinterpret the input as an int type in case it is floating point.
-
-    switch (CHAR_BIT * sizeof(T)) {
-    case 64:
-        *((uint64_t*)storage) = htobe64(reinterpret_cast<const uint64_t&>(x));
-        break;
-    case 32:
-        *((uint32_t*)storage) = htobe32(reinterpret_cast<const uint32_t&>(x));
-        break;
-    case 16:
-        *((uint16_t*)storage) = htobe16(reinterpret_cast<const uint16_t&>(x));
-        break;
-    default:
-        throw runtime_error("Unimplemented bit width: " + std::to_string(CHAR_BIT * sizeof(T)));
-    }
-    
-#ifdef debug_big_endian
-    std::cerr << "Set a big_endian at " << (intptr_t) this << " to " << x << std::endl;
-    std::cerr << "Contents:";
-    for (auto& b : storage) {
-        std::cerr << " " << (int)b;
-    }
-    std::cerr << std::endl;
-    std::cerr << "Reads back as " << (T)*this << std::endl;
-#endif
-    
-    return *this;
-}
-
-template<typename T>
-big_endian<T>& big_endian<T>::operator+=(const T& other) {
-    *this = ((T)*this) + other;
-    return *this;
-}
-
-template<typename T>
-big_endian<T>& big_endian<T>::operator-=(const T& other) {
-    *this = ((T)*this) - other;
-    return *this;
-}
-
-template<typename T>
-big_endian<T>& big_endian<T>::operator++() {
-    *this += 1;
-    return *this;
-}
-
-template<typename T>
-big_endian<T>& big_endian<T>::operator--() {
-    *this -= 1;
-    return *this;
-}
-
-template<typename T>
-T big_endian<T>::operator++(int) {
-    T old = *this;
-    ++*this;
-    return old;
-}
-
-template<typename T>
-T big_endian<T>::operator--(int) {
-    T old = *this;
-    --*this;
-    return old;
-}
-
-////////////////////
 
 template<typename T, typename Alloc>
 CompatVector<T, Alloc>::~CompatVector() {
@@ -2038,14 +1930,40 @@ void CompatIntVector<Alloc>::load(std::istream& in) {
 
 namespace yomo {
 
+// For some reason putting the default values in the class did not work for std::atomic.
 template<typename T>
-Pointer<T>::Pointer(T* destination) {
+Pointer<T>::Pointer() : offset(std::numeric_limits<int64_t>::max()), local(false) {
+    // Nothing to do!
+}
+
+template<typename T>
+Pointer<T>::Pointer(T* destination) : Pointer() {
     *this = destination;
 }
 
 template<typename T>
+Pointer<T>::Pointer(const Pointer& other) : Pointer(other.get()) {
+    // Nothing to do!
+}
+
+template<typename T>
+Pointer<T>::Pointer(Pointer&& other) : Pointer(other.get()) {
+    // Nothing to do!
+}
+
+template<typename T>
+Pointer<T>& Pointer<T>::operator=(const Pointer& other) {
+    return *this = other.get();
+}
+
+template<typename T>
+Pointer<T>& Pointer<T>::operator=(Pointer&& other) {
+    return *this = other.get();
+}
+
+template<typename T>
 Pointer<T>::operator bool () const {
-    return position != std::numeric_limits<size_t>::max();
+    return offset != std::numeric_limits<int64_t>::max();
 }
 
 template<typename T>
@@ -2067,10 +1985,12 @@ template<typename T>
 Pointer<T>& Pointer<T>::operator=(T* addr) {
     if (addr == nullptr) {
         // Adopt our special null value
-        position = std::numeric_limits<size_t>::max();
+        offset = std::numeric_limits<int64_t>::max();
     } else {
-        // Get the position, requiring that it is in the same chain as us.
-        position = Manager::get_position_in_same_chain(this, addr);
+        // Get the offset, requiring that it is in the same chain as us.
+        auto result = Manager::get_offset_in_same_chain(this, addr);
+        offset = result.first;
+        local.store(result.second);
     }
     return *this;
 }
@@ -2082,14 +2002,22 @@ T* Pointer<T>::operator+(size_t items) const {
 
 template<typename T>
 T* Pointer<T>::get() const {
-    if (position == std::numeric_limits<size_t>::max()) {
+    if (offset == std::numeric_limits<int64_t>::max()) {
         return nullptr;
+    } else if (local.load()) {
+        // Just apply the offset directly
+        return (T*) ((intptr_t) this + offset);
     } else {
-        return (T*) Manager::get_address_in_same_chain((const void*) this, position);
+        auto result = Manager::follow_offset_in_same_chain((const void*) this, offset);
+        if (result.second) {
+            // We're going to the same offset in memory as in the chain.
+            // Might clobber part of a simultaneous write, but simultaneous
+            // read and write is undefined bahavior anyway.
+            local.store(true);
+        }
+        return (T*) result.first;
     }
 }
-
-
 
 template<typename T>
 template<typename U>
@@ -2145,7 +2073,7 @@ UniqueMappedPointer<T>::~UniqueMappedPointer() {
 
 template<typename T>
 UniqueMappedPointer<T>::operator bool () const {
-    return chain != Manager::NO_CHAIN;
+    return (bool) cached_value;
 }
 
 template<typename T>
@@ -2180,20 +2108,12 @@ UniqueMappedPointer<T>::operator const T*() const {
 
 template<typename T>
 T* UniqueMappedPointer<T>::get() {
-    if (chain == Manager::NO_CHAIN) {
-        return nullptr;
-    } else {
-        return (T*) Manager::find_first_allocation(chain, sizeof(T));
-    }
+    return cached_value;
 }
 
 template<typename T>
 const T* UniqueMappedPointer<T>::get() const {
-    if (chain == Manager::NO_CHAIN) {
-        return nullptr;
-    } else {
-        return (T*) Manager::find_first_allocation(chain, sizeof(T));
-    }
+    return cached_value;
 }
 
 template<typename T>
@@ -2208,6 +2128,9 @@ void UniqueMappedPointer<T>::construct_internal(const std::string& prefix, Args&
     // Can't use the Allocator because we don't have a place in the chain to
     // store one.
     T* item = (T*) Manager::allocate_from(chain, sizeof(T));
+    
+    // Save it
+    cached_value = item;
     
     // Run the constructor.
     new (item) T(std::forward<Args>(constructor_args)...);
@@ -2236,8 +2159,11 @@ template<typename T>
 void UniqueMappedPointer<T>::load(int fd, const std::string& prefix) {
     // Drop any existing chain.
     reset();
-
+    
+    // Just pass through to the Manager
     chain = Manager::create_chain(fd, prefix);
+    // And find the item
+    cached_value = (T*) Manager::find_first_allocation(chain, sizeof(T));
 }
 
 template<typename T>
@@ -2263,6 +2189,9 @@ void UniqueMappedPointer<T>::load(const std::function<std::string(void)>& iterat
     
     // Just pass through to the Manager
     chain = Manager::create_chain(iterator, prefix);
+    // And find the item
+    cached_value = (T*) Manager::find_first_allocation(chain, sizeof(T));
+    
 }
 
 template<typename T>
@@ -2275,6 +2204,7 @@ void UniqueMappedPointer<T>::load_after_prefix(std::istream& in, const std::stri
     // Fill up this buffer with chunks of a certian size
     std::string buffer;
     
+    // Make the chain through the Manager
     chain = Manager::create_chain([&]() {
         if (buffer.empty() && !prefix.empty()) {
             // Inject the prefix on the first call
@@ -2294,6 +2224,8 @@ void UniqueMappedPointer<T>::load_after_prefix(std::istream& in, const std::stri
         // TODO: can we save a copy here?
         return buffer;
     }, prefix);
+    // And find the item
+    cached_value = (T*) Manager::find_first_allocation(chain, sizeof(T));
 }
 
 template<typename T>
@@ -2307,6 +2239,8 @@ void UniqueMappedPointer<T>::dissociate() {
     Manager::destroy_chain(chain);
     // Adopt the new chain
     chain = new_chain;
+    // And find the item
+    cached_value = (T*) Manager::find_first_allocation(chain, sizeof(T));
 }
 
 template<typename T>
@@ -2320,6 +2254,8 @@ void UniqueMappedPointer<T>::save(int fd) {
     Manager::destroy_chain(chain);
     // Adopt the new chain
     chain = new_chain;
+    // And find the item
+    cached_value = (T*) Manager::find_first_allocation(chain, sizeof(T));
 }
 
 template<typename T>
@@ -2363,6 +2299,7 @@ void UniqueMappedPointer<T>::reset() {
         Manager::destroy_chain(chain);
         chain = Manager::NO_CHAIN;
     }
+    cached_value = nullptr;
 }
 
 template<typename T>
