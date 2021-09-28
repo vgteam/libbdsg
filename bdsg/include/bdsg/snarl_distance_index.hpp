@@ -1343,6 +1343,7 @@ public:
     //Given an arbitrary number of temporary indexes, produce the final one
     //Each temporary index must be a separate connected component
     void get_snarl_tree_records(const vector<const TemporaryDistanceIndex*>& temporary_indexes, const     HandleGraph* graph);
+    void time_accesses();
 
 };
 

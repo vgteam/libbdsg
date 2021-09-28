@@ -3013,6 +3013,45 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
 }
 //TODO: Also need to go the other way, from final index to temporary one for merging
 
+//TODO: Probably don't want to keep this
+
+void SnarlDistanceIndex::time_accesses() {
+    cerr << "Distance index:" << endl;
+    cerr << "Vector of length " << snarl_tree_records->size() << " with bit width " << snarl_tree_records->width() << endl;
+    uniform_int_distribution<size_t> rand (1, snarl_tree_records->size() -1);
+    default_random_engine generator(std::chrono::system_clock::now().time_since_epoch().count());
+    for (size_t step_size : {1, 100, 1000, 10000, 100000, 1000000, 10000000, 0}) {
+        std::chrono::time_point<std::chrono::system_clock> start = std::chrono::system_clock::now();
+
+        for (size_t i = 0 ; i < 100000000 ; i++) {
+            size_t pos = step_size == 0
+                    ? rand(generator)
+                    : (i * step_size) % snarl_tree_records->size();
+            size_t val = snarl_tree_records->at( pos);
+        }
+        std::chrono::time_point<std::chrono::system_clock> end = std::chrono::system_clock::now();
+        std::chrono::duration<double> elapsed_seconds = end - start;
+        cerr << "Step size " << step_size << ": " << elapsed_seconds.count() << " seconds " << endl;
+    }
+
+    cerr << "std::vector<size_t>" << endl;
+    vector<size_t> empty_vector (snarl_tree_records->size(), 0);
+
+    for (size_t step_size : {1, 100, 1000, 10000, 100000, 1000000, 10000000, 0}) {
+        std::chrono::time_point<std::chrono::system_clock> start = std::chrono::system_clock::now();
+
+        for (size_t i = 0 ; i < 100000000 ; i++) {
+            size_t pos = step_size == 0
+                    ? rand(generator)
+                    : (i * step_size) % snarl_tree_records->size();
+            size_t val = empty_vector.at(pos);
+        }
+        std::chrono::time_point<std::chrono::system_clock> end = std::chrono::system_clock::now();
+        std::chrono::duration<double> elapsed_seconds = end - start;
+        cerr << "Step size " << step_size << ": " << elapsed_seconds.count() << " seconds " << endl;
+    }
+}
+
 
 
 }
