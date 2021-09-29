@@ -440,11 +440,6 @@ private:
     const static size_t MIN_NODE_ID_OFFSET = 3;
     const static size_t MAX_TREE_DEPTH_OFFSET = 4;
 
-    //Node record
-    const static size_t NODE_RECORD_SIZE = 4;
-    const static size_t NODE_PARENT_OFFSET = 1;
-    const static size_t NODE_LENGTH_OFFSET = 2;
-    const static size_t NODE_RANK_OFFSET = 3;
  
     //Chain record
     const static size_t CHAIN_RECORD_SIZE = 10;
@@ -474,14 +469,17 @@ private:
     
     //TODO: Try moving the entire node record here and just have the nodes point to where they are in the chain
     //Node record within a chain
-    const static size_t CHAIN_NODE_RECORD_SIZE = 5; //# things for a node (not including snarl record)
-    const static size_t CHAIN_NODE_MULTICOMPONENT_RECORD_SIZE = 6;//A multicomponent chain node is exactly the same but with an additional value - the component offset
-    const static size_t CHAIN_NODE_ID_OFFSET = 0; //node id of this node
-    const static size_t CHAIN_NODE_PREFIX_SUM_OFFSET = 1;
-    const static size_t CHAIN_NODE_FORWARD_LOOP_OFFSET = 2;
-    const static size_t CHAIN_NODE_REVERSE_LOOP_OFFSET = 3;
+    const static size_t NODE_SINGLE_RECORD_SIZE = 2; //# things for a node not in a chain
+    const static size_t NODE_RECORD_SIZE = 8; //# things for a node (not including snarl record)
+    const static size_t NODE_MULTICOMPONENT_RECORD_SIZE = 9;//A multicomponent chain node is exactly the same but with an additional value - the component offset
+    const static size_t NODE_LENGTH_OFFSET = 1;
+    const static size_t NODE_ID_OFFSET = 2; //node id of this node
+    const static size_t NODE_PARENT_OFFSET = 3; //pointer to the parent
+    const static size_t NODE_PREFIX_SUM_OFFSET = 4;
+    const static size_t NODE_FORWARD_LOOP_OFFSET = 5;
+    const static size_t NODE_REVERSE_LOOP_OFFSET = 6;
     //This is only for multicomponent chains
-    const static size_t CHAIN_NODE_COMPONENT_OFFSET = 4;
+    const static size_t NODE_CHAIN_COMPONENT_OFFSET = 7;
     //The snarl size is repeated immediately after a chain node record (so the offset is CHAIN_NODE(_MULTICOMPONENT)_RECORD_SIZE -1)
     //If there is a snarl, the snarl size is repeated after the snarl record
 
@@ -511,7 +509,7 @@ private:
     //TODO: Maybe also add a tag for trivial snarls/chains
     //TODO: Unary snarls? Looping chains?
     enum record_t {ROOT=1, 
-                   NODE, DISTANCED_NODE, 
+                   NODE, DISTANCED_CHAIN_NODE, DISTANCED_SNARL_NODE, DISTANCED_SINGLE_NODE, 
                    SNARL, DISTANCED_SNARL, SIMPLE_SNARL, OVERSIZED_SNARL, ROOT_SNARL, DISTANCED_ROOT_SNARL,
                    CHAIN, DISTANCED_CHAIN, MULTICOMPONENT_CHAIN,
                    CHILDREN};
@@ -525,7 +523,7 @@ private:
 
 private:
     /*Give each of the enum types a name for debugging */
-    vector<std::string> record_t_as_string = {"ROOT", "NODE", "DISTANCED_NODE", 
+    vector<std::string> record_t_as_string = {"ROOT", "NODE", "DISTANCED_NODE", "DISTANCED_SINGLE_NODE", 
                      "SNARL", "DISTANCED_SNARL", "SIMPLE_SNARL", "OVERSIZED_SNARL", 
                      "ROOT_SNARL", "DISTANCED_ROOT_SNARL",
                      "CHAIN", "DISTANCED_CHAIN", "MULTICOMPONENT_CHAIN",
@@ -579,15 +577,13 @@ private:
     //Get the offset into snarl_tree_records for a node record
     size_t get_offset_from_node_id (const handlegraph::nid_t& id) const {
         size_t node_records_offset = snarl_tree_records->at(COMPONENT_COUNT_OFFSET) + ROOT_RECORD_SIZE; 
-        size_t offset = (id-snarl_tree_records->at(MIN_NODE_ID_OFFSET)) * NODE_RECORD_SIZE;
-        return node_records_offset + offset; 
+        size_t offset = id-snarl_tree_records->at(MIN_NODE_ID_OFFSET);
+        return snarl_tree_records->at(node_records_offset + offset); 
     }
     //And its inverse, get the id from the offset of the node record
     //TODO: Do I want to add the min_node_id?
     handlegraph::nid_t get_node_id_from_offset(size_t offset) const {
-        size_t min_node_id = snarl_tree_records->at(MIN_NODE_ID_OFFSET);
-        size_t node_records_offset = snarl_tree_records->at(COMPONENT_COUNT_OFFSET) + ROOT_RECORD_SIZE; 
-        return ((offset-node_records_offset) / NODE_RECORD_SIZE) + min_node_id;
+        return snarl_tree_records->at(offset + NODE_ID_OFFSET);
     }
 
     const static connectivity_t endpoints_to_connectivity(endpoint_t start, endpoint_t end) {
@@ -694,7 +690,7 @@ private:
             //TODO: I"m not sure if a root snarl should be a root or a snarl
             if (type == ROOT || type == ROOT_SNARL || type == DISTANCED_ROOT_SNARL) {
                 return ROOT_HANDLE;
-            } else if (type == NODE || type == DISTANCED_NODE) {
+            } else if (type == NODE || type == DISTANCED_NODE || type == DISTANCED_SINGLE_NODE) {
                 return NODE_HANDLE;
             } else if (type == SNARL || type == DISTANCED_SNARL || type ==  SIMPLE_SNARL ||type ==  OVERSIZED_SNARL){
                 return SNARL_HANDLE;
@@ -778,8 +774,8 @@ private:
             records = tree_records;
 
             record_t type = get_record_type();
-            assert(type == ROOT || type == NODE || type == DISTANCED_NODE || type == SNARL || 
-                    type == DISTANCED_SNARL || type == OVERSIZED_SNARL || 
+            assert(type == ROOT || type == NODE || type == DISTANCED_NODE ||type == DISTANCED_SINGLE_NODE ||
+                    type == SNARL || type == DISTANCED_SNARL || type == OVERSIZED_SNARL || 
                     type == ROOT_SNARL || type == DISTANCED_ROOT_SNARL || type == CHAIN || 
                     type == DISTANCED_CHAIN || type == MULTICOMPONENT_CHAIN);
         }
@@ -787,8 +783,8 @@ private:
             record_offset = get_record_offset(net);
             records = tree_records;
             record_t type = get_record_type();
-            assert(type == ROOT || type == NODE || type == DISTANCED_NODE || type == SNARL || 
-                    type == DISTANCED_SNARL || type == OVERSIZED_SNARL || 
+            assert(type == ROOT || type == NODE || type == DISTANCED_NODE ||type == DISTANCED_SINGLE_NODE  || 
+                    type == SNARL || type == DISTANCED_SNARL || type == OVERSIZED_SNARL || 
                     type == ROOT_SNARL || type == DISTANCED_ROOT_SNARL || type == CHAIN || 
                     type == DISTANCED_CHAIN || type == MULTICOMPONENT_CHAIN);
         }
@@ -875,14 +871,14 @@ private:
             record_offset = pointer;
             records = tree_records;
 
-            assert(get_record_type() == NODE || get_record_type() == DISTANCED_NODE);
+            assert(get_record_type() == NODE || get_record_type() == DISTANCED_NODE || get_record_type == DISTANCE_SINGLE_NODE);
         }
         NodeRecord (net_handle_t net, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records){
             records = tree_records;
             record_offset = get_record_offset(net);
 
             assert(get_handle_type(net) == NODE_HANDLE);
-            assert(get_record_type() == NODE || get_record_type() == DISTANCED_NODE);
+            assert(get_record_type() == NODE || get_record_type() == DISTANCED_NODE|| get_record_type == DISTANCE_SINGLE_NODE);
             assert(get_connectivity(net) == START_END || get_connectivity(net) == END_START
                   || get_connectivity(net) == START_START || get_connectivity(net) == END_END);
         }
@@ -917,6 +913,39 @@ private:
 #endif
             (*SnarlTreeRecordConstructor::records)->at(NodeRecord::record_offset + NODE_LENGTH_OFFSET) = length;
         }
+        virtual void set_prefix_sum_value(size_t val) {
+#ifdef debug_indexing
+            assert(get_record_type() == DISTANCED_NODE);
+            cerr <<NodeRecord::record_offset + NODE_PREFIX_SUM_OFFSET << " set prefix sum " << val << endl;
+            assert((*SnarlTreeRecordConstructor::records)->at(NodeRecord::record_offset + NODE_PREFIX_SUM_OFFSET) == 0);
+#endif
+            (*SnarlTreeRecordConstructor::records)->at(NodeRecord::record_offset + NODE_PREFIX_SUM_OFFSET) = val;
+        }
+        virtual void set_forward_loop_value(size_t val) {
+#ifdef debug_indexing
+            assert(get_record_type() == DISTANCED_NODE);
+            cerr <<NodeRecord::record_offset + NODE_FORWARD_LOOP_OFFSET << " set forward loop  " << val << endl;
+            assert((*SnarlTreeRecordConstructor::records)->at(NodeRecord::record_offset + NODE_FORWARD_LOOP_OFFSET) == 0);
+#endif
+            (*SnarlTreeRecordConstructor::records)->at(NodeRecord::record_offset + NODE_FORWARD_LOOP_OFFSET) = val;
+        }
+        virtual void set_prefix_sum_value(size_t val) {
+#ifdef debug_indexing
+            assert(get_record_type() == DISTANCED_NODE);
+            cerr <<NodeRecord::record_offset + NODE_BACKWARD_LOOP_OFFSET << " set reverse loop " << val << endl;
+            assert((*SnarlTreeRecordConstructor::records)->at(NodeRecord::record_offset + NODE_BACKWARD_LOOP_OFFSET) == 0);
+#endif
+            (*SnarlTreeRecordConstructor::records)->at(NodeRecord::record_offset + NODE_BACKWARD_LOOP_OFFSET) = val;
+        }
+        virtual void set_chain_component_value(size_t val) {
+#ifdef debug_indexing
+            assert(get_record_type() == DISTANCED_NODE);
+            cerr <<NodeRecord::record_offset + NODE_CHAIN_COMPONENT_OFFSET << " set node component " << val << endl;
+            assert((*SnarlTreeRecordConstructor::records)->at(NodeRecord::record_offset + NODE_CHAIN_COMPONENT_OFFSET) == 0);
+#endif
+            (*SnarlTreeRecordConstructor::records)->at(NodeRecord::record_offset + NODE_CHAIN_COMPONENT_OFFSET) = val;
+        }
+        
     };
 
     struct SnarlRecord : SnarlTreeRecord {
