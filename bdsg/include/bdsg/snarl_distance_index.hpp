@@ -460,19 +460,19 @@ private:
 
    
     //Snarl record (which occurs within a chain)
-    const static size_t SNARL_RECORD_SIZE = 10;
+    const static size_t SNARL_RECORD_SIZE = 9;
     const static size_t SNARL_NODE_COUNT_OFFSET = 1;
     const static size_t SNARL_PARENT_OFFSET = 2;
     const static size_t SNARL_MIN_LENGTH_OFFSET = 3;
     const static size_t SNARL_MAX_LENGTH_OFFSET = 4;
-    const static size_t SNARL_RANK_OFFSET = 5;
-    const static size_t SNARL_CHILD_RECORD_OFFSET = 6;
+    const static size_t SNARL_CHILD_RECORD_OFFSET = 5;
     //TODO: This could also be found from the list of the snarl's children, but probably better here, even if it's duplicative
-    const static size_t SNARL_START_NODE_OFFSET = 7;
-    const static size_t SNARL_END_NODE_OFFSET = 8;
-    const static size_t SNARL_BIT_WIDTH_OFFSET = 9;
+    const static size_t SNARL_START_NODE_OFFSET = 6;
+    const static size_t SNARL_END_NODE_OFFSET = 7;
+    const static size_t SNARL_BIT_WIDTH_OFFSET = 8;
 
     
+    //TODO: Try moving the entire node record here and just have the nodes point to where they are in the chain
     //Node record within a chain
     const static size_t CHAIN_NODE_RECORD_SIZE = 5; //# things for a node (not including snarl record)
     const static size_t CHAIN_NODE_MULTICOMPONENT_RECORD_SIZE = 6;//A multicomponent chain node is exactly the same but with an additional value - the component offset

@@ -1182,7 +1182,7 @@ bool SnarlDistanceIndex::SnarlTreeRecord::get_is_reversed_in_parent() const {
         return (*records)->at(record_offset + NODE_RANK_OFFSET) & 1;
     } else if (type == SNARL || type == DISTANCED_SNARL || type == OVERSIZED_SNARL
             || type == ROOT_SNARL || type == DISTANCED_ROOT_SNARL)  {
-        return (*records)->at(record_offset + SNARL_RANK_OFFSET) & 1;
+        return false;//TODO: I'm pretty sure a snarl is always pointing forwards in the chain
     } else if (type == CHAIN || type == DISTANCED_CHAIN || type == MULTICOMPONENT_CHAIN)  {
         return (*records)->at(record_offset + CHAIN_RANK_OFFSET) & 1;
     } else {
@@ -1444,7 +1444,8 @@ void SnarlDistanceIndex::SnarlTreeRecordConstructor::set_rank_in_parent(size_t r
         offset = record_offset + NODE_RANK_OFFSET;
     } else if (type == SNARL || type == DISTANCED_SNARL || type == OVERSIZED_SNARL
             || type == ROOT_SNARL || type == DISTANCED_ROOT_SNARL)  {
-        offset = record_offset + SNARL_RANK_OFFSET;
+        cerr << "SETTING THE RANK OF A SNARL WHICH I'M PRETTY SURE DOESN'T MEAN ANYTHING" << endl;
+        return;
     } else if (type == CHAIN || type == DISTANCED_CHAIN || type == MULTICOMPONENT_CHAIN)  {
         offset = record_offset + CHAIN_RANK_OFFSET;
     } else {
@@ -1465,7 +1466,7 @@ void SnarlDistanceIndex::SnarlTreeRecordConstructor::set_is_reversed_in_parent(b
         offset = record_offset + NODE_RANK_OFFSET;
     } else if (type == SNARL || type == DISTANCED_SNARL || type == OVERSIZED_SNARL
             || type == ROOT_SNARL || type == DISTANCED_ROOT_SNARL)  {
-        offset = record_offset + SNARL_RANK_OFFSET;
+        return;
     } else if (type == CHAIN || type == DISTANCED_CHAIN || type == MULTICOMPONENT_CHAIN)  {
         offset = record_offset + CHAIN_RANK_OFFSET;
     } else {
