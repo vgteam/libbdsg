@@ -88,6 +88,14 @@ bool SnarlDistanceIndex::is_ordered_in_chain(const net_handle_t& child1, const n
         return SnarlTreeRecord(child1, &snarl_tree_records).get_rank_in_parent() < SnarlTreeRecord(child2, &snarl_tree_records).get_rank_in_parent();
     }
 }
+size_t SnarlDistanceIndex::get_record_offset_in_chain(const net_handle_t& child) const {
+    if (!is_chain(get_parent(child))) {
+        throw runtime_error("error: net handle isn't in a chain");
+    } else {
+
+        return SnarlTreeRecord(child, &snarl_tree_records).get_rank_in_parent();
+    }
+}
 
 bool SnarlDistanceIndex::is_trivial_chain(const net_handle_t& net) const {
     return get_handle_type(net) == CHAIN_HANDLE

@@ -294,6 +294,10 @@ public:
     
     //Return true if child1 comes before child2 in the chain. 
     bool is_ordered_in_chain(const net_handle_t& child1, const net_handle_t& child2) const;
+    //Return the offset of the child in the chain
+    //TODO: I don't like exposing this because it doesn't really 
+    //mean anything but I need it
+    size_t get_record_offset_in_chain(const net_handle_t& child) const;
 
 
     /** 
@@ -406,7 +410,8 @@ private:
      *
      */
     
-private:
+public:
+//TODO: This should definitely not be public
     bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector> snarl_tree_records;
 
     /* If this is 0, then don't store distances
@@ -546,7 +551,8 @@ private:
 //The record points to the snarl containing them, and the connectivity indicates which bound 
 //we're looking at (START_END for start in, START_START for start out, etc)
 
-private:
+public:
+//TODO: This should not be public
 
     ///The offset into records that this handle points to
     const static size_t get_record_offset (const handlegraph::net_handle_t& net_handle) {
@@ -571,6 +577,11 @@ private:
     handlegraph::net_handle_t get_net_handle(size_t pointer, connectivity_t connectivity) const  {
         net_handle_record_t type = SnarlTreeRecord(pointer, &snarl_tree_records).get_record_handle_type(); 
         return get_net_handle(pointer, connectivity, type); 
+    
+    }
+    handlegraph::net_handle_t get_net_handle(size_t pointer) const  {
+        net_handle_record_t type = SnarlTreeRecord(pointer, &snarl_tree_records).get_record_handle_type(); 
+        return canonical(get_net_handle(pointer, START_END, type)); 
     
     }
 
