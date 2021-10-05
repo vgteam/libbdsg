@@ -581,7 +581,7 @@ public:
     }
     handlegraph::net_handle_t get_net_handle(size_t pointer) const  {
         net_handle_record_t type = SnarlTreeRecord(pointer, &snarl_tree_records).get_record_handle_type(); 
-        return canonical(get_net_handle(pointer, START_END, type)); 
+        return get_net_handle(pointer, START_END, type); 
     
     }
 
