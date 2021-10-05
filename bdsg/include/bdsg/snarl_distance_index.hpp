@@ -492,7 +492,7 @@ private:
 
 ////////////////////////////////////  How we define different properties of the distance index
 
-    private:
+    public:
 
     /*
      *
