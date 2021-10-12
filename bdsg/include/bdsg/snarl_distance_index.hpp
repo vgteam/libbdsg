@@ -867,6 +867,10 @@ public:
                     handlegraph::nid_t min_node_id, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records){
             record_offset = pointer;
             records = records;
+            SnarlTreeRecordConstructor::record_offset = pointer;
+            SnarlTreeRecordConstructor::records = records;
+            RootRecord::record_offset = pointer;
+            RootRecord::records = records;
             //Allocate memory for the root vector and for all of the nodes
 #ifdef debug_distance_index
             cerr << " Resizing array to add root: length " << (*records)->size() << " -> " 
@@ -902,7 +906,7 @@ public:
             records = tree_records;
             record_offset = get_record_offset(net);
 
-            assert(get_handle_type(net) == NODE_HANDLE);
+            assert(get_handle_type(net) == NODE_HANDLE || get_handle_type(net) == CHAIN_HANDLE);
             assert(get_record_type() == NODE || get_record_type() == DISTANCED_NODE || get_record_type() == NODE_CHAIN ||
                    get_record_type() == DISTANCED_NODE_CHAIN || get_record_type() == MULTICOMPONENT_NODE_CHAIN);
             assert(get_connectivity(net) == START_END || get_connectivity(net) == END_START
@@ -934,6 +938,10 @@ public:
             bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* snarl_records, nid_t node_id){
             records = snarl_records;
             record_offset =  pointer;
+            SnarlTreeRecordConstructor::record_offset = pointer;
+            SnarlTreeRecordConstructor::records = records;
+            NodeRecord::record_offset = pointer;
+            NodeRecord::records = records;
 
             if (type == NODE || type == DISTANCED_NODE) {
                 (*records)->resize((*records)->size() + NODE_RECORD_SIZE); 
@@ -947,9 +955,15 @@ public:
             set_start_end_connected();
 
             //Set the pointer for the node to this record
+#ifdef debug_distance_indexing
+            cerr << get_node_pointer_offset(node_id, 
+                                                   (*records)->at(MIN_NODE_ID_OFFSET), 
+                                                   (*records)->at(COMPONENT_COUNT_OFFSET))
+                 << " Set pointer to node " << node_id << " record: " << pointer << endl;
+#endif
             (*records)->at(get_node_pointer_offset(node_id, 
-                                                   (*records)->at(COMPONENT_COUNT_OFFSET), 
-                                                   (*records)->at(MIN_NODE_ID_OFFSET))) = pointer;
+                                                   (*records)->at(MIN_NODE_ID_OFFSET), 
+                                                   (*records)->at(COMPONENT_COUNT_OFFSET))) = pointer;
 
         }
         virtual void set_node_id(size_t value) const;
@@ -1029,8 +1043,12 @@ public:
             //the array and we need to allocate extra memory past it
             //TODO:I'm not sure yet how memory will actually be allocated
             records = records;
-
             record_offset = (*records)->size();
+            SnarlTreeRecordConstructor::record_offset = (*records)->size();
+            SnarlTreeRecordConstructor::records = records;
+            SnarlRecord::record_offset = (*records)->size();
+            SnarlRecord::records = records;
+
             size_t distance_values_per_vector_element = (*records)->width() / bit_width(max_distance);
 
             size_t extra_size = record_size(type, node_count, distance_values_per_vector_element, (*records)->width());
@@ -1151,6 +1169,10 @@ public:
                    type == MULTICOMPONENT_CHAIN);
             record_offset = pointer;
             records = records;
+            SnarlTreeRecordConstructor::record_offset = pointer;
+            SnarlTreeRecordConstructor::records = records;
+            ChainRecord::record_offset = pointer;
+            ChainRecord::records = records;
 #ifdef debug_distance_index
             cerr << " Resizing array to add chain: length " << (*records)->size() << " -> "  << (*records)->size() + CHAIN_RECORD_SIZE << endl;
 #endif
