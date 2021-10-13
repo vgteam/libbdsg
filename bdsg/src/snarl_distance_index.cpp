@@ -176,14 +176,18 @@ net_handle_t SnarlDistanceIndex::get_bound(const net_handle_t& snarl, bool get_e
         ChainRecord chain_record(snarl, &snarl_tree_records);
         size_t offset;
         bool is_looping_chain;
-        if (get_end) {
-            pair<size_t, bool> last_child = chain_record.get_last_child_offset();
-            is_looping_chain = last_child.second;
-            offset = is_looping_chain ? chain_record.get_first_node_offset() : last_child.first;
-
+        if (is_trivial_chain(snarl)) {
+            offset = get_record_offset(snarl);
         } else {
-            offset = chain_record.get_first_node_offset(); 
-            
+            if (get_end) {
+                pair<size_t, bool> last_child = chain_record.get_last_child_offset();
+                is_looping_chain = last_child.second;
+                offset = is_looping_chain ? chain_record.get_first_node_offset() : last_child.first;
+
+            } else {
+                offset = chain_record.get_first_node_offset(); 
+                
+            }
         }
         bool rev_in_parent = NodeRecord(offset, &snarl_tree_records).get_is_reversed_in_parent();
         if (get_end) {
@@ -213,6 +217,7 @@ net_handle_t SnarlDistanceIndex::get_bound(const net_handle_t& snarl, bool get_e
 }
 
 net_handle_t SnarlDistanceIndex::get_node_from_sentinel(const net_handle_t& sentinel) const {
+    cerr << "Get node from sentinel " << net_handle_as_string(sentinel) << endl;;
     assert(is_sentinel(sentinel));
     if (is_root(get_parent(get_parent(sentinel)))) {
         throw runtime_error("Trying to get the bounds of a root");
@@ -222,7 +227,18 @@ net_handle_t SnarlDistanceIndex::get_node_from_sentinel(const net_handle_t& sent
     assert(is_chain(parent_chain));
     //The snarl must be in a chain, so the boundary nodes will be the next things on the chain 
     ChainRecord chain_record(parent_chain, &snarl_tree_records);
-    return chain_record.get_next_child(snarl, starts_at(sentinel) == END);
+
+    bool go_left = starts_at(sentinel) == START;
+    if (SnarlRecord(snarl, &snarl_tree_records).get_is_reversed_in_parent()) {
+        //TODO: I think this is always false
+        assert(false);
+        go_left = !go_left;
+    }
+
+    net_handle_t next_handle = chain_record.get_next_child(snarl, go_left);
+    cerr << "Next handle in chain " << net_handle_as_string(next_handle) << endl;
+    //If the sentinel is facing into the snarl, then flip the node after getting it from the chain
+    return ends_at(sentinel) != starts_at(sentinel) ? flip(next_handle) : next_handle ;
 
 
 }
@@ -2264,31 +2280,23 @@ net_handle_t SnarlDistanceIndex::ChainRecord::get_next_child(const net_handle_t&
         return net_handle;
     }
 
-    //Get the current pointer, pointing at the net_handle in the chain
-    pair<size_t, bool> next_pointer;
-    if (handle_type == NODE_HANDLE) {
-        //If this net handle is a node, then it's rank in parent points to it in the chain
-        NodeRecord node_record(get_record_offset(net_handle), records);
-        assert(node_record.get_parent_record_offset() == record_offset);
-        next_pointer = get_next_child(
-            make_pair(node_record.get_rank_in_parent(), false), go_left);
-        if (next_pointer.first == 0 ){
-            return net_handle;
-        }
-    } else {
-        //Otherwise, it is a snarl and we can use the snarl's offset, since it exists in
-        //the chain
-        assert(handle_type == SNARL_HANDLE) ;
-        next_pointer = get_next_child(
-            make_pair(get_record_offset(net_handle), true), go_left);
-        if (next_pointer.first == 0 ){
-            return net_handle;
-        }
+    //Get the next pointer, pointing at the net_handle in the chain
+    pair<size_t, bool> current_pointer = make_pair(get_record_offset(net_handle), handle_type == SNARL_HANDLE);
+    pair<size_t, bool> next_pointer = get_next_child(current_pointer, go_left);
+    if (next_pointer.first == 0 ){
+        return net_handle;
     }
+
     bool next_is_reversed_in_parent = next_pointer.second ? false : NodeRecord(next_pointer.first, records).get_is_reversed_in_parent();
 
+    //Get the direction of the next handle
+    //Handle will point in whichever direction we moved in
+    //TODO: Should it?
     connectivity_t connectivity = go_left == next_is_reversed_in_parent ? START_END : END_START;
-    if (!next_pointer.second && next_pointer.first == get_first_node_offset()) {
+    if (!next_pointer.second && next_pointer.first == get_first_node_offset() && current_pointer.first == get_last_child_offset().first
+            && !go_left) {
+        //If this is reaching the first node again, then it is a looping chain
+        cerr << "Looping around the chain again" << endl;
         connectivity = endpoints_to_connectivity(get_end_endpoint(connectivity), get_end_endpoint(connectivity));
     }
     return get_net_handle(next_pointer.first,
