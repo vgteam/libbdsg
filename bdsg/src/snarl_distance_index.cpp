@@ -612,7 +612,6 @@ std::string SnarlDistanceIndex::get_prefix() const {
 size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent, 
         const net_handle_t& child1, const net_handle_t& child2, const HandleGraph* graph) const {
 
-cerr << "Get distance between " << net_handle_as_string(child1) << " and " << net_handle_as_string(child2) << " in parent " << net_handle_as_string(parent) << endl;
     assert(canonical(parent) == canonical(get_parent(child1)));
     assert(canonical(parent) == canonical(get_parent(child2)));
 
