@@ -1083,6 +1083,10 @@ bool SnarlDistanceIndex::has_node(const nid_t id) const {
     size_t node_pointer_offset = get_node_pointer_offset(id, root_record.get_min_node_id(), root_record.get_connected_component_count());
     return snarl_tree_records->at(node_pointer_offset) != 0;
 }
+
+bool SnarlDistanceIndex::is_reversed_in_parent(const net_handle_t& net) const {
+    return SnarlTreeRecord(net, &snarl_tree_records).get_is_reversed_in_parent();
+}
 net_handle_t SnarlDistanceIndex::get_node_net_handle(const nid_t id) const {
     RootRecord root_record (get_root(), &snarl_tree_records);
     size_t node_pointer_offset = get_node_pointer_offset(id, root_record.get_min_node_id(), root_record.get_connected_component_count());

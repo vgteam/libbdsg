@@ -337,6 +337,14 @@ public:
      * Does the graph have this node?
      */
     bool has_node(const nid_t id) const;
+
+    /**
+     * Only really relevant for nodes in chains, is the node
+     * traversed backwards relative to the orientation of the chain
+     */
+
+    bool is_reversed_in_parent(const net_handle_t& net) const;
+
     /**
      * Get a net handle from a node
      */
