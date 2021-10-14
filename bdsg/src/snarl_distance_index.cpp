@@ -1398,8 +1398,6 @@ void SnarlDistanceIndex::SnarlTreeRecordConstructor::set_externally_end_end_conn
     (*records)->at(record_offset) = (*records)->at(record_offset) | 256;
 }
 void SnarlDistanceIndex::SnarlTreeRecordConstructor::set_record_type(record_t type) {
-    cerr << record_offset << " set record type to be " << type << endl;
-    cerr << "Size" << (*records)->size() << endl;
     assert((*records)->at(record_offset) == 0);
     (*records)->at(record_offset) = ((static_cast<size_t>(type) << 9) | ((*records)->at(record_offset) & 511));
 }
