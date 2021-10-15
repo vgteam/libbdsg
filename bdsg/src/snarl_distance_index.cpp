@@ -62,16 +62,20 @@ bool SnarlDistanceIndex::is_root(const net_handle_t& net) const {
 }
 
 bool SnarlDistanceIndex::is_snarl(const net_handle_t& net) const {
-    return get_handle_type(net) == SNARL_HANDLE 
-            && (SnarlTreeRecord(net, &snarl_tree_records).get_record_handle_type() == SNARL_HANDLE ||
-                SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == ROOT_SNARL ||  
-                SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == DISTANCED_ROOT_SNARL);
+#ifdef debug_distances
+assert(SnarlTreeRecord(net, &snarl_tree_records).get_record_handle_type() == SNARL_HANDLE);
+assert(SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == ROOT_SNARL);  
+assert(SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == DISTANCED_ROOT_SNARL);
+#endif
+    return get_handle_type(net) == SNARL_HANDLE ;
 }
 
 bool SnarlDistanceIndex::is_chain(const net_handle_t& net) const {
-    return get_handle_type(net) == CHAIN_HANDLE
-            && (SnarlTreeRecord(net, &snarl_tree_records).get_record_handle_type() == CHAIN_HANDLE
-            || SnarlTreeRecord(net, &snarl_tree_records).get_record_handle_type() == NODE_HANDLE);
+#ifdef debug_distances
+assert(SnarlTreeRecord(net, &snarl_tree_records).get_record_handle_type() == CHAIN_HANDLE);
+assert(SnarlTreeRecord(net, &snarl_tree_records).get_record_handle_type() == NODE_HANDLE);
+#endif
+    return get_handle_type(net) == CHAIN_HANDLE;
 }
 bool SnarlDistanceIndex::is_looping_chain(const net_handle_t& net) const {
     if (!is_chain(net)) {
@@ -103,12 +107,17 @@ bool SnarlDistanceIndex::is_trivial_chain(const net_handle_t& net) const {
 }
 
 bool SnarlDistanceIndex::is_node(const net_handle_t& net) const {
-    return get_handle_type(net) == NODE_HANDLE 
-            && SnarlTreeRecord(net, &snarl_tree_records).get_record_handle_type() == NODE_HANDLE;
+#ifdef debug_distances 
+assert( SnarlTreeRecord(net, &snarl_tree_records).get_record_handle_type() == NODE_HANDLE);
+#endif
+    return get_handle_type(net) == NODE_HANDLE;
 }
 bool SnarlDistanceIndex::is_sentinel(const net_handle_t& net) const {
-    return get_handle_type(net) == SENTINEL_HANDLE
-            && SnarlTreeRecord(net, &snarl_tree_records).get_record_handle_type() == SNARL_HANDLE;
+#ifdef debug_distances
+    assert(SnarlTreeRecord(net, &snarl_tree_records).get_record_handle_type() == SNARL_HANDLE);
+#endif
+    return get_handle_type(net) == SENTINEL_HANDLE;
+
 }
 
 net_handle_t SnarlDistanceIndex::get_net(const handle_t& handle, const handlegraph::HandleGraph* graph) const{
@@ -668,9 +677,11 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
 
 
     } else if (is_chain(parent)) {
-        ChainRecord chain_record(get_parent(child1), &snarl_tree_records);
+        ChainRecord chain_record(parent, &snarl_tree_records);
+#ifdef debug_distances
         assert(is_node(child1) || is_snarl(child1));
         assert(is_node(child2) || is_snarl(child2));
+#endif
 
         if (is_trivial_chain(parent)) {
             return std::numeric_limits<size_t>::max();
