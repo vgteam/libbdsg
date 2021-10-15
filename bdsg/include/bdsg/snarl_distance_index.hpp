@@ -884,9 +884,7 @@ public:
             cerr << " Resizing array to add root: length " << (*records)->size() << " -> " 
                  << (*records)->size() + ROOT_RECORD_SIZE + connected_component_count + node_count << endl;
 #endif
-            cerr << (*records)->size() << endl;
             (*records)->resize((*records)->size() + ROOT_RECORD_SIZE + connected_component_count + node_count);
-            cerr << (*records)->size() << endl;
             set_record_type(ROOT);
             set_min_node_id(min_node_id);
             set_node_count(node_count);

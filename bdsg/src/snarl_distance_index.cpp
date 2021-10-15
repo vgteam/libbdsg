@@ -2644,7 +2644,6 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                         chain_record_constructor = ChainRecordConstructor(snarl_tree_records->size(), MULTICOMPONENT_CHAIN,
                                                                temp_chain_record.prefix_sum.size(), &snarl_tree_records);
                     }
-                    cerr << "Set parent of chain to be " << record_to_offset[make_pair(temp_index_i, temp_chain_record.parent)] << endl;
                     chain_record_constructor.set_parent_record_offset(
                             record_to_offset[make_pair(temp_index_i, temp_chain_record.parent)]);//TODO: Get the actual parent
 
@@ -2764,7 +2763,6 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                                     chain_record_constructor.add_snarl(temp_snarl_record.node_count, record_type, temp_snarl_record.max_distance);
 
                                 //Fill in snarl info
-                    cerr << "Set parent of snarl to be chain's offset " << chain_record_constructor.get_offset()<< endl;
                                 snarl_record_constructor.set_parent_record_offset(chain_record_constructor.get_offset());
                                 snarl_record_constructor.set_start_node(temp_snarl_record.start_node_id,
                                                                          temp_snarl_record.start_node_rev);
@@ -2959,7 +2957,6 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                 node_record.set_node_id(temp_node_record.node_id);
                 node_record.set_node_length(temp_node_record.node_length);
                 node_record.set_rank_in_parent(temp_node_record.rank_in_parent);
-                    cerr << "Set parent of the node to be " << record_to_offset[make_pair(temp_index_i, temp_node_record.parent)] << endl;
                 node_record.set_parent_record_offset(record_to_offset[make_pair(temp_index_i, temp_node_record.parent)]);
 
                 record_to_offset.emplace(make_pair(temp_index_i, current_record_index), node_record.record_offset);
