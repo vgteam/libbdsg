@@ -297,6 +297,8 @@ public:
      * or if they are not children of the parent
      */
     size_t distance_in_parent(const net_handle_t& parent, const net_handle_t& child1, const net_handle_t& child2, const HandleGraph* graph=nullptr) const;
+    //The same thing, but using cached information as much as possible
+    size_t distance_in_parent(const CachedNetHandle& parent, const CachedNetHandle& child1, const CachedNetHandle& child2, const HandleGraph* graph=nullptr) const;
     
     //Return true if child1 comes before child2 in the chain. 
     bool is_ordered_in_chain(const net_handle_t& child1, const net_handle_t& child2) const;
@@ -438,6 +440,25 @@ public:
      * that include boundary nodes (OVERSIZED_SNARL)
      */
     size_t snarl_size_limit = 1000;
+
+
+public:
+
+    //This stores information about a net handle so that it only needs to be looked up once
+    //to avoid coming back to a record multiple times
+    //Always had a net_handle_t, may also fill in optional fields which default to inf
+    struct CachedNetHandle {
+        net_handle_t net;
+
+        size_t minimum_length = std::numeric_limits<size_t>::max(); 
+        size_t rank_in_parent = std::numeric_limits<size_t>::max(); 
+
+        //These only get set for nodes
+        size_t prefix_sum = std::numeric_limits<size_t>::max();
+        size_t forward_loop = std::numeric_limits<size_t>::max();
+        size_t reverse_loop = std::numeric_limits<size_t>::max();
+        size_t chain_component = std::numeric_limits<size_t>::max();
+    };
 
 /////////////////  Construction methods
 public:
@@ -1132,11 +1153,13 @@ public:
         //This is the distance between the node sides, leaving the first and entering the second,
         //not including node lengths
         //TODO: Double check finding the distance for the same node
-        virtual size_t get_distance(const net_handle_t& child1, const net_handle_t& child2) const;
+        virtual size_t get_distance(tuple<size_t, bool, size_t> node1,
+                      tuple<size_t, bool, size_t> node2) const;
 
         ///For a chain that loops (when the start and end node are the same), find the 
         //distance walking around the back of the loop
-        virtual size_t get_distance_taking_chain_loop(const net_handle_t& node1, const net_handle_t& node2) const;
+        virtual size_t get_distance_taking_chain_loop(tuple<size_t, bool, size_t> node1,
+                      tuple<size_t, bool, size_t> node2) const;
 
         ////////////////////////// methods for navigating the snarl tree from this chain
 
