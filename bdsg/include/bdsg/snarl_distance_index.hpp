@@ -102,20 +102,102 @@ public:
 
 public:
 
-    //This stores information about a net handle so that it only needs to b     e looked up once
+    //This stores information about a net handle so that it only needs to be looked up once
     //to avoid coming back to a record multiple times
-    //Always had a net_handle_t, may also fill in optional fields which def     ault to inf
+    //Always had a net_handle_t and record tag, may also fill in optional fields which default to inf
     struct CachedNetHandle {
         net_handle_t net;
+        size_t record_tag;
 
-        size_t minimum_length = std::numeric_limits<size_t>::max();
+        //Values associated with this net
         size_t rank_in_parent = std::numeric_limits<size_t>::max();
+        size_t minimum_length = std::numeric_limits<size_t>::max();
 
-        //These only get set for nodes
+        //Associated net_handles
+        size_t parent_record_offset = std::numeric_limits<size_t>::max();
+        //These will always be nodes, even for a snarl (instead of sentinels)
+        net_handle_t start_bound_in = std::numeric_limits<size_t>::max();
+        size_t start_bound_length = std::numeric_limits<size_t>::max();
+        net_handle_t end_bound_in = std::numeric_limits<size_t>::max();
+        size_t end_bound_length = std::numeric_limits<size_t>::max();
+
+        //This groups gets set for either a node, or for the start node of a snarl
+        bool contains_node_values = false; //This is true if it is for a node
+        bool is_reversed_in_parent = false; //This is only set for a node 
         size_t prefix_sum = std::numeric_limits<size_t>::max();
         size_t forward_loop = std::numeric_limits<size_t>::max();
         size_t reverse_loop = std::numeric_limits<size_t>::max();
         size_t chain_component = std::numeric_limits<size_t>::max();
+
+
+        //This gets set for the end node of a snarl
+        size_t end_prefix_sum = std::numeric_limits<size_t>::max();
+        size_t end_forward_loop = std::numeric_limits<size_t>::max();
+        size_t end_reverse_loop = std::numeric_limits<size_t>::max();
+        size_t end_chain_component = std::numeric_limits<size_t>::max();
+
+
+        
+
+        CachedNetHandle(net_handle_t net, size_t record_tag, bool is_rev) :
+        //TODO: there's no reason to include is reversed other than that I don't have a good way of checking that it's set
+            net(net),
+            record_tag(record_tag), 
+            is_reversed_in_parent (is_rev){};
+
+        //// Methods to look up and set the values to be cached
+        //Won't do anything if the values have already been found
+        void set_node_values() {
+            set_node_values = true;
+            if (prefix_sum == std::numeric_limits<size_t>::max() {
+                NodeRecord record(net, &snarl_tree_records);
+                prefix_sum = record.get_prefix_sum();
+                forward_loop = record.get_forward_loop();
+                reverse_loop = record.get_reverse_loop();
+                chain_component = record.get_chain_component();
+                is_reversed_in_parent = record.get_is_reversed_in_parent();
+            }
+        }
+        void set_rank_in_parent() {
+            if (rank_in_parent == std::numeric_limits<size_t>::max()) {
+                rank_in_parent = SnarlTreeRecord(net, &snarl_tree_records).get_rank_in_parent();
+            }
+        }
+        void set_minimum_length() {
+            if (minimum_length == std::numeric_limits<size_t>::max()) {
+                minimum_length = SnarlTreeRecord(net, &snarl_tree_records).get_minimum_length();
+            }
+        }
+        void set_parent() {
+            if (parent_record_offset == std::numeric_limits<size_t>::max()) {
+                parent_record_offset = SnarlTreeRecord(net, &snarl_tree_records).get_parent_record_offset();
+            }
+        }
+        void set_start_bound(net_handle_t start_bound, bool set_values_in_chain, size_t length = std::numeric_limits<size_t>::max()) {
+            start_bound_in = start_bound;
+            start_bound_length = length;
+            if (set_values_in_chain && prefix_sum == std::numeric_limits<size_t>::max()) {
+                NodeRecord record(start_bound_in, &snarl_tree_records);
+                prefix_sum = record.get_prefix_sum();
+                forward_loop = record.get_forward_loop();
+                reverse_loop = record.get_reverse_loop();
+                chain_component = record.get_chain_component();
+            }
+        }
+        void set_end_bound(net_handle_t end_bound, bool set_values_in_chain, size_t length = std::numeric_limits<size_t>::max()) {
+            end_bound_in = end_bound;
+            if (length != std::numeric_limits<size_t>::max()) {
+                end_bound_length = length;
+            }
+            if (set_values_in_chain && end_prefix_sum == std::numeric_limits<size_t>::max()) {
+                NodeRecord record(end_bound_in, &snarl_tree_records);
+                end_prefix_sum = record.get_prefix_sum();
+                end_forward_loop = record.get_forward_loop();
+                end_reverse_loop = record.get_reverse_loop();
+                end_chain_component = record.get_chain_component();
+            }
+        }
+
     };
 
 public:
@@ -316,6 +398,8 @@ public:
      * or if they are not children of the parent
      */
     size_t distance_in_parent(const net_handle_t& parent, const net_handle_t& child1, const net_handle_t& child2, const HandleGraph* graph=nullptr) const;
+    //The same thing but using cached values
+    size_t distance_in_parent(const CachedNetHandle& cached_parent, const CachedNetHandle& cached_child1, const CachedNetHandle& cached_child2, const HandleGraph* graph=nullptr) const;
     
     //Return true if child1 comes before child2 in the chain. 
     bool is_ordered_in_chain(const net_handle_t& child1, const net_handle_t& child2) const;
@@ -381,7 +465,8 @@ public:
     size_t get_depth(const net_handle_t& net) const;
 
     bool has_connectivity(const net_handle_t& net, endpoint_t start, endpoint_t end) const ;
-    bool has_external_connectivity(const net_handle_t& net, endpoint_t start, endpoint_t end) const ; 
+    //TODO: bool has_external_connectivity(const net_handle_t& net, endpoint_t start, endpoint_t end) const {return has_external_connectivity((*records)->at(get_record_offset(net)));} 
+    bool has_external_connectivity(const size_t tag, endpoint_t start, endpoint_t end) const ; 
 
 
     /**
@@ -695,6 +780,24 @@ public:
     }
 
 
+private:
+    /////////// Methods for interpreting the tags for each snarl tree record
+
+    const static record_t get_record_type(const size_t tag) const {return tag >> 9;}
+    const static bool is_start_start_connected(const size_t tag) {return tag & 32;}
+    const static bool is_start_end_connected(const size_t tag)   {return tag & 16;}
+    const static bool is_start_tip_connected(const size_t tag)   {return tag & 8;}
+    const static bool is_end_end_connected(const size_t tag)     {return tag & 4;}
+    const static bool is_end_tip_connected(const size_t tag)     {return tag & 2;}
+    const static bool is_tip_tip_connected(const size_t tag)     {return tag & 1;}
+
+    //And the external connectivity. This is only relevant for root-level structures
+    //since it would otherwise be captured by the containing snarl
+    const static bool is_externally_start_end_connected(const size_t tag) {return  & 64;}
+    const static bool is_externally_start_start_connected(const size_t tag) {return tag & 128;}
+    const static bool is_externally_end_end_connected(const size_t tag) {return tag & 256;}
+
+
     ////////////////////////////////  SnarlTreeRecord class for interpreting the records in a distance index
 
     //Define a struct for interpreting each type of snarl tree node record (For node, snarl, chain)
@@ -730,7 +833,7 @@ public:
 
         //What type of snarl tree node is this?
         //This will be the first value of any record
-        virtual record_t get_record_type() const {return static_cast<record_t>((*records)->at(record_offset) >> 9);}
+        virtual record_t get_record_type() const {return get_record_type(static_cast<record_t>((*records)->at(record_offset)));}
 
         //The name is a bit misleading, it is the handle type that the record thinks it is, 
         //not necessarily the record type of the net_handle_t that was used to produce it
@@ -751,22 +854,21 @@ public:
         }
 
         //Get the internal connectivity of the structure
-        virtual bool is_start_start_connected() const {return (*records)->at(record_offset) & 32;}
-        virtual bool is_start_end_connected() const {return (*records)->at(record_offset) & 16;}
-        virtual bool is_start_tip_connected() const {return (*records)->at(record_offset) & 8;}
-        virtual bool is_end_end_connected() const {return (*records)->at(record_offset) & 4;}
-        virtual bool is_end_tip_connected() const {return (*records)->at(record_offset) & 2;}
-        virtual bool is_tip_tip_connected() const {return (*records)->at(record_offset) & 1;}
+        virtual bool is_start_start_connected() const {return is_start_start_connected((*records)->at(record_offset));}
+        virtual bool is_start_end_connected() const {return is_start_end_connected((*records)->at(record_offset));}
+        virtual bool is_start_tip_connected() const {return is_start_tip_connected((*records)->at(record_offset));}
+        virtual bool is_end_end_connected() const {return is_end_end_connected((*records)->at(record_offset));}
+        virtual bool is_end_tip_connected() const {return is_end_tip_connected((*records)->at(record_offset));}
+        virtual bool is_tip_tip_connected() const {return is_tip_tip_connected((*records)->at(record_offset));}
 
         //And the external connectivity. This is only relevant for root-level structures
         //since it would otherwise be captured by the containing snarl
-        virtual bool is_externally_start_end_connected() const {return (*records)->at(record_offset) & 64;}
-        virtual bool is_externally_start_start_connected() const {return (*records)->at(record_offset) & 128;}
-        virtual bool is_externally_end_end_connected() const {return (*records)->at(record_offset) & 256;}
+        virtual bool is_externally_start_end_connected() const {return is_externally_start_end_connected((*records)->at(record_offset));}
+        virtual bool is_externally_start_start_connected() const {return is_externally_start_start_connected((*records)->at(record_offset));}
+        virtual bool is_externally_end_end_connected() const {return is_externally_end_end_connected((*records)->at(record_offset));}
 
         virtual bool has_connectivity(connectivity_t connectivity) const;
         virtual bool has_connectivity(endpoint_t start, endpoint_t end);
-        virtual bool has_external_connectivity(endpoint_t start, endpoint_t end);
 
         //Get and set a pointer to this node's parent, including its orientation
         //TODO: I don't think it matters if a chain is reversed or not, also it might not matter if a snarl is
@@ -1147,11 +1249,14 @@ public:
         virtual size_t get_depth() const;
 
         //Get the distance between the given node sides (relative to the orientation of the chain)
-        //Nodes represent a tuple of <pointer, right_side, and length of the node>
+        //The ranks are the offsets of the nodes in the chain (points to the record tag)
         //This is the distance between the node sides, leaving the first and entering the second,
         //not including node lengths
         //TODO: Double check finding the distance for the same node
-        virtual size_t get_distance(const net_handle_t& child1, const net_handle_t& child2) const;
+        virtual size_t get_distance(size_t rank1, bool right_side1, size_t node_length1, 
+                                    size_t prefix_sum1, size_t forward_loop1, size_t reverse_loop1, size_t component1,
+                                    size_t rank2, bool right_side2, size_t node_length2
+                                    size_t prefix_sum2, size_t forward_loop2, size_t reverse_loop2, size_t component2) const;
 
         ///For a chain that loops (when the start and end node are the same), find the 
         //distance walking around the back of the loop
