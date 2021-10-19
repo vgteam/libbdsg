@@ -645,9 +645,6 @@ size_t SnarlDistanceIndex::distance_in_parent(CachedNetHandle& cached_parent,
          << " and " << net_handle_as_string(cached_child2.net) 
          << endl << "\tin parent " << net_handle_as_string(cached_parent.net) << endl;
 #endif
-    cerr << "Find distance between " << net_handle_as_string(cached_child1.net) 
-         << " and " << net_handle_as_string(cached_child2.net) 
-         << endl << "\tin parent " << net_handle_as_string(cached_parent.net) << endl;
     const net_handle_t& child1 = cached_child1.net;
     const net_handle_t& child2 = cached_child2.net;
     const net_handle_t& parent = cached_parent.net;
@@ -662,13 +659,10 @@ size_t SnarlDistanceIndex::distance_in_parent(CachedNetHandle& cached_parent,
 
         if (parent_record_offset1 != parent_record_offset2) {
             //If the children are in different connected components
-            cerr << "Different connected components" << endl;
             return std::numeric_limits<size_t>::max();
         } else if (get_record_type(snarl_tree_records->at(parent_record_offset1)) != DISTANCED_ROOT_SNARL){
             //If they are in the same connected component, but it is not a root snarl
-            cerr << "Same connected component but not in a root snarl" << endl;
             if (get_record_offset(child1) == get_record_offset(child2)) {
-                cerr << "Checking connectivity" << endl; 
                 //If they are the same child of the root but not in a snarl, then check the external connectivity
                 if (ends_at(child1) == START && ends_at(child2) == START) {
                     return has_external_connectivity(cached_child1.record_tag, START, START) ? 0 : std::numeric_limits<size_t>::max();
@@ -693,16 +687,9 @@ size_t SnarlDistanceIndex::distance_in_parent(CachedNetHandle& cached_parent,
             SnarlRecord snarl_record(parent_record_offset1, &snarl_tree_records);
             cached_child1.set_rank(&snarl_tree_records);
             cached_child2.set_rank(&snarl_tree_records);
-            SnarlTreeRecord child_record1 (child1, &snarl_tree_records);
-            SnarlTreeRecord child_record2 (child2, &snarl_tree_records);
-            size_t rank1 = child_record1.get_rank_in_parent();
-            size_t rank2 = child_record2.get_rank_in_parent();
-            assert(rank1 == cached_child1.rank);
-            assert(rank2 == cached_child2.rank);
-            cerr << "Find distance in root snarl between ranks " << cached_child1.rank << " " << cached_child2.rank << endl;
 
-            return snarl_record.get_distance(rank1, ends_at(child1) == END, 
-                                             rank2, ends_at(child2) == END);
+            return snarl_record.get_distance(cached_child1.rank, ends_at(child1) == END, 
+                                             cached_child2.rank, ends_at(child2) == END);
         }
 
 
@@ -3014,8 +3001,10 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                         //or the snarl is too big but we are looking at the boundaries
 #ifdef debug_distance_indexing
                         assert(distance <= temp_snarl_record.max_distance);
+#endif
                         snarl_record_constructor.set_distance(node_ranks.first.first, node_ranks.first.second,
                             node_ranks.second.first, node_ranks.second.second, distance);
+#ifdef debug_distance_indexing
                         assert(snarl_record_constructor.get_distance(node_ranks.first.first, node_ranks.first.second,
                                 node_ranks.second.first, node_ranks.second.second) == distance);
 #endif

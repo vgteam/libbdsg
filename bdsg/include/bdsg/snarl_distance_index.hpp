@@ -126,7 +126,7 @@ public:
     //to avoid coming back to a record multiple times
     //Always had a net_handle_t and record tag, may also fill in optional fields which default to inf
     struct CachedNetHandle {
-        net_handle_t net;
+        const net_handle_t net;
         size_t record_tag;
 
         //Values associated with this net
@@ -161,10 +161,10 @@ public:
 
         
 
-        CachedNetHandle(const net_handle_t net_handle, size_t tag) {
+        CachedNetHandle(const net_handle_t net_handle, size_t tag): 
+            net(net_handle),
+            record_tag(tag) {
         //TODO: there's no reason to include is reversed other than that I don't have a good way of checking that it's set
-            net = net_handle;
-            record_tag=tag; 
         };
 
         //// Methods to look up and set the values to be cached
