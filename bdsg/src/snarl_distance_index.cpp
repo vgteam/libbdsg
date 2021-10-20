@@ -745,7 +745,6 @@ size_t SnarlDistanceIndex::distance_in_parent(CachedNetHandle& cached_parent,
                     set_cached_start_bound(cached_child, true, true); 
                     //And turn it into a node, since it will be a sentinel
                     net_handle_t start_bound = flip(get_node_from_sentinel(cached_child.start_bound_in));
-                    cerr << "\t\t\t actually looking at start boundary node " << net_handle_as_string(start_bound) << endl;
 
                     size_t start_length = get_cached_start_bound_length(cached_child);
                     chain_values = std::make_tuple(get_record_offset(start_bound), true, start_length,
@@ -759,7 +758,6 @@ size_t SnarlDistanceIndex::distance_in_parent(CachedNetHandle& cached_parent,
                     set_cached_end_bound(cached_child,  true, true); 
                     net_handle_t end_bound = flip(get_node_from_sentinel(cached_child.end_bound_in));
                     size_t end_length = get_cached_end_bound_length(cached_child);
-                    cerr << "\t\t\t actually looking at end boundary node " << net_handle_as_string(end_bound) << endl;
 
                     chain_values = std::make_tuple(get_record_offset(end_bound), false, end_length,
                                     cached_child.end_prefix_sum_val, cached_child.end_forward_loop_val, cached_child.end_reverse_loop_val,
