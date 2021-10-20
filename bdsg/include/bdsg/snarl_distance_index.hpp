@@ -126,7 +126,7 @@ public:
     //to avoid coming back to a record multiple times
     //Always had a net_handle_t and record tag, may also fill in optional fields which default to inf
     struct CachedNetHandle {
-        const net_handle_t net;
+        net_handle_t net;
         size_t record_tag;
 
         //Values associated with this net
@@ -164,21 +164,33 @@ public:
         CachedNetHandle(const net_handle_t net_handle, size_t tag): 
             net(net_handle),
             record_tag(tag) {
-        //TODO: there's no reason to include is reversed other than that I don't have a good way of checking that it's set
         };
 
-        //// Methods to look up and set the values to be cached
-        //Won't do anything if the values have already been found
-        void set_node_values(const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records);
-        void set_rank(const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records);
-        void set_min_length(const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records);
-        void set_parent(const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records);
-        void set_start_bound(const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,
-                net_handle_t start_bound, bool set_values_in_chain, size_t length = std::numeric_limits<size_t>::max());
-        void set_end_bound(const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,
-                net_handle_t end_bound, bool set_values_in_chain, size_t length = std::numeric_limits<size_t>::max());
-
     };
+
+    //Get the cached net handle of a bound of the parent
+    //only fills in values that the parent already knows
+    CachedNetHandle get_cached_bound(const CachedNetHandle& parent, bool get_start, 
+            const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records) const;
+    CachedNetHandle get_cached_net_handle(const net_handle_t net) const {
+        return CachedNetHandle(net, snarl_tree_records->at(get_record_offset(net)));
+    }
+
+    //// Methods to find/calculate up and set the values to be cached
+    //Won't do anything if the values have already been found
+    void set_cached_node_values(CachedNetHandle& cached_handle) const;
+    void set_cached_rank(CachedNetHandle& cached_handle) const;
+    void set_cached_min_length(CachedNetHandle& cached_handle) const;
+    void set_cached_parent_offset(CachedNetHandle& cached_handle) const;
+    void set_cached_start_bound(CachedNetHandle& cached_handle, bool set_values_in_chain, bool set_length) const;
+    void set_cached_end_bound(CachedNetHandle& cached_handle, bool set_values_in_chain, bool set_length) const;
+
+    //Methods to get cached values, and will set them if necessary
+    size_t get_cached_start_bound_length(CachedNetHandle& cached_handle) const;
+    size_t get_cached_end_bound_length(CachedNetHandle& cached_handle) const;
+    size_t get_cached_parent_offset(CachedNetHandle& cached_handle) const;
+    size_t get_cached_rank(CachedNetHandle& cached_handle) const;
+    size_t get_cached_min_length(CachedNetHandle& cached_handle) const;
 
 public:
 
@@ -359,7 +371,11 @@ public:
      */
     size_t distance_in_parent(const net_handle_t& parent, const net_handle_t& child1, const net_handle_t& child2, const HandleGraph* graph=nullptr) const;
     //The same thing but using cached values
-    size_t distance_in_parent(CachedNetHandle& cached_parent, CachedNetHandle& cached_child1, CachedNetHandle& cached_child2, const HandleGraph* graph=nullptr) const;
+    //go_left is true if we want to go the opposite direction of the net handles
+    //This is not great but better than copying the entire cached net handle I think
+    size_t distance_in_parent(CachedNetHandle& cached_parent, CachedNetHandle& cached_child1, bool go_left1, CachedNetHandle& cached_child2, bool go_left2, const HandleGraph* graph=nullptr) const;
+
+    size_t distance_to_parent_bound(CachedNetHandle& cached_parent, bool to_start, CachedNetHandle& child, bool go_left) const;
     
     //Return true if child1 comes before child2 in the chain. 
     bool is_ordered_in_chain(const net_handle_t& child1, const net_handle_t& child2) const;
@@ -646,9 +662,9 @@ public:
         return static_cast<connectivity_t>(connectivity_as_int);
     }
     const static net_handle_record_t get_handle_type (const handlegraph::net_handle_t& net_handle) {
-        size_t connectivity_as_int = handlegraph::as_integer(net_handle) & 7; //Get last 3 bits
-        assert (connectivity_as_int <= 4);
-        return static_cast<net_handle_record_t>(connectivity_as_int);
+        size_t record_type = handlegraph::as_integer(net_handle) & 7; //Get last 3 bits
+        assert (record_type <= 4);
+        return static_cast<net_handle_record_t>(record_type);
     }
 
     const static handlegraph::net_handle_t get_net_handle(size_t pointer, connectivity_t connectivity, net_handle_record_t type) {
