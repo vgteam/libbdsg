@@ -852,7 +852,7 @@ size_t SnarlDistanceIndex::distance_in_parent(CachedNetHandle& cached_parent,
     }
 }
 size_t SnarlDistanceIndex::distance_to_parent_bound(CachedNetHandle& cached_parent, bool to_start, CachedNetHandle& child, bool go_left) const {
-    CachedNetHandle parent_bound = get_cached_bound(cached_parent, to_start, &snarl_tree_records);
+    CachedNetHandle parent_bound = get_cached_bound(cached_parent, to_start);
     return distance_in_parent(cached_parent, parent_bound, false, child, go_left);
 }
 
@@ -3105,16 +3105,15 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
 }
 
 SnarlDistanceIndex::CachedNetHandle SnarlDistanceIndex::get_cached_bound(
-    const CachedNetHandle& parent, bool get_start, 
-    const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records) const {
+    const CachedNetHandle& parent, bool get_start) const {
     if (is_snarl(parent.net)) {
         //If we want the boundary of a snarl, then all we need is the net handle
         if (get_start && parent.contains_start_bound) {
-            return CachedNetHandle(parent.start_bound_in, parent.record_tag);
+            return get_cached_net_handle(parent.start_bound_in);
         } else if (!get_start && parent.contains_end_bound) {
-            return CachedNetHandle(parent.end_bound_in, parent.record_tag);
+            return get_cached_net_handle(parent.end_bound_in);
         } else {
-            return CachedNetHandle(get_bound(parent.net, !get_start, true), parent.record_tag);
+            return get_cached_net_handle(get_bound(parent.net, !get_start, true));
         }
     } else {
 #ifdef debug_distances
@@ -3122,35 +3121,40 @@ SnarlDistanceIndex::CachedNetHandle SnarlDistanceIndex::get_cached_bound(
 #endif
         if (get_start && parent.contains_start_bound) {
             //If we already know what the bound is, copy it over
-            CachedNetHandle bound (parent.start_bound_in, (*records)->at(get_record_offset(parent.start_bound_in)));
-            bound.prefix_sum_val = parent.prefix_sum_val;
-            bound.forward_loop_val = parent.forward_loop_val;
-            bound.reverse_loop_val = parent.reverse_loop_val;
-            bound.chain_component_val = parent.chain_component_val;
+            CachedNetHandle bound = get_cached_net_handle(parent.start_bound_in);
             bound.min_length = parent.start_bound_length;
-            bound.contains_node_values = bound.prefix_sum_val != std::numeric_limits<size_t>::max();
+            if (bound.contains_start_node_values) {
+                bound.prefix_sum_val = parent.prefix_sum_val;
+                bound.forward_loop_val = parent.forward_loop_val;
+                bound.reverse_loop_val = parent.reverse_loop_val;
+                bound.chain_component_val = parent.chain_component_val;
+                bound.is_reversed = parent.is_reversed;
+                bound.contains_node_values = true;
+            }
             return bound;
         } else if (! get_start && parent.contains_end_bound) {
             //And the same for the end bound
-            CachedNetHandle bound (parent.end_bound_in, (*records)->at(get_record_offset(parent.end_bound_in)));
-            bound.prefix_sum_val = parent.end_prefix_sum_val;
-            bound.forward_loop_val = parent.end_forward_loop_val;
-            bound.reverse_loop_val = parent.end_reverse_loop_val;
-            bound.chain_component_val = parent.end_chain_component_val;
+            CachedNetHandle bound = get_cached_net_handle(parent.end_bound_in);
             bound.min_length = parent.end_bound_length;
-            bound.contains_node_values = bound.prefix_sum_val != std::numeric_limits<size_t>::max();
+            if (bound.contains_end_node_values) {
+                bound.prefix_sum_val = parent.end_prefix_sum_val;
+                bound.forward_loop_val = parent.end_forward_loop_val;
+                bound.reverse_loop_val = parent.end_reverse_loop_val;
+                bound.chain_component_val = parent.end_chain_component_val;
+                bound.is_reversed = parent.end_is_reversed;
+                bound.contains_node_values = true;
+            }
             return bound;
         } else {
-            net_handle_t bound = get_bound(parent.net, !get_start, true);
-            return CachedNetHandle(bound, (*records)->at(get_record_offset(bound)));
+            return get_cached_net_handle( get_bound(parent.net, !get_start, true));
         }
     }
 }
 
 void SnarlDistanceIndex::set_cached_node_values(CachedNetHandle& cached_handle) const {
-    cached_handle.contains_node_values = true;
 
-    if (cached_handle.prefix_sum_val == std::numeric_limits<size_t>::max() ){
+    if (!cached_handle.contains_node_values){
+        cached_handle.contains_node_values = true;
         if (get_record_type(cached_handle.record_tag) == DISTANCED_NODE_CHAIN ||
             get_record_type(cached_handle.record_tag) == MULTICOMPONENT_NODE_CHAIN ) {
 
@@ -3193,9 +3197,10 @@ void SnarlDistanceIndex::set_cached_start_bound(CachedNetHandle& cached_handle, 
     if (set_length && cached_handle.start_bound_length == std::numeric_limits<size_t>::max()) {
         cached_handle.start_bound_length = node_length(cached_handle.start_bound_in);
     }
-    if (set_values_in_chain && cached_handle.prefix_sum_val == std::numeric_limits<size_t>::max()) {
+    if (set_values_in_chain && !cached_handle.contains_start_node_values) {
         if (SnarlTreeRecord(node_bound, &snarl_tree_records).get_record_type() == DISTANCED_NODE_CHAIN ||
             SnarlTreeRecord(node_bound, &snarl_tree_records).get_record_type() == MULTICOMPONENT_NODE_CHAIN ) {
+            cached_handle.contains_start_node_values = true;
             NodeRecord record(node_bound, &snarl_tree_records);
             cached_handle.prefix_sum_val = record.get_prefix_sum();
             cached_handle.forward_loop_val = record.get_forward_loop();
@@ -3216,9 +3221,10 @@ void SnarlDistanceIndex::set_cached_end_bound(CachedNetHandle& cached_handle, bo
     if (set_length && cached_handle.end_bound_length == std::numeric_limits<size_t>::max()) {
         cached_handle.end_bound_length = node_length(cached_handle.end_bound_in);
     }
-    if (set_values_in_chain && cached_handle.end_prefix_sum_val == std::numeric_limits<size_t>::max()) {
+    if (set_values_in_chain && !cached_handle.contains_end_node_values) {
         if (SnarlTreeRecord(node_bound, &snarl_tree_records).get_record_type() == DISTANCED_NODE_CHAIN ||
             SnarlTreeRecord(node_bound, &snarl_tree_records).get_record_type() == MULTICOMPONENT_NODE_CHAIN ) {
+            cached_handle.contains_end_node_values = true;
             NodeRecord record(node_bound, &snarl_tree_records);
             cached_handle.end_prefix_sum_val = record.get_prefix_sum();
             cached_handle.end_forward_loop_val = record.get_forward_loop();

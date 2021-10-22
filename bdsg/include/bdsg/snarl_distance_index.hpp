@@ -145,6 +145,7 @@ public:
 
         //This groups gets set for either a node, or for the start node of a snarl
         bool contains_node_values = false; //This is true if it is for a node
+        bool contains_start_node_values = false; //This is true for the start node
         bool is_reversed = false; //This is only set for a node 
         size_t prefix_sum_val = std::numeric_limits<size_t>::max();
         size_t forward_loop_val = std::numeric_limits<size_t>::max();
@@ -153,10 +154,12 @@ public:
 
 
         //This gets set for the end node of a snarl
+        bool contains_end_node_values = false;
         size_t end_prefix_sum_val = std::numeric_limits<size_t>::max();
         size_t end_forward_loop_val = std::numeric_limits<size_t>::max();
         size_t end_reverse_loop_val = std::numeric_limits<size_t>::max();
         size_t end_chain_component_val = std::numeric_limits<size_t>::max();
+        bool end_is_reversed;
 
 
         
@@ -170,8 +173,7 @@ public:
 
     //Get the cached net handle of a bound of the parent
     //only fills in values that the parent already knows
-    CachedNetHandle get_cached_bound(const CachedNetHandle& parent, bool get_start, 
-            const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records) const;
+    CachedNetHandle get_cached_bound(const CachedNetHandle& parent, bool get_start) const;
     CachedNetHandle get_cached_net_handle(const net_handle_t net) const {
         return CachedNetHandle(net, snarl_tree_records->at(get_record_offset(net)));
     }
