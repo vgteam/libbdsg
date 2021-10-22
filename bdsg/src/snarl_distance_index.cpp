@@ -3205,6 +3205,7 @@ void SnarlDistanceIndex::set_cached_start_bound(CachedNetHandle& cached_handle, 
             cached_handle.prefix_sum_val = record.get_prefix_sum();
             cached_handle.forward_loop_val = record.get_forward_loop();
             cached_handle.reverse_loop_val = record.get_reverse_loop();
+            cached_handle.is_reversed = record.get_is_reversed_in_parent();
             if (record.get_record_type() == MULTICOMPONENT_NODE_CHAIN ) {
                 cached_handle.chain_component_val = record.get_chain_component();
             }
@@ -3229,6 +3230,7 @@ void SnarlDistanceIndex::set_cached_end_bound(CachedNetHandle& cached_handle, bo
             cached_handle.end_prefix_sum_val = record.get_prefix_sum();
             cached_handle.end_forward_loop_val = record.get_forward_loop();
             cached_handle.end_reverse_loop_val = record.get_reverse_loop();
+            cached_handle.end_is_reversed = record.get_is_reversed_in_parent();
             if (record.get_record_type() == MULTICOMPONENT_NODE_CHAIN ) {
 
                 cached_handle.end_chain_component_val = record.get_chain_component();
