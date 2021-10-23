@@ -777,6 +777,9 @@ size_t SnarlDistanceIndex::distance_in_parent(CachedNetHandle& cached_parent,
                 //If the snarls are adjacent (and not the same snarl)
             return std::get<2>(chain_values1);//return the node length
         }
+        //True if this is a looping chain, false if it is not, and NULL if we don't know
+        bool is_looping_chain = (!cached_parent.contains_start_bound && !cached_parent.contains_end_bound) ? NULL
+                              : get_record_offset(cached_parent.start_bound_in) == get_record_offset(cached_parent.end_bound_in);
             
         return sum({chain_record.get_distance(std::get<0>(chain_values1), std::get<1>(chain_values1),
                                               std::get<2>(chain_values1), std::get<3>(chain_values1),
@@ -785,7 +788,7 @@ size_t SnarlDistanceIndex::distance_in_parent(CachedNetHandle& cached_parent,
                                               std::get<0>(chain_values2), std::get<1>(chain_values2),
                                               std::get<2>(chain_values2), std::get<3>(chain_values2),
                                               std::get<4>(chain_values2), std::get<5>(chain_values2),
-                                              std::get<6>(chain_values2)),
+                                              std::get<6>(chain_values2), is_looping_chain),
                     node_lengths_to_add});
 
     } else if (is_snarl(parent)) {
@@ -2091,7 +2094,7 @@ bool SnarlDistanceIndex::ChainRecord::get_is_looping_chain_connected_backwards()
 size_t SnarlDistanceIndex::ChainRecord::get_distance(size_t rank1, bool left_side1, size_t node_length1, 
     size_t prefix_sum1, size_t forward_loop1, size_t reverse_loop1, size_t component1,
     size_t rank2, bool left_side2, size_t node_length2,
-    size_t prefix_sum2, size_t forward_loop2, size_t reverse_loop2, size_t component2) const { 
+    size_t prefix_sum2, size_t forward_loop2, size_t reverse_loop2, size_t component2, bool check_loop) const { 
 
     //If 1 comes after 2, swap them
     if (rank1 > rank2) {
@@ -2102,10 +2105,14 @@ size_t SnarlDistanceIndex::ChainRecord::get_distance(size_t rank1, bool left_sid
         rank2 = tmp_rank; left_side2 = tmp_side; node_length2 = tmp_len;
         prefix_sum2 = tmp_pre; forward_loop2 = tmp_fd; reverse_loop2 = tmp_rev; component2 = tmp_comp;
     } 
-    bool is_looping_chain = get_start_id() == get_end_id();
+    bool is_looping_chain = check_loop == NULL ? get_start_id() == get_end_id() : check_loop;
+#ifdef debug_distances
     if (get_record_handle_type() == NODE_HANDLE) {
         throw runtime_error("error: Trying to get chain distances from a node");
-    } else if (get_record_type() == MULTICOMPONENT_CHAIN) {
+    }
+#endif
+
+    if (get_record_type() == MULTICOMPONENT_CHAIN) {
         if (component1 != component2) {
             if (is_looping_chain) {
                 //If this is a looping chain, then the first/last node could be in two

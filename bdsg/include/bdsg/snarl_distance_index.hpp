@@ -1230,11 +1230,12 @@ private:
         //The ranks are the offsets of the nodes in the chain (points to the record tag)
         //This is the distance between the node sides, leaving the first and entering the second,
         //not including node lengths
+        //check_loop is set if we know whether the chain is a looping chain
         //TODO: Double check finding the distance for the same node
         virtual size_t get_distance(size_t rank1, bool right_side1, size_t node_length1, 
                                     size_t prefix_sum1, size_t forward_loop1, size_t reverse_loop1, size_t component1,
                                     size_t rank2, bool right_side2, size_t node_length2,
-                                    size_t prefix_sum2, size_t forward_loop2, size_t reverse_loop2, size_t component2) const;
+                                    size_t prefix_sum2, size_t forward_loop2, size_t reverse_loop2, size_t component2, bool check_loop = NULL) const;
 
         ///For a chain that loops (when the start and end node are the same), find the 
         //distance walking around the back of the loop
