@@ -3131,7 +3131,7 @@ SnarlDistanceIndex::CachedNetHandle SnarlDistanceIndex::get_cached_bound(
             //If we already know what the bound is, copy it over
             CachedNetHandle bound = get_cached_net_handle(parent.start_bound_in, parent.start_bound_tag);
             bound.min_length = parent.start_bound_length;
-            if (parent.contains_start_node_values) {
+            if (bound.contains_start_node_values) {
                 bound.prefix_sum_val = parent.prefix_sum_val;
                 bound.forward_loop_val = parent.forward_loop_val;
                 bound.reverse_loop_val = parent.reverse_loop_val;
@@ -3144,7 +3144,7 @@ SnarlDistanceIndex::CachedNetHandle SnarlDistanceIndex::get_cached_bound(
             //And the same for the end bound
             CachedNetHandle bound = get_cached_net_handle(parent.end_bound_in, parent.end_bound_tag);
             bound.min_length = parent.end_bound_length;
-            if (parent.contains_end_node_values) {
+            if (bound.contains_end_node_values) {
                 bound.prefix_sum_val = parent.end_prefix_sum_val;
                 bound.forward_loop_val = parent.end_forward_loop_val;
                 bound.reverse_loop_val = parent.end_reverse_loop_val;
