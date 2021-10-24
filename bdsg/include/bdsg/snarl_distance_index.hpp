@@ -138,9 +138,11 @@ public:
         //These will always be nodes, even for a snarl (instead of sentinels)
         bool contains_start_bound=false;
         net_handle_t start_bound_in;
+        size_t start_bound_tag = std::numeric_limits<size_t>::max();
         size_t start_bound_length = std::numeric_limits<size_t>::max();
         bool contains_end_bound=false;
         net_handle_t end_bound_in;
+        size_t end_bound_tag = std::numeric_limits<size_t>::max();
         size_t end_bound_length = std::numeric_limits<size_t>::max();
 
         //This groups gets set for either a node, or for the start node of a snarl
@@ -176,6 +178,9 @@ public:
     CachedNetHandle get_cached_bound(const CachedNetHandle& parent, bool get_start) const;
     CachedNetHandle get_cached_net_handle(const net_handle_t net) const {
         return CachedNetHandle(net, snarl_tree_records->at(get_record_offset(net)));
+    }
+    CachedNetHandle get_cached_net_handle(const net_handle_t net, size_t tag) const {
+        return CachedNetHandle(net, tag);
     }
 
     //// Methods to find/calculate up and set the values to be cached
@@ -1230,12 +1235,14 @@ private:
         //The ranks are the offsets of the nodes in the chain (points to the record tag)
         //This is the distance between the node sides, leaving the first and entering the second,
         //not including node lengths
-        //check_loop is set if we know whether the chain is a looping chain
+        //checked_loop is true if we checked that there was a loop and false otherwise
+        //If checked_loop is true, then is_looping_chain indicates whether this chain loops
         //TODO: Double check finding the distance for the same node
         virtual size_t get_distance(size_t rank1, bool right_side1, size_t node_length1, 
                                     size_t prefix_sum1, size_t forward_loop1, size_t reverse_loop1, size_t component1,
                                     size_t rank2, bool right_side2, size_t node_length2,
-                                    size_t prefix_sum2, size_t forward_loop2, size_t reverse_loop2, size_t component2, bool check_loop = NULL) const;
+                                    size_t prefix_sum2, size_t forward_loop2, size_t reverse_loop2, size_t component2, 
+                                    bool checked_loop = false, bool is_looping_chain = false) const;
 
         ///For a chain that loops (when the start and end node are the same), find the 
         //distance walking around the back of the loop
