@@ -780,9 +780,10 @@ size_t SnarlDistanceIndex::distance_in_parent(CachedNetHandle& cached_parent,
             return std::get<2>(chain_values1);//return the node length
         }
         //True if we checked tha there is a loop
-        bool checked_looping_chain = !cached_parent.contains_start_bound && !cached_parent.contains_end_bound;
-        bool is_looping_chain = checked_looping_chain ? false 
-                              : get_record_offset(cached_parent.start_bound_in) == get_record_offset(cached_parent.end_bound_in);
+        bool checked_looping_chain = cached_parent.contains_start_bound && cached_parent.contains_end_bound;
+        bool is_looping_chain = checked_looping_chain 
+                              ?  get_record_offset(cached_parent.start_bound_in) == get_record_offset(cached_parent.end_bound_in)
+                              : false;
             
         return sum({chain_record.get_distance(std::get<0>(chain_values1), std::get<1>(chain_values1),
                                               std::get<2>(chain_values1), std::get<3>(chain_values1),
