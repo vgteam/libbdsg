@@ -699,13 +699,13 @@ size_t SnarlDistanceIndex::distance_in_parent(CachedNetHandle& cached_parent,
 
 
     } else if (is_chain(parent)) {
-        ChainRecord chain_record(parent, &snarl_tree_records);
+        ChainRecord chain_record(parent, &snarl_tree_records, cached_parent.record_tag);
 #ifdef debug_distances
         assert(is_node(child1) || is_snarl(child1));
         assert(is_node(child2) || is_snarl(child2));
 #endif
 
-        if (is_trivial_chain(parent)) {
+        if (get_record_handle_type(get_record_type(cached_parent.record_tag)) == NODE_HANDLE) {
             return std::numeric_limits<size_t>::max();
         }
         //TODO: This is awful
@@ -726,7 +726,9 @@ size_t SnarlDistanceIndex::distance_in_parent(CachedNetHandle& cached_parent,
             tuple<size_t, bool, size_t, size_t, size_t, size_t, size_t>& chain_values = i==0 ? chain_values1 : chain_values2;
 
             if (is_node(net)) {
-                set_cached_node_values(cached_child);
+                if (!cached_child.contains_node_values) {
+                    set_cached_node_values(cached_child);
+                }
 
                 bool go_left = cached_child.is_reversed;
                 if (ends_at(net) == START){

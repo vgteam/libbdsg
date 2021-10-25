@@ -177,7 +177,8 @@ public:
     //only fills in values that the parent already knows
     CachedNetHandle get_cached_bound(const CachedNetHandle& parent, bool get_start) const;
     CachedNetHandle get_cached_net_handle(const net_handle_t net) const {
-        return CachedNetHandle(net, snarl_tree_records->at(get_record_offset(net)));
+        return CachedNetHandle(net, 
+            snarl_tree_records->at(get_record_offset(net)));
     }
     CachedNetHandle get_cached_net_handle(const net_handle_t net, size_t tag) const {
         return CachedNetHandle(net, tag);
