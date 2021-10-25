@@ -905,21 +905,25 @@ private:
             records = tree_records;
 
             record_t type = get_record_type();
+#ifdef debug_distance_index
             assert(type == ROOT || type == NODE || type == DISTANCED_NODE ||
                     type == NODE_CHAIN || type == DISTANCED_NODE_CHAIN || type == MULTICOMPONENT_NODE_CHAIN || 
                     type == SNARL || type == DISTANCED_SNARL || type == OVERSIZED_SNARL || 
                     type == ROOT_SNARL || type == DISTANCED_ROOT_SNARL || type == CHAIN || 
                     type == DISTANCED_CHAIN || type == MULTICOMPONENT_CHAIN);
+#endif
         }
         SnarlTreeRecordConstructor (const net_handle_t& net, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records){
             record_offset = get_record_offset(net);
             records = tree_records;
             record_t type = get_record_type();
+#ifdef debug_distance_index
             assert(type == ROOT || type == NODE || type == DISTANCED_NODE ||  
                     type == NODE_CHAIN || type == DISTANCED_NODE_CHAIN || type == MULTICOMPONENT_NODE_CHAIN || 
                     type == SNARL || type == DISTANCED_SNARL || type == OVERSIZED_SNARL || 
                     type == ROOT_SNARL || type == DISTANCED_ROOT_SNARL || type == CHAIN || 
                     type == DISTANCED_CHAIN || type == MULTICOMPONENT_CHAIN);
+#endif
         }
         //What type of snarl tree node is this?
         //This will be the first value of any record
@@ -952,12 +956,16 @@ private:
         RootRecord (size_t pointer, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records){
             record_offset = pointer;
             records = tree_records;
+#ifdef debug_distance_index
             assert(get_record_type() == ROOT);
+#endif
         }
         RootRecord (net_handle_t net, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records){
             record_offset = get_record_offset(net);
             records = tree_records;
+#ifdef debug_distance_index
             assert(get_record_type() == ROOT);
+#endif
         }
         virtual size_t get_connected_component_count() const {return (*records)->at(record_offset+COMPONENT_COUNT_OFFSET);}
         virtual size_t get_node_count() const {return (*records)->at(record_offset+NODE_COUNT_OFFSET);}
@@ -1009,18 +1017,22 @@ private:
             record_offset = pointer;
             records = tree_records;
 
+#ifdef debug_distance_index
             assert(get_record_type() == NODE || get_record_type() == DISTANCED_NODE || get_record_type() == NODE_CHAIN ||
                    get_record_type() == DISTANCED_NODE_CHAIN || get_record_type() == MULTICOMPONENT_NODE_CHAIN);
+#endif
         }
         NodeRecord (net_handle_t net, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records){
             records = tree_records;
             record_offset = get_record_offset(net);
 
+#ifdef debug_distance_index
             assert(get_handle_type(net) == NODE_HANDLE || get_handle_type(net) == CHAIN_HANDLE);
             assert(get_record_type() == NODE || get_record_type() == DISTANCED_NODE || get_record_type() == NODE_CHAIN ||
                    get_record_type() == DISTANCED_NODE_CHAIN || get_record_type() == MULTICOMPONENT_NODE_CHAIN);
             assert(get_connectivity(net) == START_END || get_connectivity(net) == END_START
                   || get_connectivity(net) == START_START || get_connectivity(net) == END_END);
+#endif
         }
 
         virtual handlegraph::nid_t get_node_id() const;
@@ -1092,15 +1104,19 @@ private:
             record_offset = pointer;
             records = tree_records;
             record_t type = get_record_type();
+#ifdef debug_distance_index
             assert(type == SNARL || type == DISTANCED_SNARL || type == OVERSIZED_SNARL || type == ROOT_SNARL
                 || type == ROOT_SNARL || type == DISTANCED_ROOT_SNARL);
+#endif
         }
 
         SnarlRecord (net_handle_t net, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records){
             record_offset = get_record_offset(net);
             records = tree_records;
             net_handle_record_t type = get_handle_type(net);
+#ifdef debug_distance_index
             assert(type == SNARL_HANDLE || type == SENTINEL_HANDLE || type == ROOT_HANDLE);
+#endif
         }
 
         //How big is the entire snarl record?
@@ -1201,9 +1217,13 @@ private:
                 net_handle_record_t parent_type = SnarlTreeRecord(
                     NodeRecord(pointer, records).get_parent_record_offset(), records
                 ).get_record_handle_type();
+#ifdef debug_distance_index
                 assert(parent_type == ROOT_HANDLE || parent_type == SNARL_HANDLE);
+#endif
             } else {
+#ifdef debug_distance_index
                 assert(get_record_handle_type() == CHAIN_HANDLE);
+#endif
             }
         }
         ChainRecord (net_handle_t net, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records){
@@ -1215,9 +1235,13 @@ private:
                 net_handle_record_t parent_type = SnarlTreeRecord(
                     NodeRecord(record_offset, records).get_parent_record_offset(), records
                 ).get_record_handle_type();
+#ifdef debug_distance_index
                 assert(parent_type == ROOT_HANDLE || parent_type == SNARL_HANDLE);
+#endif
             } else {
+#ifdef debug_distance_index
                 assert(get_record_handle_type() == CHAIN_HANDLE);
+#endif
             }
         }
 
@@ -1283,9 +1307,11 @@ private:
         //TODO: I don't think I even need node count
         ChainRecordConstructor() {}
         ChainRecordConstructor (size_t pointer, record_t type, size_t node_count, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records){
+#ifdef debug_distance_index
             assert(type == CHAIN || 
                    type == DISTANCED_CHAIN ||
                    type == MULTICOMPONENT_CHAIN);
+#endif
             record_offset = pointer;
             records = records;
             SnarlTreeRecordConstructor::record_offset = pointer;
