@@ -631,7 +631,20 @@ private:
     //Type of a net_handle_t. This is to allow a node record to be seen as a chain from the 
     //perspective of a handle
     enum net_handle_record_t {ROOT_HANDLE=0, NODE_HANDLE, SNARL_HANDLE, CHAIN_HANDLE, SENTINEL_HANDLE};
-
+    const static net_handle_record_t get_record_handle_type(record_t type) {
+        //TODO: I"m not sure if a root snarl should be a root or a snarl
+        if (type == ROOT || type == ROOT_SNARL || type == DISTANCED_ROOT_SNARL) {
+            return ROOT_HANDLE;
+        } else if (type == NODE || type == DISTANCED_NODE || type == NODE_CHAIN || type == DISTANCED_NODE_CHAIN || type == MULTICOMPONENT_NODE_CHAIN) {
+            return NODE_HANDLE;
+        } else if (type == SNARL || type == DISTANCED_SNARL || type ==  SIMPLE_SNARL ||type ==  OVERSIZED_SNARL){
+            return SNARL_HANDLE;
+        } else if (type == CHAIN || type == DISTANCED_CHAIN || type == MULTICOMPONENT_CHAIN) {
+            return CHAIN_HANDLE;
+        } else {
+            throw runtime_error("error: trying to get the handle type of a list of children");
+        }
+    }
 private:
     /*Give each of the enum types a name for debugging */
     vector<std::string> record_t_as_string = {"ROOT", "NODE", "DISTANCED_NODE", 
@@ -819,22 +832,11 @@ private:
         virtual record_t get_record_type() const {return SnarlDistanceIndex::get_record_type((*records)->at(record_offset));}
 
         //The name is a bit misleading, it is the handle type that the record thinks it is, 
-        //not necessarily the record type of the net_handle_t that was used to produce it
+        //not necessarily the record type of the net_handle_t that was used to produce itused to produce it
         virtual net_handle_record_t get_record_handle_type() const {
-            record_t type= get_record_type();
-            //TODO: I"m not sure if a root snarl should be a root or a snarl
-            if (type == ROOT || type == ROOT_SNARL || type == DISTANCED_ROOT_SNARL) {
-                return ROOT_HANDLE;
-            } else if (type == NODE || type == DISTANCED_NODE || type == NODE_CHAIN || type == DISTANCED_NODE_CHAIN || type == MULTICOMPONENT_NODE_CHAIN) {
-                return NODE_HANDLE;
-            } else if (type == SNARL || type == DISTANCED_SNARL || type ==  SIMPLE_SNARL ||type ==  OVERSIZED_SNARL){
-                return SNARL_HANDLE;
-            } else if (type == CHAIN || type == DISTANCED_CHAIN || type == MULTICOMPONENT_CHAIN) {
-                return CHAIN_HANDLE;
-            } else {
-                throw runtime_error("error: trying to get the handle type of a list of children");
-            }
+            return SnarlDistanceIndex::get_record_handle_type( get_record_type());
         }
+
 
         //Get the internal connectivity of the structure
         virtual bool is_start_start_connected() const {return SnarlDistanceIndex::is_start_start_connected((*records)->at(record_offset));}
@@ -1231,18 +1233,32 @@ private:
             records = tree_records;
 
             net_handle_record_t record_type = get_record_handle_type();
+#ifdef debug_distance_index
             if (record_type == NODE_HANDLE) {
                 net_handle_record_t parent_type = SnarlTreeRecord(
                     NodeRecord(record_offset, records).get_parent_record_offset(), records
                 ).get_record_handle_type();
-#ifdef debug_distance_index
                 assert(parent_type == ROOT_HANDLE || parent_type == SNARL_HANDLE);
-#endif
             } else {
-#ifdef debug_distance_index
                 assert(get_record_handle_type() == CHAIN_HANDLE);
-#endif
             }
+#endif
+        }
+        ChainRecord (net_handle_t net, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records, size_t tag){
+            record_offset = get_record_offset(net);
+            records = tree_records;
+
+            net_handle_record_t record_type= SnarlDistanceIndex::get_record_handle_type(SnarlDistanceIndex::get_record_type(tag));
+#ifdef debug_distance_index
+            if (record_type == NODE_HANDLE) {
+                net_handle_record_t parent_type = SnarlTreeRecord(
+                    NodeRecord(record_offset, records).get_parent_record_offset(), records
+                ).get_record_handle_type();
+                assert(parent_type == ROOT_HANDLE || parent_type == SNARL_HANDLE);
+            } else {
+                assert(get_record_handle_type() == CHAIN_HANDLE);
+            }
+#endif
         }
 
         virtual size_t get_node_count() const;
