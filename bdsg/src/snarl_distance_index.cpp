@@ -3140,6 +3140,7 @@ SnarlDistanceIndex::CachedNetHandle SnarlDistanceIndex::get_cached_bound(
                 bound.reverse_loop_val = parent.reverse_loop_val;
                 bound.chain_component_val = parent.chain_component_val;
                 bound.is_reversed = parent.is_reversed;
+                bound.rank = parent.start_rank;
                 bound.contains_node_values = true;
             }
             return bound;
@@ -3153,6 +3154,7 @@ SnarlDistanceIndex::CachedNetHandle SnarlDistanceIndex::get_cached_bound(
                 bound.reverse_loop_val = parent.end_reverse_loop_val;
                 bound.chain_component_val = parent.end_chain_component_val;
                 bound.is_reversed = parent.end_is_reversed;
+                bound.rank = parent.end_rank;
                 bound.contains_node_values = true;
             }
             return bound;
@@ -3218,6 +3220,7 @@ void SnarlDistanceIndex::set_cached_start_bound(CachedNetHandle& cached_handle, 
             cached_handle.forward_loop_val = record.get_forward_loop();
             cached_handle.reverse_loop_val = record.get_reverse_loop();
             cached_handle.is_reversed = record.get_is_reversed_in_parent();
+            cached_handle.start_rank = record.get_rank_in_parent();
             if (record.get_record_type() == MULTICOMPONENT_NODE_CHAIN ) {
                 cached_handle.chain_component_val = record.get_chain_component();
             }
@@ -3244,6 +3247,7 @@ void SnarlDistanceIndex::set_cached_end_bound(CachedNetHandle& cached_handle, bo
             cached_handle.end_forward_loop_val = record.get_forward_loop();
             cached_handle.end_reverse_loop_val = record.get_reverse_loop();
             cached_handle.end_is_reversed = record.get_is_reversed_in_parent();
+            cached_handle.end_rank = record.get_rank_in_parent();
             if (record.get_record_type() == MULTICOMPONENT_NODE_CHAIN ) {
 
                 cached_handle.end_chain_component_val = record.get_chain_component();

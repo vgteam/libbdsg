@@ -153,6 +153,7 @@ public:
         size_t forward_loop_val = std::numeric_limits<size_t>::max();
         size_t reverse_loop_val = std::numeric_limits<size_t>::max();
         size_t chain_component_val = std::numeric_limits<size_t>::max();
+        size_t start_rank = std::numeric_limits<size_t>::max();
 
 
         //This gets set for the end node of a snarl
@@ -161,6 +162,7 @@ public:
         size_t end_forward_loop_val = std::numeric_limits<size_t>::max();
         size_t end_reverse_loop_val = std::numeric_limits<size_t>::max();
         size_t end_chain_component_val = std::numeric_limits<size_t>::max();
+        size_t end_rank = std::numeric_limits<size_t>::max();
         bool end_is_reversed;
 
 
