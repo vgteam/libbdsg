@@ -1738,8 +1738,7 @@ size_t SnarlDistanceIndex::SnarlRecord::distance_vector_size(record_t type, size
 }
 
 size_t SnarlDistanceIndex::SnarlRecord::record_size (record_t type, size_t node_count, size_t distance_values_per_vector_element, size_t snarl_tree_record_bit_width) {
-    //TODO: I don't think this should include the extra node_count?
-    return SNARL_RECORD_SIZE + distance_vector_size(type, node_count, distance_values_per_vector_element, snarl_tree_record_bit_width) + node_count;
+    return SNARL_RECORD_SIZE + distance_vector_size(type, node_count, distance_values_per_vector_element, snarl_tree_record_bit_width);
 }
 size_t SnarlDistanceIndex::SnarlRecord::record_size() {
     record_t type = get_record_type();
