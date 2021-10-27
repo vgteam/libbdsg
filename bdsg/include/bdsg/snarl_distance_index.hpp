@@ -577,7 +577,7 @@ private:
     const static size_t CHAIN_MAX_LENGTH_OFFSET = 4;
     const static size_t CHAIN_RANK_OFFSET = 5;
     const static size_t CHAIN_START_NODE_OFFSET = 6;
-    const static size_t CHAIN_END_NODE_OFFSET = 7;
+    const static size_t CHAIN_END_NODE_OFFSET = 7; //TODO Don't really need this , could get it from start node or last child
     const static size_t CHAIN_LAST_CHILD_OFFSET = 8; //The offset of the last thing in the chain - node or (if looping chain) snarl
     const static size_t CHAIN_DEPTH_OFFSET = 9;
 
@@ -1009,7 +1009,7 @@ private:
             set_max_tree_depth(max_tree_depth);
             set_connected_component_count(connected_component_count);
 #ifdef count_allocations
-            cerr << "root\t" <<  (ROOT_RECORD_SIZE + connected_component_count + node_count) << "\t" << (*records)->size() << endl;
+            cerr << "new_root\t" <<  (ROOT_RECORD_SIZE + connected_component_count + node_count) << "\t" << (*records)->size() << endl;
 #endif
         }
         virtual void set_connected_component_count(size_t connected_component_count);
@@ -1077,17 +1077,17 @@ private:
             if (type == NODE || type == DISTANCED_NODE) {
                 (*records)->resize((*records)->size() + NODE_RECORD_SIZE); 
 #ifdef count_allocations
-                cerr << "node\t" <<  NODE_RECORD_SIZE << "\t" << (*records)->size() << endl;
+                cerr << "new_node\t" <<  NODE_RECORD_SIZE << "\t" << (*records)->size() << endl;
 #endif
             } else if (type == NODE_CHAIN || type == DISTANCED_NODE_CHAIN) {
                 (*records)->resize((*records)->size() + NODE_CHAIN_RECORD_SIZE); 
 #ifdef count_allocations
-                cerr << "node\t" <<  NODE_CHAIN_RECORD_SIZE << "\t" << (*records)->size() << endl;
+                cerr << "new_node\t" <<  NODE_CHAIN_RECORD_SIZE << "\t" << (*records)->size() << endl;
 #endif
             } else if (type == MULTICOMPONENT_NODE_CHAIN) {
                 (*records)->resize((*records)->size() + NODE_MULTICOMPONENT_RECORD_SIZE); 
 #ifdef count_allocations
-                cerr << "node\t" << NODE_MULTICOMPONENT_RECORD_SIZE << "\t" << (*records)->size() << endl;
+                cerr << "new_node\t" << NODE_MULTICOMPONENT_RECORD_SIZE << "\t" << (*records)->size() << endl;
 #endif
             }
 
@@ -1203,7 +1203,7 @@ private:
             set_node_count(node_count);
             set_record_type(type);
 #ifdef count_allocations
-            cerr << "snarl\t" << extra_size << "\t" << (*records)->size() << endl;
+            cerr << "new_snarl\t" << extra_size << "\t" << (*records)->size() << endl;
 #endif
         }
         SnarlRecordConstructor(bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, size_t pointer) {
@@ -1360,7 +1360,7 @@ private:
             set_node_count(node_count);
             set_record_type(type);
 #ifdef count_allocations
-            cerr << "chain\t" << CHAIN_RECORD_SIZE << "\t" << (*records)->size() << endl;
+            cerr << "new_chain\t" << CHAIN_RECORD_SIZE << "\t" << (*records)->size() << endl;
 #endif
         }
 
