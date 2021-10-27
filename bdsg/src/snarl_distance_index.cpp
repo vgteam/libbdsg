@@ -2480,7 +2480,7 @@ void SnarlDistanceIndex::ChainRecordConstructor::finish_chain(){
     (*records)->at(start_i) = 0;
     (*records)->at(start_i+1) = 0;
 #ifdef count_allocations
-    cerr << "chain\t1\t" <<  (*records)->size() << endl;
+    cerr << "chain\t2\t" <<  (*records)->size() << endl;
 #endif
 }
 string SnarlDistanceIndex::net_handle_as_string(const net_handle_t& net) const {
