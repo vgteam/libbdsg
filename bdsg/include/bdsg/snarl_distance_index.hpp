@@ -1,7 +1,8 @@
 #ifndef BDSG_SNARL_DISTANCE_HPP_INCLUDED
 #define BDSG_SNARL_DISTANCE_HPP_INCLUDED
 
-//#define debug_distance_index
+//#define debug_distance_indexing
+#define count_allocations
 
 #include <handlegraph/snarl_decomposition.hpp>
 #include <handlegraph/algorithms/dijkstra.hpp>
@@ -910,7 +911,7 @@ private:
             records = tree_records;
 
             record_t type = get_record_type();
-#ifdef debug_distance_index
+#ifdef debug_distance_indexing
             assert(type == ROOT || type == NODE || type == DISTANCED_NODE ||
                     type == NODE_CHAIN || type == DISTANCED_NODE_CHAIN || type == MULTICOMPONENT_NODE_CHAIN || 
                     type == SNARL || type == DISTANCED_SNARL || type == OVERSIZED_SNARL || 
@@ -922,7 +923,7 @@ private:
             record_offset = get_record_offset(net);
             records = tree_records;
             record_t type = get_record_type();
-#ifdef debug_distance_index
+#ifdef debug_distance_indexing
             assert(type == ROOT || type == NODE || type == DISTANCED_NODE ||  
                     type == NODE_CHAIN || type == DISTANCED_NODE_CHAIN || type == MULTICOMPONENT_NODE_CHAIN || 
                     type == SNARL || type == DISTANCED_SNARL || type == OVERSIZED_SNARL || 
@@ -961,14 +962,14 @@ private:
         RootRecord (size_t pointer, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records){
             record_offset = pointer;
             records = tree_records;
-#ifdef debug_distance_index
+#ifdef debug_distance_indexing
             assert(get_record_type() == ROOT);
 #endif
         }
         RootRecord (net_handle_t net, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records){
             record_offset = get_record_offset(net);
             records = tree_records;
-#ifdef debug_distance_index
+#ifdef debug_distance_indexing
             assert(get_record_type() == ROOT);
 #endif
         }
@@ -997,7 +998,7 @@ private:
             RootRecord::record_offset = pointer;
             RootRecord::records = records;
             //Allocate memory for the root vector and for all of the nodes
-#ifdef debug_distance_index
+#ifdef debug_distance_indexing
             cerr << " Resizing array to add root: length " << (*records)->size() << " -> " 
                  << (*records)->size() + ROOT_RECORD_SIZE + connected_component_count + node_count << endl;
 #endif
@@ -1007,6 +1008,9 @@ private:
             set_node_count(node_count);
             set_max_tree_depth(max_tree_depth);
             set_connected_component_count(connected_component_count);
+#ifdef count_allocations
+            cerr << "root\t" <<  (ROOT_RECORD_SIZE + connected_component_count + node_count) << "\t" << (*records)->size() << endl;
+#endif
         }
         virtual void set_connected_component_count(size_t connected_component_count);
         virtual void set_node_count(size_t node_count);
@@ -1022,7 +1026,7 @@ private:
             record_offset = pointer;
             records = tree_records;
 
-#ifdef debug_distance_index
+#ifdef debug_distance_indexing
             assert(get_record_type() == NODE || get_record_type() == DISTANCED_NODE || get_record_type() == NODE_CHAIN ||
                    get_record_type() == DISTANCED_NODE_CHAIN || get_record_type() == MULTICOMPONENT_NODE_CHAIN);
 #endif
@@ -1031,7 +1035,7 @@ private:
             records = tree_records;
             record_offset = get_record_offset(net);
 
-#ifdef debug_distance_index
+#ifdef debug_distance_indexing
             assert(get_handle_type(net) == NODE_HANDLE || get_handle_type(net) == CHAIN_HANDLE);
             assert(get_record_type() == NODE || get_record_type() == DISTANCED_NODE || get_record_type() == NODE_CHAIN ||
                    get_record_type() == DISTANCED_NODE_CHAIN || get_record_type() == MULTICOMPONENT_NODE_CHAIN);
@@ -1072,17 +1076,26 @@ private:
 
             if (type == NODE || type == DISTANCED_NODE) {
                 (*records)->resize((*records)->size() + NODE_RECORD_SIZE); 
+#ifdef count_allocations
+                cerr << "node\t" <<  NODE_RECORD_SIZE << "\t" << (*records)->size() << endl;
+#endif
             } else if (type == NODE_CHAIN || type == DISTANCED_NODE_CHAIN) {
                 (*records)->resize((*records)->size() + NODE_CHAIN_RECORD_SIZE); 
+#ifdef count_allocations
+                cerr << "node\t" <<  NODE_CHAIN_RECORD_SIZE << "\t" << (*records)->size() << endl;
+#endif
             } else if (type == MULTICOMPONENT_NODE_CHAIN) {
                 (*records)->resize((*records)->size() + NODE_MULTICOMPONENT_RECORD_SIZE); 
+#ifdef count_allocations
+                cerr << "node\t" << NODE_MULTICOMPONENT_RECORD_SIZE << "\t" << (*records)->size() << endl;
+#endif
             }
 
             set_record_type(type);
             set_start_end_connected();
 
             //Set the pointer for the node to this record
-#ifdef debug_distance_indexing
+#ifdef debug_distance_indexinging
             cerr << get_node_pointer_offset(node_id, 
                                                    (*records)->at(MIN_NODE_ID_OFFSET), 
                                                    (*records)->at(COMPONENT_COUNT_OFFSET))
@@ -1109,7 +1122,7 @@ private:
             record_offset = pointer;
             records = tree_records;
             record_t type = get_record_type();
-#ifdef debug_distance_index
+#ifdef debug_distance_indexing
             assert(type == SNARL || type == DISTANCED_SNARL || type == OVERSIZED_SNARL || type == ROOT_SNARL
                 || type == ROOT_SNARL || type == DISTANCED_ROOT_SNARL);
 #endif
@@ -1119,7 +1132,7 @@ private:
             record_offset = get_record_offset(net);
             records = tree_records;
             net_handle_record_t type = get_handle_type(net);
-#ifdef debug_distance_index
+#ifdef debug_distance_indexing
             assert(type == SNARL_HANDLE || type == SENTINEL_HANDLE || type == ROOT_HANDLE);
 #endif
         }
@@ -1183,12 +1196,15 @@ private:
             size_t distance_values_per_vector_element = (*records)->width() / bit_width(max_distance);
 
             size_t extra_size = record_size(type, node_count, distance_values_per_vector_element, (*records)->width());
-#ifdef debug_distance_index
+#ifdef debug_distance_indexing
             cerr << " Resizing array to add snarl: length " << (*records)->size() << " -> "  << (*records)->size() + extra_size << endl;
 #endif
             (*records)->resize((*records)->size() + extra_size);
             set_node_count(node_count);
             set_record_type(type);
+#ifdef count_allocations
+            cerr << "snarl\t" << extra_size << "\t" << (*records)->size() << endl;
+#endif
         }
         SnarlRecordConstructor(bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, size_t pointer) {
             //Make a constructor for a snarl record that has already been allocated.
@@ -1222,11 +1238,11 @@ private:
                 net_handle_record_t parent_type = SnarlTreeRecord(
                     NodeRecord(pointer, records).get_parent_record_offset(), records
                 ).get_record_handle_type();
-#ifdef debug_distance_index
+#ifdef debug_distance_indexing
                 assert(parent_type == ROOT_HANDLE || parent_type == SNARL_HANDLE);
 #endif
             } else {
-#ifdef debug_distance_index
+#ifdef debug_distance_indexing
                 assert(get_record_handle_type() == CHAIN_HANDLE);
 #endif
             }
@@ -1236,7 +1252,7 @@ private:
             records = tree_records;
 
             net_handle_record_t record_type = get_record_handle_type();
-#ifdef debug_distance_index
+#ifdef debug_distance_indexing
             if (record_type == NODE_HANDLE) {
                 net_handle_record_t parent_type = SnarlTreeRecord(
                     NodeRecord(record_offset, records).get_parent_record_offset(), records
@@ -1252,7 +1268,7 @@ private:
             records = tree_records;
 
             net_handle_record_t record_type= SnarlDistanceIndex::get_record_handle_type(SnarlDistanceIndex::get_record_type(tag));
-#ifdef debug_distance_index
+#ifdef debug_distance_indexing
             if (record_type == NODE_HANDLE) {
                 net_handle_record_t parent_type = SnarlTreeRecord(
                     NodeRecord(record_offset, records).get_parent_record_offset(), records
@@ -1326,7 +1342,7 @@ private:
         //TODO: I don't think I even need node count
         ChainRecordConstructor() {}
         ChainRecordConstructor (size_t pointer, record_t type, size_t node_count, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records){
-#ifdef debug_distance_index
+#ifdef debug_distance_indexing
             assert(type == CHAIN || 
                    type == DISTANCED_CHAIN ||
                    type == MULTICOMPONENT_CHAIN);
@@ -1337,12 +1353,15 @@ private:
             SnarlTreeRecordConstructor::records = records;
             ChainRecord::record_offset = pointer;
             ChainRecord::records = records;
-#ifdef debug_distance_index
+#ifdef debug_distance_indexing
             cerr << " Resizing array to add chain: length " << (*records)->size() << " -> "  << (*records)->size() + CHAIN_RECORD_SIZE << endl;
 #endif
             (*records)->resize((*records)->size() + CHAIN_RECORD_SIZE);
             set_node_count(node_count);
             set_record_type(type);
+#ifdef count_allocations
+            cerr << "chain\t" << CHAIN_RECORD_SIZE << "\t" << (*records)->size() << endl;
+#endif
         }
 
 

@@ -1968,6 +1968,9 @@ void SnarlDistanceIndex::SnarlRecordConstructor::add_child(size_t pointer){
     size_t start_i = (*records)->size();
     (*records)->resize(start_i+1);
     (*records)->at(start_i) = pointer;
+#ifdef count_allocations
+    cerr << "snarl_child\t1\t" << (*records)->size() <<  endl;
+#endif
 }
 
 nid_t SnarlDistanceIndex::NodeRecord::get_node_id() const {
@@ -2435,6 +2438,9 @@ void SnarlDistanceIndex::ChainRecordConstructor::add_trivial_snarl() {
     (*records)->resize(start_i+1);
 
     (*records)->at(start_i) = 0;
+#ifdef count_allocations
+    cerr << "chain\t1\t" <<  (*records)->size() << endl;
+#endif
 }
 //Add a snarl to the end of the chain and return a SnarlRecordConstructor pointing to it
 SnarlDistanceIndex::SnarlRecordConstructor SnarlDistanceIndex::ChainRecordConstructor::add_snarl(size_t snarl_size, record_t type, size_t max_snarl_distance) {
@@ -2459,6 +2465,9 @@ SnarlDistanceIndex::SnarlRecordConstructor SnarlDistanceIndex::ChainRecordConstr
     start_i = (*records)->size();
     (*records)->resize(start_i+1);
     (*records)->at(start_i) = snarl_record_size;
+#ifdef count_allocations
+    cerr << "chain\t2\t" <<  (*records)->size() << endl;
+#endif
     return snarl_record;
 }
 void SnarlDistanceIndex::ChainRecordConstructor::finish_chain(){
@@ -2470,6 +2479,9 @@ void SnarlDistanceIndex::ChainRecordConstructor::finish_chain(){
     (*records)->resize(start_i+2);
     (*records)->at(start_i) = 0;
     (*records)->at(start_i+1) = 0;
+#ifdef count_allocations
+    cerr << "chain\t1\t" <<  (*records)->size() << endl;
+#endif
 }
 string SnarlDistanceIndex::net_handle_as_string(const net_handle_t& net) const {
     net_handle_record_t type = get_handle_type(net);
@@ -3110,6 +3122,9 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
 #ifdef debug_distance_indexing
     cerr << "Predicted size: " << maximum_index_size << " actual size: " <<  snarl_tree_records->size() << endl;
     assert(snarl_tree_records->size() <= maximum_index_size); 
+#endif
+#ifdef count_allocations
+    cerr << "total\t" << snarl_tree_records->size() << endl;
 #endif
 
 
