@@ -2,7 +2,7 @@
 #define BDSG_SNARL_DISTANCE_HPP_INCLUDED
 
 //#define debug_distance_indexing
-#define count_allocations
+//#define count_allocations
 
 #include <handlegraph/snarl_decomposition.hpp>
 #include <handlegraph/algorithms/dijkstra.hpp>
