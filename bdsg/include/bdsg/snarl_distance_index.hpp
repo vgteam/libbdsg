@@ -695,7 +695,7 @@ public:
         return static_cast<net_handle_record_t>(record_type);
     }
 
-    const static handlegraph::net_handle_t get_net_handle(size_t pointer, connectivity_t connectivity, net_handle_record_t type, size_t node_offset) {
+    const static handlegraph::net_handle_t get_net_handle(size_t pointer, connectivity_t connectivity, net_handle_record_t type, size_t node_offset=0) {
         net_handle_t handle =  as_net_handle((((((pointer << 8) | node_offset) << 4) | connectivity)<<3) | type); 
         return handle;
     
