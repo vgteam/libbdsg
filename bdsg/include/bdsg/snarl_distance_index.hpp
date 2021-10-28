@@ -678,7 +678,11 @@ public:
 
     ///The offset into records that this handle points to
     const static size_t get_record_offset (const handlegraph::net_handle_t& net_handle) {
-        return handlegraph::as_integer(net_handle) >> 7;
+        return handlegraph::as_integer(net_handle) >> 15;
+    }
+    //The offset of a node in a trivial snarl (0 if it isn't a node in a trivial snarl)
+    const static size_t get_node_record_offset (const handlegraph::net_handle_t& net_handle) {
+        return (handlegraph::as_integer(net_handle) >> 7 ) & 255; //Get 8 bits after last 7
     }
     const static connectivity_t get_connectivity (const handlegraph::net_handle_t& net_handle){
         size_t connectivity_as_int = (handlegraph::as_integer(net_handle)>>3) & 15; //Get 4 bits after last 3
@@ -691,8 +695,8 @@ public:
         return static_cast<net_handle_record_t>(record_type);
     }
 
-    const static handlegraph::net_handle_t get_net_handle(size_t pointer, connectivity_t connectivity, net_handle_record_t type) {
-        net_handle_t handle =  as_net_handle(((((pointer << 4) | connectivity)<<3) | type)); 
+    const static handlegraph::net_handle_t get_net_handle(size_t pointer, connectivity_t connectivity, net_handle_record_t type, size_t node_offset) {
+        net_handle_t handle =  as_net_handle((((((pointer << 8) | node_offset) << 4) | connectivity)<<3) | type); 
         return handle;
     
     }
