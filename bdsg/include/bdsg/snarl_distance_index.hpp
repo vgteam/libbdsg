@@ -581,6 +581,20 @@ private:
     const static size_t CHAIN_LAST_CHILD_OFFSET = 8; //The offset of the last thing in the chain - node or (if looping chain) snarl
     const static size_t CHAIN_DEPTH_OFFSET = 9;
 
+    //Trivial snarl record (which occurs within a chain)
+    //These contain up to 128 nodes with nothing between them
+    //The record is followed by [node id+orientation, right prefix sum] for each node in the trivial snarl
+    //So the total length of the trivial snarl is 8+2*#nodes
+    //The right prefix sum is the sum from the start of the trivial chain to the right side of the node (relative to the chain)
+    //TODO: Could just make these match nodes
+    const static size_t TRIVIAL_SNARL_RECORD_SIZE = 8;
+    const static size_t TRIVIAL_SNARL_PARENT_OFFSET = 2;
+    const static size_t TRIVIAL_SNARL_LENGTH_OFFSET = 3;//TODO: REMOVE THIS
+    const static size_t TRIVIAL_SNARL_NODE_COUNT_OFFSET = 4;
+    const static size_t TRIVIAL_SNARL_PREFIX_SUM_OFFSET = 5;
+    const static size_t TRIVIAL_SNARL_FORWARD_LOOP_OFFSET = 6;
+    const static size_t TRIVIAL_SNARL_REVERSE_LOOP_OFFSET = 7;
+    const static size_t TRIVIAL_SNARL_COMPONENT_OFFSET = 8;
    
     //Snarl record (which occurs within a chain)
     const static size_t SNARL_RECORD_SIZE = 9;
@@ -624,7 +638,7 @@ private:
     //TODO: Unary snarls? Looping chains?
     enum record_t {ROOT=1, 
                    NODE, DISTANCED_NODE, 
-                   NODE_CHAIN, DISTANCED_NODE_CHAIN, MULTICOMPONENT_NODE_CHAIN,
+                   NODE_CHAIN, DISTANCED_NODE_CHAIN, MULTICOMPONENT_NODE_CHAIN, TRIVIAL_SNARL_NODE,
                    SNARL, DISTANCED_SNARL, SIMPLE_SNARL, OVERSIZED_SNARL, ROOT_SNARL, DISTANCED_ROOT_SNARL,
                    CHAIN, DISTANCED_CHAIN, MULTICOMPONENT_CHAIN,
                    CHILDREN};
@@ -815,6 +829,7 @@ private:
 
         //The offset of the start of this record in snarl_tree_records
         size_t record_offset;
+        size_t trivial_node_offset; //The offset of a node in a trivial chain (only for nodes in trivial chains)
         const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records;
 
         //Constructors assuming that this record already exists
@@ -988,6 +1003,7 @@ private:
 
     struct RootRecordConstructor : RootRecord, SnarlTreeRecordConstructor {
         using SnarlTreeRecordConstructor::record_offset;
+        using SnarlTreeRecordConstructor::trivial_node_offset;
         using SnarlTreeRecordConstructor::records;
         using SnarlTreeRecordConstructor::get_record_type;
 
@@ -1024,11 +1040,11 @@ private:
     };
     struct NodeRecord : SnarlTreeRecord {
 
-
         NodeRecord() {};
-        NodeRecord (size_t pointer, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records){
+        NodeRecord (size_t pointer, size_t node_offset; const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records){
             record_offset = pointer;
             records = tree_records;
+            trivial_node_offset = node_offset;
 
 #ifdef debug_distance_indexing
             assert(get_record_type() == NODE || get_record_type() == DISTANCED_NODE || get_record_type() == NODE_CHAIN ||
@@ -1038,6 +1054,7 @@ private:
         NodeRecord (net_handle_t net, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records){
             records = tree_records;
             record_offset = get_record_offset(net);
+            trivial_node_offset = get_node_record_offset(net);
 
 #ifdef debug_distance_indexing
             assert(get_handle_type(net) == NODE_HANDLE || get_handle_type(net) == CHAIN_HANDLE);
@@ -1063,16 +1080,18 @@ private:
 
     struct NodeRecordConstructor : NodeRecord , SnarlTreeRecordConstructor {
         using SnarlTreeRecordConstructor::get_record_type;
+        using SnarlTreeRecordConstructor::trivial_node_offset;
         using SnarlTreeRecordConstructor::record_offset;
         using SnarlTreeRecordConstructor::records;
 
 
         //Constructor meant for creating a new record, at the end of snarl_tree_records
         //The memory for all nodes has already been allocated by the root
-        NodeRecordConstructor (size_t pointer, record_t type, 
+        NodeRecordConstructor (size_t pointer, size_t node_offset, record_t type, 
             bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* snarl_records, nid_t node_id){
             records = snarl_records;
             record_offset =  pointer;
+            trivial_node_offset = node_offset;
             SnarlTreeRecordConstructor::record_offset = pointer;
             SnarlTreeRecordConstructor::records = records;
             NodeRecord::record_offset = pointer;
@@ -1100,6 +1119,9 @@ private:
 
             //Set the pointer for the node to this record
 #ifdef debug_distance_indexinging
+            if (type != TRIVIAL_SNARL_NODE) {
+                assert node_offset == 0;
+            }
             cerr << get_node_pointer_offset(node_id, 
                                                    (*records)->at(MIN_NODE_ID_OFFSET), 
                                                    (*records)->at(COMPONENT_COUNT_OFFSET))
@@ -1180,6 +1202,7 @@ private:
     struct SnarlRecordConstructor : SnarlRecord , SnarlTreeRecordConstructor {
         using SnarlTreeRecordConstructor::records;
         using SnarlTreeRecordConstructor::record_offset;
+        using SnarlTreeRecordConstructor::trivial_node_offset;
         using SnarlTreeRecordConstructor::get_record_type;
 
 
@@ -1341,6 +1364,7 @@ private:
         //not allocated yet
         using SnarlTreeRecordConstructor::records;
         using SnarlTreeRecordConstructor::record_offset;
+        using SnarlTreeRecordConstructor::trivial_node_offset;
         using SnarlTreeRecordConstructor::get_record_type;
 
         //TODO: I don't think I even need node count
