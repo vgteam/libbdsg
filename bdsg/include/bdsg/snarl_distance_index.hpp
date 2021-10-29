@@ -829,7 +829,9 @@ private:
 
         //The offset of the start of this record in snarl_tree_records
         size_t record_offset;
-        size_t trivial_node_offset; //The offset of a node in a trivial chain (only for nodes in trivial chains)
+        //The offset of a node in a trivial snarl (only for nodes in trivial snarls)
+        //1 for the first node in a trivial snarl, etc
+        size_t trivial_node_offset=0; 
         const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records;
 
         //Constructors assuming that this record already exists
@@ -1264,7 +1266,7 @@ private:
             net_handle_record_t record_type= get_record_handle_type();
             if (record_type == NODE_HANDLE) {
                 net_handle_record_t parent_type = SnarlTreeRecord(
-                    NodeRecord(pointer,0, records).get_parent_record_offset(), records
+                    NodeRecord(pointer, 0, records).get_parent_record_offset(), records
                 ).get_record_handle_type();
 #ifdef debug_distance_indexing
                 assert(parent_type == ROOT_HANDLE || parent_type == SNARL_HANDLE);
@@ -1283,7 +1285,7 @@ private:
 #ifdef debug_distance_indexing
             if (record_type == NODE_HANDLE) {
                 net_handle_record_t parent_type = SnarlTreeRecord(
-                    NodeRecord(record_offset,0, records).get_parent_record_offset(), records
+                    NodeRecord(record_offset, 0, records).get_parent_record_offset(), records
                 ).get_record_handle_type();
                 assert(parent_type == ROOT_HANDLE || parent_type == SNARL_HANDLE);
             } else {
@@ -1299,7 +1301,7 @@ private:
 #ifdef debug_distance_indexing
             if (record_type == NODE_HANDLE) {
                 net_handle_record_t parent_type = SnarlTreeRecord(
-                    NodeRecord(record_offset,0, records).get_parent_record_offset(), records
+                    NodeRecord(record_offset, 0, records).get_parent_record_offset(), records
                 ).get_record_handle_type();
                 assert(parent_type == ROOT_HANDLE || parent_type == SNARL_HANDLE);
             } else {
