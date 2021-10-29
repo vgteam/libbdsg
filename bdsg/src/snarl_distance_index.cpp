@@ -2461,7 +2461,8 @@ net_handle_t SnarlDistanceIndex::ChainRecord::get_next_child(const net_handle_t&
             //to move one node left in the trivial snarl
             return get_net_handle(get_record_offset(net_handle), get_connectivity(net_handle), 
                                   get_handle_type(net_handle), get_node_record_offset(net_handle)-1);
-        } else if (!go_left && get_node_record_offset(net_handle) != NodeRecord(net_handle, &snarl_tree_records).get_trivial_snarl_node_count()){
+        } else if (!go_left && get_node_record_offset(net_handle) != 
+                      NodeRecord(net_handle, records).get_trivial_snarl_node_count()){
             //If we are going right and this is not the last node in the trivial snarl,
             //then keep everything the same but increment the node record offset by one
             //to move one node right in the trivial snarl
@@ -2480,7 +2481,7 @@ net_handle_t SnarlDistanceIndex::ChainRecord::get_next_child(const net_handle_t&
         return net_handle;
     }
 
-    bool next_is_reversed_in_parent = next_pointer.second ? false : NodeRecord(next_pointer.first, records).get_is_reversed_in_parent();
+    bool next_is_reversed_in_parent = next_pointer.second ? false : NodeRecord(next_pointer.first, 0, records).get_is_reversed_in_parent();
 
     //Get the direction of the next handle
     //Handle will point in whichever direction we moved in
@@ -2533,7 +2534,7 @@ bool SnarlDistanceIndex::ChainRecord::for_each_child(const std::function<bool(co
 SnarlDistanceIndex::NodeRecordConstructor SnarlDistanceIndex::ChainRecordConstructor::add_node(nid_t node_id) {
     size_t start_i = (*records)->size();
     bool is_multicomponent = get_record_type() == MULTICOMPONENT_CHAIN;
-    return NodeRecordConstructor(start_i, is_multicomponent ? MULTICOMPONENT_NODE_CHAIN : DISTANCED_NODE_CHAIN, records, node_id); 
+    return NodeRecordConstructor(start_i, 0, is_multicomponent ? MULTICOMPONENT_NODE_CHAIN : DISTANCED_NODE_CHAIN, records, node_id); 
 }
 void SnarlDistanceIndex::ChainRecordConstructor::set_node_count(size_t node_count) {
 #ifdef debug_distance_indexing
@@ -3089,7 +3090,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                             temp_index->temp_node_records[temp_chain_record.children[0].second-min_node_id];
 
                     record_t record_type = snarl_size_limit == 0 ? NODE : DISTANCED_NODE;
-                    NodeRecordConstructor node_record(snarl_tree_records->size(), record_type, &snarl_tree_records, temp_node_record.node_id);
+                    NodeRecordConstructor node_record(snarl_tree_records->size(), 0, record_type, &snarl_tree_records, temp_node_record.node_id);
                     node_record.set_node_id(temp_node_record.node_id);
                     node_record.set_node_length(temp_node_record.node_length);
                     node_record.set_rank_in_parent(temp_chain_record.rank_in_parent);
@@ -3160,16 +3161,16 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                 cerr << "        this just a node that is a tip "
                      << temp_index->structure_start_end_as_string(current_record_index) << endl;
 #endif
-                const TemporaryDistanceIndex::TemporaryNodeRecord& temp_node_record =
-                        temp_index->temp_node_records[current_record_index.second-min_node_id];
-                record_t record_type = snarl_size_limit == 0 ? NODE : DISTANCED_NODE;
-                NodeRecordConstructor node_record(snarl_tree_records->size(), record_type, &snarl_tree_records, temp_node_record.node_id);
-                node_record.set_node_id(temp_node_record.node_id);
-                node_record.set_node_length(temp_node_record.node_length);
-                node_record.set_rank_in_parent(temp_node_record.rank_in_parent);
-                node_record.set_parent_record_offset(record_to_offset[make_pair(temp_index_i, temp_node_record.parent)]);
+                //const TemporaryDistanceIndex::TemporaryNodeRecord& temp_node_record =
+                //        temp_index->temp_node_records[current_record_index.second-min_node_id];
+                //record_t record_type = snarl_size_limit == 0 ? NODE : DISTANCED_NODE;
+                //NodeRecordConstructor node_record(snarl_tree_records->size(), 0, record_type, &snarl_tree_records, temp_node_record.node_id);
+                //node_record.set_node_id(temp_node_record.node_id);
+                //node_record.set_node_length(temp_node_record.node_length);
+                //node_record.set_rank_in_parent(temp_node_record.rank_in_parent);
+                //node_record.set_parent_record_offset(record_to_offset[make_pair(temp_index_i, temp_node_record.parent)]);
 
-                record_to_offset.emplace(make_pair(temp_index_i, current_record_index), node_record.record_offset);
+                //record_to_offset.emplace(make_pair(temp_index_i, current_record_index), node_record.record_offset);
             }
 #ifdef debug_distance_indexing
             cerr << "Finished translating " << temp_index->structure_start_end_as_string(current_record_index) << endl;
