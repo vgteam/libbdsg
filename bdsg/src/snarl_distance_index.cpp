@@ -2022,6 +2022,13 @@ size_t SnarlDistanceIndex::NodeRecord::get_node_length() const {
     //    return (*records)->at(record_offset + NODE_LENGTH_OFFSET);
     //}
 }
+size_t SnarlDistanceIndex::NodeRecord::get_trivial_snarl_node_count() const {
+    if (trivial_node_offset == 0) {
+        return 1;
+    } else {
+        return (*records)->at(record_offset+TRIVIAL_SNARL_NODE_COUNT_OFFSET); 
+    }
+}
 
 bool SnarlDistanceIndex::NodeRecord::in_chain() const {
     return get_record_type() == NODE_CHAIN || get_record_type() == DISTANCED_NODE_CHAIN || get_record_type() == MULTICOMPONENT_NODE_CHAIN || get_record_type()== TRIVIAL_SNARL_NODE;
@@ -2390,7 +2397,7 @@ pair<size_t, bool> SnarlDistanceIndex::ChainRecord::get_next_child(const pair<si
                 //If this is the last child in a looping chain
                 return make_pair(get_first_node_offset(), false);
             } else {
-                size_t snarl_record_length = SnarlRecord(pointer.first, records).record_size();
+                size_t snarl_record_length = (*records)->at(pointer.first-1);//SnarlRecord(pointer.first, records).record_size();
                 return make_pair(pointer.first + snarl_record_length + 1, false);
             }
         }
@@ -2445,8 +2452,29 @@ net_handle_t SnarlDistanceIndex::ChainRecord::get_next_child(const net_handle_t&
         return net_handle;
     }
 
+    if (record_type == TRIVIAL_SNARL_NODE) {
+        //If this is a node in a trivial snarl
+        assert(get_node_record_offset(net_handle) >= 1);
+        if (go_left && get_node_record_offset(net_handle) != 1) {
+            //If we are going left and this is not the first node in the trivial snarl,
+            //then keep everything the same but decrement the node record offset by one
+            //to move one node left in the trivial snarl
+            return get_net_handle(get_record_offset(net_handle), get_connectivity(net_handle), 
+                                  get_handle_type(net_handle), get_node_record_offset(net_handle)-1);
+        } else if (!go_left && get_node_record_offset(net_handle) != NodeRecord(net_handle, &snarl_tree_records).get_trivial_snarl_node_count()){
+            //If we are going right and this is not the last node in the trivial snarl,
+            //then keep everything the same but increment the node record offset by one
+            //to move one node right in the trivial snarl
+            return get_net_handle(get_record_offset(net_handle), get_connectivity(net_handle), 
+                                  get_handle_type(net_handle), get_node_record_offset(net_handle)+1);
+        }
+        //Otherwise, if we are going left from the first node or right from the last node, we pretend this is a 
+        //snarl and use get_next_child of the offset, which will check for the length of this record properly
+    }
+
     //Get the next pointer, pointing at the net_handle in the chain
-    pair<size_t, bool> current_pointer = make_pair(get_record_offset(net_handle), handle_type == SNARL_HANDLE);
+    pair<size_t, bool> current_pointer = make_pair(get_record_offset(net_handle), 
+                                                   (handle_type == SNARL_HANDLE || record_type == TRIVIAL_SNARL_NODE));
     pair<size_t, bool> next_pointer = get_next_child(current_pointer, go_left);
     if (next_pointer.first == 0 ){
         return net_handle;

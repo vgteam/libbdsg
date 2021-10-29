@@ -1071,6 +1071,8 @@ private:
         virtual handlegraph::nid_t get_node_id() const;
 
         virtual size_t get_node_length() const;
+        //This is 0 if it is a single node, and the number of nodes in a trivial snarl if it is a node in a trivial snarl
+        virtual size_t get_trivial_snarl_node_count() const;
 
         virtual bool in_chain() const ;
 
