@@ -1042,7 +1042,7 @@ private:
     struct NodeRecord : SnarlTreeRecord {
 
         NodeRecord() {};
-        NodeRecord (size_t pointer, size_t node_offset; const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records){
+        NodeRecord (size_t pointer, size_t node_offset, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records){
             record_offset = pointer;
             records = tree_records;
             trivial_node_offset = node_offset;
@@ -1264,7 +1264,7 @@ private:
             net_handle_record_t record_type= get_record_handle_type();
             if (record_type == NODE_HANDLE) {
                 net_handle_record_t parent_type = SnarlTreeRecord(
-                    NodeRecord(pointer, records).get_parent_record_offset(), records
+                    NodeRecord(pointer,0, records).get_parent_record_offset(), records
                 ).get_record_handle_type();
 #ifdef debug_distance_indexing
                 assert(parent_type == ROOT_HANDLE || parent_type == SNARL_HANDLE);
@@ -1283,7 +1283,7 @@ private:
 #ifdef debug_distance_indexing
             if (record_type == NODE_HANDLE) {
                 net_handle_record_t parent_type = SnarlTreeRecord(
-                    NodeRecord(record_offset, records).get_parent_record_offset(), records
+                    NodeRecord(record_offset,0, records).get_parent_record_offset(), records
                 ).get_record_handle_type();
                 assert(parent_type == ROOT_HANDLE || parent_type == SNARL_HANDLE);
             } else {
@@ -1299,7 +1299,7 @@ private:
 #ifdef debug_distance_indexing
             if (record_type == NODE_HANDLE) {
                 net_handle_record_t parent_type = SnarlTreeRecord(
-                    NodeRecord(record_offset, records).get_parent_record_offset(), records
+                    NodeRecord(record_offset,0, records).get_parent_record_offset(), records
                 ).get_record_handle_type();
                 assert(parent_type == ROOT_HANDLE || parent_type == SNARL_HANDLE);
             } else {
@@ -1426,7 +1426,7 @@ private:
         return SnarlTreeRecord(get_record_offset(net_handle), &snarl_tree_records);
     }
     SnarlTreeRecord get_node_record(const handlegraph::net_handle_t& net_handle) const {
-        return NodeRecord(get_record_offset(net_handle), &snarl_tree_records); 
+        return NodeRecord(get_record_offset(net_handle), get_node_record_offset(net_handle), &snarl_tree_records); 
     }
     SnarlTreeRecord get_snarl_record(const handlegraph::net_handle_t& net_handle) const {
         return SnarlRecord(get_record_offset(net_handle), &snarl_tree_records); 
