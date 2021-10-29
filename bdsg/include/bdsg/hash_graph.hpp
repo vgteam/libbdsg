@@ -275,6 +275,12 @@ public:
     path_handle_t create_path_handle(const string& name, bool is_circular = false);
 
     /**
+     * Renames a path. Existing path_handle_t's may become invalidated..
+     */
+    path_handle_t rename_path(const path_handle_t& path_handle,
+                              const std::string& new_name);
+    
+    /**
      * Append a visit to a node to the given path. Returns a handle to the new
      * final step on the path which is appended. If the path is cirular, the new
      * step is placed between the steps considered "last" and "first" by the

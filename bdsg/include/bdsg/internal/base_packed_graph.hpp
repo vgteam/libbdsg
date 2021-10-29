@@ -338,7 +338,12 @@ public:
      * remain valid.
      */
     path_handle_t create_path_handle(const string& name, bool is_circular = false);
-
+    
+    /**
+     * Renames a path. Existing path_handle_t's may become invalidated..
+     */
+    path_handle_t rename_path(const path_handle_t& path_handle, const std::string& new_name);
+    
     /**
      * Append a visit to a node to the given path. Returns a handle to the new
      * final step on the path which is appended. Handles to prior
@@ -370,7 +375,7 @@ public:
     pair<step_handle_t, step_handle_t> rewrite_segment(const step_handle_t& segment_begin,
                                                        const step_handle_t& segment_end,
                                                        const vector<handle_t>& new_segment);
-
+    
     /**
      * Make a path circular or non-circular. If the path is becoming circular, the
      * last step is joined to the first step. If the path is becoming linear, the
@@ -2620,6 +2625,19 @@ path_handle_t BasePackedGraph<Backend>::create_path_handle(const string& name, b
     path_deleted_steps_iv.append(0);
     
     append_path_name(name);
+    
+    return path_handle;
+}
+
+template<typename Backend>
+path_handle_t BasePackedGraph<Backend>::rename_path(const path_handle_t& path_handle,
+                                                    const std::string& new_name) {
+    
+    // point to end of the name vector
+    path_name_start_iv.set(as_integer(path_handle), path_names_iv.size());
+    path_name_length_iv.set(as_integer(path_handle), new_name.size());
+    // add the name
+    append_path_name(new_name);
     
     return path_handle;
 }

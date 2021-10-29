@@ -618,6 +618,16 @@ namespace bdsg {
         next_path_id++;
         return as_path_handle(next_path_id - 1);
     }
+
+    path_handle_t HashGraph::rename_path(const path_handle_t& path_handle,
+                                         const std::string& new_name) {
+        
+        path_t& path_list = paths[as_integer(path)];
+        path_id.erase(path_list.name);
+        path_list.name = new_name;
+        path_id[new_name] = path_list.path_id;
+        return path_handle;
+    }
     
     step_handle_t HashGraph::append_step(const path_handle_t& path, const handle_t& to_append) {
         
