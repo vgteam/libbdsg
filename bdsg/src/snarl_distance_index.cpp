@@ -205,7 +205,7 @@ net_handle_t SnarlDistanceIndex::get_bound(const net_handle_t& snarl, bool get_e
                 
             }
         }
-        bool rev_in_parent = NodeRecord(offset, &snarl_tree_records).get_is_reversed_in_parent();
+        bool rev_in_parent = NodeRecord(offset, 0, &snarl_tree_records).get_is_reversed_in_parent();
         if (get_end) {
             rev_in_parent = !rev_in_parent;
         }
@@ -2036,7 +2036,7 @@ size_t SnarlDistanceIndex::NodeRecord::get_prefix_sum() const {
         prefix_sum = prefix_sum == 0 ? std::numeric_limits<size_t>::max() : prefix_sum - 1;
         if (trivial_node_offset != 0) {
             return sum({prefix_sum,  
-                   (*records)->at(record_offset+TRIVIAL_SNARL_RECORD_SIZE+ (trivial_node_offset*2)-1});
+                   (*records)->at(record_offset+TRIVIAL_SNARL_RECORD_SIZE+ (trivial_node_offset*2)-1)});
         } else {
             return prefix_sum;
         }
@@ -2062,7 +2062,7 @@ size_t SnarlDistanceIndex::NodeRecord::get_forward_loop() const {
         //the length of the snarl - the right prefix sum of the node
         size_t right_offset = snarl_length - (*records)->at(record_offset+TRIVIAL_SNARL_RECORD_SIZE + (trivial_node_offset*2) + 1);
 
-        return sum({forward_loop, right_offset*2);
+        return sum({forward_loop, right_offset*2});
     } else {
         size_t value = (*records)->at(record_offset + NODE_FORWARD_LOOP_OFFSET);
         value = value == 0 ? std::numeric_limits<size_t>::max() : value - 1;
