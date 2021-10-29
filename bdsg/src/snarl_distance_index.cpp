@@ -1569,6 +1569,8 @@ void SnarlDistanceIndex::SnarlTreeRecordConstructor::set_is_reversed_in_parent(b
     size_t offset;
     if (type == NODE_CHAIN || type == DISTANCED_NODE_CHAIN || type == MULTICOMPONENT_NODE_CHAIN) {
         offset = record_offset + NODE_PARENT_OFFSET;
+    } else if (type == TRIVIAL_SNARL_NODE) {
+        offset = record_offset + TRIVIAL_SNARL_RECORD_SIZE + (2*trivial_node_offset);
     } else if (type == SNARL || type == DISTANCED_SNARL || type == OVERSIZED_SNARL
             || type == ROOT_SNARL || type == DISTANCED_ROOT_SNARL)  {
         return;
@@ -1593,6 +1595,10 @@ void SnarlDistanceIndex::SnarlTreeRecordConstructor::set_parent_record_offset(si
         bool rev = (*records)->at(offset) & 1;
         pointer = ((record_offset - pointer) << 1) | rev; 
 
+    } else if (type == TRIVIAL_SNARL_NODE) {
+        offset = record_offset + TRIVIAL_SNARL_PARENT_OFFSET;
+        bool rev = (*records)->at(offset) & 1;
+        pointer = ((record_offset - pointer) << 1) | rev; 
     } else if (type == SNARL || type == DISTANCED_SNARL || type == OVERSIZED_SNARL
             || type == ROOT_SNARL || type == DISTANCED_ROOT_SNARL)  {
 #ifdef debug_distance_indexing

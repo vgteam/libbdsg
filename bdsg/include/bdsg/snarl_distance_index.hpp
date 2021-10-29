@@ -921,6 +921,7 @@ private:
         //TODO: This might be bad but this has the same members as SnarlTreeRecord
         //and does basically the same thing but doesn't inherit from it
         size_t record_offset;
+        size_t trivial_node_offset;
         bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records;
 
         //Constructors assuming that this record already exists
