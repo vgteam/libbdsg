@@ -1117,6 +1117,11 @@ private:
 #ifdef count_allocations
                 cerr << "new_node\t" << NODE_MULTICOMPONENT_RECORD_SIZE << "\t" << (*records)->size() << endl;
 #endif
+            } else if (type == TRIVIAL_SNARL_NODE) {
+                (*records)->resize((*records)->size() + TRIVIAL_SNARL_RECORD_SIZE); 
+#ifdef count_allocations
+                cerr << "new_node\t" << NODE_MULTICOMPONENT_RECORD_SIZE << "\t" << (*records)->size() << endl;
+#endif
             }
 
             set_record_type(type);
@@ -1134,7 +1139,7 @@ private:
 #endif
             (*records)->at(get_node_pointer_offset(node_id, 
                                                    (*records)->at(MIN_NODE_ID_OFFSET), 
-                                                   (*records)->at(COMPONENT_COUNT_OFFSET))) = pointer;
+                                                   (*records)->at(COMPONENT_COUNT_OFFSET))) = (pointer<<8) | node_offset;
 
         }
         virtual void set_node_id(size_t value) const;
@@ -1417,6 +1422,11 @@ private:
 
         //Add a snarl to the end of the chain and return a SnarlRecordConstructor pointing to it
         SnarlRecordConstructor add_snarl(size_t snarl_size, record_t type, size_t max_snarl_distance); 
+
+
+        //Add a chain of trivial snarls (nodes with nothing in between them) to the chain 
+        NodeRecordConstructor add_trivial_snarl_chain(size_t node_count, nid_t node_id);
+        void add_trivial_snarl_node(NodeRecordConstructor& trivial_snarl_record_constructor, nid_t node_id, size_t node_length);
 
         //This gets called when we've added all of the chain's children
         void finish_chain();
