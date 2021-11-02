@@ -557,17 +557,10 @@ private:
 
     //Node record
     const static size_t NODE_RECORD_SIZE = 5;
-    const static size_t NODE_CHAIN_RECORD_SIZE = 7;
-    const static size_t NODE_MULTICOMPONENT_RECORD_SIZE = 8;
     const static size_t NODE_ID_OFFSET = 1;
     const static size_t NODE_PARENT_OFFSET = 2;
     const static size_t NODE_LENGTH_OFFSET = 3;
     const static size_t NODE_RANK_OFFSET = 4;
-
-    const static size_t NODE_PREFIX_SUM_OFFSET = 4;
-    const static size_t NODE_FORWARD_LOOP_OFFSET = 5;
-    const static size_t NODE_REVERSE_LOOP_OFFSET = 6;
-    const static size_t NODE_COMPONENT_OFFSET = 7;
  
     //Chain record
     const static size_t CHAIN_RECORD_SIZE = 10;
@@ -586,15 +579,15 @@ private:
     //The record is followed by [node id+orientation, right prefix sum] for each node in the trivial snarl
     //So the total length of the trivial snarl is 8+2*#nodes
     //The right prefix sum is the sum from the start of the trivial chain to the right side of the node (relative to the chain)
-    //TODO: Could just make these match nodes
-    const static size_t TRIVIAL_SNARL_RECORD_SIZE = 8;
-    const static size_t TRIVIAL_SNARL_PARENT_OFFSET = 2;
-    const static size_t TRIVIAL_SNARL_LENGTH_OFFSET = 3;//TODO: REMOVE THIS
-    const static size_t TRIVIAL_SNARL_NODE_COUNT_OFFSET = 4;
-    const static size_t TRIVIAL_SNARL_PREFIX_SUM_OFFSET = 5;
-    const static size_t TRIVIAL_SNARL_FORWARD_LOOP_OFFSET = 6;
-    const static size_t TRIVIAL_SNARL_REVERSE_LOOP_OFFSET = 7;
-    const static size_t TRIVIAL_SNARL_COMPONENT_OFFSET = 8;
+    const static size_t BITS_FOR_TRIVIAL_NODE_OFFSET = 8;
+    const static size_t MAX_TRIVIAL_SNARL_NODE_COUNT =  (1 << BITS_FOR_TRIVIAL_NODE_OFFSET) -1;
+    const static size_t TRIVIAL_SNARL_RECORD_SIZE = 7;
+    const static size_t TRIVIAL_SNARL_PARENT_OFFSET = 1;
+    const static size_t TRIVIAL_SNARL_NODE_COUNT_OFFSET = 2;
+    const static size_t TRIVIAL_SNARL_PREFIX_SUM_OFFSET = 3;
+    const static size_t TRIVIAL_SNARL_FORWARD_LOOP_OFFSET = 4;
+    const static size_t TRIVIAL_SNARL_REVERSE_LOOP_OFFSET = 5;
+    const static size_t TRIVIAL_SNARL_COMPONENT_OFFSET = 6;
    
     //Snarl record (which occurs within a chain)
     const static size_t SNARL_RECORD_SIZE = 9;
@@ -638,7 +631,7 @@ private:
     //TODO: Unary snarls? Looping chains?
     enum record_t {ROOT=1, 
                    NODE, DISTANCED_NODE, 
-                   NODE_CHAIN, DISTANCED_NODE_CHAIN, MULTICOMPONENT_NODE_CHAIN, TRIVIAL_SNARL_NODE,
+                   TRIVIAL_SNARL, DISTANCED_TRIVIAL_SNARL,
                    SNARL, DISTANCED_SNARL, SIMPLE_SNARL, OVERSIZED_SNARL, ROOT_SNARL, DISTANCED_ROOT_SNARL,
                    CHAIN, DISTANCED_CHAIN, MULTICOMPONENT_CHAIN,
                    CHILDREN};
@@ -653,7 +646,7 @@ private:
         //TODO: I"m not sure if a root snarl should be a root or a snarl
         if (type == ROOT || type == ROOT_SNARL || type == DISTANCED_ROOT_SNARL) {
             return ROOT_HANDLE;
-        } else if (type == NODE || type == DISTANCED_NODE || type == NODE_CHAIN || type == DISTANCED_NODE_CHAIN || type == MULTICOMPONENT_NODE_CHAIN) {
+        } else if (type == NODE || type == DISTANCED_NODE || type == TRIVIAL_SNARL || type == DISTANCED_TRIVIAL_SNARL) {
             return NODE_HANDLE;
         } else if (type == SNARL || type == DISTANCED_SNARL || type ==  SIMPLE_SNARL ||type ==  OVERSIZED_SNARL){
             return SNARL_HANDLE;
@@ -666,7 +659,7 @@ private:
 private:
     /*Give each of the enum types a name for debugging */
     vector<std::string> record_t_as_string = {"ROOT", "NODE", "DISTANCED_NODE", 
-                     "NODE_CHAIN", "DISTANCED_NODE_CHAIN", "MULTICOMPONENT_NODE_CHAIN",
+                     "TRIVIAL_SNARL", "DISTANCED_TRIVIAL_SNARL",
                      "SNARL", "DISTANCED_SNARL", "SIMPLE_SNARL", "OVERSIZED_SNARL", 
                      "ROOT_SNARL", "DISTANCED_ROOT_SNARL",
                      "CHAIN", "DISTANCED_CHAIN", "MULTICOMPONENT_CHAIN",
@@ -696,7 +689,7 @@ public:
     }
     //The offset of a node in a trivial snarl (0 if it isn't a node in a trivial snarl)
     const static size_t get_node_record_offset (const handlegraph::net_handle_t& net_handle) {
-        return (handlegraph::as_integer(net_handle) >> 7 ) & 255; //Get 8 bits after last 7
+        return (handlegraph::as_integer(net_handle) >> 7 ) & MAX_TRIVIAL_SNARL_NODE_COUNT; //Get 8 bits after last 7
     }
     const static connectivity_t get_connectivity (const handlegraph::net_handle_t& net_handle){
         size_t connectivity_as_int = (handlegraph::as_integer(net_handle)>>3) & 15; //Get 4 bits after last 3
@@ -710,7 +703,7 @@ public:
     }
 
     const static handlegraph::net_handle_t get_net_handle(size_t pointer, connectivity_t connectivity, net_handle_record_t type, size_t node_offset=0) {
-        net_handle_t handle =  as_net_handle((((((pointer << 8) | node_offset) << 4) | connectivity)<<3) | type); 
+        net_handle_t handle =  as_net_handle((((((pointer << BITS_FOR_TRIVIAL_NODE_OFFSET) | node_offset) << 4) | connectivity)<<3) | type); 
         return handle;
     
     }
@@ -829,9 +822,6 @@ private:
 
         //The offset of the start of this record in snarl_tree_records
         size_t record_offset;
-        //The offset of a node in a trivial snarl (only for nodes in trivial snarls)
-        //1 for the first node in a trivial snarl, etc
-        size_t trivial_node_offset=0; 
         const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records;
 
         //Constructors assuming that this record already exists
@@ -923,7 +913,6 @@ private:
         //TODO: This might be bad but this has the same members as SnarlTreeRecord
         //and does basically the same thing but doesn't inherit from it
         size_t record_offset;
-        size_t trivial_node_offset;
         bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records;
 
         //Constructors assuming that this record already exists
@@ -935,7 +924,7 @@ private:
             record_t type = get_record_type();
 #ifdef debug_distance_indexing
             assert(type == ROOT || type == NODE || type == DISTANCED_NODE ||
-                    type == NODE_CHAIN || type == DISTANCED_NODE_CHAIN || type == MULTICOMPONENT_NODE_CHAIN || 
+                    type == TRIVIAL_SNARL || type == DISTANCED_TRIVIAL_SNARL || 
                     type == SNARL || type == DISTANCED_SNARL || type == OVERSIZED_SNARL || 
                     type == ROOT_SNARL || type == DISTANCED_ROOT_SNARL || type == CHAIN || 
                     type == DISTANCED_CHAIN || type == MULTICOMPONENT_CHAIN);
@@ -947,7 +936,7 @@ private:
             record_t type = get_record_type();
 #ifdef debug_distance_indexing
             assert(type == ROOT || type == NODE || type == DISTANCED_NODE ||  
-                    type == NODE_CHAIN || type == DISTANCED_NODE_CHAIN || type == MULTICOMPONENT_NODE_CHAIN || 
+                    type == TRIVIAL_SNARL || type == DISTANCED_TRIVIAL_SNARL || 
                     type == SNARL || type == DISTANCED_SNARL || type == OVERSIZED_SNARL || 
                     type == ROOT_SNARL || type == DISTANCED_ROOT_SNARL || type == CHAIN || 
                     type == DISTANCED_CHAIN || type == MULTICOMPONENT_CHAIN);
@@ -1006,7 +995,6 @@ private:
 
     struct RootRecordConstructor : RootRecord, SnarlTreeRecordConstructor {
         using SnarlTreeRecordConstructor::record_offset;
-        using SnarlTreeRecordConstructor::trivial_node_offset;
         using SnarlTreeRecordConstructor::records;
         using SnarlTreeRecordConstructor::get_record_type;
 
@@ -1047,22 +1035,18 @@ private:
         NodeRecord (size_t pointer, size_t node_offset, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records){
             record_offset = pointer;
             records = tree_records;
-            trivial_node_offset = node_offset;
 
 #ifdef debug_distance_indexing
-            assert(get_record_type() == NODE || get_record_type() == DISTANCED_NODE || get_record_type() == NODE_CHAIN ||
-                   get_record_type() == DISTANCED_NODE_CHAIN || get_record_type() == MULTICOMPONENT_NODE_CHAIN);
+            assert(get_record_type() == NODE || get_record_type() == DISTANCED_NODE);
 #endif
         }
         NodeRecord (net_handle_t net, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records){
             records = tree_records;
             record_offset = get_record_offset(net);
-            trivial_node_offset = get_node_record_offset(net);
 
 #ifdef debug_distance_indexing
             assert(get_handle_type(net) == NODE_HANDLE || get_handle_type(net) == CHAIN_HANDLE);
-            assert(get_record_type() == NODE || get_record_type() == DISTANCED_NODE || get_record_type() == NODE_CHAIN ||
-                   get_record_type() == DISTANCED_NODE_CHAIN || get_record_type() == MULTICOMPONENT_NODE_CHAIN);
+            assert(get_record_type() == NODE || get_record_type() == DISTANCED_NODE);
             assert(get_connectivity(net) == START_END || get_connectivity(net) == END_START
                   || get_connectivity(net) == START_START || get_connectivity(net) == END_END);
 #endif
@@ -1071,21 +1055,11 @@ private:
         virtual handlegraph::nid_t get_node_id() const;
 
         virtual size_t get_node_length() const;
-        //This is 0 if it is a single node, and the number of nodes in a trivial snarl if it is a node in a trivial snarl
-        virtual size_t get_trivial_snarl_node_count() const;
-
-        virtual bool in_chain() const ;
-
-        virtual size_t get_prefix_sum() const;
-        virtual size_t get_forward_loop() const ;
-        virtual size_t get_reverse_loop() const;
-        virtual size_t get_chain_component(bool get_end=false) const;
 
     };
 
     struct NodeRecordConstructor : NodeRecord , SnarlTreeRecordConstructor {
         using SnarlTreeRecordConstructor::get_record_type;
-        using SnarlTreeRecordConstructor::trivial_node_offset;
         using SnarlTreeRecordConstructor::record_offset;
         using SnarlTreeRecordConstructor::records;
 
@@ -1096,42 +1070,22 @@ private:
             bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* snarl_records, nid_t node_id){
             records = snarl_records;
             record_offset =  pointer;
-            trivial_node_offset = node_offset;
             SnarlTreeRecordConstructor::record_offset = pointer;
             SnarlTreeRecordConstructor::records = records;
             NodeRecord::record_offset = pointer;
             NodeRecord::records = records;
 
-            if (type == NODE || type == DISTANCED_NODE) {
-                (*records)->resize((*records)->size() + NODE_RECORD_SIZE); 
+            (*records)->resize((*records)->size() + NODE_RECORD_SIZE); 
 #ifdef count_allocations
-                cerr << "new_node\t" <<  NODE_RECORD_SIZE << "\t" << (*records)->size() << endl;
+            cerr << "new_node\t" <<  NODE_RECORD_SIZE << "\t" << (*records)->size() << endl;
 #endif
-            } else if (type == NODE_CHAIN || type == DISTANCED_NODE_CHAIN) {
-                (*records)->resize((*records)->size() + NODE_CHAIN_RECORD_SIZE); 
-#ifdef count_allocations
-                cerr << "new_node\t" <<  NODE_CHAIN_RECORD_SIZE << "\t" << (*records)->size() << endl;
-#endif
-            } else if (type == MULTICOMPONENT_NODE_CHAIN) {
-                (*records)->resize((*records)->size() + NODE_MULTICOMPONENT_RECORD_SIZE); 
-#ifdef count_allocations
-                cerr << "new_node\t" << NODE_MULTICOMPONENT_RECORD_SIZE << "\t" << (*records)->size() << endl;
-#endif
-            } else if (type == TRIVIAL_SNARL_NODE) {
-                (*records)->resize((*records)->size() + TRIVIAL_SNARL_RECORD_SIZE); 
-#ifdef count_allocations
-                cerr << "new_node\t" << NODE_MULTICOMPONENT_RECORD_SIZE << "\t" << (*records)->size() << endl;
-#endif
-            }
-
             set_record_type(type);
             set_start_end_connected();
 
             //Set the pointer for the node to this record
 #ifdef debug_distance_indexinging
-            if (type != TRIVIAL_SNARL_NODE) {
-                assert node_offset == 0;
-            }
+            assert (type == NODE || type == DISTANCED_NODE);
+
             cerr << get_node_pointer_offset(node_id, 
                                                    (*records)->at(MIN_NODE_ID_OFFSET), 
                                                    (*records)->at(COMPONENT_COUNT_OFFSET))
@@ -1139,15 +1093,83 @@ private:
 #endif
             (*records)->at(get_node_pointer_offset(node_id, 
                                                    (*records)->at(MIN_NODE_ID_OFFSET), 
-                                                   (*records)->at(COMPONENT_COUNT_OFFSET))) = (pointer<<8) | node_offset;
+                                                   (*records)->at(COMPONENT_COUNT_OFFSET))) = (pointer<<BITS_FOR_TRIVIAL_NODE_OFFSET);
 
         }
-        virtual void set_node_id(size_t value) const;
-        virtual void set_node_length(size_t length);
+        virtual void set_node_id(nid_t value);
+        virtual void set_rank_in_parent(size_t value);
+        virtual void set_node_length(size_t value);
+    };
+
+    struct TrivialSnarlRecord : SnarlTreeRecord {
+
+        TrivialSnarlRecord() {};
+
+        virtual size_t get_node_count() const;
+        virtual size_t get_prefix_sum(size_t node_rank) const;
+        virtual size_t get_forward_loop(size_t node_rank) const ;
+        virtual size_t get_reverse_loop(size_t node_rank) const;
+        virtual size_t get_chain_component(size_t node_rank, bool get_end=false) const;
+        virtual nid_t get_node_id(size_t node_rank) const; 
+        virtual size_t get_node_length(size_t node_rank) const; 
+        virtual size_t get_rank_in_parent(size_t node_rank) const; 
+        virtual bool get_is_reversed_in_parent(size_t node_rank) const; //is the node_rank-th node reversed
+
+        virtual size_t get_record_size() { 
+            return TRIVIAL_SNARL_RECORD_SIZE + (get_node_count() * 2);
+        }
+        TrivialSnarlRecord (size_t offset, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records){
+            records = tree_records;
+            record_offset = offset;
+
+#ifdef debug_distance_indexing
+            assert(get_handle_type(net) == NODE_HANDLE);
+            assert(get_record_type() == TRIVIAL_SNARL || get_record_type() == DISTANCED_TRIVIAL_SNARL);
+            assert(get_connectivity(net) == START_END || get_connectivity(net) == END_START
+                  || get_connectivity(net) == START_START || get_connectivity(net) == END_END);
+#endif
+        }
+    };
+
+    //For constructing a trivial snarl, we only build the snarl itself, and 
+    //we don't initially know how many nodes it contains
+    //
+   
+    struct TrivialSnarlRecordConstructor : TrivialSnarlRecord, SnarlTreeRecordConstructor {
+        using SnarlTreeRecordConstructor::get_record_type;
+        using SnarlTreeRecordConstructor::record_offset;
+        using SnarlTreeRecordConstructor::records;
+
         virtual void set_prefix_sum(size_t value) const;
         virtual void set_forward_loop(size_t value) const;
         virtual void set_reverse_loop(size_t value) const;
         virtual void set_chain_component(size_t value) const;
+        virtual void set_node_count(size_t value) const;
+
+        //Add this node. If it is the last node in the snarl, then also set the forward loop value 
+        //and reverse loop value (which is whatever the previous one was plus the length of the trivial snarl)
+        //and node count
+        //If it is the first node (which is true if the length of snarl_tree_records is just the 
+        //record_offset plus the length of a trivial snarl record), then add the prefix sum and
+        //reverse loop (which will be changed by the last node)
+        //virtual void add_node(TemporaryNodeRecord& temp_node_record, bool last_node = false) const;
+
+        //Constructor meant for creating a new record, at the end of snarl_tree_records
+        TrivialSnarlRecordConstructor (size_t pointer, record_t type, 
+            bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* snarl_records){
+            records = snarl_records;
+            record_offset =  pointer;
+            SnarlTreeRecordConstructor::record_offset = pointer;
+            SnarlTreeRecordConstructor::records = records;
+            TrivialSnarlRecord::record_offset = pointer;
+            TrivialSnarlRecord::records = records;
+
+            assert (type == TRIVIAL_SNARL || type == DISTANCED_TRIVIAL_SNARL);
+            (*records)->resize((*records)->size() + TRIVIAL_SNARL_RECORD_SIZE); 
+#ifdef count_allocations
+            cerr << "new_trivial_snarl\t" << TRIVIAL_SNARL_RECORD_SIZE << "\t" << (*records)->size() << endl;
+#endif
+        }
     };
 
     struct SnarlRecord : SnarlTreeRecord {
@@ -1212,7 +1234,6 @@ private:
     struct SnarlRecordConstructor : SnarlRecord , SnarlTreeRecordConstructor {
         using SnarlTreeRecordConstructor::records;
         using SnarlTreeRecordConstructor::record_offset;
-        using SnarlTreeRecordConstructor::trivial_node_offset;
         using SnarlTreeRecordConstructor::get_record_type;
 
 
@@ -1319,8 +1340,9 @@ private:
 
         virtual size_t get_node_count() const;
 
-        ///Returns (offset, is_snarl)
-        virtual pair<size_t, bool> get_last_child_offset() const;
+        ///Returns (offset, is_snarl, node_offset)
+        //node_offset is 0 if it is a snarl
+        virtual tuple<size_t, bool, size_t> get_last_child_offset() const;
 
         ///Returns true if it is a looping chain and the last node is connected to the rest of the chain by going backwards
         virtual bool get_is_looping_chain_connected_backwards() const;
@@ -1352,14 +1374,10 @@ private:
         //Get the offset into snarl_tree_records of the first node in the chain
         virtual size_t get_first_node_offset() const; 
 
-        //Given a pointer to a child node, return the next child. This includes nodes and snarls.
-        //The node pointer points to the node id, snarl pointer points to the start of the snarl record
-        //bool is true if it is a snarl, false if it is a node
+        //Given a net_Handle_t to a child node, return the next child
         //go_left is true if we are traversing the chain right to left
-        //returns 0 if this was the last (/first) node in the chain
-        virtual pair<size_t, bool> get_next_child(const pair<size_t, bool> pointer, bool go_left) const;
-        //The same thing but take and return a net_handle_t
-        //return the same net_handle_t if this is the end of the chain
+        //
+        //return the same net_handle_t if this is trying to walk out the end of the chain
         //For looping chains, this one has to know whether the boundary node is representing the start or end
         //This means that you only see the boundary node as the start or the end
         virtual net_handle_t get_next_child(const net_handle_t& net_handle, bool go_left) const;
@@ -1374,7 +1392,6 @@ private:
         //not allocated yet
         using SnarlTreeRecordConstructor::records;
         using SnarlTreeRecordConstructor::record_offset;
-        using SnarlTreeRecordConstructor::trivial_node_offset;
         using SnarlTreeRecordConstructor::get_record_type;
 
         //TODO: I don't think I even need node count
@@ -1403,30 +1420,30 @@ private:
         }
 
 
-        /* Functions to add children to a chain. Assumes that the chain is well formed up to here
-         * These will always be called in order going forward in the chain, starting and ending 
-         * with add_node, with either add_snarl or add_trivial_snarl in between them. 
-         * Nodes will be [node id, prefix sum, fd loop, rev loop], and snarls will be flanked by
-         * the record size. A trivial snarl will only be a record size of 0. 
-         * Two 0's where the snarl size and next node id should be indicates the end of the chain
-         */
-
-        NodeRecordConstructor add_node(nid_t node_id);
         void set_node_count(size_t node_count);
         void set_depth(size_t depth);
 
         //The offset of the last child, if it is a snarl, and if it can loop 
         void set_last_child_offset(size_t offset, bool is_snarl, bool loopable);
 
-        void add_trivial_snarl();
+        /* Functions to add children to a chain. Assumes that the chain is well formed up to here
+         * These will always be called in order going forward in the chain.
+         * The chain is actually composed of snarl records and trivial snarl records, but we 
+         * add things by node and snarl
+         * We need to keep a SnarlTreeRecordConstructor to the last thing that we added (snarl or trivial snarl),
+         * so that when we add nodes we either add them to the end of the last trivial snarl or 
+         * (if we have too many nodes in the last trivial snarl or if the last thing on the chain is a snarl) 
+         * create a new trivial snarl 
+         * Each (trivial) snarl record is flanked by the size of the record, so it will be 
+         * [chain info] ts size | ts record | s size | s record | s size | ts size | ts | ts size ....
+         *
+         * A 0 where the next snarl size should be indicates the end of the chain
+         */
 
         //Add a snarl to the end of the chain and return a SnarlRecordConstructor pointing to it
-        SnarlRecordConstructor add_snarl(size_t snarl_size, record_t type, size_t max_snarl_distance); 
-
-
-        //Add a chain of trivial snarls (nodes with nothing in between them) to the chain 
-        NodeRecordConstructor add_trivial_snarl_chain(size_t node_count, nid_t node_id);
-        void add_trivial_snarl_node(NodeRecordConstructor& trivial_snarl_record_constructor, nid_t node_id, size_t node_length);
+        SnarlRecordConstructor add_snarl(size_t snarl_size, record_t type, size_t max_snarl_distance, size_t previous_child_offset); 
+        void add_node(nid_t node_id, size_t node_length, bool is_reversed_in_parent,
+                size_t prefix_sum, size_t forward_loop, size_t reverse_loop, size_t component, size_t previous_child_offset);
 
         //This gets called when we've added all of the chain's children
         void finish_chain();
@@ -1526,7 +1543,7 @@ public:
             //What is the index of this record in root_snarl_components
             size_t root_snarl_index = std::numeric_limits<size_t>::max();
             bool loopable = true; //If this is a looping snarl, this is false if the last snarl is not start-end connected
-            size_t get_max_record_length() const {return CHAIN_RECORD_SIZE + (NODE_MULTICOMPONENT_RECORD_SIZE+1)*prefix_sum.size() + 3;} 
+            size_t get_max_record_length() const {return CHAIN_RECORD_SIZE + (NODE_RECORD_SIZE+1)*prefix_sum.size() + 3;} 
         };
         struct TemporarySnarlRecord : TemporaryRecord{
             handlegraph::nid_t start_node_id;
@@ -1565,7 +1582,7 @@ public:
             size_t rank_in_parent;
             bool reversed_in_parent;
             bool is_tip = false;
-            size_t get_max_record_length() {return NODE_MULTICOMPONENT_RECORD_SIZE;} 
+            size_t get_max_record_length() {return NODE_RECORD_SIZE;} 
         };
 
 
