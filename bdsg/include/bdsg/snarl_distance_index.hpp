@@ -831,13 +831,13 @@ private:
             records = tree_records;
 
             record_t type = get_record_type();
-            assert(type >= 1 && type <= 16 );
+            assert(type >= 1 && type <= 15 );
         }
         SnarlTreeRecord (const net_handle_t& net, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records){
             record_offset = get_record_offset(net);
             records = tree_records;
             record_t type = get_record_type();
-            assert(type >= 1 && type <= 16 );
+            assert(type >= 1 && type <= 15 );
         }
 
         virtual size_t get_offset() { return record_offset; }
@@ -1123,10 +1123,9 @@ private:
             record_offset = offset;
 
 #ifdef debug_distance_indexing
-            assert(get_handle_type(net) == NODE_HANDLE);
             assert(get_record_type() == TRIVIAL_SNARL || get_record_type() == DISTANCED_TRIVIAL_SNARL);
-            assert(get_connectivity(net) == START_END || get_connectivity(net) == END_START
-                  || get_connectivity(net) == START_START || get_connectivity(net) == END_END);
+            //assert(get_connectivity(net) == START_END || get_connectivity(net) == END_START
+            //      || get_connectivity(net) == START_START || get_connectivity(net) == END_END);
 #endif
         }
     };
@@ -1165,7 +1164,14 @@ private:
             TrivialSnarlRecord::records = records;
 
             assert (type == TRIVIAL_SNARL || type == DISTANCED_TRIVIAL_SNARL);
-            (*records)->resize((*records)->size() + TRIVIAL_SNARL_RECORD_SIZE); 
+
+#ifdef debug_distance_indexing
+            cerr << " Resizing array to add trivial snarl: length " << (*records)->size() << " -> "  << (*records)->size() + TRIVIAL_SNARL_RECORD_SIZE << endl;
+#endif
+
+            (*records)->resize(record_offset + TRIVIAL_SNARL_RECORD_SIZE);
+            set_record_type(type);
+
 #ifdef count_allocations
             cerr << "new_trivial_snarl\t" << TRIVIAL_SNARL_RECORD_SIZE << "\t" << (*records)->size() << endl;
 #endif
@@ -1442,7 +1448,8 @@ private:
 
         //Add a snarl to the end of the chain and return a SnarlRecordConstructor pointing to it
         SnarlRecordConstructor add_snarl(size_t snarl_size, record_t type, size_t max_snarl_distance, size_t previous_child_offset); 
-        void add_node(nid_t node_id, size_t node_length, bool is_reversed_in_parent,
+        //Add a node to the end of a chain and return the offset of the record it got added to
+        size_t add_node(nid_t node_id, size_t node_length, bool is_reversed_in_parent,
                 size_t prefix_sum, size_t forward_loop, size_t reverse_loop, size_t component, size_t previous_child_offset);
 
         //This gets called when we've added all of the chain's children
