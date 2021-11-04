@@ -3333,9 +3333,8 @@ SnarlDistanceIndex::CachedNetHandle SnarlDistanceIndex::get_cached_bound(
 
 void SnarlDistanceIndex::set_cached_node_values(CachedNetHandle& cached_handle) const {
 
-    if (!cached_handle.contains_node_values){
+    if (!cached_handle.contains_node_values && get_record_type(cached_handle.record_tag) == DISTANCED_TRIVIAL_SNARL){
         cached_handle.contains_node_values = true;
-        assert(get_record_type(cached_handle.record_tag) == DISTANCED_TRIVIAL_SNARL);
 
         TrivialSnarlRecord record(get_record_offset(cached_handle.net), &snarl_tree_records);
         size_t node_rank = get_node_record_offset(cached_handle.net);
