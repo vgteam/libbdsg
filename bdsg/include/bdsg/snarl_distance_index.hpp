@@ -1145,17 +1145,12 @@ private:
         virtual void set_chain_component(size_t value) const;
         virtual void set_node_count(size_t value) const;
 
-        //Add this node. If it is the last node in the snarl, then also set the forward loop value 
-        //and reverse loop value (which is whatever the previous one was plus the length of the trivial snarl)
-        //and node count
-        //If it is the first node (which is true if the length of snarl_tree_records is just the 
-        //record_offset plus the length of a trivial snarl record), then add the prefix sum and
-        //reverse loop (which will be changed by the last node)
-        //virtual void add_node(TemporaryNodeRecord& temp_node_record, bool last_node = false) const;
 
         //Constructor meant for creating a new record, at the end of snarl_tree_records
+        //New record is true if this is the first time we're making this trivial snarl, false if we
+        //just need the constructor to add a new node
         TrivialSnarlRecordConstructor (size_t pointer, record_t type, 
-            bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* snarl_records){
+            bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* snarl_records, bool new_record){
             records = snarl_records;
             record_offset =  pointer;
             SnarlTreeRecordConstructor::record_offset = pointer;
@@ -1169,8 +1164,11 @@ private:
             cerr << " Resizing array to add trivial snarl: length " << (*records)->size() << " -> "  << (*records)->size() + TRIVIAL_SNARL_RECORD_SIZE << endl;
 #endif
 
-            (*records)->resize(record_offset + TRIVIAL_SNARL_RECORD_SIZE);
-            set_record_type(type);
+            if (new_record) {
+                (*records)->resize(record_offset + TRIVIAL_SNARL_RECORD_SIZE);
+                set_record_type(type);
+                set_start_end_connected();
+            }
 
 #ifdef count_allocations
             cerr << "new_trivial_snarl\t" << TRIVIAL_SNARL_RECORD_SIZE << "\t" << (*records)->size() << endl;
