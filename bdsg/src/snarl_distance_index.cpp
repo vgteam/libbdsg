@@ -1175,7 +1175,12 @@ bool SnarlDistanceIndex::has_node(const nid_t id) const {
 }
 
 bool SnarlDistanceIndex::is_reversed_in_parent(const net_handle_t& net) const {
-    return SnarlTreeRecord(net, &snarl_tree_records).get_is_reversed_in_parent();
+    SnarlTreeRecord record(net, &snarl_tree_records);
+    if (record.get_record_type() == TRIVIAL_SNARL || record.get_record_type() == DISTANCED_TRIVIAL_SNARL) {
+        return TrivialSnarlRecord(get_record_offset(net), &snarl_tree_records).get_is_reversed_in_parent(get_node_record_offset(net));
+    } else {
+        return record.get_is_reversed_in_parent();
+    }
 }
 net_handle_t SnarlDistanceIndex::get_node_net_handle(const nid_t id) const {
     RootRecord root_record (get_root(), &snarl_tree_records);
