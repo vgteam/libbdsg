@@ -508,10 +508,6 @@ bool SnarlDistanceIndex::follow_net_edges_impl(const net_handle_t& here, const h
 #ifdef debug_snarl_traveral
         assert(parent_record.get_record_handle_type() == CHAIN_HANDLE);
 #endif
-        if (get_start_endpoint(get_connectivity(here)) == get_end_endpoint(get_connectivity(here))) {
-            //If this node is the end (/start) of a looping chain trying to leave it
-            return true;
-        }
         //If this is a snarl or node, then it is the component of a (possibly pretend) chain
         ChainRecord parent_chain(this_record.get_parent_record_offset(), &snarl_tree_records);
         if (ends_at(here) == START) {
@@ -2650,7 +2646,6 @@ size_t SnarlDistanceIndex::ChainRecordConstructor::add_node(nid_t node_id, size_
                                               (*records)->at(COMPONENT_COUNT_OFFSET))) 
                     = ((previous_child_offset<<BITS_FOR_TRIVIAL_NODE_OFFSET) | old_node_count);
         //REturn the offset of the old trivial snarl record that we added t:
-cerr << " Find node " << node_id << " at trivial snarl record " << previous_child_offset << " with offest " << old_node_count << endl;
         return trivial_snarl_record.record_offset;
     }
 }
