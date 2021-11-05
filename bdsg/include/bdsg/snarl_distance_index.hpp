@@ -590,7 +590,7 @@ private:
     const static size_t TRIVIAL_SNARL_COMPONENT_OFFSET = 6;
    
     //Snarl record (which occurs within a chain)
-    const static size_t SNARL_RECORD_SIZE = 9;
+    const static size_t SNARL_RECORD_SIZE = 8;
     const static size_t SNARL_NODE_COUNT_OFFSET = 1;
     const static size_t SNARL_PARENT_OFFSET = 2;
     const static size_t SNARL_MIN_LENGTH_OFFSET = 3;
@@ -599,7 +599,6 @@ private:
     //TODO: This could also be found from the list of the snarl's children, but probably better here, even if it's duplicative
     const static size_t SNARL_START_NODE_OFFSET = 6;
     const static size_t SNARL_END_NODE_OFFSET = 7;
-    const static size_t SNARL_BIT_WIDTH_OFFSET = 8;
 
     //The snarl size is repeated immediately after a chain node record (so the offset is CHAIN_NODE(_MULTICOMPONENT)_RECORD_SIZE -1)
     //If there is a snarl, the snarl size is repeated after the snarl record
@@ -704,6 +703,9 @@ public:
     }
 
     const static handlegraph::net_handle_t get_net_handle(size_t pointer, connectivity_t connectivity, net_handle_record_t type, size_t node_offset=0) {
+        if (pointer > (1 << 49)-1) {
+            throw runtime_error("error: don't have space in net handle for record offset");
+        }
         net_handle_t handle =  as_net_handle((((((pointer << BITS_FOR_TRIVIAL_NODE_OFFSET) | node_offset) << 4) | connectivity)<<3) | type); 
         return handle;
     
@@ -1201,20 +1203,9 @@ private:
         }
 
         //How big is the entire snarl record?
-        static size_t distance_vector_size(record_t type, size_t node_count, size_t distance_values_per_vector_element, size_t snarl_tree_record_bit_width);
-        static size_t record_size (record_t type, size_t node_count, size_t distance_vectors_per_element, size_t snarl_tree_record_bit_width) ;
+        static size_t distance_vector_size(record_t type, size_t node_count);
+        static size_t record_size (record_t type, size_t node_count) ;
         virtual size_t record_size() ;
-
-        //We're going to store multiple distance values in each vector slot to save bits
-        //Get the bit width used for storing distances
-        size_t get_distance_bit_width() const ;
-        //And how many distance values are we keeping in each slot in the snarl_tree_records vector
-        size_t get_distance_values_per_vector_element() const;
-
-        //Helper function to get the offsets for packing distance values into a vector by adjusting the bit width
-        //returns pair<offset of the element in snarl_tree_records, bits to the right of the distance value in the vector element>
-        pair<size_t, size_t> get_offset_of_distance_entry_in_vector_and_element(size_t distance_vector_offset) const;  
-
 
         //Get the index into the distance vector for the calculating distance between the given node sides
         static size_t get_distance_vector_offset(size_t rank1, bool right_side1, size_t rank2, 
@@ -1244,7 +1235,7 @@ private:
 
         SnarlRecordConstructor();
 
-        SnarlRecordConstructor (size_t node_count, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, record_t type, size_t max_distance){
+        SnarlRecordConstructor (size_t node_count, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, record_t type){
             //Constructor for making a new record, including allocating memory.
             //Assumes that this is the latest record being made, so pointer will be the end of
             //the array and we need to allocate extra memory past it
@@ -1256,9 +1247,7 @@ private:
             SnarlRecord::record_offset = (*records)->size();
             SnarlRecord::records = records;
 
-            size_t distance_values_per_vector_element = (*records)->width() / bit_width(max_distance);
-
-            size_t extra_size = record_size(type, node_count, distance_values_per_vector_element, (*records)->width());
+            size_t extra_size = record_size(type, node_count);
 #ifdef debug_distance_indexing
             cerr << " Resizing array to add snarl: length " << (*records)->size() << " -> "  << (*records)->size() + extra_size << endl;
 #endif
@@ -1277,7 +1266,6 @@ private:
         }
 
         //Set the bit width used for storing distances 
-        void set_distance_bit_width(size_t max_distance_value);
         void set_distance(size_t rank1, bool right_side1, size_t rank2, bool right_side2, size_t distance);
 
         //Node count is the number of nodes in the snarl, not including boundary nodes
@@ -1446,7 +1434,7 @@ private:
          */
 
         //Add a snarl to the end of the chain and return a SnarlRecordConstructor pointing to it
-        SnarlRecordConstructor add_snarl(size_t snarl_size, record_t type, size_t max_snarl_distance, size_t previous_child_offset); 
+        SnarlRecordConstructor add_snarl(size_t snarl_size, record_t type, size_t previous_child_offset); 
         //Add a node to the end of a chain and return the offset of the record it got added to
         size_t add_node(nid_t node_id, size_t node_length, bool is_reversed_in_parent,
                 size_t prefix_sum, size_t forward_loop, size_t reverse_loop, size_t component, size_t previous_child_offset);

@@ -1749,7 +1749,7 @@ void SnarlDistanceIndex::RootRecordConstructor::add_component(size_t index, size
 }
 
 
-size_t SnarlDistanceIndex::SnarlRecord::distance_vector_size(record_t type, size_t node_count, size_t distance_values_per_vector_element, size_t snarl_tree_record_bit_width) {
+size_t SnarlDistanceIndex::SnarlRecord::distance_vector_size(record_t type, size_t node_count) {
     if (type == SNARL || type == ROOT_SNARL){
         //For a normal snarl, its just the record size and the pointers to children
         return 0;
@@ -1758,8 +1758,7 @@ size_t SnarlDistanceIndex::SnarlRecord::distance_vector_size(record_t type, size
         //matrix of distances
         size_t node_side_count = node_count * 2 + 2;
         size_t vector_size =  (((node_side_count+1)*node_side_count) / 2);
-        return vector_size / distance_values_per_vector_element + 
-                (vector_size % distance_values_per_vector_element == 0 ? 0 : 1);
+        return vector_size;
     } else if (type ==  OVERSIZED_SNARL){
         //For a large min_distance snarl, record the side, pointers to children, and just
         //the min distances from each node side to the two boundary nodes
@@ -1773,12 +1772,12 @@ size_t SnarlDistanceIndex::SnarlRecord::distance_vector_size(record_t type, size
     }
 }
 
-size_t SnarlDistanceIndex::SnarlRecord::record_size (record_t type, size_t node_count, size_t distance_values_per_vector_element, size_t snarl_tree_record_bit_width) {
-    return SNARL_RECORD_SIZE + distance_vector_size(type, node_count, distance_values_per_vector_element, snarl_tree_record_bit_width);
+size_t SnarlDistanceIndex::SnarlRecord::record_size (record_t type, size_t node_count) {
+    return SNARL_RECORD_SIZE + distance_vector_size(type, node_count);
 }
 size_t SnarlDistanceIndex::SnarlRecord::record_size() {
     record_t type = get_record_type();
-   return record_size(type, get_node_count(), get_distance_values_per_vector_element(), (*records)->width());
+   return record_size(type, get_node_count());
 }
 
 
@@ -1866,82 +1865,21 @@ bool SnarlDistanceIndex::SnarlRecord::for_each_child(const std::function<bool(co
     return true;
 }
 
-void SnarlDistanceIndex::SnarlRecordConstructor::set_distance_bit_width(size_t max_distance_value) {
-
-    size_t val = bit_width(max_distance_value);
-#ifdef debug_distance_indexing
-    cerr <<  record_offset + SNARL_BIT_WIDTH_OFFSET << " set distance bit width " << val << endl;
-#endif
-    (*records)->at(record_offset + + SNARL_BIT_WIDTH_OFFSET) = val;
-}
-
-size_t SnarlDistanceIndex::SnarlRecord::get_distance_bit_width() const {
-
-    return (*records)->at(record_offset + SNARL_BIT_WIDTH_OFFSET);
-}
-size_t SnarlDistanceIndex::SnarlRecord::get_distance_values_per_vector_element() const {
-    return (*records)->width() / get_distance_bit_width();
-}
-
-pair<size_t, size_t> SnarlDistanceIndex::SnarlRecord::get_offset_of_distance_entry_in_vector_and_element(size_t distance_vector_offset) const {
-    //How many bits are we using to store this value?
-    size_t distance_bit_width = get_distance_bit_width();
-
-    //And how many distances are we storing in each slot in snarl_tree_records
-    size_t distances_per_element = get_distance_values_per_vector_element();
-    assert ((distances_per_element * distance_bit_width ) <= (size_t)(*records)->width());
-
-    //offset of the start of the distance vectors in snarl_tree_records
-    size_t distance_vector_start = record_offset + SNARL_RECORD_SIZE;
-
-    //Offset of the element in snarl_tree_records that this value gets stored in
-    size_t snarl_tree_record_vector_offset = distance_vector_offset / distances_per_element;
-
-    //How many distances are to the left of the distance we're inserting
-    size_t distances_to_the_left = distance_vector_offset % distances_per_element;
-
-    //How many bits are to the right of the distance we're inserting
-    size_t bits_to_the_right =  (*records)->width() - 
-        ((distances_to_the_left+1)* distance_bit_width);
-
-    assert(bits_to_the_right <= (size_t)(*records)->width()-distance_bit_width);
-    assert((distances_to_the_left*distance_bit_width) + distance_bit_width + bits_to_the_right == (size_t)(*records)->width());
-
-    return make_pair(snarl_tree_record_vector_offset+distance_vector_start, bits_to_the_right);
-
-}
-
 void SnarlDistanceIndex::SnarlRecordConstructor::set_distance(size_t rank1, bool right_side1, size_t rank2, bool right_side2, size_t distance) {
 
 #ifdef debug_distance_indexing 
-    assert((distance >> get_distance_bit_width()) == 0);
     //This distance hasn't been set yet (or it's equal to what we're setting)
     assert((get_distance(rank1, right_side1, rank2, right_side2) == std::numeric_limits<size_t>::max() ||
            get_distance(rank1, right_side1, rank2, right_side2) == distance));
-    //This distance can fit in the bit width we've chose
-    assert(distance < (1 << get_distance_bit_width())-1);
 #endif
 
     //Offset of this particular distance in the distance vector
     size_t distance_vector_offset = get_distance_vector_offset(rank1, right_side1, rank2, right_side2);
 
-    //Get the offsets for packing the value into fewer bits
-    pair<size_t, size_t> offsets = get_offset_of_distance_entry_in_vector_and_element(distance_vector_offset);
-
-    //Offset of the element in snarl_tree_records that this value gets stored in
-    size_t snarl_tree_record_vector_offset = offsets.first;
-    //How many bits are to the right of the distance we're inserting
-    size_t bits_to_the_right =  offsets.second;
-
-
     //Value we actually want to save
     size_t val = distance == std::numeric_limits<size_t>::max() ? 0 : distance+1;
 
-
-    size_t old_value = (*records)->at(snarl_tree_record_vector_offset);
-    size_t new_value = old_value | (val << bits_to_the_right);
-
-    (*records)->at(snarl_tree_record_vector_offset) = new_value;
+    (*records)->at(distance_vector_offset+record_offset+SNARL_RECORD_SIZE) = val;
 }
 
 size_t SnarlDistanceIndex::SnarlRecord::get_distance(size_t rank1, bool right_side1, size_t rank2, bool right_side2) const {
@@ -1949,19 +1887,7 @@ size_t SnarlDistanceIndex::SnarlRecord::get_distance(size_t rank1, bool right_si
     //Offset of this particular distance in the distance vector
     size_t distance_vector_offset = get_distance_vector_offset(rank1, right_side1, rank2, right_side2);
 
-
-    //Get the offsets for packing the distances into fewer bits
-    pair<size_t, size_t> offsets = get_offset_of_distance_entry_in_vector_and_element(distance_vector_offset);
-
-    //Offset of the element in snarl_tree_records that this value gets stored in
-    size_t snarl_tree_record_vector_offset = offsets.first;
-    //How many bits are to the right of the distance we're inserting
-    size_t bits_to_the_right =  offsets.second;
-
-    size_t entry = (*records)->at(snarl_tree_record_vector_offset);
-
-    size_t bit_mask = (1 << get_distance_bit_width())-1;
-    size_t val = (entry >> bits_to_the_right) & bit_mask;
+    size_t val = (*records)->at(distance_vector_offset+record_offset+SNARL_RECORD_SIZE);
 
     return  val == 0 ? std::numeric_limits<size_t>::max() : val-1;
 
@@ -2538,10 +2464,9 @@ void SnarlDistanceIndex::ChainRecordConstructor::set_last_child_offset(size_t of
 }
 
 //Add a snarl to the end of the chain and return a SnarlRecordConstructor pointing to it
-SnarlDistanceIndex::SnarlRecordConstructor SnarlDistanceIndex::ChainRecordConstructor::add_snarl(size_t snarl_size, record_t type, size_t max_snarl_distance, size_t previous_child_offset) {
+SnarlDistanceIndex::SnarlRecordConstructor SnarlDistanceIndex::ChainRecordConstructor::add_snarl(size_t snarl_size, record_t type, size_t previous_child_offset) {
 
-    size_t distance_values_per_vector_element = (*records)->width() / bit_width(max_snarl_distance); 
-    size_t snarl_record_size = SnarlRecord::record_size(type, snarl_size, distance_values_per_vector_element, (*records)->width());
+    size_t snarl_record_size = SnarlRecord::record_size(type, snarl_size);
 #ifdef debug_distance_indexing
     cerr << (*records)->size() << " Adding child snarl length to the end of the array " << endl;
     assert(SnarlDistanceIndex::get_record_type((*records)->at(previous_child_offset))== DISTANCED_TRIVIAL_SNARL);
@@ -2558,8 +2483,7 @@ SnarlDistanceIndex::SnarlRecordConstructor SnarlDistanceIndex::ChainRecordConstr
     (*records)->resize(start_i+1);
     (*records)->at(start_i) = snarl_record_size;
     (*records)->reserve(start_i + snarl_record_size);
-    SnarlRecordConstructor snarl_record(snarl_size, records, type, max_snarl_distance);
-    snarl_record.set_distance_bit_width(max_snarl_distance);
+    SnarlRecordConstructor snarl_record(snarl_size, records, type);
     snarl_record.set_parent_record_offset(get_offset());
 #ifdef debug_distance_indexing
     cerr << (*records)->size() << " Adding child snarl length to the end of the array " << endl;
@@ -2811,9 +2735,6 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
     size_t maximum_tree_depth = 0;
     //The maximum distance value that gets stored in the index, and the maximum possible
     //length of the index
-    //Used for setting the width of ints in the int vector (snarl_tree_records)
-    //This only counts distance values, since the max offset value will be the length
-    //of the array, I'll check that right before setting the width
 
     /*Go through each of the indexes to count how many nodes, components, etc */
     for (const TemporaryDistanceIndex* temp_index : temporary_indexes) {
@@ -2835,9 +2756,10 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
 
 
     //Set the width of the values to the minimum needed to fit everything
-    size_t maximum_value = std::max(maximum_index_size, std::max(maximum_distance, (size_t) max_node_id));
-    size_t new_width = std::max(bit_width(maximum_value), (size_t)14); //14 is the width of the tags
-    snarl_tree_records->width(32);//TODO: Fix this
+    size_t max_dist_bit_width = bit_width(std::max(maximum_distance, (size_t) max_node_id));
+    size_t max_address_bit_width = bit_width(maximum_index_size)+BITS_FOR_TRIVIAL_NODE_OFFSET;
+    size_t new_width = std::max(std::max(max_dist_bit_width, max_address_bit_width), (size_t)14); //14 is the width of the tags
+    snarl_tree_records->width(new_width);//TODO: Fix this
 
     snarl_tree_records->reserve(maximum_index_size);
 
@@ -2994,7 +2916,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                                 record_t record_type = snarl_size_limit == 0 ? SNARL :
                                     (temp_snarl_record.node_count < snarl_size_limit ? DISTANCED_SNARL : OVERSIZED_SNARL);
                                 SnarlRecordConstructor snarl_record_constructor =
-                                    chain_record_constructor.add_snarl(temp_snarl_record.node_count, record_type, temp_snarl_record.max_distance, last_child_offset.first);
+                                    chain_record_constructor.add_snarl(temp_snarl_record.node_count, record_type, last_child_offset.first);
 
                                 //Record how to find the new snarl record
                                 record_to_offset.emplace(make_pair(temp_index_i, child_record_index), snarl_record_constructor.record_offset);
@@ -3131,7 +3053,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                 const TemporaryDistanceIndex::TemporarySnarlRecord& temp_snarl_record = temp_index->temp_snarl_records[current_record_index.second];
                 record_to_offset.emplace(make_pair(temp_index_i,current_record_index), snarl_tree_records->size());
 
-                SnarlRecordConstructor snarl_record_constructor (temp_snarl_record.node_count, &snarl_tree_records, record_type, temp_snarl_record.max_distance);
+                SnarlRecordConstructor snarl_record_constructor (temp_snarl_record.node_count, &snarl_tree_records, record_type);
 
                 //Fill in snarl info
                 snarl_record_constructor.set_parent_record_offset(0);
@@ -3140,11 +3062,6 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
 
                 if (snarl_size_limit != 0 ) {
 
-                    size_t max_snarl_distance = 0;
-                    for (const auto& it : temp_snarl_record.distances) {
-                        max_snarl_distance = std::max(max_snarl_distance, it.second);
-                    }
-                    snarl_record_constructor.set_distance_bit_width(temp_snarl_record.max_distance);
 
                     for (const auto& it : temp_snarl_record.distances) {
                         const pair<pair<size_t, bool>, pair<size_t, bool>>& node_ranks = it.first;
@@ -3278,10 +3195,16 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
     }
 #ifdef debug_distance_indexing
     cerr << "Predicted size: " << maximum_index_size << " actual size: " <<  snarl_tree_records->size() << endl;
-    assert(snarl_tree_records->size() <= maximum_index_size); 
+    //assert(snarl_tree_records->size() <= maximum_index_size); 
 #endif
 #ifdef count_allocations
     cerr << "total\t" << snarl_tree_records->size() << endl;
+    cerr << "bit width " << snarl_tree_records->width() << endl;
+    size_t max_val = 0;
+    for (size_t i = 0 ; i < snarl_tree_records->size() ; i++ ) {
+        max_val = std::max(max_val, snarl_tree_records->at(i));
+    }
+    cerr << "Max value " << max_val << endl;;
 #endif
 
 
