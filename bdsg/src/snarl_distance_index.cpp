@@ -3220,7 +3220,9 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
     //assert(snarl_tree_records->size() <= maximum_index_size); 
 #endif
 #ifdef count_allocations
+    tuple<size_t, size_t, size_t> usage =get_usage();
     cerr << "total\t" << snarl_tree_records->size() << endl;
+    cerr << "Usage: " << std::get<0>(usage) << " total bytes, " << std::get<1>(usage) << " free bytes " << std::get<2>(usage) << " reclaimable free bytes " << endl;
     cerr << "bit width " << snarl_tree_records->width() << endl;
     cerr << "Max value " << max_val << endl;;
 #endif
