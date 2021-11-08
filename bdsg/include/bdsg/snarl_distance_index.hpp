@@ -2,7 +2,7 @@
 #define BDSG_SNARL_DISTANCE_HPP_INCLUDED
 
 //#define debug_distance_indexing
-//#define count_allocations
+#define count_allocations
 
 #include <handlegraph/snarl_decomposition.hpp>
 #include <handlegraph/algorithms/dijkstra.hpp>
@@ -703,7 +703,7 @@ public:
     }
 
     const static handlegraph::net_handle_t get_net_handle(size_t pointer, connectivity_t connectivity, net_handle_record_t type, size_t node_offset=0) {
-        if (pointer > (1 << 49)-1) {
+        if (pointer > ((size_t)1 << (64-BITS_FOR_TRIVIAL_NODE_OFFSET-3-4))-1) {
             throw runtime_error("error: don't have space in net handle for record offset");
         }
         net_handle_t handle =  as_net_handle((((((pointer << BITS_FOR_TRIVIAL_NODE_OFFSET) | node_offset) << 4) | connectivity)<<3) | type); 
@@ -725,7 +725,7 @@ public:
     //Get the offset into snarl_tree_records for the pointer to a node record
     const static size_t get_node_pointer_offset (const handlegraph::nid_t& id, const handlegraph::nid_t& min_node_id, size_t component_count) {
         size_t node_records_offset = component_count + ROOT_RECORD_SIZE; 
-        size_t offset = (id-min_node_id);
+        size_t offset = (id-min_node_id)*2;
         return node_records_offset + offset; 
     }
     //handlegraph::nid_t get_node_id_from_offset(size_t offset) const {
@@ -1014,16 +1014,16 @@ private:
             //Allocate memory for the root vector and for all of the nodes
 #ifdef debug_distance_indexing
             cerr << " Resizing array to add root: length " << (*records)->size() << " -> " 
-                 << (*records)->size() + ROOT_RECORD_SIZE + connected_component_count + node_count << endl;
+                 << (*records)->size() + ROOT_RECORD_SIZE + connected_component_count + (node_count*2) << endl;
 #endif
-            (*records)->resize((*records)->size() + ROOT_RECORD_SIZE + connected_component_count + node_count);
+            (*records)->resize((*records)->size() + ROOT_RECORD_SIZE + connected_component_count + (node_count*2));
             set_record_type(ROOT);
             set_min_node_id(min_node_id);
             set_node_count(node_count);
             set_max_tree_depth(max_tree_depth);
             set_connected_component_count(connected_component_count);
 #ifdef count_allocations
-            cerr << "new_root\t" <<  (ROOT_RECORD_SIZE + connected_component_count + node_count) << "\t" << (*records)->size() << endl;
+            cerr << "new_root\t" <<  (ROOT_RECORD_SIZE + connected_component_count + (node_count*2)) << "\t" << (*records)->size() << endl;
 #endif
         }
         virtual void set_connected_component_count(size_t connected_component_count);
@@ -1094,9 +1094,13 @@ private:
                                                    (*records)->at(COMPONENT_COUNT_OFFSET))
                  << " Set pointer to node " << node_id << " record: " << pointer << endl;
 #endif
+            //Tell the root where to find this node, and a 0 for the offset in a trivial snarl
             (*records)->at(get_node_pointer_offset(node_id, 
                                                    (*records)->at(MIN_NODE_ID_OFFSET), 
-                                                   (*records)->at(COMPONENT_COUNT_OFFSET))) = (pointer<<BITS_FOR_TRIVIAL_NODE_OFFSET);
+                                                   (*records)->at(COMPONENT_COUNT_OFFSET))) = pointer;
+            (*records)->at(get_node_pointer_offset(node_id, 
+                                                   (*records)->at(MIN_NODE_ID_OFFSET), 
+                                                   (*records)->at(COMPONENT_COUNT_OFFSET))+1) = 0;
 
         }
         virtual void set_node_id(nid_t value);
@@ -1171,11 +1175,11 @@ private:
                 (*records)->resize(record_offset + TRIVIAL_SNARL_RECORD_SIZE);
                 set_record_type(type);
                 set_start_end_connected();
-            }
-
 #ifdef count_allocations
             cerr << "new_trivial_snarl\t" << TRIVIAL_SNARL_RECORD_SIZE << "\t" << (*records)->size() << endl;
 #endif
+            }
+
         }
     };
 
