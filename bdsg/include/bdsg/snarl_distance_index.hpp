@@ -2,7 +2,7 @@
 #define BDSG_SNARL_DISTANCE_HPP_INCLUDED
 
 //#define debug_distance_indexing
-#define count_allocations
+//#define count_allocations
 
 #include <handlegraph/snarl_decomposition.hpp>
 #include <handlegraph/algorithms/dijkstra.hpp>
@@ -590,15 +590,14 @@ private:
     const static size_t TRIVIAL_SNARL_COMPONENT_OFFSET = 6;
    
     //Snarl record (which occurs within a chain)
-    const static size_t SNARL_RECORD_SIZE = 8;
+    const static size_t SNARL_RECORD_SIZE = 6;
     const static size_t SNARL_NODE_COUNT_OFFSET = 1;
     const static size_t SNARL_PARENT_OFFSET = 2;
     const static size_t SNARL_MIN_LENGTH_OFFSET = 3;
     const static size_t SNARL_MAX_LENGTH_OFFSET = 4;
     const static size_t SNARL_CHILD_RECORD_OFFSET = 5;
-    //TODO: This could also be found from the list of the snarl's children, but probably better here, even if it's duplicative
-    const static size_t SNARL_START_NODE_OFFSET = 6;
-    const static size_t SNARL_END_NODE_OFFSET = 7;
+
+
 
     //The snarl size is repeated immediately after a chain node record (so the offset is CHAIN_NODE(_MULTICOMPONENT)_RECORD_SIZE -1)
     //If there is a snarl, the snarl size is repeated after the snarl record
@@ -1375,8 +1374,11 @@ private:
         //go_left is true if we are traversing the chain right to left
         //
         //return the same net_handle_t if this is trying to walk out the end of the chain
+        //
         //For looping chains, this one has to know whether the boundary node is representing the start or end
         //This means that you only see the boundary node as the start or the end
+        //
+        //The next handle will be pointing in the direction that we just moved
         virtual net_handle_t get_next_child(const net_handle_t& net_handle, bool go_left) const;
 
         virtual bool for_each_child(const std::function<bool(const net_handle_t&)>& iteratee) const;
