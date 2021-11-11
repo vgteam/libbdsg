@@ -1312,7 +1312,7 @@ private:
             record_t type = get_record_type();
             node_rank = node; 
 #ifdef debug_distance_indexing
-            assret (node_rank >=2);
+            assert (node_rank >=2);
             assert(type == SIMPLE_SNARL || type == DISTANCED_SIMPLE_SNARL);
 #endif
         }
@@ -1323,7 +1323,7 @@ private:
             net_handle_record_t type = get_handle_type(net);
             node_rank = get_node_record_offset(net) == 1 ? std::numeric_limits<size_t>::max() : get_node_record_offset(net);
 #ifdef debug_distance_indexing
-            assret (node_rank >=2);
+            assert (node_rank >=2);
             assert(type == SNARL_HANDLE || type == SENTINEL_HANDLE);
 #endif
         }
@@ -1365,12 +1365,12 @@ private:
             SimpleSnarlRecord::records = records;
 
 #ifdef debug_distance_indexing
-            cerr << " Resizing array to add snarl: length " << (*records)->size() << " -> "  << (*records)->size() + extra_size << endl;
+            cerr << " Resizing array to add snarl: length " << (*records)->size() << " -> "  << (*records)->size() + SIMPLE_SNARL_RECORD_SIZE + 2*node_count << endl;
 #endif
             (*records)->resize((*records)->size() + SIMPLE_SNARL_RECORD_SIZE + 2*node_count);
             set_node_count(node_count);
             set_record_type(type);
-            set_node_count(0);
+            set_node_count(node_count);
 #ifdef count_allocations
             cerr << "new_snarl\t" << extra_size << "\t" << (*records)->size() << endl;
 #endif
