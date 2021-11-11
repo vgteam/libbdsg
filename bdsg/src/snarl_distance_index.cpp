@@ -1144,7 +1144,6 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
 }
 
 size_t SnarlDistanceIndex::node_length(const net_handle_t& net) const {
-    cerr << "Get node length of " << net_handle_as_string(net);
     if (is_node(net)) {
         if (get_record_type(snarl_tree_records->at(get_record_offset(net))) == DISTANCED_NODE) {
             return NodeRecord(net, &snarl_tree_records).get_node_length();
@@ -3452,9 +3451,9 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
     for (size_t i = 0 ; i < snarl_tree_records->size() ; i++ ) {
         max_val = std::max(max_val, (size_t) snarl_tree_records->at(i));
     }
-    size_t ideal_bit_width = std::min((size_t)log2(max_val)+1, (size_t)26);
+    size_t ideal_bit_width = std::max((size_t)log2(max_val)+1, (size_t)26);
     if (ideal_bit_width < snarl_tree_records->width()) {
-        cerr << "Resetting bit width from " << snarl_tree_records->width() << " to " << ideal_bit_width << endl;
+        //cerr << "Resetting bit width from " << snarl_tree_records->width() << " to " << ideal_bit_width << endl;
         snarl_tree_records->repack(ideal_bit_width, snarl_tree_records->size());
     }
 #ifdef debug_distance_indexing
