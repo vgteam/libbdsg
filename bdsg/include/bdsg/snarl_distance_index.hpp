@@ -1283,6 +1283,10 @@ private:
             //For adding children to an existing snarl record
             record_offset = pointer;
             records = records;
+            SnarlTreeRecordConstructor::records = records;
+            SnarlTreeRecordConstructor::record_offset = pointer;
+            SnarlRecord::records = records;
+            SnarlRecord::record_offset = pointer;
         }
 
         //Set the bit width used for storing distances 
@@ -1380,6 +1384,10 @@ private:
             //For adding children to an existing snarl record
             record_offset = pointer;
             records = records;
+            SnarlTreeRecordConstructor::record_offset = pointer;
+            SnarlTreeRecordConstructor::records = records;
+            SimpleSnarlRecord::record_offset = pointer;
+            SimpleSnarlRecord::records = records;
         }
 
 

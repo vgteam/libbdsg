@@ -1,5 +1,5 @@
-#define debug_distance_indexing
-#define debug_snarl_traversal
+//#define debug_distance_indexing
+//#define debug_snarl_traversal
 //#define debug_distances
 
 #include "bdsg/snarl_distance_index.hpp"
@@ -1986,7 +1986,7 @@ size_t SnarlDistanceIndex::SnarlRecord::get_child_record_pointer() const {
 
 void SnarlDistanceIndex::SnarlRecordConstructor::set_child_record_pointer(size_t pointer) {
 #ifdef debug_distance_indexing
-    cerr << record_offset+SNARL_CHILD_RECORD_OFFSET << " set snarl child record pointer " << pointer << endl;
+    cerr << (*records)->at(record_offset+SNARL_CHILD_RECORD_OFFSET) << endl;
     assert((*records)->at(record_offset+SNARL_CHILD_RECORD_OFFSET) == 0);
 #endif
 
@@ -3224,7 +3224,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                                     }
                                 }
                                 last_child_offset = make_pair(snarl_record_constructor.record_offset, true);
-                            } else if (temp_snarl_record.is_simple) {
+                            } else if (!temp_snarl_record.is_trivial && temp_snarl_record.is_simple) {
                                 //Make a simple snarl
 
                                 //Add the snarl to the chain, and get back the record to fill it in
