@@ -1,7 +1,7 @@
 #ifndef BDSG_SNARL_DISTANCE_HPP_INCLUDED
 #define BDSG_SNARL_DISTANCE_HPP_INCLUDED
 
-//#define debug_distance_indexing
+#define debug_distance_indexing
 //#define count_allocations
 
 #include <handlegraph/snarl_decomposition.hpp>
@@ -1313,22 +1313,21 @@ private:
         SimpleSnarlRecord (size_t pointer, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records, size_t node = std::numeric_limits<size_t>::max()){
             record_offset = pointer;
             records = tree_records;
-            record_t type = get_record_type();
             node_rank = node; 
 #ifdef debug_distance_indexing
             assert (node_rank >=2);
-            assert(type == SIMPLE_SNARL || type == DISTANCED_SIMPLE_SNARL);
+            assert(get_record_type() == SIMPLE_SNARL || get_record_type() == DISTANCED_SIMPLE_SNARL);
 #endif
         }
 
         SimpleSnarlRecord (net_handle_t net, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records){
             record_offset = get_record_offset(net);
             records = tree_records;
-            net_handle_record_t type = get_handle_type(net);
             node_rank = get_node_record_offset(net) == 1 ? std::numeric_limits<size_t>::max() : get_node_record_offset(net);
+
 #ifdef debug_distance_indexing
             assert (node_rank >=2);
-            assert(type == SNARL_HANDLE || type == SENTINEL_HANDLE);
+            assert(get_record_type() == SIMPLE_SNARL || get_record_type() == DISTANCED_SIMPLE_SNARL);
 #endif
         }
 
@@ -1369,14 +1368,16 @@ private:
             SimpleSnarlRecord::records = records;
 
 #ifdef debug_distance_indexing
-            cerr << " Resizing array to add snarl: length " << (*records)->size() << " -> "  << (*records)->size() + SIMPLE_SNARL_RECORD_SIZE + 2*node_count << endl;
+            cerr << " Resizing array to add simple snarl: length " << (*records)->size() << " -> "  << (*records)->size() + SIMPLE_SNARL_RECORD_SIZE + 2*node_count << endl;
+            cerr << "\t simple snarl has " << node_count << " nodes " << endl;
 #endif
             (*records)->resize((*records)->size() + SIMPLE_SNARL_RECORD_SIZE + 2*node_count);
             set_node_count(node_count);
             set_record_type(type);
             set_node_count(node_count);
 #ifdef count_allocations
-            cerr << "new_snarl\t" << extra_size << "\t" << (*records)->size() << endl;
+            cerr << "new_simple_snarl\t" << SIMPLE_SNARL_RECORD_SIZE << "\t" << (*records)->size() << endl;
+            cerr << "simple_snarl_nodes\t" << (node_count*2) << "\t" << (*records)->size() << endl;
 #endif
         }
         SimpleSnarlRecordConstructor(bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, size_t pointer) {
@@ -1388,6 +1389,8 @@ private:
             SnarlTreeRecordConstructor::records = records;
             SimpleSnarlRecord::record_offset = pointer;
             SimpleSnarlRecord::records = records;
+
+            cerr << "Get a new simple snarl constructor to add node at offset " << pointer << endl; 
         }
 
 

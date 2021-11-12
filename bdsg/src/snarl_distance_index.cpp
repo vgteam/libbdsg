@@ -1,6 +1,6 @@
-//#define debug_distance_indexing
-//#define debug_snarl_traversal
-//#define debug_distances
+#define debug_distance_indexing
+#define debug_snarl_traversal
+#define debug_distances
 
 #include "bdsg/snarl_distance_index.hpp"
 
@@ -87,7 +87,9 @@ bool SnarlDistanceIndex::is_chain(const net_handle_t& net) const {
 #ifdef debug_distances
 if (get_handle_type(net) ==CHAIN_HANDLE) {
     assert(SnarlTreeRecord(net, &snarl_tree_records).get_record_handle_type() == CHAIN_HANDLE ||
-    SnarlTreeRecord(net, &snarl_tree_records).get_record_handle_type() == NODE_HANDLE);
+    SnarlTreeRecord(net, &snarl_tree_records).get_record_handle_type() == NODE_HANDLE ||
+    SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == SIMPLE_SNARL ||
+    SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == DISTANCED_SIMPLE_SNARL);
 }
 #endif
     return get_handle_type(net) == CHAIN_HANDLE;
@@ -123,8 +125,14 @@ size_t SnarlDistanceIndex::get_record_offset_in_chain(const net_handle_t& child)
 }
 
 bool SnarlDistanceIndex::is_trivial_chain(const net_handle_t& net) const {
-    return get_handle_type(net) == CHAIN_HANDLE
-            && SnarlTreeRecord(net, &snarl_tree_records).get_record_handle_type() == NODE_HANDLE;
+    bool handle_is_chain =get_handle_type(net) == CHAIN_HANDLE; 
+    bool record_is_node = SnarlTreeRecord(net, &snarl_tree_records).get_record_handle_type() == NODE_HANDLE;
+    bool record_is_simple_snarl = SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == SIMPLE_SNARL ||
+                    SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == DISTANCED_SIMPLE_SNARL ;
+    bool handle_has_node_offset = get_node_record_offset(net) >= 2;
+    
+    return handle_is_chain && (record_is_node
+                || (record_is_simple_snarl && handle_has_node_offset));
 }
 
 bool SnarlDistanceIndex::is_node(const net_handle_t& net) const {
@@ -182,7 +190,17 @@ net_handle_t SnarlDistanceIndex::get_parent(const net_handle_t& child) const {
         return get_net_handle(get_record_offset(child), START_END, SNARL_HANDLE, get_node_record_offset(child)); 
     } else if (get_handle_type(child) == ROOT_HANDLE) {
         throw runtime_error("error: trying to find the parent of the root");
-    } 
+    } else if (SnarlTreeRecord(child, &snarl_tree_records).get_record_type() == SIMPLE_SNARL ||
+                SnarlTreeRecord(child, &snarl_tree_records).get_record_type() == DISTANCED_SIMPLE_SNARL) {
+        //If this is a simple snarl and a node or chain, then the parent offset doesn't change
+        if (get_handle_type(child) == NODE_HANDLE) {
+            //If this is a node, then return it as a chain
+            return get_net_handle(get_record_offset(child), START_END, CHAIN_HANDLE, get_node_record_offset(child));
+        } else if (get_handle_type(child) == CHAIN_HANDLE) {
+            //If this is a chain, then return the same thing as a snarl
+            return get_net_handle(get_record_offset(child), START_END, SNARL_HANDLE, 1);
+        }
+    }
 
     //Otherwise, we need to move up one level in the snarl tree
 
@@ -334,7 +352,20 @@ bool SnarlDistanceIndex::for_each_child_impl(const net_handle_t& traversal, cons
     //What is this according to the handle 
     //(could be a trivial chain but actually a node according to the snarl tree)
     net_handle_record_t handle_type = get_handle_type(traversal);
-    if (record_type == SNARL_HANDLE) {
+    if (SnarlTreeRecord(traversal, &snarl_tree_records).get_record_type() == SIMPLE_SNARL ||
+        SnarlTreeRecord(traversal, &snarl_tree_records).get_record_type() == DISTANCED_SIMPLE_SNARL ) {
+        //If this is a simple snarl then it is a bit different
+        if (handle_type == CHAIN_HANDLE) {
+            //If the handle thinks it's a chain, then it is a trivial chain in the snarl so we do
+            //iteratee for the node
+            return iteratee(get_net_handle(get_record_offset(traversal), get_connectivity(traversal), 
+                                           NODE_HANDLE, get_node_record_offset(traversal)));
+        } else if (handle_type == SNARL_HANDLE) {
+            return SimpleSnarlRecord(traversal, &snarl_tree_records).for_each_child(iteratee);
+        } else {
+            throw runtime_error("error: Looking for children of a node or sentinel in a simple snarl");
+        }
+    } else if (record_type == SNARL_HANDLE) {
         SnarlRecord snarl_record(traversal, &snarl_tree_records);
         return snarl_record.for_each_child(iteratee);
     } else if (record_type == CHAIN_HANDLE) {
@@ -677,11 +708,11 @@ size_t SnarlDistanceIndex::distance_in_parent(CachedNetHandle& cached_parent,
     net_handle_t child2 = go_left2 ? flip(cached_child2.net) : cached_child2.net;
     net_handle_t parent = cached_parent.net;
 #ifdef debug_distances
-    assert(canonical(cached_parent.net) == canonical(get_parent(child1)));
-    assert(canonical(cached_parent.net) == canonical(get_parent(child2)));
-    cerr << "\t\tFind distance between " << net_handle_as_string(child1) 
-         << " and " << net_handle_as_string(child2) 
-         << "\tin parent " << net_handle_as_string(cached_parent.net) << endl;
+//    assert(canonical(cached_parent.net) == canonical(get_parent(child1)));
+//    assert(canonical(cached_parent.net) == canonical(get_parent(child2)));
+//    cerr << "\t\tFind distance between " << net_handle_as_string(child1) 
+//         << " and " << net_handle_as_string(child2) 
+//         << "\tin parent " << net_handle_as_string(cached_parent.net) << endl;
 #endif
 
     if (is_root(parent)) {
@@ -946,6 +977,16 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
 
         if (is_trivial_chain(parent)) {
             //Don't update distances for the trivial chain
+            cerr << "trivial chain so don't do anything" << endl;
+            return;
+        } else if (is_simple_snarl(parent)) {
+            //If it's a simple snarl just check if they should be reversed
+            if (is_reversed_in_parent (net)) {
+                size_t tmp = dist_start;
+                dist_start = dist_end;
+                dist_end = tmp;
+            } 
+            cerr << "simple snarl so don't do anything" << endl;
             return;
         }
 
@@ -1148,7 +1189,7 @@ size_t SnarlDistanceIndex::node_length(const net_handle_t& net) const {
         if (get_record_type(snarl_tree_records->at(get_record_offset(net))) == DISTANCED_NODE) {
             return NodeRecord(net, &snarl_tree_records).get_node_length();
         } else if (get_record_type(snarl_tree_records->at(get_record_offset(net))) == DISTANCED_SIMPLE_SNARL) {
-            return SimpleSnarlRecord(get_record_offset(net), &snarl_tree_records).get_node_length();
+            return SimpleSnarlRecord(net, &snarl_tree_records).get_node_length();
         } else {
             assert(get_record_type(snarl_tree_records->at(get_record_offset(net))) == DISTANCED_TRIVIAL_SNARL);
             return TrivialSnarlRecord(get_record_offset(net), &snarl_tree_records).get_node_length(get_node_record_offset(net));
@@ -1173,7 +1214,7 @@ nid_t SnarlDistanceIndex::node_id(const net_handle_t& net) const {
             return NodeRecord(net, &snarl_tree_records).get_node_id();
         }  else if (get_record_type(snarl_tree_records->at(get_record_offset(net))) == SIMPLE_SNARL
                  || get_record_type(snarl_tree_records->at(get_record_offset(net))) == DISTANCED_SIMPLE_SNARL) {
-            return SimpleSnarlRecord(get_record_offset(net), &snarl_tree_records).get_node_id();
+            return SimpleSnarlRecord(net, &snarl_tree_records).get_node_id();
         } else {
             return TrivialSnarlRecord(get_record_offset(net), &snarl_tree_records).get_node_id(get_node_record_offset(net));
         }
@@ -1201,7 +1242,7 @@ bool SnarlDistanceIndex::is_reversed_in_parent(const net_handle_t& net) const {
     if (record.get_record_type() == TRIVIAL_SNARL || record.get_record_type() == DISTANCED_TRIVIAL_SNARL) {
         return TrivialSnarlRecord(get_record_offset(net), &snarl_tree_records).get_is_reversed_in_parent(get_node_record_offset(net));
     } else if (record.get_record_type() == SIMPLE_SNARL || record.get_record_type() == DISTANCED_SIMPLE_SNARL) {
-        return SimpleSnarlRecord(get_record_offset(net), &snarl_tree_records).get_is_reversed_in_parent();
+        return SimpleSnarlRecord(net, &snarl_tree_records).get_is_reversed_in_parent();
     } else {
         return record.get_is_reversed_in_parent();
     }
@@ -1221,6 +1262,19 @@ size_t SnarlDistanceIndex::get_max_tree_depth() const {
 size_t SnarlDistanceIndex::get_depth(const net_handle_t& net) const {
     if (is_root(net)) {
         return 0;
+    } else if (SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == SIMPLE_SNARL ||
+               SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == DISTANCED_SIMPLE_SNARL ){
+        //If this is a simple snarl, then it can be a node, snarl, or chain
+
+        //The depth of the snarl's parent chain
+        size_t snarl_depth = get_depth(get_parent(get_net_handle(get_record_offset(net), START_END, SNARL_HANDLE, 1)));
+        if (is_snarl(net) || is_sentinel(net)) {
+            //If this is a snarl or sentinel of the snarl, then it has the depth of its parent
+            return snarl_depth;
+        } else {
+            //If it is the snarl's child node or chain, then add 1
+            return snarl_depth + 1;
+        }
     } else if (is_snarl(net) || is_sentinel(net) || is_node(net)) {
         return get_depth(get_parent(net));
     } else if (is_trivial_chain(net)) {
@@ -2024,16 +2078,19 @@ void SnarlDistanceIndex::SimpleSnarlRecordConstructor::set_node_count(size_t nod
 nid_t SnarlDistanceIndex::SimpleSnarlRecord::get_node_id(size_t rank) const {
     rank = rank == std::numeric_limits<size_t>::max() ? node_rank : rank;
     assert(rank >=2);
+    assert(rank != std::numeric_limits<size_t>::max());
     return (*records)->at(record_offset + SIMPLE_SNARL_RECORD_SIZE + ((rank-2)*2));
 }
 size_t SnarlDistanceIndex::SimpleSnarlRecord::get_node_length(size_t rank) const {
     rank = rank == std::numeric_limits<size_t>::max() ? node_rank : rank;
     assert(rank >=2);
+    assert(rank != std::numeric_limits<size_t>::max());
     return (*records)->at(record_offset + SIMPLE_SNARL_RECORD_SIZE + ((rank-2)*2) + 1) >> 1;
 }
 bool SnarlDistanceIndex::SimpleSnarlRecord::get_node_is_reversed(size_t rank) const {
     rank = rank == std::numeric_limits<size_t>::max() ? node_rank : rank;
     assert(rank>=2);
+    assert(rank != std::numeric_limits<size_t>::max());
     return (*records)->at(record_offset + SIMPLE_SNARL_RECORD_SIZE + ((rank-2)*2) + 1) & 1;
 }
 size_t SnarlDistanceIndex::SimpleSnarlRecord::get_distance(size_t rank1, bool right_side1, size_t rank2, bool right_side2) const {
@@ -2068,7 +2125,7 @@ size_t SnarlDistanceIndex::SimpleSnarlRecord::get_distance(size_t rank1, bool ri
 bool SnarlDistanceIndex::SimpleSnarlRecord::for_each_child(const std::function<bool(const net_handle_t&)>& iteratee) const {
     size_t node_count = get_node_count();
     for (size_t i = 0 ; i < node_count ; i++) {
-        net_handle_t child_handle = get_net_handle(record_offset, START_END, NODE_HANDLE, i);
+        net_handle_t child_handle = get_net_handle(record_offset, START_END, CHAIN_HANDLE, i);
         bool result = iteratee(child_handle);
         if (result == false) {
             return false;
@@ -2090,6 +2147,17 @@ void SnarlDistanceIndex::SimpleSnarlRecordConstructor::add_child(size_t rank, ni
     rank = rank-2;
     (*records)->at(record_offset+SIMPLE_SNARL_RECORD_SIZE+(rank*2)) = node_id;
     (*records)->at(record_offset+SIMPLE_SNARL_RECORD_SIZE+(rank*2)+1) = (node_length << 1) | is_reversed;
+#ifdef debug_distance_indexing
+    cerr << (get_node_pointer_offset(node_id,
+                                          (*records)->at(MIN_NODE_ID_OFFSET),
+                                          (*records)->at(COMPONENT_COUNT_OFFSET)))
+         << " Node pointer for node " << node_id << ": " << record_offset << endl;
+    cerr << (get_node_pointer_offset(node_id,
+                                          (*records)->at(MIN_NODE_ID_OFFSET),
+                                          (*records)->at(COMPONENT_COUNT_OFFSET)) + 1)
+         << " Node record offset for node " << node_id << ": " << rank << endl;
+#endif
+
     cerr << "ADDING CHILD OF SIMPLE SNARL " << node_id << " AT RECORD OFFSET " << record_offset << " and rank " << rank << endl;
 
 }
@@ -2673,6 +2741,7 @@ SnarlDistanceIndex::SimpleSnarlRecordConstructor SnarlDistanceIndex::ChainRecord
     (*records)->resize(current_size+1);
     (*records)->at(current_size) = TrivialSnarlRecord(previous_child_offset, records).get_record_size();
     
+    //Add another place in snarl_tree_records for the size of this snarl
     size_t start_i = (*records)->size();
     (*records)->resize(start_i+1);
     (*records)->at(start_i) = snarl_record_size;
@@ -2826,7 +2895,10 @@ string SnarlDistanceIndex::net_handle_as_string(const net_handle_t& net) const {
     } else if (type == CHAIN_HANDLE && record_type == NODE_HANDLE) {
         return  "node " + std::to_string( NodeRecord(net, &snarl_tree_records).get_node_id())
                + (ends_at(net) == START ? "rev" : "fd") + " pretending to be a chain";
-    } else if (type == CHAIN_HANDLE) {
+    }  else if (type == CHAIN_HANDLE && record_type == SNARL_HANDLE) {
+        return  "node " + std::to_string( SimpleSnarlRecord(net, &snarl_tree_records).get_node_id())
+               + (ends_at(net) == START ? "rev" : "fd") + " pretending to be a chain in a simple snarl";
+    }else if (type == CHAIN_HANDLE) {
         result += "chain ";
     } else if (type == SENTINEL_HANDLE) {
         result += "sentinel of snarl ";
@@ -3242,18 +3314,20 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                                 //Add the children of the simple snarl
                                 for (size_t i = 0 ; i < temp_snarl_record.node_count ; i++ ) {
                                     const pair<temp_record_t, size_t>& child_index = temp_snarl_record.children[i];
+                                    cerr << "Adding child " << temp_index->structure_start_end_as_string(child_index) << endl;
                                     if( child_index.first == TEMP_CHAIN) {
                                         assert(temp_index->temp_chain_records[child_index.second].children.size() == 1);
                                         const pair<temp_record_t, size_t>& node_index = temp_index->temp_chain_records[child_index.second].children.front();
+                                    cerr << "Adding child as a node " << temp_index->structure_start_end_as_string(node_index) << endl;
                                         const TemporaryDistanceIndex::TemporaryNodeRecord& temp_node_record =
-                                             temp_index->temp_node_records[node_index.second];
+                                             temp_index->temp_node_records[node_index.second-min_node_id];
                                              cerr << "Adding simple snarl child chain node " << temp_node_record.node_id << endl;
                                         snarl_record_constructor.add_child(i+2, temp_node_record.node_id,  
                                                 temp_node_record.node_length, temp_node_record.reversed_in_parent);
                                     } else {
                                         assert(child_index.first == TEMP_NODE);
                                         const TemporaryDistanceIndex::TemporaryNodeRecord& temp_node_record =
-                                             temp_index->temp_node_records[child_index.second];
+                                             temp_index->temp_node_records[child_index.second-min_node_id];
                                              cerr << "Adding simple snarl child " << temp_node_record.node_id << endl;
                                         snarl_record_constructor.add_child(i+2, temp_node_record.node_id,  
                                                 temp_node_record.node_length, temp_node_record.reversed_in_parent);
