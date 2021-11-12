@@ -1,7 +1,7 @@
 #ifndef BDSG_SNARL_DISTANCE_HPP_INCLUDED
 #define BDSG_SNARL_DISTANCE_HPP_INCLUDED
 
-#define debug_distance_indexing
+//#define debug_distance_indexing
 //#define count_allocations
 
 #include <handlegraph/snarl_decomposition.hpp>
@@ -1375,6 +1375,7 @@ private:
             set_node_count(node_count);
             set_record_type(type);
             set_node_count(node_count);
+            set_start_end_connected();
 #ifdef count_allocations
             cerr << "new_simple_snarl\t" << SIMPLE_SNARL_RECORD_SIZE << "\t" << (*records)->size() << endl;
             cerr << "simple_snarl_nodes\t" << (node_count*2) << "\t" << (*records)->size() << endl;
@@ -1390,7 +1391,6 @@ private:
             SimpleSnarlRecord::record_offset = pointer;
             SimpleSnarlRecord::records = records;
 
-            cerr << "Get a new simple snarl constructor to add node at offset " << pointer << endl; 
         }
 
 

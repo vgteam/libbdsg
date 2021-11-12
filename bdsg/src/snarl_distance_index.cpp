@@ -1,6 +1,6 @@
-#define debug_distance_indexing
-#define debug_snarl_traversal
-#define debug_distances
+//#define debug_distance_indexing
+//#define debug_snarl_traversal
+//#define debug_distances
 
 #include "bdsg/snarl_distance_index.hpp"
 
@@ -756,15 +756,16 @@ size_t SnarlDistanceIndex::distance_in_parent(CachedNetHandle& cached_parent,
 
 
     } else if (is_chain(parent)) {
+        if (get_record_handle_type(get_record_type(cached_parent.record_tag)) == NODE_HANDLE ||
+            get_record_handle_type(get_record_type(cached_parent.record_tag)) == SNARL_HANDLE) {
+            return std::numeric_limits<size_t>::max();
+        }
         ChainRecord chain_record(parent, &snarl_tree_records, cached_parent.record_tag);
 #ifdef debug_distances
         assert(is_node(child1) || is_snarl(child1));
         assert(is_node(child2) || is_snarl(child2));
 #endif
 
-        if (get_record_handle_type(get_record_type(cached_parent.record_tag)) == NODE_HANDLE) {
-            return std::numeric_limits<size_t>::max();
-        }
         //TODO: This is awful
         //These are the values needed for calculating the distance in the chain
         //They are:
@@ -977,7 +978,6 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
 
         if (is_trivial_chain(parent)) {
             //Don't update distances for the trivial chain
-            cerr << "trivial chain so don't do anything" << endl;
             return;
         } else if (is_simple_snarl(parent)) {
             //If it's a simple snarl just check if they should be reversed
@@ -986,7 +986,6 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
                 dist_start = dist_end;
                 dist_end = tmp;
             } 
-            cerr << "simple snarl so don't do anything" << endl;
             return;
         }
 
@@ -1242,7 +1241,7 @@ bool SnarlDistanceIndex::is_reversed_in_parent(const net_handle_t& net) const {
     if (record.get_record_type() == TRIVIAL_SNARL || record.get_record_type() == DISTANCED_TRIVIAL_SNARL) {
         return TrivialSnarlRecord(get_record_offset(net), &snarl_tree_records).get_is_reversed_in_parent(get_node_record_offset(net));
     } else if (record.get_record_type() == SIMPLE_SNARL || record.get_record_type() == DISTANCED_SIMPLE_SNARL) {
-        return SimpleSnarlRecord(net, &snarl_tree_records).get_is_reversed_in_parent();
+        return SimpleSnarlRecord(net, &snarl_tree_records).get_node_is_reversed();
     } else {
         return record.get_is_reversed_in_parent();
     }
@@ -2125,7 +2124,7 @@ size_t SnarlDistanceIndex::SimpleSnarlRecord::get_distance(size_t rank1, bool ri
 bool SnarlDistanceIndex::SimpleSnarlRecord::for_each_child(const std::function<bool(const net_handle_t&)>& iteratee) const {
     size_t node_count = get_node_count();
     for (size_t i = 0 ; i < node_count ; i++) {
-        net_handle_t child_handle = get_net_handle(record_offset, START_END, CHAIN_HANDLE, i);
+        net_handle_t child_handle = get_net_handle(record_offset, START_END, CHAIN_HANDLE, i+2);
         bool result = iteratee(child_handle);
         if (result == false) {
             return false;
@@ -2157,8 +2156,6 @@ void SnarlDistanceIndex::SimpleSnarlRecordConstructor::add_child(size_t rank, ni
                                           (*records)->at(COMPONENT_COUNT_OFFSET)) + 1)
          << " Node record offset for node " << node_id << ": " << rank << endl;
 #endif
-
-    cerr << "ADDING CHILD OF SIMPLE SNARL " << node_id << " AT RECORD OFFSET " << record_offset << " and rank " << rank << endl;
 
 }
 nid_t SnarlDistanceIndex::NodeRecord::get_node_id() const {
@@ -3314,23 +3311,33 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                                 //Add the children of the simple snarl
                                 for (size_t i = 0 ; i < temp_snarl_record.node_count ; i++ ) {
                                     const pair<temp_record_t, size_t>& child_index = temp_snarl_record.children[i];
-                                    cerr << "Adding child " << temp_index->structure_start_end_as_string(child_index) << endl;
                                     if( child_index.first == TEMP_CHAIN) {
                                         assert(temp_index->temp_chain_records[child_index.second].children.size() == 1);
                                         const pair<temp_record_t, size_t>& node_index = temp_index->temp_chain_records[child_index.second].children.front();
-                                    cerr << "Adding child as a node " << temp_index->structure_start_end_as_string(node_index) << endl;
                                         const TemporaryDistanceIndex::TemporaryNodeRecord& temp_node_record =
                                              temp_index->temp_node_records[node_index.second-min_node_id];
-                                             cerr << "Adding simple snarl child chain node " << temp_node_record.node_id << endl;
+                                        //If there is a way to go from the node forward to the start node,
+                                        //then it is reversed
+                                        size_t rank =temp_index->temp_chain_records[child_index.second].rank_in_parent;
+                                        bool reaches_node_end_to_start = temp_snarl_record.distances.count(
+                                            std::make_pair(std::make_pair(rank, true),
+                                                           std::make_pair(0, false))) != 0;
+                                        bool reaches_start_to_node_end = temp_snarl_record.distances.count(
+                                            std::make_pair(std::make_pair(0, false),
+                                                           std::make_pair(rank, true))) != 0;
+
+                                        bool is_reversed_in_parent = reaches_node_end_to_start || reaches_start_to_node_end; 
                                         snarl_record_constructor.add_child(i+2, temp_node_record.node_id,  
-                                                temp_node_record.node_length, temp_node_record.reversed_in_parent);
+                                                temp_node_record.node_length, is_reversed_in_parent);
                                     } else {
                                         assert(child_index.first == TEMP_NODE);
                                         const TemporaryDistanceIndex::TemporaryNodeRecord& temp_node_record =
                                              temp_index->temp_node_records[child_index.second-min_node_id];
-                                             cerr << "Adding simple snarl child " << temp_node_record.node_id << endl;
+                                        bool is_reversed_in_parent = temp_snarl_record.distances.count(
+                                            std::make_pair(std::make_pair(temp_node_record.rank_in_parent, false),
+                                                           std::make_pair(0, false))) != 0; 
                                         snarl_record_constructor.add_child(i+2, temp_node_record.node_id,  
-                                                temp_node_record.node_length, temp_node_record.reversed_in_parent);
+                                                temp_node_record.node_length, is_reversed_in_parent);
                                     }
                                 }
 
