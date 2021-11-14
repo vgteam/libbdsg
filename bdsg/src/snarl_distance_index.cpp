@@ -362,6 +362,8 @@ bool SnarlDistanceIndex::for_each_child_impl(const net_handle_t& traversal, cons
                                            NODE_HANDLE, get_node_record_offset(traversal)));
         } else if (handle_type == SNARL_HANDLE) {
             return SimpleSnarlRecord(traversal, &snarl_tree_records).for_each_child(iteratee);
+        } else if (handle_type == CHAIN_HANDLE) {
+            return iteratee(get_net_handle(get_record_offset(traversal), get_connectivity(traversal), NODE_HANDLE, get_node_record_offset(traversal)));
         } else {
             throw runtime_error("error: Looking for children of a node or sentinel in a simple snarl");
         }
@@ -2938,14 +2940,31 @@ void SnarlDistanceIndex::print_descendants_of(const net_handle_t net) const {
             child_count = RootRecord(net, &snarl_tree_records).get_connected_component_count();
         } else {
             parent = net_handle_as_string(get_parent(net));
-            child_count = record_type == CHAIN_HANDLE ? ChainRecord(net, &snarl_tree_records).get_node_count() 
-                                                   : SnarlRecord(net, &snarl_tree_records).get_node_count();
+            if (record_type == CHAIN_HANDLE) {
+                child_count =  ChainRecord(net, &snarl_tree_records).get_node_count();
+            } else if (record.get_record_type() == SNARL ||
+                        record.get_record_type() == DISTANCED_SNARL||
+                        record.get_record_type() == OVERSIZED_SNARL  
+                        ){
+ 
+                child_count = SnarlRecord(net, &snarl_tree_records).get_node_count();
+            } else if (record.get_record_type() == TRIVIAL_SNARL ||
+                        record.get_record_type() == DISTANCED_TRIVIAL_SNARL) {
+                child_count = TrivialSnarlRecord(get_record_offset(net), &snarl_tree_records).get_node_count();
+            }else if (record.get_record_type() == SIMPLE_SNARL ||
+                        record.get_record_type() == DISTANCED_SIMPLE_SNARL) {
+                child_count = SimpleSnarlRecord(net, &snarl_tree_records).get_node_count();
+            } else {
+                throw runtime_error("error: printing the wrong kind of record");
+            }
                                 
         }
         cout << net_handle_as_string(net) << "," << parent << "," << child_count << ","<< get_depth(net) << endl; 
+        if (!is_node(net)) {
         for_each_child(net, [&](const net_handle_t& child) {
             print_descendants_of(child);
         });
+        }
     }
 }
 
