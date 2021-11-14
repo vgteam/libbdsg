@@ -741,9 +741,7 @@ size_t SnarlDistanceIndex::distance_in_parent(CachedNetHandle& cached_parent,
                         return 0;
                     } else if (has_external_connectivity(cached_child1.record_tag, START, START) && has_external_connectivity(cached_child1.record_tag, END, END)) {
                         //If we can take the loops on the two ends of the snarl, walk through the snarl
-                        return cached_child1.min_length == std::numeric_limits<size_t>::max() 
-                                ? minimum_length(child1) 
-                                : cached_child1.min_length;
+                        return get_cached_min_length(cached_child1);
                     }
                 }             
             }
@@ -1206,7 +1204,19 @@ size_t SnarlDistanceIndex::node_length(const net_handle_t& net) const {
 
 //TODO: This is kind of redundant with node_length 
 size_t SnarlDistanceIndex::minimum_length(const net_handle_t& net) const {
+    if (SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == TRIVIAL_SNARL || 
+        SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == DISTANCED_TRIVIAL_SNARL) {
+        return TrivialSnarlRecord(get_record_offset(net), &snarl_tree_records).get_node_length(get_node_record_offset(net));
+    } else if (SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == SIMPLE_SNARL || 
+               SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == DISTANCED_SIMPLE_SNARL) {
+        if (is_snarl(net)) {
+            return SimpleSnarlRecord(net, &snarl_tree_records).get_min_length();
+        } else {
+            return SimpleSnarlRecord(net, &snarl_tree_records).get_node_length();
+        }
+    } else {
         return SnarlTreeRecord(net, &snarl_tree_records).get_min_length();
+    }
 }
 nid_t SnarlDistanceIndex::node_id(const net_handle_t& net) const {
     if (is_node(net)) {
@@ -3656,19 +3666,7 @@ void SnarlDistanceIndex::set_cached_rank(CachedNetHandle& cached_handle) const {
 }
 void SnarlDistanceIndex::set_cached_min_length(CachedNetHandle& cached_handle) const {
     if (cached_handle.min_length == std::numeric_limits<size_t>::max()) {
-        if (get_record_type(cached_handle.record_tag) == TRIVIAL_SNARL || 
-            get_record_type(cached_handle.record_tag) == DISTANCED_TRIVIAL_SNARL) {
-            cached_handle.min_length = TrivialSnarlRecord(get_record_offset(cached_handle.net), &snarl_tree_records).get_node_length(get_node_record_offset(cached_handle.net));
-        } else if (get_record_type(cached_handle.record_tag) == SIMPLE_SNARL || 
-            get_record_type(cached_handle.record_tag) == DISTANCED_SIMPLE_SNARL) {
-            if (is_snarl(cached_handle.net)) {
-                cached_handle.min_length = SimpleSnarlRecord(cached_handle.net, &snarl_tree_records).get_min_length();
-            } else {
-                cached_handle.min_length = SimpleSnarlRecord(cached_handle.net, &snarl_tree_records).get_node_length();
-            }
-        } else {
-            cached_handle.min_length = SnarlTreeRecord(cached_handle.net, &snarl_tree_records).get_min_length();
-        }
+        cached_handle.min_length = minimum_length(cached_handle.net);
     }
 }
 void SnarlDistanceIndex::set_cached_parent_offset(CachedNetHandle& cached_handle) const {
