@@ -2093,7 +2093,7 @@ bool SnarlDistanceIndex::SimpleSnarlRecord::get_node_is_reversed(size_t rank) co
     return (*records)->at(record_offset + SIMPLE_SNARL_RECORD_SIZE + ((rank-2)*2) + 1) & 1;
 }
 size_t SnarlDistanceIndex::SimpleSnarlRecord::get_distance(size_t rank1, bool right_side1, size_t rank2, bool right_side2) const {
-    if (rank2 > rank1) {
+    if (rank1 > rank2) {
         //Order the nodes
         size_t tmp = rank1; bool tmp_rev = right_side1;
         rank1 = rank2; right_side1 = right_side2;
@@ -3622,6 +3622,13 @@ void SnarlDistanceIndex::set_cached_rank(CachedNetHandle& cached_handle) const {
         if (get_record_type(cached_handle.record_tag) == TRIVIAL_SNARL || 
             get_record_type(cached_handle.record_tag) == DISTANCED_TRIVIAL_SNARL) {
             cached_handle.rank = TrivialSnarlRecord(get_record_offset(cached_handle.net), &snarl_tree_records).get_rank_in_parent(get_node_record_offset(cached_handle.net));
+        } else if (get_record_type(cached_handle.record_tag) == SIMPLE_SNARL || 
+            get_record_type(cached_handle.record_tag) == DISTANCED_SIMPLE_SNARL) {
+            if (is_snarl(cached_handle.net)) {
+                cached_handle.rank = get_record_offset(cached_handle.net);
+            } else {
+                cached_handle.rank = get_node_record_offset(cached_handle.net);
+            }
         } else {
             cached_handle.rank = SnarlTreeRecord(cached_handle.net, &snarl_tree_records).get_rank_in_parent();
         }
@@ -3633,6 +3640,13 @@ void SnarlDistanceIndex::set_cached_min_length(CachedNetHandle& cached_handle) c
         if (get_record_type(cached_handle.record_tag) == TRIVIAL_SNARL || 
             get_record_type(cached_handle.record_tag) == DISTANCED_TRIVIAL_SNARL) {
             cached_handle.min_length = TrivialSnarlRecord(get_record_offset(cached_handle.net), &snarl_tree_records).get_node_length(get_node_record_offset(cached_handle.net));
+        } else if (get_record_type(cached_handle.record_tag) == SIMPLE_SNARL || 
+            get_record_type(cached_handle.record_tag) == DISTANCED_SIMPLE_SNARL) {
+            if (is_snarl(cached_handle.net)) {
+                cached_handle.min_length = SimpleSnarlRecord(cached_handle.net, &snarl_tree_records).get_min_length();
+            } else {
+                cached_handle.min_length = SimpleSnarlRecord(cached_handle.net, &snarl_tree_records).get_node_length();
+            }
         } else {
             cached_handle.min_length = SnarlTreeRecord(cached_handle.net, &snarl_tree_records).get_min_length();
         }
