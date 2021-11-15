@@ -346,7 +346,7 @@ public:
     static void scan_chain(chainid_t chain, const std::function<void(const void*, size_t)>& iteratee);
     
     /**
-     * Dump information about free and allocated memory in the gievn chain.
+     * Dump information about free and allocated memory in the given chain.
      * Not thread safe!
      */
     static void dump(chainid_t chain);
