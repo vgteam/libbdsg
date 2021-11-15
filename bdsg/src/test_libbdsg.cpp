@@ -480,7 +480,7 @@ void test_int_vector() {
     
     // Have a function we can call to check its size.
     auto save_and_check_size = [&](size_t expected_size) {
-        // Save it out
+        // Save it out, creating or clobbering
         int fd = open("test.dat", O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
         iv.save(fd);
         close(fd);
@@ -492,6 +492,7 @@ void test_int_vector() {
         cerr << "Observed file size of " << file_stats.st_size << " bytes" << endl;
         assert(file_stats.st_size == expected_size);
         
+        // Load it again
         bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector> iv2;
         fd = open("test.dat", O_RDWR);
         iv2.load(fd, "ints");
@@ -512,7 +513,7 @@ void test_int_vector() {
     iv->width(20);
     
     // Make it big
-    size_t iv_size = 1024 * 1024 * 100;
+    size_t iv_size = 1024 * 1024 * 10;
     for (size_t i = 1; i < iv_size; i *= 2) {
         // Keep resizing it up and fragment the heap into many links.
         iv->resize(i);
@@ -530,6 +531,7 @@ void test_int_vector() {
     cerr << std::get<0>(total_free_reclaimable) << " bytes in chain, "
         << std::get<1>(total_free_reclaimable) << " bytes free, "
         << std::get<2>(total_free_reclaimable) << " bytes reclaimable" << endl;
+    cerr << iv->size() << "/" << iv->capacity() << " entries of " << iv->width() << " bits is " << (iv->capacity() * iv->width() / 8) << " bytes" << endl;
     save_and_check_size(required_bytes);
     
     // Shrink it back down
@@ -539,8 +541,28 @@ void test_int_vector() {
     cerr << std::get<0>(total_free_reclaimable) << " bytes in chain, "
         << std::get<1>(total_free_reclaimable) << " bytes free, "
         << std::get<2>(total_free_reclaimable) << " bytes reclaimable" << endl;
+    cerr << iv->size() << "/" << iv->capacity() << " entries of " << iv->width() << " bits is " << (iv->capacity() * iv->width() / 8) << " bytes" << endl;
     save_and_check_size(required_bytes);
     
+    // Expand it even more
+    iv->repack(32, iv_size);
+    total_free_reclaimable = iv.get_usage();
+    required_bytes = std::get<0>(total_free_reclaimable) - std::get<2>(total_free_reclaimable);
+    cerr << std::get<0>(total_free_reclaimable) << " bytes in chain, "
+        << std::get<1>(total_free_reclaimable) << " bytes free, "
+        << std::get<2>(total_free_reclaimable) << " bytes reclaimable" << endl;
+    cerr << iv->size() << "/" << iv->capacity() << " entries of " << iv->width() << " bits is " << (iv->capacity() * iv->width() / 8) << " bytes" << endl;
+    save_and_check_size(required_bytes);
+    
+    // And again
+    iv->repack(40, iv_size);
+    total_free_reclaimable = iv.get_usage();
+    required_bytes = std::get<0>(total_free_reclaimable) - std::get<2>(total_free_reclaimable);
+    cerr << std::get<0>(total_free_reclaimable) << " bytes in chain, "
+        << std::get<1>(total_free_reclaimable) << " bytes free, "
+        << std::get<2>(total_free_reclaimable) << " bytes reclaimable" << endl;
+    cerr << iv->size() << "/" << iv->capacity() << " entries of " << iv->width() << " bits is " << (iv->capacity() * iv->width() / 8) << " bytes" << endl;
+    save_and_check_size(required_bytes);
     
     unlink("test.dat");
     cerr << "Int Vector tests successful!" << endl;
