@@ -1665,7 +1665,7 @@ public:
             //What is the index of this record in root_snarl_components
             size_t root_snarl_index = std::numeric_limits<size_t>::max();
             bool loopable = true; //If this is a looping snarl, this is false if the last snarl is not start-end connected
-            size_t get_max_record_length() const {return CHAIN_RECORD_SIZE + (NODE_RECORD_SIZE+1)*prefix_sum.size() + 3;} 
+            size_t get_max_record_length() const;
         };
         struct TemporarySnarlRecord : TemporaryRecord{
             handlegraph::nid_t start_node_id;

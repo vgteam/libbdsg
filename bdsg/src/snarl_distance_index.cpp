@@ -47,6 +47,27 @@ string SnarlDistanceIndex::TemporaryDistanceIndex::structure_start_end_as_string
         return (string)"???" + std::to_string(index.first) + "???";
     }
 }
+//The max record length of this chain
+size_t SnarlDistanceIndex::TemporaryDistanceIndex:TemporaryChainRecord:get_max_record_legth() const {
+    if (is_trivial) {
+    } else { 
+        return CHAIN_RECORD_SIZE + (NODE_RECORD_SIZE+1)*prefix_sum.size() + 3;
+    }
+}
+//The max record length of the root
+size_t SnarlDistanceIndex::TemporaryDistanceIndex::get_max_record_legth() const {
+    return ROOT_RECORD_SIZE + root_structure_count + (max_node_id-min_node_id+1) * NODE_RECORD_SIZE + max_index_size;
+}
+
+//The max record length of this snarl
+size_t SnarlDistanceIndex::TemporaryDistanceIndex:TemporarySnarlRecord:get_max_record_legth() const {
+    return SNARL_RECORD_SIZE + node_count * node_count + node_count;
+}
+
+
+
+
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //Implement the SnarlDecomposition's functions for moving around the snarl tree
 //
