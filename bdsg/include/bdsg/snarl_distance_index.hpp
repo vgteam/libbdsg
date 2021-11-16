@@ -1332,6 +1332,7 @@ private:
         }
 
         //How big is the entire snarl record?
+        const static size_t record_size(size_t node_count) {return SIMPLE_SNARL_RECORD_SIZE + (node_count*2);}
         virtual size_t record_size() ;
 
         //Get and set the distances between two node sides in the graph
@@ -1634,7 +1635,7 @@ public:
         size_t max_tree_depth = 0;
         size_t max_index_size= 0;//TODO: This will change depending on how the actual index is represented
         size_t max_distance = 0;
-        size_t get_max_record_length() const {return ROOT_RECORD_SIZE + root_structure_count + (max_node_id-min_node_id+1) * NODE_RECORD_SIZE + max_index_size;} 
+        size_t get_max_record_length() const; 
 
         //This will actually store each individual record separately, and each 
         //will have real pointers to their parents/children (as opposed to offsets)
@@ -1692,7 +1693,7 @@ public:
             bool is_simple;
             bool is_tip = false;
             bool is_root_snarl = false;
-            size_t get_max_record_length() {return SNARL_RECORD_SIZE + node_count * node_count + node_count;}
+            size_t get_max_record_length() const ;
         };
         struct TemporaryNodeRecord : TemporaryRecord{
             TemporaryNodeRecord() :
@@ -1705,7 +1706,7 @@ public:
             size_t rank_in_parent;
             bool reversed_in_parent;
             bool is_tip = false;
-            size_t get_max_record_length() {return NODE_RECORD_SIZE;} 
+            size_t get_max_record_length() const {return NODE_RECORD_SIZE;} 
         };
 
 

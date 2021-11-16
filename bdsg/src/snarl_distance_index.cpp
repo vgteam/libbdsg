@@ -48,20 +48,46 @@ string SnarlDistanceIndex::TemporaryDistanceIndex::structure_start_end_as_string
     }
 }
 //The max record length of this chain
-size_t SnarlDistanceIndex::TemporaryDistanceIndex:TemporaryChainRecord:get_max_record_legth() const {
+size_t SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::get_max_record_length() const {
     if (is_trivial) {
+        return NODE_RECORD_SIZE;
     } else { 
-        return CHAIN_RECORD_SIZE + (NODE_RECORD_SIZE+1)*prefix_sum.size() + 3;
+        //Count how many trivial snarls are in this chain
+        size_t trivial_snarl_count = 0;
+        size_t last_node_count = 0; // How many nodes have we seen in a row?
+        size_t nontrivial_snarl_count = 0;
+        for (const pair<temp_record_t, size_t>& child : children) {
+            if (child.first == TEMP_NODE) {
+                if (last_node_count == 0 || last_node_count == MAX_TRIVIAL_SNARL_NODE_COUNT) {
+                    //New trivial snarl
+                    trivial_snarl_count ++;
+                    last_node_count = 0;
+                } else {
+                    last_node_count ++;
+                }
+            } else {
+                //IF this is a snarl
+                last_node_count = 0;
+                nontrivial_snarl_count++;
+            }
+        }
+        return CHAIN_RECORD_SIZE + (TRIVIAL_SNARL_RECORD_SIZE*trivial_snarl_count) + (prefix_sum.size() * 2) + ((trivial_snarl_count + nontrivial_snarl_count) * 2) + 2;
     }
 }
 //The max record length of the root
-size_t SnarlDistanceIndex::TemporaryDistanceIndex::get_max_record_legth() const {
-    return ROOT_RECORD_SIZE + root_structure_count + (max_node_id-min_node_id+1) * NODE_RECORD_SIZE + max_index_size;
+size_t SnarlDistanceIndex::TemporaryDistanceIndex::get_max_record_length() const {
+    return ROOT_RECORD_SIZE + root_structure_count + (max_node_id-min_node_id+1) * 2 + max_index_size;
 }
 
 //The max record length of this snarl
-size_t SnarlDistanceIndex::TemporaryDistanceIndex:TemporarySnarlRecord:get_max_record_legth() const {
-    return SNARL_RECORD_SIZE + node_count * node_count + node_count;
+size_t SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::get_max_record_length() const {
+    if (is_trivial) {
+        return 0;
+    } else if (is_simple) {
+        return SimpleSnarlRecord::record_size(node_count); 
+    } else {
+        return SnarlRecord::record_size(DISTANCED_SNARL, node_count) + node_count;
+    }
 }
 
 
@@ -3584,9 +3610,17 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
     }
     size_t ideal_bit_width = std::max((size_t)log2(max_val)+1, (size_t)26);
     if (ideal_bit_width < snarl_tree_records->width()) {
-        //cerr << "Resetting bit width from " << snarl_tree_records->width() << " to " << ideal_bit_width << endl;
-        snarl_tree_records->repack(ideal_bit_width, snarl_tree_records->size());
+        cerr << "Resetting bit width from " << snarl_tree_records->width() << " to " << ideal_bit_width << endl;
+        //snarl_tree_records->repack(ideal_bit_width, snarl_tree_records->size());
     }
+    tuple<size_t, size_t, size_t> usage =get_usage();
+    cerr << "total\t" << snarl_tree_records->size() << endl;
+    cerr << "Usage: " << std::get<0>(usage) << " total bytes, " << std::get<1>(usage) << " free bytes " << std::get<2>(usage) << " reclaimable free bytes " << endl;
+    cerr << "bit width " << snarl_tree_records->width() << endl;
+    cerr << "Max value " << max_val << endl;
+    cerr << "Predicted size: " << maximum_index_size << " actual size: " <<  snarl_tree_records->size() << endl;
+    assert(maximum_index_size >= snarl_tree_records->size());
+    assert(maximum_index_size <= (snarl_tree_records->size()*2));
 #ifdef debug_distance_indexing
     cerr << "Predicted size: " << maximum_index_size << " actual size: " <<  snarl_tree_records->size() << endl;
     //assert(snarl_tree_records->size() <= maximum_index_size); 
@@ -3596,7 +3630,8 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
     cerr << "total\t" << snarl_tree_records->size() << endl;
     cerr << "Usage: " << std::get<0>(usage) << " total bytes, " << std::get<1>(usage) << " free bytes " << std::get<2>(usage) << " reclaimable free bytes " << endl;
     cerr << "bit width " << snarl_tree_records->width() << endl;
-    cerr << "Max value " << max_val << endl;;
+    cerr << "Max value " << max_val << endl;
+    cerr << "Predicted size: " << maximum_index_size << " actual size: " <<  snarl_tree_records->size() << endl;
 #endif
 
 
