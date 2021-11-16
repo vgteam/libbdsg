@@ -10,6 +10,7 @@ project(bdsg)
 
 option(RUN_DOXYGEN "Build Doxygen files required for Breathe-based docs" ON)
 option(BUILD_PYTHON_BINDINGS "Compile the bdsg Python module" ON)
+option(OPTIMIZE "Build with optimization" ON)
 
 # TODO: We can only do out-of-source builds!
 # TODO: How do we error out meaningfully on in-source builds?
@@ -25,9 +26,15 @@ set(CMAKE_BUILD_RPATH_USE_ORIGIN ON)
 # And GNU ideas of install directories
 include(GNUInstallDirs)
 
+if (OPTIMIZE)
 # Use all standard-compliant optimizations
-set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -g")
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -g")
+set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+endif ()
+# Always add debug info
+set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
   # assumes clang build
