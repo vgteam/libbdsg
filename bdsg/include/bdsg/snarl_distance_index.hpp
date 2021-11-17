@@ -1706,7 +1706,8 @@ public:
             size_t rank_in_parent;
             bool reversed_in_parent;
             bool is_tip = false;
-            size_t get_max_record_length() const {return NODE_RECORD_SIZE;} 
+            size_t root_snarl_index = std::numeric_limits<size_t>::max();
+            const static size_t get_max_record_length() {return NODE_RECORD_SIZE;} 
         };
 
 

@@ -3409,9 +3409,15 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                                         assert(child_index.first == TEMP_NODE);
                                         const TemporaryDistanceIndex::TemporaryNodeRecord& temp_node_record =
                                              temp_index->temp_node_records[child_index.second-min_node_id];
-                                        bool is_reversed_in_parent = temp_snarl_record.distances.count(
-                                            std::make_pair(std::make_pair(temp_node_record.rank_in_parent, false),
-                                                           std::make_pair(0, false))) != 0; 
+                                        size_t rank =temp_node_record.rank_in_parent;
+                                        bool reaches_node_end_to_start = temp_snarl_record.distances.count(
+                                            std::make_pair(std::make_pair(rank, true),
+                                                           std::make_pair(0, false))) != 0;
+                                        bool reaches_start_to_node_end = temp_snarl_record.distances.count(
+                                            std::make_pair(std::make_pair(0, false),
+                                                           std::make_pair(rank, true))) != 0;
+
+                                        bool is_reversed_in_parent = reaches_node_end_to_start || reaches_start_to_node_end; 
                                         snarl_record_constructor.add_child(i+2, temp_node_record.node_id,  
                                                 temp_node_record.node_length, is_reversed_in_parent);
                                     }
@@ -3501,23 +3507,21 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
             } else {
                 //TODO: This was a node that was a tip, so it wasn't put in a chain by the temporary index
                 assert(current_record_index.first == TEMP_NODE);
-                assert(false);
-                //TODO: I'm pretty sure this never happens. If it does, I think I have to put the tips in a list
                 //and then add them all after adding the snarl
 #ifdef debug_distance_indexing
-                cerr << "        this just a node that is a tip "
+                cerr << "        this just a node "
                      << temp_index->structure_start_end_as_string(current_record_index) << endl;
 #endif
-                //const TemporaryDistanceIndex::TemporaryNodeRecord& temp_node_record =
-                //        temp_index->temp_node_records[current_record_index.second-min_node_id];
-                //record_t record_type = snarl_size_limit == 0 ? NODE : DISTANCED_NODE;
-                //NodeRecordConstructor node_record(snarl_tree_records->size(), 0, record_type, &snarl_tree_records, temp_node_record.node_id);
-                //node_record.set_node_id(temp_node_record.node_id);
-                //node_record.set_node_length(temp_node_record.node_length);
-                //node_record.set_rank_in_parent(temp_node_record.rank_in_parent);
-                //node_record.set_parent_record_offset(record_to_offset[make_pair(temp_index_i, temp_node_record.parent)]);
+                const TemporaryDistanceIndex::TemporaryNodeRecord& temp_node_record =
+                        temp_index->temp_node_records[current_record_index.second-min_node_id];
+                record_t record_type = snarl_size_limit == 0 ? NODE : DISTANCED_NODE;
+                NodeRecordConstructor node_record(snarl_tree_records->size(), 0, record_type, &snarl_tree_records, temp_node_record.node_id);
+                node_record.set_node_id(temp_node_record.node_id);
+                node_record.set_node_length(temp_node_record.node_length);
+                node_record.set_rank_in_parent(temp_node_record.rank_in_parent);
+                node_record.set_parent_record_offset(record_to_offset[make_pair(temp_index_i, temp_node_record.parent)]);
 
-                //record_to_offset.emplace(make_pair(temp_index_i, current_record_index), node_record.record_offset);
+                record_to_offset.emplace(make_pair(temp_index_i, current_record_index), node_record.record_offset);
             }
 #ifdef debug_distance_indexing
             cerr << "Finished translating " << temp_index->structure_start_end_as_string(current_record_index) << endl;
