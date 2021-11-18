@@ -56,8 +56,10 @@ size_t SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::get_max
         size_t trivial_snarl_count = 0;
         size_t last_node_count = 0; // How many nodes have we seen in a row?
         size_t nontrivial_snarl_count = 0;
+        size_t total_node_count = 0;
         for (const pair<temp_record_t, size_t>& child : children) {
             if (child.first == TEMP_NODE) {
+                total_node_count++;
                 if (last_node_count == 0 || last_node_count == MAX_TRIVIAL_SNARL_NODE_COUNT) {
                     //New trivial snarl
                     trivial_snarl_count ++;
@@ -71,7 +73,10 @@ size_t SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::get_max
                 nontrivial_snarl_count++;
             }
         }
-        return CHAIN_RECORD_SIZE + (TRIVIAL_SNARL_RECORD_SIZE*trivial_snarl_count) + (prefix_sum.size() * 2) + ((trivial_snarl_count + nontrivial_snarl_count) * 2) + 2;
+        //The size of the chain record + the size of all the trivial snarls in the chain
+        // + the size of the nodes in the trivial snarls + the sizes of all
+        // the snarls in the chain
+        return CHAIN_RECORD_SIZE + (TRIVIAL_SNARL_RECORD_SIZE*trivial_snarl_count) + (total_node_count * 2) + ((trivial_snarl_count + nontrivial_snarl_count) * 2) - 1;
     }
 }
 //The max record length of the root
@@ -86,7 +91,11 @@ size_t SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::get_max
     } else if (is_simple) {
         return SimpleSnarlRecord::record_size(node_count); 
     } else {
-        return SnarlRecord::record_size(DISTANCED_SNARL, node_count) + node_count;
+         if (parent.first == TEMP_ROOT) {
+             return SnarlRecord::record_size(DISTANCED_ROOT_SNARL, node_count) + node_count;
+         } else {
+            return SnarlRecord::record_size(DISTANCED_SNARL, node_count) + node_count;
+         }
     }
 }
 
@@ -2870,6 +2879,9 @@ size_t SnarlDistanceIndex::ChainRecordConstructor::add_node(nid_t node_id, size_
         cerr << start_i << " Node in trivial snarl " <<  ((node_id<<1) | is_reversed_in_parent) << endl;
         cerr << start_i +1 << " prefix sum in trivial snarl " <<  ((*records)->at(start_i-1) + node_length) << endl;
 #endif
+#ifdef count_allocations
+        cerr << "trivial_snarl\t2\t" <<  (*records)->size() << endl;
+#endif
 
         //Return the offset offset of the new trivial snarl record
         return trivial_snarl_record.record_offset;
@@ -2911,19 +2923,6 @@ size_t SnarlDistanceIndex::ChainRecordConstructor::add_node(nid_t node_id, size_
     }
 }
 
-void SnarlDistanceIndex::ChainRecordConstructor::finish_chain(){
-#ifdef debug_distance_indexing
-    cerr << (*records)->size()  << " - " <<  (*records)->size()+1 << " Adding the last two chain 0's to the end of the array " <<      endl;  
-#endif
-
-    size_t start_i = (*records)->size();
-    (*records)->resize(start_i+2);
-    (*records)->at(start_i) = 0;
-    (*records)->at(start_i+1) = 0;
-#ifdef count_allocations
-    cerr << "chain\t2\t" <<  (*records)->size() << endl;
-#endif
-}
 string SnarlDistanceIndex::net_handle_as_string(const net_handle_t& net) const {
     net_handle_record_t type = get_handle_type(net);
     SnarlTreeRecord record (net, &snarl_tree_records);
@@ -3435,7 +3434,6 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                     bool last_node_connected = temp_chain_record.loopable && (temp_chain_record.start_node_id==temp_chain_record.end_node_id);
                     chain_record_constructor.set_last_child_offset(last_child_offset.first, last_child_offset.second, last_node_connected);
                     //Finish the chain by adding two 0's
-                    chain_record_constructor.finish_chain();
                 } else {
                     //If the chain is trivial, then only record the node
 #ifdef debug_distance_indexing
@@ -3624,13 +3622,12 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
     cerr << "Max value " << max_val << endl;
     cerr << "Predicted size: " << maximum_index_size << " actual size: " <<  snarl_tree_records->size() << endl;
     assert(maximum_index_size >= snarl_tree_records->size());
-    assert(maximum_index_size <= (snarl_tree_records->size()*2));
 #ifdef debug_distance_indexing
     cerr << "Predicted size: " << maximum_index_size << " actual size: " <<  snarl_tree_records->size() << endl;
     //assert(snarl_tree_records->size() <= maximum_index_size); 
 #endif
 #ifdef count_allocations
-    tuple<size_t, size_t, size_t> usage =get_usage();
+    //tuple<size_t, size_t, size_t> usage =get_usage();
     cerr << "total\t" << snarl_tree_records->size() << endl;
     cerr << "Usage: " << std::get<0>(usage) << " total bytes, " << std::get<1>(usage) << " free bytes " << std::get<2>(usage) << " reclaimable free bytes " << endl;
     cerr << "bit width " << snarl_tree_records->width() << endl;

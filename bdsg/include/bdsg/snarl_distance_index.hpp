@@ -1555,10 +1555,9 @@ private:
          * so that when we add nodes we either add them to the end of the last trivial snarl or 
          * (if we have too many nodes in the last trivial snarl or if the last thing on the chain is a snarl) 
          * create a new trivial snarl 
-         * Each (trivial) snarl record is flanked by the size of the record, so it will be 
+         * Each (trivial/simple) snarl record is flanked by the size of the record, so it will be 
          * [chain info] ts size | ts record | s size | s record | s size | ts size | ts | ts size ....
          *
-         * A 0 where the next snarl size should be indicates the end of the chain
          */
 
         //Add a snarl to the end of the chain and return a SnarlRecordConstructor pointing to it
@@ -1568,8 +1567,6 @@ private:
         size_t add_node(nid_t node_id, size_t node_length, bool is_reversed_in_parent,
                 size_t prefix_sum, size_t forward_loop, size_t reverse_loop, size_t component, size_t previous_child_offset);
 
-        //This gets called when we've added all of the chain's children
-        void finish_chain();
     };
 
 
@@ -1707,7 +1704,8 @@ public:
             bool reversed_in_parent;
             bool is_tip = false;
             size_t root_snarl_index = std::numeric_limits<size_t>::max();
-            const static size_t get_max_record_length() {return NODE_RECORD_SIZE;} 
+            const static size_t get_max_record_length() {
+                return NODE_RECORD_SIZE;} 
         };
 
 
