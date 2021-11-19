@@ -59,13 +59,16 @@ size_t SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::get_max
         size_t total_node_count = 0;
         for (const pair<temp_record_t, size_t>& child : children) {
             if (child.first == TEMP_NODE) {
-                total_node_count++;
-                if (last_node_count == 0 || last_node_count == MAX_TRIVIAL_SNARL_NODE_COUNT) {
-                    //New trivial snarl
-                    trivial_snarl_count ++;
-                    last_node_count = 0;
-                } else {
-                    last_node_count ++;
+                if (total_node_count==0 || child != children.front()) {
+                    //If this is the last node in the chain, don't do anything
+                    total_node_count++;
+                    if (last_node_count == 0 || last_node_count == MAX_TRIVIAL_SNARL_NODE_COUNT) {
+                        //New trivial snarl
+                        trivial_snarl_count ++;
+                        last_node_count = 1;
+                    } else {
+                        last_node_count ++;
+                    }
                 }
             } else {
                 //IF this is a snarl
@@ -3119,6 +3122,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
     size_t new_width = std::max(std::max(max_dist_bit_width, max_address_bit_width), (size_t)26); //26 is the size for the simple snarl node count + node lengths
     snarl_tree_records->width(new_width);//TODO: Fix this
 
+    cerr << "Max index size " << maximum_index_size << endl;
     snarl_tree_records->reserve(maximum_index_size);
 
     /*Allocate memory for the root and the nodes */
@@ -3621,7 +3625,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
     cerr << "bit width " << snarl_tree_records->width() << endl;
     cerr << "Max value " << max_val << endl;
     cerr << "Predicted size: " << maximum_index_size << " actual size: " <<  snarl_tree_records->size() << endl;
-    assert(maximum_index_size >= snarl_tree_records->size());
+    //assert(maximum_index_size == snarl_tree_records->size());
 #ifdef debug_distance_indexing
     cerr << "Predicted size: " << maximum_index_size << " actual size: " <<  snarl_tree_records->size() << endl;
     //assert(snarl_tree_records->size() <= maximum_index_size); 
