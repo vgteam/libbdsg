@@ -387,7 +387,7 @@ public:
     //This is not great but better than copying the entire cached net handle I think
     size_t distance_in_parent(CachedNetHandle& cached_parent, CachedNetHandle& cached_child1, bool go_left1, CachedNetHandle& cached_child2, bool go_left2, const HandleGraph* graph=nullptr) const;
 
-    size_t distance_to_parent_bound(CachedNetHandle& cached_parent, bool to_start, CachedNetHandle& child, bool go_left) const;
+    size_t distance_to_parent_bound(CachedNetHandle& cached_parent, bool to_start, CachedNetHandle& child, bool go_left, const HandleGraph* graph) const;
     
     //Return true if child1 comes before child2 in the chain. 
     bool is_ordered_in_chain(const net_handle_t& child1, const net_handle_t& child2) const;
@@ -534,7 +534,7 @@ public:
 /////////////////  Construction methods
 public:
 
-    void set_size_limit (size_t size) {snarl_size_limit=size;}
+    void set_snarl_size_limit (size_t size) {snarl_size_limit=size;}
 
 
 
@@ -1268,6 +1268,9 @@ private:
             SnarlRecord::records = records;
 
             size_t extra_size = record_size(type, node_count);
+            if (type == OVERSIZED_SNARL) {
+                cerr << "oversized" << endl;
+            }
 #ifdef debug_distance_indexing
             cerr << " Resizing array to add snarl: length " << (*records)->size() << " -> "  << (*records)->size() + extra_size << endl;
 #endif

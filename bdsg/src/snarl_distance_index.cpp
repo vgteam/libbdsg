@@ -769,11 +769,11 @@ size_t SnarlDistanceIndex::distance_in_parent(CachedNetHandle& cached_parent,
     net_handle_t child2 = go_left2 ? flip(cached_child2.net) : cached_child2.net;
     net_handle_t parent = cached_parent.net;
 #ifdef debug_distances
-//    assert(canonical(cached_parent.net) == canonical(get_parent(child1)));
-//    assert(canonical(cached_parent.net) == canonical(get_parent(child2)));
-//    cerr << "\t\tFind distance between " << net_handle_as_string(child1) 
-//         << " and " << net_handle_as_string(child2) 
-//         << "\tin parent " << net_handle_as_string(cached_parent.net) << endl;
+    assert(canonical(cached_parent.net) == canonical(get_parent(child1)));
+    assert(canonical(cached_parent.net) == canonical(get_parent(child2)));
+    cerr << "\t\tFind distance between " << net_handle_as_string(child1) 
+         << " and " << net_handle_as_string(child2) 
+         << "\tin parent " << net_handle_as_string(cached_parent.net) << endl;
 #endif
 
     if (is_root(parent)) {
@@ -933,20 +933,18 @@ size_t SnarlDistanceIndex::distance_in_parent(CachedNetHandle& cached_parent,
         if ((is_sentinel(child1) && starts_at(child1) == ends_at(child1)) ||
             (is_sentinel(child2) && starts_at(child2) == ends_at(child2)) ) {
             //If this is a sentinel pointing out of the snarl
-//#ifdef debug_distances
-//            cerr << "            => " << std::numeric_limits<size_t>::max() << endl;
-//#endif
+#ifdef debug_distances
+            cerr << "            => " << std::numeric_limits<size_t>::max() << endl;
+#endif
             return std::numeric_limits<size_t>::max();
         }
 
-//#ifdef debug_distances
-//            cerr << "             between ranks " << rank1 << " " << rev1 << " " << rank2 << " " << rev2 << endl;
-//            cerr << "            => " << snarl_record.get_distance(rank1, rev1, rank2, rev2) << endl;
-//#endif
-//
+#ifdef debug_distances
+            cerr << "             between ranks " << rank1 << " " << rev1 << " " << rank2 << " " << rev2 << endl;
+#endif
+
         if (SnarlTreeRecord(parent, &snarl_tree_records).get_record_type() == OVERSIZED_SNARL 
-            && !(rank1 == 0 || rank1 == 1 || rank2 == 0 || rank2 == 1) 
-            && graph != nullptr) {
+            && !(rank1 == 0 || rank1 == 1 || rank2 == 0 || rank2 == 1) ) {
             //If this is an oversized snarl and we're looking for internal distances, then we didn't store the
             //distance and we have to find it using dijkstra's algorithm
             if (graph == nullptr) {
@@ -954,6 +952,7 @@ size_t SnarlDistanceIndex::distance_in_parent(CachedNetHandle& cached_parent,
                 return std::numeric_limits<size_t>::max();
             }
             handle_t handle1 = is_node(child1) ? get_handle(child1, graph) : get_handle(get_bound(child1, ends_at(child1) == END, false), graph); 
+            cerr << "Get handle2 " << net_handle_as_string(child2) << endl;
             handle_t handle2 = is_node(child2) ? get_handle(child2, graph) : get_handle(get_bound(child2, ends_at(child2) == END, false), graph);
             handle2 = graph->flip(handle2);
 
@@ -966,6 +965,7 @@ size_t SnarlDistanceIndex::distance_in_parent(CachedNetHandle& cached_parent,
                 }
                 return true;
             }, false);
+            cerr << "dijkstra distance from " << graph->get_id(handle1) << graph->get_is_reverse(handle1) << " to " << graph->get_id(handle2) << graph->get_is_reverse(handle2) << ": " << distance << endl;
             return distance;
 
             
@@ -978,9 +978,9 @@ size_t SnarlDistanceIndex::distance_in_parent(CachedNetHandle& cached_parent,
         throw runtime_error("error: Trying to find distance in the wrong type of handle");
     }
 }
-size_t SnarlDistanceIndex::distance_to_parent_bound(CachedNetHandle& cached_parent, bool to_start, CachedNetHandle& child, bool go_left) const {
+size_t SnarlDistanceIndex::distance_to_parent_bound(CachedNetHandle& cached_parent, bool to_start, CachedNetHandle& child, bool go_left, const HandleGraph* graph) const {
     CachedNetHandle parent_bound = get_cached_bound(cached_parent, to_start);
-    return distance_in_parent(cached_parent, parent_bound, false, child, go_left);
+    return distance_in_parent(cached_parent, parent_bound, false, child, go_left, graph);
 }
 
 
@@ -2029,7 +2029,7 @@ size_t SnarlDistanceIndex::SnarlRecord::get_distance_vector_offset(size_t rank1,
         if (rank1 == 0) {
             return rank2;
         } else if (rank1 == 1) {
-            return node_count + 2 + rank2;
+            return node_side_count + rank2;
         } else {
             throw runtime_error("error: trying to access distance in an oversized snarl");
         }
@@ -2071,6 +2071,7 @@ void SnarlDistanceIndex::SnarlRecordConstructor::set_distance(size_t rank1, bool
 
     //Offset of this particular distance in the distance vector
     size_t distance_vector_offset = get_distance_vector_offset(rank1, right_side1, rank2, right_side2);
+    assert(distance_vector_offset <= distance_vector_size(get_record_type(), get_node_count())); 
 
     //Value we actually want to save
     size_t val = distance == std::numeric_limits<size_t>::max() ? 0 : distance+1;
@@ -2079,6 +2080,9 @@ void SnarlDistanceIndex::SnarlRecordConstructor::set_distance(size_t rank1, bool
 }
 
 size_t SnarlDistanceIndex::SnarlRecord::get_distance(size_t rank1, bool right_side1, size_t rank2, bool right_side2) const {
+    if (get_record_type() == OVERSIZED_SNARL) {
+        assert(rank1 == 0 || rank1 == 1 || rank2 == 0 || rank2 == 1);
+    }
 
     //Offset of this particular distance in the distance vector
     size_t distance_vector_offset = get_distance_vector_offset(rank1, right_side1, rank2, right_side2);
@@ -2669,7 +2673,8 @@ net_handle_t SnarlDistanceIndex::ChainRecord::get_next_child(const net_handle_t&
                             (go_left ? -(*records)->at(get_record_offset(net_handle)-2)-2 : (*records)->at(get_record_offset(net_handle)-1)+2);
 
     if (SnarlDistanceIndex::get_record_type((*records)->at(next_pointer)) == SNARL || 
-        SnarlDistanceIndex::get_record_type((*records)->at(next_pointer)) == DISTANCED_SNARL) {
+        SnarlDistanceIndex::get_record_type((*records)->at(next_pointer)) == DISTANCED_SNARL|| 
+        SnarlDistanceIndex::get_record_type((*records)->at(next_pointer)) == OVERSIZED_SNARL) {
         //If the next thing is a snarl, then just return the snarl going in the direction we just moved in
         return get_net_handle(next_pointer, (go_left ? END_START : START_END), SNARL_HANDLE); 
     } else if (SnarlDistanceIndex::get_record_type((*records)->at(next_pointer)) == SIMPLE_SNARL || 
@@ -2845,6 +2850,7 @@ size_t SnarlDistanceIndex::ChainRecordConstructor::add_node(nid_t node_id, size_
 
     if (previous_child_offset == 0
             || SnarlDistanceIndex::get_record_type((*records)->at(previous_child_offset)) == DISTANCED_SNARL 
+            || SnarlDistanceIndex::get_record_type((*records)->at(previous_child_offset)) == OVERSIZED_SNARL 
             || SnarlDistanceIndex::get_record_type((*records)->at(previous_child_offset)) == DISTANCED_SIMPLE_SNARL 
             || TrivialSnarlRecord(previous_child_offset, records).get_node_count() == MAX_TRIVIAL_SNARL_NODE_COUNT) {
         //If the last thing was a snarl or nothing (previous_child_offset == 0, meaning that this is the 
@@ -3051,7 +3057,7 @@ void SnarlDistanceIndex::validate_descendants_of(net_handle_t net) const {
     SnarlTreeRecord record (net, &snarl_tree_records);
     //What the record thinks it is
     net_handle_record_t record_type = record.get_record_handle_type();
-    if (record_type == NODE_HANDLE) {
+    if (record_type == NODE_HANDLE || (is_node(net) && record_type == SNARL_HANDLE)) {
         cerr << "\tIt's a node so we're done" << endl;
         return;
     } else {
@@ -3489,12 +3495,16 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
 #ifdef debug_distance_indexing
                         assert(distance <= temp_snarl_record.max_distance);
 #endif
-                        snarl_record_constructor.set_distance(node_ranks.first.first, node_ranks.first.second,
-                            node_ranks.second.first, node_ranks.second.second, distance);
+                        if ((temp_snarl_record.node_count < snarl_size_limit ||
+                                     (node_ranks.first.first == 0 || node_ranks.first.first == 1 ||
+                                      node_ranks.second.first == 0 || node_ranks.second.first == 1))) {
+                            snarl_record_constructor.set_distance(node_ranks.first.first, node_ranks.first.second,
+                             node_ranks.second.first, node_ranks.second.second, distance);
 #ifdef debug_distance_indexing
-                        assert(snarl_record_constructor.get_distance(node_ranks.first.first, node_ranks.first.second,
-                                node_ranks.second.first, node_ranks.second.second) == distance);
+                            assert(snarl_record_constructor.get_distance(node_ranks.first.first, node_ranks.first.second,
+                                    node_ranks.second.first, node_ranks.second.second) == distance);
 #endif
+                        }
                     }
                 }
 
