@@ -294,6 +294,7 @@ net_handle_t SnarlDistanceIndex::get_bound(const net_handle_t& snarl, bool get_e
         if (is_trivial_chain(snarl)) {
             offset = get_record_offset(snarl);
             rev_in_parent = false;
+            node_offset = get_node_record_offset(snarl);
         } else {
             if (get_end) {
                 tuple<size_t, bool, size_t> last_child = chain_record.get_last_child_offset();
@@ -952,7 +953,6 @@ size_t SnarlDistanceIndex::distance_in_parent(CachedNetHandle& cached_parent,
                 return std::numeric_limits<size_t>::max();
             }
             handle_t handle1 = is_node(child1) ? get_handle(child1, graph) : get_handle(get_bound(child1, ends_at(child1) == END, false), graph); 
-            cerr << "Get handle2 " << net_handle_as_string(child2) << endl;
             handle_t handle2 = is_node(child2) ? get_handle(child2, graph) : get_handle(get_bound(child2, ends_at(child2) == END, false), graph);
             handle2 = graph->flip(handle2);
 
@@ -965,7 +965,6 @@ size_t SnarlDistanceIndex::distance_in_parent(CachedNetHandle& cached_parent,
                 }
                 return true;
             }, false);
-            cerr << "dijkstra distance from " << graph->get_id(handle1) << graph->get_is_reverse(handle1) << " to " << graph->get_id(handle2) << graph->get_is_reverse(handle2) << ": " << distance << endl;
             return distance;
 
             
@@ -2933,6 +2932,7 @@ size_t SnarlDistanceIndex::ChainRecordConstructor::add_node(nid_t node_id, size_
 }
 
 string SnarlDistanceIndex::net_handle_as_string(const net_handle_t& net) const {
+    cerr << "Print from offset " << get_record_offset(net) << endl;
     net_handle_record_t type = get_handle_type(net);
     SnarlTreeRecord record (net, &snarl_tree_records);
     net_handle_record_t record_type = record.get_record_handle_type();
