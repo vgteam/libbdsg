@@ -1005,7 +1005,23 @@ size_t SnarlDistanceIndex::distance_in_parent(CachedNetHandle& cached_parent,
 }
 size_t SnarlDistanceIndex::distance_to_parent_bound(CachedNetHandle& cached_parent, bool to_start, CachedNetHandle& child, bool go_left, const HandleGraph* graph) const {
     CachedNetHandle parent_bound = get_cached_bound(cached_parent, to_start);
-    return distance_in_parent(cached_parent, parent_bound, false, child, go_left, graph);
+    //The node length of the boundary node, only set for chains 
+    size_t bound_length = !is_chain(cached_parent.net) ? 0 : 
+        (to_start ? get_cached_start_bound_length(cached_parent) : 
+                    get_cached_end_bound_length(cached_parent));
+
+    if (is_chain(cached_parent.net) && !to_start){
+        set_cached_start_bound(cached_parent, false, false);
+        set_cached_end_bound(cached_parent, false, false);
+        if(get_record_offset(cached_parent.start_bound_in) ==
+                            get_record_offset(cached_parent.end_bound_in)){
+            //If this is a looping chain and we want the end 
+            bound_length = 0;
+        }
+    }
+    
+    return sum({bound_length, 
+                distance_in_parent(cached_parent, parent_bound, false, child, go_left, graph)});
 }
 
 
