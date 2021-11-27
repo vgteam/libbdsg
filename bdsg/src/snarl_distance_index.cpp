@@ -1416,7 +1416,7 @@ size_t SnarlDistanceIndex::SnarlTreeRecord::get_min_length() const {
         val =  (*records)->at(record_offset + SNARL_MIN_LENGTH_OFFSET);
     } else if (type == DISTANCED_SIMPLE_SNARL)  {
         size_t raw_val =  (*records)->at(record_offset + SIMPLE_SNARL_NODE_COUNT_AND_LENGTHS_OFFSET);
-        val = (raw_val >> 11) & ((1 << 12) - 1);
+        return (raw_val >> 11) & ((1 << 11) - 1);
     } else if (type == DISTANCED_CHAIN || type == MULTICOMPONENT_CHAIN)  {
         val = (*records)->at(record_offset + CHAIN_MIN_LENGTH_OFFSET);
     } else if (type == NODE || type == SNARL || type == CHAIN) {
@@ -1723,7 +1723,7 @@ void SnarlDistanceIndex::SnarlTreeRecordConstructor::set_min_length(size_t lengt
     } else if (type == DISTANCED_CHAIN || type == MULTICOMPONENT_CHAIN)  {
         offset = record_offset + CHAIN_MIN_LENGTH_OFFSET;
     } else if (type == DISTANCED_SIMPLE_SNARL) {
-        if (length > (1 << 12)-1) {
+        if (length > (1 << 11)-1) {
             throw runtime_error("error: node length is too large");
         }
         size_t old_val =  (*records)->at(record_offset + SIMPLE_SNARL_NODE_COUNT_AND_LENGTHS_OFFSET);
@@ -1752,7 +1752,7 @@ void SnarlDistanceIndex::SnarlTreeRecordConstructor::set_max_length(size_t lengt
     } else if (type == DISTANCED_SNARL || type == OVERSIZED_SNARL)  {
         offset = record_offset + SNARL_MAX_LENGTH_OFFSET;
     } else if (type == DISTANCED_SIMPLE_SNARL) {
-        if (length > (1 << 12)-1) {
+        if (length > (1 << 11)-1) {
             throw runtime_error("error: node length is too large");
         }
         size_t old_val =  (*records)->at(record_offset + SIMPLE_SNARL_NODE_COUNT_AND_LENGTHS_OFFSET);
@@ -2958,7 +2958,6 @@ size_t SnarlDistanceIndex::ChainRecordConstructor::add_node(nid_t node_id, size_
 }
 
 string SnarlDistanceIndex::net_handle_as_string(const net_handle_t& net) const {
-    cerr << "Print from offset " << get_record_offset(net) << endl;
     net_handle_record_t type = get_handle_type(net);
     SnarlTreeRecord record (net, &snarl_tree_records);
     net_handle_record_t record_type = record.get_record_handle_type();
@@ -3729,18 +3728,19 @@ SnarlDistanceIndex::CachedNetHandle SnarlDistanceIndex::get_cached_bound(
 
 void SnarlDistanceIndex::set_cached_node_values(CachedNetHandle& cached_handle) const {
 
-    if (!cached_handle.contains_node_values && get_record_type(cached_handle.record_tag) == DISTANCED_TRIVIAL_SNARL){
-        cached_handle.contains_node_values = true;
+    if (!cached_handle.contains_node_values){
+        if (get_record_type(cached_handle.record_tag) == DISTANCED_TRIVIAL_SNARL) {
+            cached_handle.contains_node_values = true;
 
-        TrivialSnarlRecord record(get_record_offset(cached_handle.net), &snarl_tree_records);
-        size_t node_rank = get_node_record_offset(cached_handle.net);
+            TrivialSnarlRecord record(get_record_offset(cached_handle.net), &snarl_tree_records);
+            size_t node_rank = get_node_record_offset(cached_handle.net);
 
-        cached_handle.is_reversed = record.get_is_reversed_in_parent(node_rank);
-        cached_handle.prefix_sum_val = record.get_prefix_sum(node_rank);
-        cached_handle.forward_loop_val = record.get_forward_loop(node_rank);
-        cached_handle.reverse_loop_val = record.get_reverse_loop(node_rank);
-        cached_handle.chain_component_val = record.get_chain_component(node_rank);
-        
+            cached_handle.is_reversed = record.get_is_reversed_in_parent(node_rank);
+            cached_handle.prefix_sum_val = record.get_prefix_sum(node_rank);
+            cached_handle.forward_loop_val = record.get_forward_loop(node_rank);
+            cached_handle.reverse_loop_val = record.get_reverse_loop(node_rank);
+            cached_handle.chain_component_val = record.get_chain_component(node_rank);
+        }         
     }
 }
 void SnarlDistanceIndex::set_cached_rank(CachedNetHandle& cached_handle) const {
@@ -3759,7 +3759,6 @@ void SnarlDistanceIndex::set_cached_rank(CachedNetHandle& cached_handle) const {
             cached_handle.rank = SnarlTreeRecord(cached_handle.net, &snarl_tree_records).get_rank_in_parent();
         }
     }
-
 }
 void SnarlDistanceIndex::set_cached_min_length(CachedNetHandle& cached_handle) const {
     if (cached_handle.min_length == std::numeric_limits<size_t>::max()) {
@@ -3855,6 +3854,16 @@ size_t SnarlDistanceIndex::get_cached_min_length(CachedNetHandle& cached_handle)
         set_cached_min_length(cached_handle);
     }
     return cached_handle.min_length;
+}
+bool SnarlDistanceIndex::get_cached_is_reverse(CachedNetHandle& cached_handle) const {
+    if (is_node(cached_handle.net)) {
+        if (!cached_handle.contains_node_values) {
+            set_cached_node_values(cached_handle);
+        }
+        return cached_handle.is_reversed;
+    } else {
+        return false;
+    }
 }
 
 //TODO: Also need to go the other way, from final index to temporary one for merging

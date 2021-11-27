@@ -202,6 +202,7 @@ public:
     size_t get_cached_parent_offset(CachedNetHandle& cached_handle) const;
     size_t get_cached_rank(CachedNetHandle& cached_handle) const;
     size_t get_cached_min_length(CachedNetHandle& cached_handle) const;
+    bool get_cached_is_reverse(CachedNetHandle& cached_handle) const;
 
 public:
 
