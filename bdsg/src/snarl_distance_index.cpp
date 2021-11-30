@@ -193,6 +193,16 @@ bool SnarlDistanceIndex::is_trivial_chain(const net_handle_t& net) const {
     return handle_is_chain && (record_is_node
                 || (record_is_simple_snarl && handle_has_node_offset));
 }
+bool SnarlDistanceIndex::is_trivial_chain(const CachedNetHandle& cached_net) const {
+    bool handle_is_chain =get_handle_type(cached_net.net) == CHAIN_HANDLE; 
+    bool record_is_node = get_record_handle_type(get_record_type(cached_net.record_tag)) == NODE_HANDLE;
+    bool record_is_simple_snarl = get_record_type(cached_net.record_tag) == SIMPLE_SNARL ||
+                                  get_record_type(cached_net.record_tag) == DISTANCED_SIMPLE_SNARL ;
+    bool handle_has_node_offset = get_node_record_offset(cached_net.net) >= 2;
+    
+    return handle_is_chain && (record_is_node
+                || (record_is_simple_snarl && handle_has_node_offset));
+}
 
 bool SnarlDistanceIndex::is_node(const net_handle_t& net) const {
 #ifdef debug_distances 

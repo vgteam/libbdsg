@@ -254,6 +254,7 @@ public:
      * Returns true if the given net handle refers to (a traversal of) a trivial chain that represents a single node.
      */
     bool is_trivial_chain(const net_handle_t& net) const;
+    bool is_trivial_chain(const CachedNetHandle& cached_net) const;
     /**
      * Returns true if the given net handle refers to (a traversal of) a single node, and thus has a corresponding handle_t.
      */
@@ -864,14 +865,18 @@ private:
             record_offset = pointer;
             records = tree_records;
 
+#ifdef debug_distance_indexing
             record_t type = get_record_type();
             assert(type >= 1 && type <= 17 );
+#endif
         }
         SnarlTreeRecord (const net_handle_t& net, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records){
             record_offset = get_record_offset(net);
             records = tree_records;
+#ifdef debug_distance_indexing
             record_t type = get_record_type();
             assert(type >= 1 && type <= 17 );
+#endif
         }
 
         virtual size_t get_offset() { return record_offset; }
@@ -955,8 +960,8 @@ private:
             record_offset = pointer;
             records = tree_records;
 
-            record_t type = get_record_type();
 #ifdef debug_distance_indexing
+            record_t type = get_record_type();
             assert(type == ROOT || type == NODE || type == DISTANCED_NODE ||
                     type == SIMPLE_SNARL || type == DISTANCED_SIMPLE_SNARL || 
                     type == TRIVIAL_SNARL || type == DISTANCED_TRIVIAL_SNARL || 
@@ -968,8 +973,8 @@ private:
         SnarlTreeRecordConstructor (const net_handle_t& net, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records){
             record_offset = get_record_offset(net);
             records = tree_records;
-            record_t type = get_record_type();
 #ifdef debug_distance_indexing
+            record_t type = get_record_type();
             assert(type == ROOT || type == NODE || type == DISTANCED_NODE ||  
                     type == SIMPLE_SNARL || type == DISTANCED_SIMPLE_SNARL || 
                     type == TRIVIAL_SNARL || type == DISTANCED_TRIVIAL_SNARL || 
@@ -1223,8 +1228,8 @@ private:
         SnarlRecord (size_t pointer, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records){
             record_offset = pointer;
             records = tree_records;
-            record_t type = get_record_type();
 #ifdef debug_distance_indexing
+            record_t type = get_record_type();
             assert(type == SNARL || type == DISTANCED_SNARL || type == OVERSIZED_SNARL || type == ROOT_SNARL
                 || type == ROOT_SNARL || type == DISTANCED_ROOT_SNARL);
 #endif
@@ -1233,8 +1238,8 @@ private:
         SnarlRecord (net_handle_t net, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records){
             record_offset = get_record_offset(net);
             records = tree_records;
-            net_handle_record_t type = get_handle_type(net);
 #ifdef debug_distance_indexing
+            net_handle_record_t type = get_handle_type(net);
             assert(type == SNARL_HANDLE || type == SENTINEL_HANDLE || type == ROOT_HANDLE);
 #endif
         }
@@ -1463,8 +1468,8 @@ private:
             record_offset = get_record_offset(net);
             records = tree_records;
 
-            net_handle_record_t record_type= SnarlDistanceIndex::get_record_handle_type(SnarlDistanceIndex::get_record_type(tag));
 #ifdef debug_distance_indexing
+            net_handle_record_t record_type= SnarlDistanceIndex::get_record_handle_type(SnarlDistanceIndex::get_record_type(tag));
             if (record_type == NODE_HANDLE) {
                 net_handle_record_t parent_type = SnarlTreeRecord(
                     NodeRecord(record_offset, 0, records).get_parent_record_offset(), records
