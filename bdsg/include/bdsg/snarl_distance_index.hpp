@@ -127,44 +127,48 @@ public:
     //to avoid coming back to a record multiple times
     //Always had a net_handle_t and record tag, may also fill in optional fields which default to inf
     struct CachedNetHandle {
-        net_handle_t net;
-        size_t record_tag;
 
-        //Values associated with this net
-        size_t rank = std::numeric_limits<size_t>::max();
-        size_t min_length = std::numeric_limits<size_t>::max();
+        public:
+            net_handle_t net;
+            size_t record_tag;
+            bool contains_node_values = false; //This is true if it is for a node
+            bool contains_start_bound=false;
+            bool contains_start_node_values = false; //This is true for the start node
+            bool contains_end_bound=false;
+            bool contains_end_node_values = false;
 
-        //Associated net_handles
-        size_t parent_record_offset = std::numeric_limits<size_t>::max();
-        //These will always be nodes, even for a snarl (instead of sentinels)
-        bool contains_start_bound=false;
-        net_handle_t start_bound_in;
-        size_t start_bound_tag = std::numeric_limits<size_t>::max();
-        size_t start_bound_length = std::numeric_limits<size_t>::max();
-        bool contains_end_bound=false;
-        net_handle_t end_bound_in;
-        size_t end_bound_tag = std::numeric_limits<size_t>::max();
-        size_t end_bound_length = std::numeric_limits<size_t>::max();
+        private:
 
-        //This groups gets set for either a node, or for the start node of a snarl
-        bool contains_node_values = false; //This is true if it is for a node
-        bool contains_start_node_values = false; //This is true for the start node
-        bool is_reversed = false; //This is only set for a node 
-        size_t prefix_sum_val = std::numeric_limits<size_t>::max();
-        size_t forward_loop_val = std::numeric_limits<size_t>::max();
-        size_t reverse_loop_val = std::numeric_limits<size_t>::max();
-        size_t chain_component_val = std::numeric_limits<size_t>::max();
-        size_t start_rank = std::numeric_limits<size_t>::max();
+            //Values associated with this net
+            size_t rank = std::numeric_limits<size_t>::max();
+            size_t min_length = std::numeric_limits<size_t>::max();
+
+            //Associated net_handles
+            size_t parent_record_offset = std::numeric_limits<size_t>::max();
+            //These will always be nodes, even for a snarl (instead of sentinels)
+            net_handle_t start_bound_in;
+            size_t start_bound_tag = std::numeric_limits<size_t>::max();
+            size_t start_bound_length = std::numeric_limits<size_t>::max();
+            net_handle_t end_bound_in;
+            size_t end_bound_tag = std::numeric_limits<size_t>::max();
+            size_t end_bound_length = std::numeric_limits<size_t>::max();
+
+            //This groups gets set for either a node, or for the start node of a snarl
+            bool is_reversed = false; //This is only set for a node 
+            size_t prefix_sum_val = std::numeric_limits<size_t>::max();
+            size_t forward_loop_val = std::numeric_limits<size_t>::max();
+            size_t reverse_loop_val = std::numeric_limits<size_t>::max();
+            size_t chain_component_val = std::numeric_limits<size_t>::max();
+            size_t start_rank = std::numeric_limits<size_t>::max();
 
 
-        //This gets set for the end node of a snarl
-        bool contains_end_node_values = false;
-        size_t end_prefix_sum_val = std::numeric_limits<size_t>::max();
-        size_t end_forward_loop_val = std::numeric_limits<size_t>::max();
-        size_t end_reverse_loop_val = std::numeric_limits<size_t>::max();
-        size_t end_chain_component_val = std::numeric_limits<size_t>::max();
-        size_t end_rank = std::numeric_limits<size_t>::max();
-        bool end_is_reversed;
+            //This gets set for the end node of a snarl
+            size_t end_prefix_sum_val = std::numeric_limits<size_t>::max();
+            size_t end_forward_loop_val = std::numeric_limits<size_t>::max();
+            size_t end_reverse_loop_val = std::numeric_limits<size_t>::max();
+            size_t end_chain_component_val = std::numeric_limits<size_t>::max();
+            size_t end_rank = std::numeric_limits<size_t>::max();
+            bool end_is_reversed;
 
 
         
@@ -173,6 +177,8 @@ public:
             net(net_handle),
             record_tag(tag) {
         };
+
+        friend class SnarlDistanceIndex;
 
     };
 
@@ -189,6 +195,8 @@ public:
 
     //// Methods to find/calculate up and set the values to be cached
     //Won't do anything if the values have already been found
+
+    //For a node, set is reversed, prefix sum, forward loop, reverse loop, and component
     void set_cached_node_values(CachedNetHandle& cached_handle) const;
     void set_cached_rank(CachedNetHandle& cached_handle) const;
     void set_cached_min_length(CachedNetHandle& cached_handle) const;
@@ -197,12 +205,20 @@ public:
     void set_cached_end_bound(CachedNetHandle& cached_handle, bool set_values_in_chain, bool set_length) const;
 
     //Methods to get cached values, and will set them if necessary
+    net_handle_t get_cached_start_bound(CachedNetHandle& cached_handle) const;
+    net_handle_t get_cached_end_bound(CachedNetHandle& cached_handle) const;
     size_t get_cached_start_bound_length(CachedNetHandle& cached_handle) const;
     size_t get_cached_end_bound_length(CachedNetHandle& cached_handle) const;
     size_t get_cached_parent_offset(CachedNetHandle& cached_handle) const;
     size_t get_cached_rank(CachedNetHandle& cached_handle) const;
     size_t get_cached_min_length(CachedNetHandle& cached_handle) const;
     bool get_cached_is_reverse(CachedNetHandle& cached_handle) const;
+    //This is for the node 
+    tuple<size_t, size_t, size_t, size_t> get_cached_chain_values(CachedNetHandle& cached_handle) const;
+    //For the start node of a snarl
+    tuple<size_t, size_t, size_t, size_t> get_cached_start_chain_values(CachedNetHandle& cached_handle) const;
+    //For the end node of a snarl
+    tuple<size_t, size_t, size_t, size_t> get_cached_end_chain_values(CachedNetHandle& cached_handle) const;
 
 public:
 
