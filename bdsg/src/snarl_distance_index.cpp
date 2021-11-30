@@ -859,17 +859,15 @@ size_t SnarlDistanceIndex::distance_in_parent(CachedNetHandle& cached_parent,
                     set_cached_node_values(cached_child);
                 }
 
-                bool go_left = cached_child.is_reversed;
+                bool go_left = get_cached_is_reverse(cached_child);
                 if (ends_at(net) == START){
                     go_left = !go_left;
                 }
                 rank_in_chain=get_cached_rank(cached_child);
                 go_left_in_chain = go_left;
                 node_length = get_cached_min_length(cached_child);
-                prefix_sum = cached_child.prefix_sum_val;
-                forward_loop = cached_child.forward_loop_val;
-                reverse_loop = cached_child.reverse_loop_val;
-                component = cached_child.chain_component_val;
+                std::tie(prefix_sum, forward_loop, reverse_loop, component) = 
+                    get_cached_chain_values(cached_child);
                 
             } else {
                 //If this is a snarl, then find the appropriate boundary node and fill it in
@@ -888,10 +886,8 @@ size_t SnarlDistanceIndex::distance_in_parent(CachedNetHandle& cached_parent,
                     rank_in_chain=get_record_offset(start_bound) + get_node_record_offset(start_bound);
                     go_left_in_chain = true;
                     node_length = start_length;
-                    prefix_sum = cached_child.prefix_sum_val;
-                    forward_loop = cached_child.forward_loop_val;
-                    reverse_loop = cached_child.reverse_loop_val;
-                    component = cached_child.chain_component_val;
+                    std::tie(prefix_sum, forward_loop, reverse_loop, component) = 
+                        get_cached_start_chain_values(cached_child);
 
                     node_lengths_to_add += start_length;
                 } else {
@@ -905,10 +901,8 @@ size_t SnarlDistanceIndex::distance_in_parent(CachedNetHandle& cached_parent,
                     rank_in_chain=end_rank;
                     go_left_in_chain = false;
                     node_length = end_length;
-                    prefix_sum = cached_child.end_prefix_sum_val;
-                    forward_loop = cached_child.end_forward_loop_val;
-                    reverse_loop = cached_child.end_reverse_loop_val;
-                    component = cached_child.end_chain_component_val;
+                    std::tie(prefix_sum, forward_loop, reverse_loop, component) =
+                            get_cached_end_chain_values(cached_child);
 
                     node_lengths_to_add += end_length;
                 }
@@ -927,7 +921,7 @@ size_t SnarlDistanceIndex::distance_in_parent(CachedNetHandle& cached_parent,
         //True if we checked tha there is a loop
         bool checked_looping_chain = cached_parent.contains_start_bound && cached_parent.contains_end_bound;
         bool is_looping_chain = checked_looping_chain 
-                              ?  get_record_offset(cached_parent.start_bound_in) == get_record_offset(cached_parent.end_bound_in)
+                              ?  get_record_offset(get_cached_start_bound(cached_parent)) == get_record_offset(get_cached_end_bound(cached_parent))
                               : false;
             
 
@@ -1011,10 +1005,8 @@ size_t SnarlDistanceIndex::distance_to_parent_bound(CachedNetHandle& cached_pare
                     get_cached_end_bound_length(cached_parent));
 
     if (is_chain(cached_parent.net) && !to_start){
-        set_cached_start_bound(cached_parent, false, false);
-        set_cached_end_bound(cached_parent, false, false);
-        if(get_record_offset(cached_parent.start_bound_in) ==
-                            get_record_offset(cached_parent.end_bound_in)){
+        if(get_record_offset(get_cached_start_bound(cached_parent)) ==
+                            get_record_offset(get_cached_end_bound(cached_parent))){
             //If this is a looping chain and we want the end 
             bound_length = 0;
         }
@@ -3839,6 +3831,18 @@ void SnarlDistanceIndex::set_cached_end_bound(CachedNetHandle& cached_handle, bo
     }           
 };     
 
+net_handle_t SnarlDistanceIndex::get_cached_start_bound(CachedNetHandle& cached_handle) const {
+    if (!cached_handle.contains_start_bound) {
+        set_cached_start_bound(cached_handle, false, false);
+    }
+    return cached_handle.start_bound_in;
+}
+net_handle_t SnarlDistanceIndex::get_cached_end_bound(CachedNetHandle& cached_handle) const {
+    if (!cached_handle.contains_end_bound) {
+        set_cached_end_bound(cached_handle, false, false);
+    }
+    return cached_handle.end_bound_in;
+}
 size_t SnarlDistanceIndex::get_cached_start_bound_length(CachedNetHandle& cached_handle) const {
     if (!cached_handle.contains_start_bound ||
         cached_handle.start_bound_length == std::numeric_limits<size_t>::max()) {
@@ -3880,6 +3884,31 @@ bool SnarlDistanceIndex::get_cached_is_reverse(CachedNetHandle& cached_handle) c
     } else {
         return false;
     }
+}
+tuple<size_t, size_t, size_t, size_t> SnarlDistanceIndex::get_cached_chain_values(CachedNetHandle& cached_handle) const {
+    assert (is_node(cached_handle.net));
+    if (!cached_handle.contains_node_values) {
+        set_cached_node_values(cached_handle);
+    }
+    return make_tuple(cached_handle.prefix_sum_val, cached_handle.forward_loop_val,
+                      cached_handle.reverse_loop_val, cached_handle.chain_component_val);
+    
+}
+tuple<size_t, size_t, size_t, size_t> SnarlDistanceIndex::get_cached_start_chain_values(CachedNetHandle& cached_handle) const {
+    assert (is_snarl(cached_handle.net));
+    if (!cached_handle.contains_start_node_values) {
+        set_cached_start_bound(cached_handle, true, false);
+    }
+    return make_tuple(cached_handle.prefix_sum_val, cached_handle.forward_loop_val,
+                      cached_handle.reverse_loop_val, cached_handle.chain_component_val);
+}
+tuple<size_t, size_t, size_t, size_t> SnarlDistanceIndex::get_cached_end_chain_values(CachedNetHandle& cached_handle) const {
+    assert (is_snarl(cached_handle.net));
+    if (!cached_handle.contains_end_node_values) {
+        set_cached_end_bound(cached_handle, true, false);
+    }
+    return make_tuple(cached_handle.end_prefix_sum_val, cached_handle.end_forward_loop_val,
+                      cached_handle.end_reverse_loop_val, cached_handle.end_chain_component_val);
 }
 
 //TODO: Also need to go the other way, from final index to temporary one for merging
