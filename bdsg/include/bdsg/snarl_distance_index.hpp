@@ -288,6 +288,7 @@ public:
      * Also works on snarl boundary sentinels.
      */
     net_handle_t get_parent(const net_handle_t& child) const;
+    net_handle_t get_parent(CachedNetHandle& cached_child) const;
     
     
     // We have sentinel net_handle_t values for the start/end of each snarl, so

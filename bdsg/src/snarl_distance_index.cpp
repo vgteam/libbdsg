@@ -252,30 +252,31 @@ handle_t SnarlDistanceIndex::get_handle(const net_handle_t& net, const handlegra
     }
 }
 
-net_handle_t SnarlDistanceIndex::get_parent(const net_handle_t& child) const {
+net_handle_t SnarlDistanceIndex::get_parent(CachedNetHandle& cached_child) const {
+
 
     //If the child is the sentinel of a snarl, just return the snarl
-    if (get_handle_type(child) == SENTINEL_HANDLE) {
-        return get_net_handle(get_record_offset(child), START_END, SNARL_HANDLE, get_node_record_offset(child)); 
-    } else if (get_handle_type(child) == ROOT_HANDLE) {
+    if (get_handle_type(cached_child.net) == SENTINEL_HANDLE) {
+        return get_net_handle(get_record_offset(cached_child.net), START_END, SNARL_HANDLE, get_node_record_offset(cached_child.net)); 
+    } else if (get_handle_type(cached_child.net) == ROOT_HANDLE) {
         throw runtime_error("error: trying to find the parent of the root");
-    } else if (SnarlTreeRecord(child, &snarl_tree_records).get_record_type() == SIMPLE_SNARL ||
-                SnarlTreeRecord(child, &snarl_tree_records).get_record_type() == DISTANCED_SIMPLE_SNARL) {
+    } else if (get_record_type(cached_child.record_tag) == SIMPLE_SNARL ||
+               get_record_type(cached_child.record_tag) == DISTANCED_SIMPLE_SNARL) {
         //If this is a simple snarl and a node or chain, then the parent offset doesn't change
-        if (get_handle_type(child) == NODE_HANDLE) {
+        if (get_handle_type(cached_child.net) == NODE_HANDLE) {
             //If this is a node, then return it as a chain
-            return get_net_handle(get_record_offset(child), START_END, CHAIN_HANDLE, get_node_record_offset(child));
-        } else if (get_handle_type(child) == CHAIN_HANDLE) {
+            return get_net_handle(get_record_offset(cached_child.net), START_END, CHAIN_HANDLE, get_node_record_offset(cached_child.net));
+        } else if (get_handle_type(cached_child.net) == CHAIN_HANDLE) {
             //If this is a chain, then return the same thing as a snarl
-            return get_net_handle(get_record_offset(child), START_END, SNARL_HANDLE, 1);
+            return get_net_handle(get_record_offset(cached_child.net), START_END, SNARL_HANDLE, 1);
         }
     }
 
     //Otherwise, we need to move up one level in the snarl tree
 
     //Get the pointer to the parent, and keep the connectivity of the current handle
-    size_t parent_pointer = SnarlTreeRecord(child, &snarl_tree_records).get_parent_record_offset();
-    connectivity_t child_connectivity = get_connectivity(child);
+    size_t parent_pointer = get_cached_parent_offset(cached_child);
+    connectivity_t child_connectivity = get_connectivity(cached_child.net);
 
     //TODO: I"m going into the parent record here, which could be avoided if things knew what their parents were, but I think if you're doing this you'd later go into the parent anyway so it's probably fine
     net_handle_record_t parent_type = SnarlTreeRecord(parent_pointer, &snarl_tree_records).get_record_handle_type();
@@ -285,13 +286,17 @@ net_handle_t SnarlDistanceIndex::get_parent(const net_handle_t& child) const {
         //TODO: This also needs to take into account the orientation of the child, which I might be able to get around?
         parent_connectivity = child_connectivity;
     }
-    if (get_handle_type(child) == NODE_HANDLE && parent_type != CHAIN_HANDLE) {
+    if (get_handle_type(cached_child.net) == NODE_HANDLE && parent_type != CHAIN_HANDLE) {
         //If this is a node and it's parent is not a chain, we want to pretend that its 
         //parent is a chain
-        return get_net_handle(get_record_offset(child), parent_connectivity, CHAIN_HANDLE, get_node_record_offset(child));
+        return get_net_handle(get_record_offset(cached_child.net), parent_connectivity, CHAIN_HANDLE, get_node_record_offset(cached_child.net));
     } 
 
     return get_net_handle(parent_pointer, parent_connectivity);
+}
+net_handle_t SnarlDistanceIndex::get_parent(const net_handle_t& child) const {
+    CachedNetHandle cached_child = get_cached_net_handle(child);
+    return get_parent(cached_child);
 }
 
 net_handle_t SnarlDistanceIndex::get_bound(const net_handle_t& snarl, bool get_end, bool face_in) const {
