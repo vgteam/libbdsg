@@ -1152,6 +1152,7 @@ private:
         TrivialSnarlRecord() {};
 
         virtual size_t get_node_count() const;
+        virtual tuple<size_t, size_t, size_t, size_t> get_chain_values(size_t node_rank) const;
         virtual size_t get_prefix_sum(size_t node_rank) const;
         virtual size_t get_forward_loop(size_t node_rank) const ;
         virtual size_t get_reverse_loop(size_t node_rank) const;

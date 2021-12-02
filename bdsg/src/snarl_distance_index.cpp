@@ -2302,6 +2302,53 @@ size_t SnarlDistanceIndex::NodeRecord::get_node_length() const {
 size_t SnarlDistanceIndex::TrivialSnarlRecord::get_node_count() const {
     return (*records)->at(record_offset+TRIVIAL_SNARL_NODE_COUNT_OFFSET);
 }
+tuple<size_t, size_t, size_t, size_t> SnarlDistanceIndex::TrivialSnarlRecord::get_chain_values(size_t node_rank) const {
+#ifdef debug_distances
+    assert(get_record_type() == TRIVIAL_SNARL || get_record_type() == DISTANCED_TRIVIAL_SNARL);
+#endif
+    size_t prefix_sum = (*records)->at(record_offset+TRIVIAL_SNARL_PREFIX_SUM_OFFSET);  
+    size_t forward_loop = (*records)->at(record_offset+TRIVIAL_SNARL_FORWARD_LOOP_OFFSET);  
+    size_t reverse_loop = (*records)->at(record_offset+TRIVIAL_SNARL_REVERSE_LOOP_OFFSET);  
+    size_t component = (node_rank == 0 && record_offset == ChainRecord(get_parent_record_offset(), records).get_first_node_offset()) ? 0: (*records)->at(record_offset+TRIVIAL_SNARL_COMPONENT_OFFSET); 
+
+    //Get the right prefix sum value
+    prefix_sum = prefix_sum == 0 ? std::numeric_limits<size_t>::max() : prefix_sum - 1;
+    if (node_rank != 0) {
+        prefix_sum =  sum({prefix_sum,  
+               (*records)->at(record_offset+TRIVIAL_SNARL_RECORD_SIZE+ (node_rank*2)-1)});
+    } 
+
+    /*Get the forward loop value
+     */
+
+    forward_loop = forward_loop == 0 ? std::numeric_limits<size_t>::max() : forward_loop - 1;
+        
+    //How many nodes in the snarl
+    size_t last_node = get_node_count()-1; 
+    //The right prefix sum of the last node, which is the length of the snarl
+    size_t snarl_length = (*records)->at(record_offset+TRIVIAL_SNARL_RECORD_SIZE + (last_node*2) + 1); 
+
+    //The distance from the right side of this node to the end of the trivial snarl
+    //the length of the snarl - the right prefix sum of the node
+    size_t right_offset = snarl_length - (*records)->at(record_offset+TRIVIAL_SNARL_RECORD_SIZE + (node_rank*2) + 1);
+
+    forward_loop = sum({forward_loop, right_offset*2});
+
+    /* Get the reverse loop value
+     */
+    reverse_loop = reverse_loop == 0 ? std::numeric_limits<size_t>::max() : reverse_loop - 1;
+        
+    //The offset of the left side of this node in the trivial snarl
+    size_t left_offset = node_rank == 0 ? 0 : 
+                          (*records)->at(record_offset+TRIVIAL_SNARL_RECORD_SIZE + (node_rank*2) - 1);
+
+    reverse_loop = sum({reverse_loop, left_offset*2});
+
+
+
+    return make_tuple(prefix_sum, forward_loop, reverse_loop, component);
+
+}
 size_t SnarlDistanceIndex::TrivialSnarlRecord::get_prefix_sum(size_t node_rank) const {
 #ifdef debug_distances
     assert(get_record_type() == TRIVIAL_SNARL || get_record_type() == DISTANCED_TRIVIAL_SNARL);
@@ -3759,10 +3806,9 @@ void SnarlDistanceIndex::set_cached_node_values(CachedNetHandle& cached_handle) 
             size_t node_rank = get_node_record_offset(cached_handle.net);
 
             cached_handle.is_reversed = record.get_is_reversed_in_parent(node_rank);
-            cached_handle.prefix_sum_val = record.get_prefix_sum(node_rank);
-            cached_handle.forward_loop_val = record.get_forward_loop(node_rank);
-            cached_handle.reverse_loop_val = record.get_reverse_loop(node_rank);
-            cached_handle.chain_component_val = record.get_chain_component(node_rank);
+            std::tie(cached_handle.prefix_sum_val,cached_handle.forward_loop_val,
+                     cached_handle.reverse_loop_val,cached_handle.chain_component_val)
+                 = record.get_chain_values(node_rank);
         }         
     }
 }
