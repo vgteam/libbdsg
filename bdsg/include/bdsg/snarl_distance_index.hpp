@@ -145,6 +145,7 @@ public:
 
             //Associated net_handles
             size_t parent_record_offset = std::numeric_limits<size_t>::max();
+            size_t parent_record_tag = std::numeric_limits<size_t>::max();
             //These will always be nodes, even for a snarl (instead of sentinels)
             net_handle_t start_bound_in;
             size_t start_bound_tag = std::numeric_limits<size_t>::max();
@@ -200,7 +201,7 @@ public:
     void set_cached_node_values(CachedNetHandle& cached_handle) const;
     void set_cached_rank(CachedNetHandle& cached_handle) const;
     void set_cached_min_length(CachedNetHandle& cached_handle) const;
-    void set_cached_parent_offset(CachedNetHandle& cached_handle) const;
+    void set_cached_parent(CachedNetHandle& cached_handle) const;
     void set_cached_start_bound(CachedNetHandle& cached_handle, bool set_values_in_chain, bool set_length) const;
     void set_cached_end_bound(CachedNetHandle& cached_handle, bool set_values_in_chain, bool set_length) const;
 
@@ -210,6 +211,7 @@ public:
     size_t get_cached_start_bound_length(CachedNetHandle& cached_handle) const;
     size_t get_cached_end_bound_length(CachedNetHandle& cached_handle) const;
     size_t get_cached_parent_offset(CachedNetHandle& cached_handle) const;
+    size_t get_cached_parent_tag(CachedNetHandle& cached_handle) const;
     size_t get_cached_rank(CachedNetHandle& cached_handle) const;
     size_t get_cached_min_length(CachedNetHandle& cached_handle) const;
     bool get_cached_is_reverse(CachedNetHandle& cached_handle) const;

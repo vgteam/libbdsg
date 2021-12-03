@@ -801,7 +801,7 @@ size_t SnarlDistanceIndex::distance_in_parent(CachedNetHandle& cached_parent,
         if (parent_record_offset1 != parent_record_offset2) {
             //If the children are in different connected components
             return std::numeric_limits<size_t>::max();
-        } else if (get_record_type(snarl_tree_records->at(parent_record_offset1)) != DISTANCED_ROOT_SNARL){
+        } else if (get_record_type(get_cached_parent_tag(cached_child1)) != DISTANCED_ROOT_SNARL){
             //If they are in the same connected component, but it is not a root snarl
             if (get_record_offset(child1) == get_record_offset(child2)) {
                 //If they are the same child of the root but not in a snarl, then check the external connectivity
@@ -979,7 +979,7 @@ size_t SnarlDistanceIndex::distance_in_parent(CachedNetHandle& cached_parent,
             cerr << "             between ranks " << rank1 << " " << rev1 << " " << rank2 << " " << rev2 << endl;
 #endif
 
-        if (SnarlTreeRecord(parent, &snarl_tree_records).get_record_type() == OVERSIZED_SNARL 
+        if (get_record_type(cached_parent.record_tag) == OVERSIZED_SNARL 
             && !(rank1 == 0 || rank1 == 1 || rank2 == 0 || rank2 == 1) ) {
             //If this is an oversized snarl and we're looking for internal distances, then we didn't store the
             //distance and we have to find it using dijkstra's algorithm
@@ -1003,7 +1003,7 @@ size_t SnarlDistanceIndex::distance_in_parent(CachedNetHandle& cached_parent,
             return distance;
 
             
-        } else if (SnarlTreeRecord(parent, &snarl_tree_records).get_record_type() == DISTANCED_SIMPLE_SNARL) {
+        } else if (get_record_type(cached_parent.record_tag) == DISTANCED_SIMPLE_SNARL) {
             return SimpleSnarlRecord(parent, &snarl_tree_records).get_distance(rank1, rev1, rank2, rev2);
         } else {
            return SnarlRecord(parent, &snarl_tree_records).get_distance(rank1, rev1, rank2, rev2);
@@ -3838,9 +3838,10 @@ void SnarlDistanceIndex::set_cached_min_length(CachedNetHandle& cached_handle) c
         cached_handle.min_length = minimum_length(cached_handle.net);
     }
 }
-void SnarlDistanceIndex::set_cached_parent_offset(CachedNetHandle& cached_handle) const {
+void SnarlDistanceIndex::set_cached_parent(CachedNetHandle& cached_handle) const {
     if (cached_handle.parent_record_offset == std::numeric_limits<size_t>::max()) {
         cached_handle.parent_record_offset = SnarlTreeRecord(cached_handle.net, &snarl_tree_records).get_parent_record_offset();
+        cached_handle.parent_record_tag = snarl_tree_records->at(cached_handle.parent_record_offset);
     }
 }
 void SnarlDistanceIndex::set_cached_start_bound(CachedNetHandle& cached_handle, bool set_values_in_chain, bool set_length) const {
@@ -3932,9 +3933,15 @@ size_t SnarlDistanceIndex::get_cached_end_bound_length(CachedNetHandle& cached_h
 }
 size_t SnarlDistanceIndex::get_cached_parent_offset(CachedNetHandle& cached_handle) const {
     if (cached_handle.parent_record_offset == std::numeric_limits<size_t>::max()) {
-        set_cached_parent_offset(cached_handle);
+        set_cached_parent(cached_handle);
     }
     return cached_handle.parent_record_offset;
+}
+size_t SnarlDistanceIndex::get_cached_parent_tag(CachedNetHandle& cached_handle) const {
+    if (cached_handle.parent_record_tag == std::numeric_limits<size_t>::max()) {
+        set_cached_parent(cached_handle);
+    }
+    return cached_handle.parent_record_tag;
 }
 size_t SnarlDistanceIndex::get_cached_rank(CachedNetHandle& cached_handle) const {
     if (cached_handle.rank == std::numeric_limits<size_t>::max()) {
