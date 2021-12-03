@@ -893,7 +893,7 @@ size_t SnarlDistanceIndex::distance_in_parent(CachedNetHandle& cached_parent,
                     //Make sure that the cached net handle has the start bound set
                     set_cached_start_bound(cached_child, true, true); 
                     //And turn it into a node, since it will be a sentinel
-                    net_handle_t start_bound = flip(get_node_from_sentinel(cached_child.start_bound_in));
+                    net_handle_t start_bound = flip(cached_child.start_bound_in);
 
                     size_t start_length = get_cached_start_bound_length(cached_child);
 
@@ -908,7 +908,7 @@ size_t SnarlDistanceIndex::distance_in_parent(CachedNetHandle& cached_parent,
                 } else {
                     //Do the same thing for the snarl end node if we're going forwards
                     set_cached_end_bound(cached_child,  true, true); 
-                    net_handle_t end_bound = flip(get_node_from_sentinel(cached_child.end_bound_in));
+                    net_handle_t end_bound = flip(cached_child.end_bound_in);
                     size_t end_length = get_cached_end_bound_length(cached_child);
                     size_t end_rank = get_record_offset(end_bound) + get_node_record_offset(end_bound);
 
@@ -1013,7 +1013,11 @@ size_t SnarlDistanceIndex::distance_in_parent(CachedNetHandle& cached_parent,
     }
 }
 size_t SnarlDistanceIndex::distance_to_parent_bound(CachedNetHandle& cached_parent, bool to_start, CachedNetHandle& child, bool go_left, const HandleGraph* graph) const {
-    CachedNetHandle parent_bound = get_cached_bound(cached_parent, to_start);
+
+    //If the parent is a snarl, then the bound is actually the node and we want the sentinel
+    CachedNetHandle parent_bound = is_snarl(cached_parent.net) 
+                                 ? get_cached_net_handle(get_bound(cached_parent.net, !to_start, true), cached_parent.record_tag)
+                                 : get_cached_bound(cached_parent, to_start);
     //The node length of the boundary node, only set for chains 
     size_t bound_length = !is_chain(cached_parent.net) ? 0 : 
         (to_start ? get_cached_start_bound_length(cached_parent) : 
@@ -3843,22 +3847,23 @@ void SnarlDistanceIndex::set_cached_start_bound(CachedNetHandle& cached_handle, 
     if (! cached_handle.contains_start_bound) {
         cached_handle.contains_start_bound=true;
         cached_handle.start_bound_in = get_bound(cached_handle.net, false, true);
+        if (is_sentinel(cached_handle.start_bound_in)) {
+            cached_handle.start_bound_in = get_node_from_sentinel(cached_handle.start_bound_in);
+        }
         cached_handle.start_bound_tag = snarl_tree_records->at(get_record_offset(cached_handle.start_bound_in));
     }
     if ((set_values_in_chain && ! cached_handle.contains_start_node_values) ||
         (set_length && cached_handle.start_bound_length == std::numeric_limits<size_t>::max())) {
-        net_handle_t node_bound = is_node(cached_handle.start_bound_in) ? cached_handle.start_bound_in 
-                                                                        : get_node_from_sentinel(cached_handle.start_bound_in);
         if (set_length && cached_handle.start_bound_length == std::numeric_limits<size_t>::max()) {
             cached_handle.start_bound_length = node_length(cached_handle.start_bound_in);
         }
         if (set_values_in_chain && !cached_handle.contains_start_node_values) {
-            assert(SnarlTreeRecord(node_bound, &snarl_tree_records).get_record_type() == DISTANCED_TRIVIAL_SNARL);
+            assert(SnarlTreeRecord(cached_handle.start_bound_in, &snarl_tree_records).get_record_type() == DISTANCED_TRIVIAL_SNARL);
 
             cached_handle.contains_start_node_values = true;
 
-            TrivialSnarlRecord record(get_record_offset(node_bound), &snarl_tree_records);
-            size_t node_offset = get_node_record_offset(node_bound);
+            TrivialSnarlRecord record(get_record_offset(cached_handle.start_bound_in), &snarl_tree_records);
+            size_t node_offset = get_node_record_offset(cached_handle.start_bound_in);
             cached_handle.prefix_sum_val = record.get_prefix_sum(node_offset);
             cached_handle.forward_loop_val = record.get_forward_loop(node_offset);
             cached_handle.reverse_loop_val = record.get_reverse_loop(node_offset);
@@ -3873,21 +3878,22 @@ void SnarlDistanceIndex::set_cached_end_bound(CachedNetHandle& cached_handle, bo
     if (!cached_handle.contains_end_bound){
         cached_handle.contains_end_bound=true;
         cached_handle.end_bound_in = get_bound(cached_handle.net, true, true);
+        if (is_sentinel(cached_handle.end_bound_in)) {
+            cached_handle.end_bound_in = get_node_from_sentinel(cached_handle.end_bound_in);
+        }
         cached_handle.end_bound_tag = snarl_tree_records->at(get_record_offset(cached_handle.end_bound_in));
     }
     if ((set_values_in_chain && !cached_handle.contains_end_node_values) ||
         (set_length && cached_handle.end_bound_length == std::numeric_limits<size_t>::max())){
-        net_handle_t node_bound = is_node(cached_handle.end_bound_in) ? cached_handle.end_bound_in 
-                                                                        : get_node_from_sentinel(cached_handle.end_bound_in);
         if (set_length && cached_handle.end_bound_length == std::numeric_limits<size_t>::max()) {
             cached_handle.end_bound_length = node_length(cached_handle.end_bound_in);
         }
         if (set_values_in_chain && !cached_handle.contains_end_node_values) {
-            assert (SnarlTreeRecord(node_bound, &snarl_tree_records).get_record_type() == DISTANCED_TRIVIAL_SNARL);
+            assert (SnarlTreeRecord(cached_handle.end_bound_in, &snarl_tree_records).get_record_type() == DISTANCED_TRIVIAL_SNARL);
             cached_handle.contains_end_node_values = true;
 
-            TrivialSnarlRecord record(get_record_offset(node_bound), &snarl_tree_records);
-            size_t node_offset = get_node_record_offset(node_bound);
+            TrivialSnarlRecord record(get_record_offset(cached_handle.end_bound_in), &snarl_tree_records);
+            size_t node_offset = get_node_record_offset(cached_handle.end_bound_in);
             cached_handle.end_prefix_sum_val = record.get_prefix_sum(node_offset);
             cached_handle.end_forward_loop_val = record.get_forward_loop(node_offset);
             cached_handle.end_reverse_loop_val = record.get_reverse_loop(node_offset);
