@@ -401,12 +401,14 @@ public:
      * For chains, the distance to/from a snarl is really the distance from the outer node of the snarl
      * Returns std::numeric_limits<size_t>::max() if there is not path between them in the parent 
      * or if they are not children of the parent
+     *
+     * Distance limit is the distance after which we give up if we're doing a traversal
      */
-    size_t distance_in_parent(const net_handle_t& parent, const net_handle_t& child1, const net_handle_t& child2, const HandleGraph* graph=nullptr) const;
+    size_t distance_in_parent(const net_handle_t& parent, const net_handle_t& child1, const net_handle_t& child2, const HandleGraph* graph=nullptr, size_t distance_limit = std::numeric_limits<size_t>::max()) const;
     //The same thing but using cached values
     //go_left is true if we want to go the opposite direction of the net handles
     //This is not great but better than copying the entire cached net handle I think
-    size_t distance_in_parent(CachedNetHandle& cached_parent, CachedNetHandle& cached_child1, bool go_left1, CachedNetHandle& cached_child2, bool go_left2, const HandleGraph* graph=nullptr) const;
+    size_t distance_in_parent(CachedNetHandle& cached_parent, CachedNetHandle& cached_child1, bool go_left1, CachedNetHandle& cached_child2, bool go_left2, const HandleGraph* graph=nullptr, size_t distance_limit = std::numeric_limits<size_t>::max()) const;
 
     size_t distance_to_parent_bound(CachedNetHandle& cached_parent, bool to_start, CachedNetHandle& child, bool go_left, const HandleGraph* graph) const;
     

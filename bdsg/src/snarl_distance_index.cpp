@@ -768,18 +768,18 @@ std::string SnarlDistanceIndex::get_prefix() const {
 
 
 size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent, 
-        const net_handle_t& child1, const net_handle_t& child2, const HandleGraph* graph) const {
+        const net_handle_t& child1, const net_handle_t& child2, const HandleGraph* graph, size_t distance_limit) const {
 
     CachedNetHandle cached_parent = get_cached_net_handle(parent);
     CachedNetHandle cached_child1 = get_cached_net_handle(child1);
     CachedNetHandle cached_child2 = get_cached_net_handle(child2);
-    return distance_in_parent(cached_parent, cached_child1, false, cached_child2, false, graph);
+    return distance_in_parent(cached_parent, cached_child1, false, cached_child2, false, graph, distance_limit);
 
 }
 
 size_t SnarlDistanceIndex::distance_in_parent(CachedNetHandle& cached_parent, 
         CachedNetHandle& cached_child1, bool go_left1, 
-        CachedNetHandle& cached_child2, bool go_left2, const HandleGraph* graph) const {
+        CachedNetHandle& cached_child2, bool go_left2, const HandleGraph* graph, size_t distance_limit) const {
 
     net_handle_t child1 = go_left1 ? flip(cached_child1.net) : cached_child1.net;
     net_handle_t child2 = go_left2 ? flip(cached_child2.net) : cached_child2.net;
@@ -984,6 +984,7 @@ size_t SnarlDistanceIndex::distance_in_parent(CachedNetHandle& cached_parent,
             //If this is an oversized snarl and we're looking for internal distances, then we didn't store the
             //distance and we have to find it using dijkstra's algorithm
             if (graph == nullptr) {
+                assert(false);
                 cerr << "warning: trying to find the distance in an oversized snarl without a graph. Returning inf" << endl;
                 return std::numeric_limits<size_t>::max();
             }
@@ -994,8 +995,10 @@ size_t SnarlDistanceIndex::distance_in_parent(CachedNetHandle& cached_parent,
             size_t distance = std::numeric_limits<size_t>::max();
             handlegraph::algorithms::dijkstra(graph, handle1, [&](const handle_t& reached, size_t dist) {
                 if (reached == handle2) {
-                    //TODO: Also give up if the distance is too great
                     distance = dist;
+                    return false;
+                } else if (dist > distance_limit) {
+                    distance = std::numeric_limits<size_t>::max();
                     return false;
                 }
                 return true;
