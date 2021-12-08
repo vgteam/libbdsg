@@ -52,10 +52,11 @@ using namespace handlegraph;
 template<typename Backend = STLBackend>
 class BasePackedGraph {
 
-    // We must be friends with the proxy class for it to actually work on us,
-    // since we leave as protected/private the protected methods it wants to
-    // proxy.
+    // We must be friends with the proxy class and its components for it to
+    // actually work on us, since we leave as protected/private the protected
+    // methods it wants to proxy.
     friend class GraphProxy<BasePackedGraph>;
+    friend class SerializableHandleGraphProxy<BasePackedGraph>;
     
 public:
     BasePackedGraph();
