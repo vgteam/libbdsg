@@ -3,6 +3,14 @@ handlegraph/types.cpp
 handlegraph/handle_graph.cpp
 handlegraph/path_handle_graph.cpp
 handlegraph/mutable_path_mutable_handle_graph.cpp
+bdsg/graph_proxy.cpp
+bdsg/graph_proxy_1.cpp
+bdsg/graph_proxy_2.cpp
+bdsg/graph_proxy_3.cpp
+bdsg/graph_proxy_4.cpp
+bdsg/graph_proxy_5.cpp
+bdsg/graph_proxy_6.cpp
+bdsg/graph_proxy_7.cpp
 bdsg/internal/wang_hash.cpp
 bdsg/internal/mapped_structs.cpp
 bdsg/internal/mapped_structs_1.cpp
@@ -12,8 +20,6 @@ handlegraph/expanding_overlay_graph.cpp
 bdsg/overlays/strand_split_overlay.cpp
 bdsg/internal/is_single_stranded.cpp
 bdsg/internal/eades_algorithm.cpp
-bdsg/internal/graph_proxy.cpp
-bdsg/internal/graph_proxy_1.cpp
 std/bdsg/internal/binder_hook_bind.cpp
 handlegraph/trivially_serializable.cpp
 bdsg/internal/mmap_backend.cpp

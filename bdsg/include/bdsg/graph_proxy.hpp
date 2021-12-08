@@ -14,6 +14,7 @@
 namespace bdsg {
 
 using namespace std;
+using namespace handlegraph;
 
 /**
  * Base abstract class that defines the methods that must be implemented to get
