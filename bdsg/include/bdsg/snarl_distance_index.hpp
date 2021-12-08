@@ -146,6 +146,7 @@ public:
             //Associated net_handles
             size_t parent_record_offset = std::numeric_limits<size_t>::max();
             size_t parent_record_tag = std::numeric_limits<size_t>::max();
+
             //These will always be nodes, even for a snarl (instead of sentinels)
             net_handle_t start_bound_in;
             size_t start_bound_tag = std::numeric_limits<size_t>::max();
@@ -170,6 +171,8 @@ public:
             size_t end_chain_component_val = std::numeric_limits<size_t>::max();
             size_t end_rank = std::numeric_limits<size_t>::max();
             bool end_is_reversed;
+
+            size_t last_chain_component = std::numeric_limits<size_t>::max();
 
 
         
@@ -204,6 +207,7 @@ public:
     void set_cached_parent(CachedNetHandle& cached_handle) const;
     void set_cached_start_bound(CachedNetHandle& cached_handle, bool set_values_in_chain, bool set_length) const;
     void set_cached_end_bound(CachedNetHandle& cached_handle, bool set_values_in_chain, bool set_length) const;
+    void set_cached_last_chain_component(CachedNetHandle& cached_handle) const;
 
     //Methods to get cached values, and will set them if necessary
     net_handle_t get_cached_start_bound(CachedNetHandle& cached_handle) const;
@@ -221,6 +225,8 @@ public:
     tuple<size_t, size_t, size_t, size_t> get_cached_start_chain_values(CachedNetHandle& cached_handle) const;
     //For the end node of a snarl
     tuple<size_t, size_t, size_t, size_t> get_cached_end_chain_values(CachedNetHandle& cached_handle) const;
+    //The last node's component in a chain
+    size_t get_cached_last_chain_component(CachedNetHandle& cached_handle) const;
 
 public:
 
@@ -1503,20 +1509,22 @@ private:
         //This is the distance between the node sides, leaving the first and entering the second,
         //not including node lengths
         //checked_loop is true if we checked that there was a loop and false otherwise
-        //If checked_loop is true, then is_looping_chain indicates whether this chain loops
+        //If checked_loop is true, then is_looping_chain indicates whether this chain loops 
+        //and last_chain_component is the component of the last thing in the chain
         //TODO: Double check finding the distance for the same node
         virtual size_t get_distance(size_t rank1, bool right_side1, size_t node_length1, 
                                     size_t prefix_sum1, size_t forward_loop1, size_t reverse_loop1, size_t component1,
                                     size_t rank2, bool right_side2, size_t node_length2,
                                     size_t prefix_sum2, size_t forward_loop2, size_t reverse_loop2, size_t component2, 
-                                    bool checked_loop = false, bool is_looping_chain = false) const;
+                                    bool checked_loop = false, bool is_looping_chain = false,
+                                    size_t last_chain_component = std::numeric_limits<size_t>::max()) const;
 
         ///For a chain that loops (when the start and end node are the same), find the 
         //distance walking around the back of the loop
         virtual size_t get_distance_taking_chain_loop(size_t rank1, bool right_side1, size_t node_length1, 
                                     size_t prefix_sum1, size_t forward_loop1, size_t reverse_loop1, size_t component1,
                                     size_t rank2, bool right_side2, size_t node_length2,
-                                    size_t prefix_sum2, size_t forward_loop2, size_t reverse_loop2, size_t component2) const;
+                                    size_t prefix_sum2, size_t forward_loop2, size_t reverse_loop2, size_t component2, size_t last_component) const;
 
         ////////////////////////// methods for navigating the snarl tree from this chain
 

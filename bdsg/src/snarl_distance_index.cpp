@@ -947,7 +947,8 @@ size_t SnarlDistanceIndex::distance_in_parent(CachedNetHandle& cached_parent,
                                               rank_in_chain2, go_left2,
                                               node_length2, prefix_sum2,
                                               forward_loop2, reverse_loop2,
-                                              component2, checked_looping_chain, is_looping_chain),
+                                              component2, checked_looping_chain, is_looping_chain,
+                                              get_cached_last_chain_component(cached_parent)),
                     node_lengths_to_add});
 
     } else if (is_snarl(parent)) {
@@ -2520,7 +2521,7 @@ bool SnarlDistanceIndex::ChainRecord::get_is_looping_chain_connected_backwards()
 size_t SnarlDistanceIndex::ChainRecord::get_distance(size_t rank1, bool left_side1, size_t node_length1, 
     size_t prefix_sum1, size_t forward_loop1, size_t reverse_loop1, size_t component1,
     size_t rank2, bool left_side2, size_t node_length2,
-    size_t prefix_sum2, size_t forward_loop2, size_t reverse_loop2, size_t component2, bool checked_loop, bool is_looping_chain) const { 
+    size_t prefix_sum2, size_t forward_loop2, size_t reverse_loop2, size_t component2, bool checked_loop, bool is_looping_chain, size_t last_chain_component) const { 
 
     //If 1 comes after 2, swap them
     if (rank1 > rank2) {
@@ -2546,7 +2547,8 @@ size_t SnarlDistanceIndex::ChainRecord::get_distance(size_t rank1, bool left_sid
                 return get_distance_taking_chain_loop(rank1, left_side1, node_length1, 
                             prefix_sum1, forward_loop1, reverse_loop1, component1,
                             rank2, left_side2, node_length2,
-                            prefix_sum2, forward_loop2, reverse_loop2, component2);
+                            prefix_sum2, forward_loop2, reverse_loop2, component2,
+                            last_chain_component);
             } else {
                 return std::numeric_limits<size_t>::max();
             }
@@ -2591,7 +2593,8 @@ size_t SnarlDistanceIndex::ChainRecord::get_distance(size_t rank1, bool left_sid
         distance = std::min(distance, get_distance_taking_chain_loop(rank1, left_side1, node_length1, 
                             prefix_sum1, forward_loop1, reverse_loop1, component1,
                             rank2, left_side2, node_length2,
-                            prefix_sum2, forward_loop2, reverse_loop2, component2));
+                            prefix_sum2, forward_loop2, reverse_loop2, component2, 
+                            last_chain_component));
     }
     return distance;
 }
@@ -2600,7 +2603,7 @@ size_t SnarlDistanceIndex::ChainRecord::get_distance(size_t rank1, bool left_sid
 size_t SnarlDistanceIndex::ChainRecord::get_distance_taking_chain_loop(size_t rank1, bool left_side1, size_t node_length1, 
     size_t prefix_sum1, size_t forward_loop1, size_t reverse_loop1, size_t component1,
     size_t rank2, bool left_side2, size_t node_length2,
-    size_t prefix_sum2, size_t forward_loop2, size_t reverse_loop2, size_t component2) const {
+    size_t prefix_sum2, size_t forward_loop2, size_t reverse_loop2, size_t component2, size_t last_component) const {
     //This is only called by get_distance, so the nodes should be ordered
 #ifdef debug_distances
     assert (rank1 <= rank2);
@@ -2615,7 +2618,6 @@ size_t SnarlDistanceIndex::ChainRecord::get_distance_taking_chain_loop(size_t ra
     if (get_record_handle_type() == NODE_HANDLE) {
         throw runtime_error("error: Trying to get chain distances from a node");
     } else if (get_record_type() == MULTICOMPONENT_CHAIN) {
-        size_t last_component = TrivialSnarlRecord(get_first_node_offset(), records).get_chain_component(0,true);
         bool first_in_first_component = component1 == 0 || component1 == last_component;
         bool second_in_first_component = component2 == 0 || component2 == last_component;
         bool can_loop = get_is_looping_chain_connected_backwards();
@@ -3754,6 +3756,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
 
 }
 
+
 SnarlDistanceIndex::CachedNetHandle SnarlDistanceIndex::get_cached_bound(
     const CachedNetHandle& parent, bool get_start) const {
     if (is_snarl(parent.net)) {
@@ -3992,6 +3995,29 @@ tuple<size_t, size_t, size_t, size_t> SnarlDistanceIndex::get_cached_end_chain_v
     }
     return make_tuple(cached_handle.end_prefix_sum_val, cached_handle.end_forward_loop_val,
                       cached_handle.end_reverse_loop_val, cached_handle.end_chain_component_val);
+}
+size_t SnarlDistanceIndex::get_cached_last_chain_component(CachedNetHandle& cached_handle) const {
+    if (is_chain(cached_handle.net)) {
+        if (cached_handle.last_chain_component == std::numeric_limits<size_t>::max()){
+            set_cached_last_chain_component(cached_handle);
+        }
+        return cached_handle.last_chain_component;
+    } else {
+        return std::numeric_limits<size_t>::max();
+    }
+}
+void SnarlDistanceIndex::set_cached_last_chain_component(CachedNetHandle& cached_handle) const {
+    if (!is_chain(cached_handle.net) || cached_handle.last_chain_component == std::numeric_limits<size_t>::max()) {
+        return;
+    }
+
+    if (!cached_handle.contains_end_bound){
+        cached_handle.contains_end_bound=true;
+        cached_handle.end_bound_in = get_bound(cached_handle.net, false, false);
+    }
+    TrivialSnarlRecord end_record(get_record_offset(cached_handle.end_bound_in), &snarl_tree_records);
+    cached_handle.last_chain_component = end_record.get_chain_component(get_node_record_offset(cached_handle.end_bound_in));
+
 }
 
 //TODO: Also need to go the other way, from final index to temporary one for merging
