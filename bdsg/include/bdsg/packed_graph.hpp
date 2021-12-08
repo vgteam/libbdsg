@@ -13,7 +13,7 @@
 #include <handlegraph/trivially_serializable.hpp>
 
 #include "bdsg/internal/base_packed_graph.hpp"
-#include "bdsg/internal/graph_proxy.hpp"
+#include "bdsg/graph_proxy.hpp"
 
 
 namespace bdsg {

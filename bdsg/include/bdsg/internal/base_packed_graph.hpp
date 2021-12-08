@@ -17,7 +17,7 @@
 #include "bdsg/internal/hash_map.hpp"
 #include "bdsg/internal/utility.hpp"
 #include "bdsg/internal/eades_algorithm.hpp"
-#include "bdsg/internal/graph_proxy.hpp"
+#include "bdsg/graph_proxy.hpp"
 
 #include <arpa/inet.h>
 
