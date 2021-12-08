@@ -31,7 +31,7 @@
 	PYBIND11_MAKE_OPAQUE(std::shared_ptr<void>);
 #endif
 
-// bdsg::HandleGraphProxy file:bdsg/graph_proxy.hpp line:58
+// bdsg::HandleGraphProxy file:bdsg/graph_proxy.hpp line:61
 struct PyCallBack_bdsg_HandleGraphProxy_bdsg_BasePackedGraph_bdsg_STLBackend_t : public bdsg::HandleGraphProxy<bdsg::BasePackedGraph<bdsg::STLBackend>> {
 	using bdsg::HandleGraphProxy<bdsg::BasePackedGraph<bdsg::STLBackend>>::HandleGraphProxy;
 
@@ -294,7 +294,7 @@ void bind_bdsg_graph_proxy(std::function< pybind11::module &(std::string const &
 		pybind11::class_<bdsg::AbstractGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend>>, std::shared_ptr<bdsg::AbstractGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend>>>> cl(M("bdsg"), "AbstractGraphProxy_bdsg_BasePackedGraph_bdsg_MappedBackend_t", "");
 		cl.def("assign", (struct bdsg::AbstractGraphProxy<class bdsg::BasePackedGraph<struct bdsg::MappedBackend> > & (bdsg::AbstractGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend>>::*)(const struct bdsg::AbstractGraphProxy<class bdsg::BasePackedGraph<struct bdsg::MappedBackend> > &)) &bdsg::AbstractGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend> >::operator=, "C++: bdsg::AbstractGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend> >::operator=(const struct bdsg::AbstractGraphProxy<class bdsg::BasePackedGraph<struct bdsg::MappedBackend> > &) --> struct bdsg::AbstractGraphProxy<class bdsg::BasePackedGraph<struct bdsg::MappedBackend> > &", pybind11::return_value_policy::automatic, pybind11::arg(""));
 	}
-	{ // bdsg::HandleGraphProxy file:bdsg/graph_proxy.hpp line:58
+	{ // bdsg::HandleGraphProxy file:bdsg/graph_proxy.hpp line:61
 		pybind11::class_<bdsg::HandleGraphProxy<bdsg::BasePackedGraph<bdsg::STLBackend>>, std::shared_ptr<bdsg::HandleGraphProxy<bdsg::BasePackedGraph<bdsg::STLBackend>>>, PyCallBack_bdsg_HandleGraphProxy_bdsg_BasePackedGraph_bdsg_STLBackend_t, bdsg::AbstractGraphProxy<bdsg::BasePackedGraph<bdsg::STLBackend>>, handlegraph::HandleGraph> cl(M("bdsg"), "HandleGraphProxy_bdsg_BasePackedGraph_bdsg_STLBackend_t", "");
 		cl.def( pybind11::init( [](){ return new PyCallBack_bdsg_HandleGraphProxy_bdsg_BasePackedGraph_bdsg_STLBackend_t(); } ) );
 		cl.def(pybind11::init<PyCallBack_bdsg_HandleGraphProxy_bdsg_BasePackedGraph_bdsg_STLBackend_t const &>());

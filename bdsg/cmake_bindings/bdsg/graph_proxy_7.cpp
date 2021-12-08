@@ -22,7 +22,7 @@
 
 void bind_bdsg_graph_proxy_7(std::function< pybind11::module &(std::string const &namespace_) > &M)
 {
-	{ // bdsg::GraphProxy file:bdsg/graph_proxy.hpp line:599
+	{ // bdsg::GraphProxy file:bdsg/graph_proxy.hpp line:602
 		pybind11::class_<bdsg::GraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend>>, std::shared_ptr<bdsg::GraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend>>>, bdsg::MutablePathDeletableHandleGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend>>, bdsg::SerializableHandleGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend>>> cl(M("bdsg"), "GraphProxy_bdsg_BasePackedGraph_bdsg_MappedBackend_t", "");
 		cl.def("assign", (struct bdsg::GraphProxy<class bdsg::BasePackedGraph<struct bdsg::MappedBackend> > & (bdsg::GraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend>>::*)(const struct bdsg::GraphProxy<class bdsg::BasePackedGraph<struct bdsg::MappedBackend> > &)) &bdsg::GraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend> >::operator=, "C++: bdsg::GraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend> >::operator=(const struct bdsg::GraphProxy<class bdsg::BasePackedGraph<struct bdsg::MappedBackend> > &) --> struct bdsg::GraphProxy<class bdsg::BasePackedGraph<struct bdsg::MappedBackend> > &", pybind11::return_value_policy::automatic, pybind11::arg(""));
 		cl.def("create_handle", (struct handlegraph::handle_t (bdsg::MutablePathDeletableHandleGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend>>::*)(const std::string &)) &bdsg::MutablePathDeletableHandleGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend> >::create_handle, "C++: bdsg::MutablePathDeletableHandleGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend> >::create_handle(const std::string &) --> struct handlegraph::handle_t", pybind11::arg("sequence"));

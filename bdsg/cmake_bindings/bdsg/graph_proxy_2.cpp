@@ -31,7 +31,7 @@
 	PYBIND11_MAKE_OPAQUE(std::shared_ptr<void>);
 #endif
 
-// bdsg::PathHandleGraphProxy file:bdsg/graph_proxy.hpp line:190
+// bdsg::PathHandleGraphProxy file:bdsg/graph_proxy.hpp line:193
 struct PyCallBack_bdsg_PathHandleGraphProxy_bdsg_BasePackedGraph_bdsg_STLBackend_t : public bdsg::PathHandleGraphProxy<bdsg::BasePackedGraph<bdsg::STLBackend>> {
 	using bdsg::PathHandleGraphProxy<bdsg::BasePackedGraph<bdsg::STLBackend>>::PathHandleGraphProxy;
 
@@ -559,7 +559,7 @@ struct PyCallBack_bdsg_PathHandleGraphProxy_bdsg_BasePackedGraph_bdsg_STLBackend
 
 void bind_bdsg_graph_proxy_2(std::function< pybind11::module &(std::string const &namespace_) > &M)
 {
-	{ // bdsg::PathHandleGraphProxy file:bdsg/graph_proxy.hpp line:190
+	{ // bdsg::PathHandleGraphProxy file:bdsg/graph_proxy.hpp line:193
 		pybind11::class_<bdsg::PathHandleGraphProxy<bdsg::BasePackedGraph<bdsg::STLBackend>>, std::shared_ptr<bdsg::PathHandleGraphProxy<bdsg::BasePackedGraph<bdsg::STLBackend>>>, PyCallBack_bdsg_PathHandleGraphProxy_bdsg_BasePackedGraph_bdsg_STLBackend_t, bdsg::HandleGraphProxy<bdsg::BasePackedGraph<bdsg::STLBackend>>, handlegraph::PathHandleGraph> cl(M("bdsg"), "PathHandleGraphProxy_bdsg_BasePackedGraph_bdsg_STLBackend_t", "");
 		cl.def( pybind11::init( [](){ return new PyCallBack_bdsg_PathHandleGraphProxy_bdsg_BasePackedGraph_bdsg_STLBackend_t(); } ) );
 		cl.def(pybind11::init<PyCallBack_bdsg_PathHandleGraphProxy_bdsg_BasePackedGraph_bdsg_STLBackend_t const &>());

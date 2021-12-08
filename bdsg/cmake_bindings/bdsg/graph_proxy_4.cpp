@@ -31,7 +31,7 @@
 	PYBIND11_MAKE_OPAQUE(std::shared_ptr<void>);
 #endif
 
-// bdsg::MutablePathDeletableHandleGraphProxy file:bdsg/graph_proxy.hpp line:399
+// bdsg::MutablePathDeletableHandleGraphProxy file:bdsg/graph_proxy.hpp line:402
 struct PyCallBack_bdsg_MutablePathDeletableHandleGraphProxy_bdsg_BasePackedGraph_bdsg_STLBackend_t : public bdsg::MutablePathDeletableHandleGraphProxy<bdsg::BasePackedGraph<bdsg::STLBackend>> {
 	using bdsg::MutablePathDeletableHandleGraphProxy<bdsg::BasePackedGraph<bdsg::STLBackend>>::MutablePathDeletableHandleGraphProxy;
 
@@ -833,7 +833,7 @@ struct PyCallBack_bdsg_MutablePathDeletableHandleGraphProxy_bdsg_BasePackedGraph
 
 void bind_bdsg_graph_proxy_4(std::function< pybind11::module &(std::string const &namespace_) > &M)
 {
-	{ // bdsg::SerializableHandleGraphProxy file:bdsg/graph_proxy.hpp line:329
+	{ // bdsg::SerializableHandleGraphProxy file:bdsg/graph_proxy.hpp line:332
 		pybind11::class_<bdsg::SerializableHandleGraphProxy<bdsg::BasePackedGraph<bdsg::STLBackend>>, std::shared_ptr<bdsg::SerializableHandleGraphProxy<bdsg::BasePackedGraph<bdsg::STLBackend>>>, bdsg::AbstractGraphProxy<bdsg::BasePackedGraph<bdsg::STLBackend>>, handlegraph::SerializableHandleGraph> cl(M("bdsg"), "SerializableHandleGraphProxy_bdsg_BasePackedGraph_bdsg_STLBackend_t", "");
 		cl.def("get_magic_number", (unsigned int (bdsg::SerializableHandleGraphProxy<bdsg::BasePackedGraph<bdsg::STLBackend>>::*)() const) &bdsg::SerializableHandleGraphProxy<bdsg::BasePackedGraph<bdsg::STLBackend> >::get_magic_number, "C++: bdsg::SerializableHandleGraphProxy<bdsg::BasePackedGraph<bdsg::STLBackend> >::get_magic_number() const --> unsigned int");
 		cl.def("deserialize", (void (bdsg::SerializableHandleGraphProxy<bdsg::BasePackedGraph<bdsg::STLBackend>>::*)(const std::string &)) &bdsg::SerializableHandleGraphProxy<bdsg::BasePackedGraph<bdsg::STLBackend> >::deserialize, "C++: bdsg::SerializableHandleGraphProxy<bdsg::BasePackedGraph<bdsg::STLBackend> >::deserialize(const std::string &) --> void", pybind11::arg("filename"));
@@ -842,7 +842,7 @@ void bind_bdsg_graph_proxy_4(std::function< pybind11::module &(std::string const
 		cl.def("assign", (struct bdsg::AbstractGraphProxy<class bdsg::BasePackedGraph<struct bdsg::STLBackend> > & (bdsg::AbstractGraphProxy<bdsg::BasePackedGraph<bdsg::STLBackend>>::*)(const struct bdsg::AbstractGraphProxy<class bdsg::BasePackedGraph<struct bdsg::STLBackend> > &)) &bdsg::AbstractGraphProxy<bdsg::BasePackedGraph<bdsg::STLBackend> >::operator=, "C++: bdsg::AbstractGraphProxy<bdsg::BasePackedGraph<bdsg::STLBackend> >::operator=(const struct bdsg::AbstractGraphProxy<class bdsg::BasePackedGraph<struct bdsg::STLBackend> > &) --> struct bdsg::AbstractGraphProxy<class bdsg::BasePackedGraph<struct bdsg::STLBackend> > &", pybind11::return_value_policy::automatic, pybind11::arg(""));
 		cl.def("assign", (class handlegraph::SerializableHandleGraph & (handlegraph::SerializableHandleGraph::*)(const class handlegraph::SerializableHandleGraph &)) &handlegraph::SerializableHandleGraph::operator=, "C++: handlegraph::SerializableHandleGraph::operator=(const class handlegraph::SerializableHandleGraph &) --> class handlegraph::SerializableHandleGraph &", pybind11::return_value_policy::automatic, pybind11::arg(""));
 	}
-	{ // bdsg::SerializableHandleGraphProxy file:bdsg/graph_proxy.hpp line:329
+	{ // bdsg::SerializableHandleGraphProxy file:bdsg/graph_proxy.hpp line:332
 		pybind11::class_<bdsg::SerializableHandleGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend>>, std::shared_ptr<bdsg::SerializableHandleGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend>>>, bdsg::AbstractGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend>>, handlegraph::SerializableHandleGraph> cl(M("bdsg"), "SerializableHandleGraphProxy_bdsg_BasePackedGraph_bdsg_MappedBackend_t", "");
 		cl.def("get_magic_number", (unsigned int (bdsg::SerializableHandleGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend>>::*)() const) &bdsg::SerializableHandleGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend> >::get_magic_number, "C++: bdsg::SerializableHandleGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend> >::get_magic_number() const --> unsigned int");
 		cl.def("deserialize", (void (bdsg::SerializableHandleGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend>>::*)(const std::string &)) &bdsg::SerializableHandleGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend> >::deserialize, "C++: bdsg::SerializableHandleGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend> >::deserialize(const std::string &) --> void", pybind11::arg("filename"));
@@ -851,7 +851,7 @@ void bind_bdsg_graph_proxy_4(std::function< pybind11::module &(std::string const
 		cl.def("assign", (struct bdsg::AbstractGraphProxy<class bdsg::BasePackedGraph<struct bdsg::MappedBackend> > & (bdsg::AbstractGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend>>::*)(const struct bdsg::AbstractGraphProxy<class bdsg::BasePackedGraph<struct bdsg::MappedBackend> > &)) &bdsg::AbstractGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend> >::operator=, "C++: bdsg::AbstractGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend> >::operator=(const struct bdsg::AbstractGraphProxy<class bdsg::BasePackedGraph<struct bdsg::MappedBackend> > &) --> struct bdsg::AbstractGraphProxy<class bdsg::BasePackedGraph<struct bdsg::MappedBackend> > &", pybind11::return_value_policy::automatic, pybind11::arg(""));
 		cl.def("assign", (class handlegraph::SerializableHandleGraph & (handlegraph::SerializableHandleGraph::*)(const class handlegraph::SerializableHandleGraph &)) &handlegraph::SerializableHandleGraph::operator=, "C++: handlegraph::SerializableHandleGraph::operator=(const class handlegraph::SerializableHandleGraph &) --> class handlegraph::SerializableHandleGraph &", pybind11::return_value_policy::automatic, pybind11::arg(""));
 	}
-	{ // bdsg::MutablePathDeletableHandleGraphProxy file:bdsg/graph_proxy.hpp line:399
+	{ // bdsg::MutablePathDeletableHandleGraphProxy file:bdsg/graph_proxy.hpp line:402
 		pybind11::class_<bdsg::MutablePathDeletableHandleGraphProxy<bdsg::BasePackedGraph<bdsg::STLBackend>>, std::shared_ptr<bdsg::MutablePathDeletableHandleGraphProxy<bdsg::BasePackedGraph<bdsg::STLBackend>>>, PyCallBack_bdsg_MutablePathDeletableHandleGraphProxy_bdsg_BasePackedGraph_bdsg_STLBackend_t, bdsg::PathHandleGraphProxy<bdsg::BasePackedGraph<bdsg::STLBackend>>, handlegraph::MutablePathDeletableHandleGraph> cl(M("bdsg"), "MutablePathDeletableHandleGraphProxy_bdsg_BasePackedGraph_bdsg_STLBackend_t", "");
 		cl.def( pybind11::init( [](){ return new PyCallBack_bdsg_MutablePathDeletableHandleGraphProxy_bdsg_BasePackedGraph_bdsg_STLBackend_t(); } ) );
 		cl.def(pybind11::init<PyCallBack_bdsg_MutablePathDeletableHandleGraphProxy_bdsg_BasePackedGraph_bdsg_STLBackend_t const &>());

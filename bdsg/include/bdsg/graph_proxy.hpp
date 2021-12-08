@@ -28,6 +28,9 @@ protected:
     // The backing graph might not *actually* implement any handle graph
     // interfaces; it just needs to implement the concept, with all the right
     // methods.
+    // For iterators, it needs to have the versions without _impl (i.e. there
+    // must be a for_each_handle), but they don't need to be templated and can
+    // just require args of the same types as the _impl versions.
     
     // These are the methods you need to implement to use the graph proxy system.
     // Then you inherit from some mix of
@@ -163,7 +166,7 @@ protected:
     /// them to a callback which returns false to stop iterating and true to
     /// continue. Returns true if we finished and false if we stopped early.
     virtual bool follow_edges_impl(const handle_t& handle, bool go_left, const std::function<bool(const handle_t&)>& iteratee) const {
-        return this->get()->follow_edges_impl(handle, go_left, iteratee);
+        return this->get()->follow_edges(handle, go_left, iteratee);
     }
     
     /// Loop over all the nodes in the graph in their local forward
@@ -173,7 +176,7 @@ protected:
     /// order is not defined. Returns true if we finished and false if we 
     /// stopped early.
     virtual bool for_each_handle_impl(const std::function<bool(const handle_t&)>& iteratee, bool parallel = false) const {
-        return this->get()->for_each_handle_impl(iteratee, parallel);
+        return this->get()->for_each_handle(iteratee, parallel);
     }
 
 };
@@ -304,7 +307,7 @@ protected:
     /// Execute a function on each path in the graph. If it returns false, stop
     /// iteration. Returns true if we finished and false if we stopped early.
     virtual bool for_each_path_handle_impl(const std::function<bool(const path_handle_t&)>& iteratee) const {
-        return this->get()->for_each_path_handle_impl(iteratee);
+        return this->get()->for_each_path_handle(iteratee);
     }
     
     /// Execute a function on each step of a handle in any path. If it
@@ -312,7 +315,7 @@ protected:
     /// we stopped early.
     virtual bool for_each_step_on_handle_impl(const handle_t& handle,
         const std::function<bool(const step_handle_t&)>& iteratee) const {
-        return this->get()->for_each_step_on_handle_impl(handle, iteratee);
+        return this->get()->for_each_step_on_handle(handle, iteratee);
     }
 
 };

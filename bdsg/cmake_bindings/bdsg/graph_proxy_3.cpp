@@ -27,7 +27,7 @@
 
 void bind_bdsg_graph_proxy_3(std::function< pybind11::module &(std::string const &namespace_) > &M)
 {
-	{ // bdsg::PathHandleGraphProxy file:bdsg/graph_proxy.hpp line:190
+	{ // bdsg::PathHandleGraphProxy file:bdsg/graph_proxy.hpp line:193
 		pybind11::class_<bdsg::PathHandleGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend>>, std::shared_ptr<bdsg::PathHandleGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend>>>, bdsg::HandleGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend>>, handlegraph::PathHandleGraph> cl(M("bdsg"), "PathHandleGraphProxy_bdsg_BasePackedGraph_bdsg_MappedBackend_t", "");
 		cl.def("get_path_count", (unsigned long (bdsg::PathHandleGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend>>::*)() const) &bdsg::PathHandleGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend> >::get_path_count, "C++: bdsg::PathHandleGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend> >::get_path_count() const --> unsigned long");
 		cl.def("has_path", (bool (bdsg::PathHandleGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend>>::*)(const std::string &) const) &bdsg::PathHandleGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend> >::has_path, "C++: bdsg::PathHandleGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend> >::has_path(const std::string &) const --> bool", pybind11::arg("path_name"));

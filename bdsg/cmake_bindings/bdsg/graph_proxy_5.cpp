@@ -29,7 +29,7 @@
 
 void bind_bdsg_graph_proxy_5(std::function< pybind11::module &(std::string const &namespace_) > &M)
 {
-	{ // bdsg::MutablePathDeletableHandleGraphProxy file:bdsg/graph_proxy.hpp line:399
+	{ // bdsg::MutablePathDeletableHandleGraphProxy file:bdsg/graph_proxy.hpp line:402
 		pybind11::class_<bdsg::MutablePathDeletableHandleGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend>>, std::shared_ptr<bdsg::MutablePathDeletableHandleGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend>>>, bdsg::PathHandleGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend>>, handlegraph::MutablePathDeletableHandleGraph> cl(M("bdsg"), "MutablePathDeletableHandleGraphProxy_bdsg_BasePackedGraph_bdsg_MappedBackend_t", "");
 		cl.def("create_handle", (struct handlegraph::handle_t (bdsg::MutablePathDeletableHandleGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend>>::*)(const std::string &)) &bdsg::MutablePathDeletableHandleGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend> >::create_handle, "C++: bdsg::MutablePathDeletableHandleGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend> >::create_handle(const std::string &) --> struct handlegraph::handle_t", pybind11::arg("sequence"));
 		cl.def("create_handle", (struct handlegraph::handle_t (bdsg::MutablePathDeletableHandleGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend>>::*)(const std::string &, const long long &)) &bdsg::MutablePathDeletableHandleGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend> >::create_handle, "C++: bdsg::MutablePathDeletableHandleGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend> >::create_handle(const std::string &, const long long &) --> struct handlegraph::handle_t", pybind11::arg("sequence"), pybind11::arg("id"));

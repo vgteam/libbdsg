@@ -26,7 +26,7 @@
 
 void bind_bdsg_graph_proxy_1(std::function< pybind11::module &(std::string const &namespace_) > &M)
 {
-	{ // bdsg::HandleGraphProxy file:bdsg/graph_proxy.hpp line:58
+	{ // bdsg::HandleGraphProxy file:bdsg/graph_proxy.hpp line:61
 		pybind11::class_<bdsg::HandleGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend>>, std::shared_ptr<bdsg::HandleGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend>>>, bdsg::AbstractGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend>>, handlegraph::HandleGraph> cl(M("bdsg"), "HandleGraphProxy_bdsg_BasePackedGraph_bdsg_MappedBackend_t", "");
 		cl.def("has_node", (bool (bdsg::HandleGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend>>::*)(long long) const) &bdsg::HandleGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend> >::has_node, "C++: bdsg::HandleGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend> >::has_node(long long) const --> bool", pybind11::arg("node_id"));
 		cl.def("get_handle", [](bdsg::HandleGraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend>> const &o, const long long & a0) -> handlegraph::handle_t { return o.get_handle(a0); }, "", pybind11::arg("node_id"));
