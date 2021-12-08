@@ -346,7 +346,7 @@ public:
     static void scan_chain(chainid_t chain, const std::function<void(const void*, size_t)>& iteratee);
     
     /**
-     * Dump information about free and allocated memory in the gievn chain.
+     * Dump information about free and allocated memory in the given chain.
      * Not thread safe!
      */
     static void dump(chainid_t chain);
@@ -479,7 +479,7 @@ protected:
      * Block will either be the entire size of an existing file, or the given starting size.
      * Returns the chain ID and a flag for if there was data in an open file to read.
      *
-     * If link_data is set, the chain must not be filoe-backed, and link_data
+     * If link_data is set, the chain must not be file-backed, and link_data
      * it must point to a block of memory of length start_size already allocated
      * using malloc() and which can be freed using free(). The chain will take
      * ownership of the memory block.
