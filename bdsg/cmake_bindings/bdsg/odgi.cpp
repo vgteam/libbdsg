@@ -3,6 +3,7 @@
 #include <handlegraph/deletable_handle_graph.hpp>
 #include <handlegraph/handle_graph.hpp>
 #include <handlegraph/mutable_handle_graph.hpp>
+#include <handlegraph/mutable_path_handle_graph.hpp>
 #include <handlegraph/serializable.hpp>
 #include <handlegraph/types.hpp>
 #include <ios>
@@ -752,6 +753,45 @@ struct PyCallBack_bdsg_ODGI : public bdsg::ODGI {
 			else return pybind11::detail::cast_safe<_binder_ret_0>(std::move(o));
 		}
 		return ODGI::rewrite_segment(a0, a1, a2);
+	}
+	struct handlegraph::path_handle_t rename_path(const struct handlegraph::path_handle_t & a0, const std::string & a1) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::ODGI *>(this), "rename_path");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
+			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::path_handle_t>::value) {
+				static pybind11::detail::overload_caster_t<struct handlegraph::path_handle_t> caster;
+				return pybind11::detail::cast_ref<struct handlegraph::path_handle_t>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<struct handlegraph::path_handle_t>(std::move(o));
+		}
+		return MutablePathHandleGraph::rename_path(a0, a1);
+	}
+	void pop_front_step(const struct handlegraph::path_handle_t & a0) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::ODGI *>(this), "pop_front_step");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
+				static pybind11::detail::overload_caster_t<void> caster;
+				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<void>(std::move(o));
+		}
+		return MutablePathHandleGraph::pop_front_step(a0);
+	}
+	void pop_back_step(const struct handlegraph::path_handle_t & a0) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::ODGI *>(this), "pop_back_step");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
+				static pybind11::detail::overload_caster_t<void> caster;
+				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<void>(std::move(o));
+		}
+		return MutablePathHandleGraph::pop_back_step(a0);
 	}
 	unsigned long get_edge_count() const override { 
 		pybind11::gil_scoped_acquire gil;

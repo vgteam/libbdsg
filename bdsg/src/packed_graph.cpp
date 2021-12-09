@@ -60,20 +60,9 @@ namespace bdsg {
         implementation.dissociate();
     }
     
-    void MappedPackedGraph::serialize(int fd) const {
-        implementation.save([&](const void* start, size_t length) {
-            // Copy each block to the fd
-            size_t written = 0;
-            while (written != length) {
-                // Bang on the write call until it is all written
-                auto result = write(fd, (const void*)((const char*) start + written), length - written);
-                if (result == -1) {
-                    // Can't write at all, something broke.
-                    throw std::runtime_error("Could not write!");
-                }
-                written += result;
-            }
-        });
+    void MappedPackedGraph::serialize(const std::function<void(const void*, size_t)>& iteratee) const {
+        // Pass the same iteratee back to the implementation pointer.
+        implementation.save(iteratee);
     }
     
     void MappedPackedGraph::serialize(int fd) {

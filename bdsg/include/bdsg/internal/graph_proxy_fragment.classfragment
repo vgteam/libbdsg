@@ -1,0 +1,20 @@
+// UNGUARDED CODE FRAGMENT FOR PROXY CODE GENERATION!
+// Meant to be included inside a class!
+// Nobody tell Doxygen!
+
+// Methods that all graph proxies need
+
+#ifdef BDSG_INSIDE_CLASS
+
+protected:
+    /**
+     * Get the object that actually provides the graph methods.
+     */
+    virtual BackingGraph* get() = 0;
+    
+    /**
+     * Get the object that actually provides the graph methods.
+     */
+    virtual const BackingGraph* get() const = 0;
+    
+#endif

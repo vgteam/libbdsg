@@ -1,0 +1,200 @@
+// UNGUARDED CODE FRAGMENT FOR PROXY CODE GENERATION!
+// Meant to be included inside a class!
+// Nobody tell Doxygen!
+
+// Methods needed for implementing MutablePathDeletableHandleGraph, on top of PathHandleGraph
+
+#ifdef BDSG_INSIDE_CLASS
+
+public:
+    
+    /// Create a new node with the given sequence and return the handle.
+    /// The sequence may not be empty.
+    virtual handle_t create_handle(const std::string& sequence) {
+        return this->get()->create_handle(sequence);
+    }
+
+    /// Create a new node with the given id and sequence, then return the handle.
+    /// The sequence may not be empty.
+    /// The ID must be strictly greater than 0.
+    virtual handle_t create_handle(const std::string& sequence, const nid_t& id) {
+        return this->get()->create_handle(sequence, id);
+    }
+    
+    /// Create an edge connecting the given handles in the given order and orientations.
+    /// Ignores existing edges.
+    virtual void create_edge(const handle_t& left, const handle_t& right) {
+        this->get()->create_edge(left, right);
+    }
+    
+    /// Alter the node that the given handle corresponds to so the orientation
+    /// indicated by the handle becomes the node's local forward orientation.
+    /// Rewrites all edges pointing to the node and the node's sequence to
+    /// reflect this. Invalidates all handles to the node (including the one
+    /// passed). Returns a new, valid handle to the node in its new forward
+    /// orientation. Note that it is possible for the node's ID to change.
+    /// Does not update any stored paths. May change the ordering of the underlying
+    /// graph.
+    virtual handle_t apply_orientation(const handle_t& handle) {
+        return this->get()->apply_orientation(handle);
+    }
+    
+    /// Split a handle's underlying node at the given offsets in the handle's
+    /// orientation. Returns all of the handles to the parts. Other handles to
+    /// the node being split may be invalidated. The split pieces stay in the
+    /// same local forward orientation as the original node, but the returned
+    /// handles come in the order and orientation appropriate for the handle
+    /// passed in.
+    /// Updates stored paths.
+    virtual std::vector<handle_t> divide_handle(const handle_t& handle, const std::vector<size_t>& offsets) {
+        return this->get()->divide_handle(handle, offsets);
+    }
+    
+    /// Adjust the representation of the graph in memory to improve performance.
+    /// Optionally, allow the node IDs to be reassigned to further improve
+    /// performance.
+    /// Note: Ideally, this method is called one time once there is expected to be
+    /// few graph modifications in the future.
+    virtual void optimize(bool allow_id_reassignment = true) {
+        this->get()->optimize(allow_id_reassignment);
+    }
+
+    /// Reorder the graph's internal structure to match that given.
+    /// This sets the order that is used for iteration in functions like for_each_handle.
+    /// Optionally may compact the id space of the graph to match the ordering, from 1->|ordering|.
+    /// This may be a no-op in the case of graph implementations that do not have any mechanism to maintain an ordering.
+    virtual void apply_ordering(const std::vector<handle_t>& order, bool compact_ids = false) {
+        this->get()->apply_ordering(order, compact_ids);
+    }
+    
+    /// Set a minimum id to increment the id space by, used as a hint during construction.
+    /// May have no effect on a backing implementation.
+    virtual void set_id_increment(const nid_t& min_id) {
+        this->get()->set_id_increment(min_id);
+    }
+    
+    /// Add the given value to all node IDs.
+    /// Has a default implementation in terms of reassign_node_ids, but can be
+    /// implemented more efficiently in some graphs.
+    virtual void increment_node_ids(nid_t increment){
+        this->get()->increment_node_ids(increment);
+    }
+    
+    /// This specialization for long appears to be needed to avoid confusion about nid_t
+    virtual void increment_node_ids(long increment) {
+        this->get()->increment_node_ids(increment);
+    }
+    
+    /// Renumber all node IDs using the given function, which, given an old ID, returns the new ID.
+    /// Modifies the graph in place. Invalidates all outstanding handles.
+    /// If the graph supports paths, they also must be updated.
+    /// The mapping function may return 0. In this case, the input ID will
+    /// remain unchanged. The mapping function should not return any ID for
+    /// which it would return 0.
+    virtual void reassign_node_ids(const std::function<nid_t(const nid_t&)>& get_new_id) {
+        this->get()->reassign_node_ids(get_new_id);
+    }
+    
+    /**
+     * Destroy the given path. Invalidates handles to the path and its steps.
+     */
+    virtual void destroy_path(const path_handle_t& path) {
+        this->get()->destroy_path(path);
+    }
+
+    /**
+     * Create a path with the given name. The caller must ensure that no path
+     * with the given name exists already, or the behavior is undefined.
+     * Returns a handle to the created empty path. Handles to other paths must
+     * remain valid.
+     */
+    virtual path_handle_t create_path_handle(const std::string& name,
+                                             bool is_circular = false) {
+        return this->get()->create_path_handle(name, is_circular);
+    }
+    
+    /**
+     * Append a visit to a node to the given path. Returns a handle to the new
+     * final step on the path which is appended. If the path is cirular, the new
+     * step is placed between the steps considered "last" and "first" by the
+     * method path_begin. Handles to prior steps on the path, and to other paths,
+     * must remain valid.
+     */
+    virtual step_handle_t append_step(const path_handle_t& path, const handle_t& to_append) {
+        return this->get()->append_step(path, to_append);
+    }
+    
+    /**
+     * Prepend a visit to a node to the given path. Returns a handle to the new
+     * first step on the path which is appended. If the path is cirular, the new
+     * step is placed between the steps considered "last" and "first" by the
+     * method path_begin. Handles to later steps on the path, and to other paths,
+     * must remain valid.
+     */
+    virtual step_handle_t prepend_step(const path_handle_t& path, const handle_t& to_prepend) {
+        return this->get()->prepend_step(path, to_prepend);
+    }
+    
+    /**
+     * Delete a segment of a path and rewrite it as some other sequence of
+     * steps. Returns a pair of step_handle_t's that indicate the range of the
+     * new segment in the path. The segment to delete should be designated by
+     * the first (begin) and past-last (end) step handles.  If the step that is
+     * returned by path_begin is deleted, path_begin will now return the first
+     * step from the new segment or, in the case that the new segment is empty,
+     * the step used as segment_end. Empty ranges consist of two copies of the
+     * same step handle. Empty ranges in empty paths consist of two copies of
+     * the end sentinel handle for the path. Rewriting an empty range inserts
+     * before the provided end handle.
+     */
+    virtual std::pair<step_handle_t, step_handle_t> rewrite_segment(const step_handle_t& segment_begin,
+                                                                    const step_handle_t& segment_end,
+                                                                    const std::vector<handle_t>& new_segment) {
+        return this->get()->rewrite_segment(segment_begin, segment_end, new_segment);
+    }
+    
+    /**
+     * Make a path circular or non-circular. If the path is becoming circular, the
+     * last step is joined to the first step. If the path is becoming linear, the
+     * step considered "last" is unjoined from the step considered "first" according
+     * to the method path_begin.
+     */
+    virtual void set_circularity(const path_handle_t& path, bool circular) {
+        this->get()->set_circularity(path, circular);
+    }
+    
+    /// Remove the node belonging to the given handle and all of its edges.
+    /// Either destroys any paths in which the node participates, or leaves a
+    /// "hidden", un-iterateable handle in the path to represent the sequence
+    /// of the removed node.
+    /// Invalidates the destroyed handle.
+    /// May be called during serial for_each_handle iteration **ONLY** on the node being iterated.
+    /// May **NOT** be called during parallel for_each_handle iteration.
+    /// May **NOT** be called on the node from which edges are being followed during follow_edges.
+    /// May **NOT** be called during iteration over paths, if it could destroy a path.
+    /// May **NOT** be called during iteration along a path, if it could destroy that path.
+    virtual void destroy_handle(const handle_t& handle) {
+        this->get()->destroy_handle(handle);
+    }
+    
+    /// Remove the edge connecting the given handles in the given order and orientations.
+    /// Ignores nonexistent edges.
+    /// Does not update any stored paths.
+    virtual void destroy_edge(const handle_t& left, const handle_t& right) {
+        this->get()->destroy_edge(left, right);
+    }
+    
+    /// Shorten a node by truncating either the left or right side of the node, relative to the orientation
+    /// of the handle, starting from a given offset along the nodes sequence. Any edges on the truncated
+    /// end of the node are deleted. Returns a (possibly altered) handle to the truncated node.
+    /// May invalid stored paths.
+    virtual handle_t truncate_handle(const handle_t& handle, bool trunc_left, size_t offset) {
+        return this->get()->truncate_handle(handle, trunc_left, offset);
+    }
+    
+    /// Remove all nodes and edges. May also remove all paths, if applicable.
+    virtual void clear() {
+        this->get()->clear();
+    }
+
+#endif
