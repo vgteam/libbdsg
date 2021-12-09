@@ -3,7 +3,7 @@ handlegraph/types.cpp
 handlegraph/handle_graph.cpp
 handlegraph/path_handle_graph.cpp
 handlegraph/mutable_path_mutable_handle_graph.cpp
-bdsg/internal/wang_hash.cpp
+bdsg/graph_proxy.cpp
 bdsg/internal/mapped_structs.cpp
 bdsg/internal/mapped_structs_1.cpp
 bdsg/internal/mapped_structs_2.cpp

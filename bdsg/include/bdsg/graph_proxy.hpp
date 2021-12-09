@@ -16,6 +16,15 @@ namespace bdsg {
 using namespace std;
 using namespace handlegraph;
 
+// Binder can't properly bind any of these types if they define methods
+// inherited from virtual immediate base classes. See
+// <https://github.com/RosettaCommons/binder/issues/169>.
+
+// So we set up a fiddly inheritance structure where we have proxies you can
+// actually use at a few points, which define the methods, and which have all
+// their ultimate handle graph base classes virtual at least once, but don't
+// directly inherit from anything virtually.
+
 /**
  * Base abstract class that defines the methods that must be implemented to get
  * the thing that the proxies are proxying for. You inherit one of the other
@@ -50,6 +59,13 @@ protected:
 };
 
 /**
+ * Class defining the interface that the basic HandleGraphProxy will implement.
+ */
+template<typename BackingGraph> 
+struct HandleGraphProxyInterface : public virtual AbstractGraphProxy<BackingGraph>, public virtual HandleGraph {
+};
+
+/**
  * Defines a proxy you can inherit to implement HandleGraph by referencing a
  * different backing implementation, which implements the concept if not the
  * interface.
@@ -58,7 +74,7 @@ protected:
  * backing implementation.
  */
 template<typename BackingGraph> 
-struct HandleGraphProxy : virtual public AbstractGraphProxy<BackingGraph>, virtual public HandleGraph {
+struct HandleGraphProxy : public HandleGraphProxyInterface<BackingGraph> {
 public:
     // These methods implement the handle graph API in terms of just calling
     // the same methods on the backing graph, hoping that the types work out
@@ -181,6 +197,14 @@ protected:
 
 };
 
+
+/**
+ * Class defining the interface that the PathHandleGraphProxy will implement.
+ */
+template<typename BackingGraph> 
+struct PathHandleGraphProxyInterface : public HandleGraphProxy<BackingGraph>, public virtual PathHandleGraph {
+};
+
 /**
  * Defines a proxy you can inherit to implement PathHandleGraph by referencing a
  * different backing implementation, which implements the concept if not the
@@ -190,7 +214,7 @@ protected:
  * backing implementation.
  */
 template<typename BackingGraph> 
-struct PathHandleGraphProxy : virtual public HandleGraphProxy<BackingGraph>, virtual public PathHandleGraph {
+struct PathHandleGraphProxy : public PathHandleGraphProxyInterface<BackingGraph> {
 public:
     /// Returns the number of paths stored in the graph
     virtual size_t get_path_count() const {
@@ -321,6 +345,13 @@ protected:
 };
 
 /**
+ * Class defining the interface that the SerializableHandleGraphProxy will implement.
+ */
+template<typename BackingGraph> 
+struct SerializableHandleGraphProxyInterface : public virtual AbstractGraphProxy<BackingGraph>, public SerializableHandleGraph {
+};
+
+/**
  * Defines a proxy you can inherit to implement SerializableHandleGraph by referencing a
  * different backing implementation, which implements the concept if not the
  * interface.
@@ -329,7 +360,7 @@ protected:
  * backing implementation.
  */
 template<typename BackingGraph> 
-struct SerializableHandleGraphProxy : virtual public AbstractGraphProxy<BackingGraph>, virtual public SerializableHandleGraph {
+struct SerializableHandleGraphProxy : SerializableHandleGraphProxyInterface<BackingGraph> {
 public:
     /// Returns a number that is specific to the serialized implementation for type
     /// checking. Does not depend on the contents of any particular instantiation
@@ -392,6 +423,13 @@ protected:
 };
 
 /**
+ * Class defining the interface that the SerializableHandleGraphProxy will implement.
+ */
+template<typename BackingGraph> 
+struct MutablePathDeletableHandleGraphProxyInterface : public PathHandleGraphProxy<BackingGraph>, public MutablePathDeletableHandleGraph {
+};
+
+/**
  * Defines a proxy you can inherit to implement MutablePathDeletableHandleGraph
  * by referencing a different backing implementation.
  *
@@ -399,7 +437,7 @@ protected:
  * has to satisfy the concept (i.e. provide all the methods).
  */
 template<typename BackingGraph>
-struct MutablePathDeletableHandleGraphProxy : virtual public PathHandleGraphProxy<BackingGraph>, virtual public MutablePathDeletableHandleGraph {
+struct MutablePathDeletableHandleGraphProxy : public MutablePathDeletableHandleGraphProxyInterface<BackingGraph> {
 
 public:
     
@@ -594,12 +632,19 @@ public:
 };
 
 /**
+ * Class defining the interface that the full GraphProxy will implement.
+ */
+template<typename BackingGraph> 
+struct GraphProxyInterface : public MutablePathDeletableHandleGraphProxy<BackingGraph>, public SerializableHandleGraphProxy<BackingGraph> {
+};
+
+/**
  * Defines a fully-featured GraphProxy that you can inherit from to implement
  * MutablePathDeletableHandleGraph and SerializableHandleGraph from one backing
  * object that need not implement either, as long as it satisfies the concept.
  */
 template<typename BackingGraph>
-struct GraphProxy : virtual public MutablePathDeletableHandleGraphProxy<BackingGraph>, virtual public SerializableHandleGraphProxy<BackingGraph> {
+struct GraphProxy : public GraphProxyInterface<BackingGraph> {
 };
 
 /**
@@ -607,7 +652,7 @@ struct GraphProxy : virtual public MutablePathDeletableHandleGraphProxy<BackingG
  * backing object, and does not own it.
  */
 template<typename BackingGraph>
-class NonOwningGraphProxy : virtual public GraphProxy<BackingGraph> {
+class NonOwningGraphProxy : public GraphProxy<BackingGraph> {
 public:
     NonOwningGraphProxy(BackingGraph* implementation) : implementation(implementation) {
         // Nothing to do!

@@ -1831,14 +1831,14 @@ struct PyCallBack_bdsg_MappedPackedGraph : public bdsg::MappedPackedGraph {
 void bind_bdsg_packed_graph(std::function< pybind11::module &(std::string const &namespace_) > &M)
 {
 	{ // bdsg::PackedGraph file:bdsg/packed_graph.hpp line:27
-		pybind11::class_<bdsg::PackedGraph, std::shared_ptr<bdsg::PackedGraph>, PyCallBack_bdsg_PackedGraph> cl(M("bdsg"), "PackedGraph", "");
+		pybind11::class_<bdsg::PackedGraph, std::shared_ptr<bdsg::PackedGraph>, PyCallBack_bdsg_PackedGraph, bdsg::GraphProxy<bdsg::BasePackedGraph<bdsg::STLBackend>>> cl(M("bdsg"), "PackedGraph", "");
 		cl.def( pybind11::init( [](){ return new bdsg::PackedGraph(); }, [](){ return new PyCallBack_bdsg_PackedGraph(); } ) );
 		cl.def( pybind11::init( [](PyCallBack_bdsg_PackedGraph const &o){ return new PyCallBack_bdsg_PackedGraph(o); } ) );
 		cl.def( pybind11::init( [](bdsg::PackedGraph const &o){ return new bdsg::PackedGraph(o); } ) );
 		cl.def("assign", (class bdsg::PackedGraph & (bdsg::PackedGraph::*)(const class bdsg::PackedGraph &)) &bdsg::PackedGraph::operator=, "C++: bdsg::PackedGraph::operator=(const class bdsg::PackedGraph &) --> class bdsg::PackedGraph &", pybind11::return_value_policy::automatic, pybind11::arg(""));
 	}
 	{ // bdsg::MappedPackedGraph file:bdsg/packed_graph.hpp line:49
-		pybind11::class_<bdsg::MappedPackedGraph, std::shared_ptr<bdsg::MappedPackedGraph>, PyCallBack_bdsg_MappedPackedGraph, handlegraph::TriviallySerializable> cl(M("bdsg"), "MappedPackedGraph", "");
+		pybind11::class_<bdsg::MappedPackedGraph, std::shared_ptr<bdsg::MappedPackedGraph>, PyCallBack_bdsg_MappedPackedGraph, bdsg::GraphProxy<bdsg::BasePackedGraph<bdsg::MappedBackend>>, handlegraph::TriviallySerializable> cl(M("bdsg"), "MappedPackedGraph", "");
 		cl.def( pybind11::init( [](){ return new bdsg::MappedPackedGraph(); }, [](){ return new PyCallBack_bdsg_MappedPackedGraph(); } ) );
 		cl.def( pybind11::init( [](PyCallBack_bdsg_MappedPackedGraph const &o){ return new PyCallBack_bdsg_MappedPackedGraph(o); } ) );
 		cl.def( pybind11::init( [](bdsg::MappedPackedGraph const &o){ return new bdsg::MappedPackedGraph(o); } ) );
