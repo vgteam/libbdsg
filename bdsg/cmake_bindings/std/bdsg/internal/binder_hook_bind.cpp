@@ -24,16 +24,16 @@
 
 void bind_std_bdsg_internal_binder_hook_bind(std::function< pybind11::module &(std::string const &namespace_) > &M)
 {
-	// std::vector file:bdsg/internal/binder_hook_bind.hpp line:26
+	// std::vector file:bdsg/internal/binder_hook_bind.hpp line:27
 	binder::vector_binder<unsigned long,std::allocator<unsigned long>>(M("std"), "unsigned_long", "std_allocator_unsigned_long_t");
 
-	// std::vector file:bdsg/internal/binder_hook_bind.hpp line:27
+	// std::vector file:bdsg/internal/binder_hook_bind.hpp line:28
 	binder::vector_binder<handlegraph::handle_t,std::allocator<handlegraph::handle_t>>(M("std"), "handlegraph_handle_t", "std_allocator_handlegraph_handle_t_t");
 
-	// std::vector file:bdsg/internal/binder_hook_bind.hpp line:28
+	// std::vector file:bdsg/internal/binder_hook_bind.hpp line:29
 	binder::vector_binder<handlegraph::path_handle_t,std::allocator<handlegraph::path_handle_t>>(M("std"), "handlegraph_path_handle_t", "std_allocator_handlegraph_path_handle_t_t");
 
-	// std::vector file:bdsg/internal/binder_hook_bind.hpp line:29
+	// std::vector file:bdsg/internal/binder_hook_bind.hpp line:30
 	binder::vector_binder<handlegraph::step_handle_t,std::allocator<handlegraph::step_handle_t>>(M("std"), "handlegraph_step_handle_t", "std_allocator_handlegraph_step_handle_t_t");
 
 }

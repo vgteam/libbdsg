@@ -24,7 +24,6 @@
 #include "bdsg/hash_graph.hpp"
 #include "bdsg/internal/packed_structs.hpp"
 #include "bdsg/internal/mapped_structs.hpp"
-#include "bdsg/internal/mmap_backend.hpp"
 #include "bdsg/overlays/path_position_overlays.hpp"
 #include "bdsg/overlays/packed_path_position_overlay.hpp"
 #include "bdsg/overlays/vectorizable_overlays.hpp"
@@ -36,59 +35,6 @@ using namespace handlegraph;
 using namespace std;
 
 //#define debug_at
-
-
-/**
- * We define this template to test the mmap-managing base
- * class independently.
- */
-template<typename Item>
-class MmapArray : public MmapBackend {
-public:
-
-    MmapArray() = default;
-    
-    uint32_t get_magic_number() const {
-        // We must define a magic number for this type.
-        return 0x12345678;
-    }
-    
-    size_t size() const {
-        return serialized_data_size() / sizeof(Item); 
-    }
-    
-    void resize(size_t count) {
-        serialized_data_resize(count * sizeof(Item));
-    }
-    
-    Item& at(size_t index) {
-        static_assert(sizeof(Item) % sizeof(char) == 0, "Items must be char-aligned");
-        if (index >= size()) {
-            throw std::out_of_range("Tried to access index " + std::to_string(index) +
-                " in array of size " + std::to_string(size()));
-        }
-        auto base = serialized_data();
-        auto found = (Item*)(base + (index * sizeof(Item)));
-#ifdef debug_at
-        std::cerr << "Got writable reference to item index " << index << " at " << (void*)found << std::endl;
-#endif
-        return *found;
-    }
-    
-    Item& at(size_t index) const {
-        static_assert(sizeof(Item) % sizeof(char) == 0, "Items must be char-aligned");
-        if (index >= size()) {
-            throw std::out_of_range("Tried to access index " + std::to_string(index) +
-                " in array of size " + std::to_string(size()));
-        }
-        auto base = serialized_data();
-        auto found = (Item*)(base + (index * sizeof(Item)));
-#ifdef debug_at
-        std::cerr << "Got read-only reference to item index " << index << " at " << (void*)found << std::endl;
-#endif
-        return *found;
-    }
-};
 
 // Have helpers to store and check some test data
 
@@ -112,7 +58,7 @@ void verify_to(const Vectorish& data, size_t count, int64_t nonce) {
         auto correct_value = mix(i, nonce);
         auto observed_value = data.at(i);
         if (observed_value != correct_value) {
-            cerr << "At index " << i << " observed " << observed_value << " at " << &data.at(i) << " but expected " << correct_value << endl;
+            cerr << "At index " << i << " observed " << observed_value << " but expected " << correct_value << endl;
         }
         assert(observed_value == correct_value);
     }
@@ -227,294 +173,14 @@ void bother_vector(TwoLevel& storage) {
     }
 }
 
-void test_mmap_backend() {
-    
-    
-    // We're going to need a temporary file
-    // This filename fill be filled in with the actual filename.
-    char filename[] = "tmpXXXXXX";
-    int tmpfd = mkstemp(filename);
-    assert(tmpfd != -1);
-    
-    {
-        // Make a test array
-        MmapArray<int64_t> numbers;
-        
-        // We should start empty
-        assert(numbers.size() == 0);
-        
-        // We should be able to expand.
-        numbers.resize(100);
-        assert(numbers.size() == 100);
-        
-        // We should be able to contract again.
-        numbers.resize(0);
-        assert(numbers.size() == 0);
-        
-        // TODO: If /proc/sys/vm/overcommit_memory is 1 and we use MAP_NORESERVE
-        // internally, we could get arbitrarily big without really needing the RAM or swap.
-        // This should be 1 PB
-        //                     k       m       g       t       p
-        size_t VERY_BIG = 1L * 1000L * 1000L * 1000L * 1000L * 1000L;
-        //numbers.resize(VERY_BIG);
-        //assert(numbers.size() == VERY_BIG);
-        
-        // We should be able to contract again.
-        numbers.resize(0);
-        assert(numbers.size() == 0);
-        
-        // We can actually hold data
-        numbers.resize(10);
-        fill_to(numbers, 10, 0);
-        verify_to(numbers, 10, 0);
-        
-        // Data is preserved when we resize down
-        numbers.resize(5);
-        assert(numbers.size() == 5);
-        verify_to(numbers, 5, 0);
-        
-        // Data is preserved when we resize up
-        numbers.resize(20480);
-        verify_to(numbers, 5, 0);
-        fill_to(numbers, 20480, 0);
-        verify_to(numbers, 20480, 0);
-        
-        {
-            // Save it to a C++ stream
-            stringstream strm;
-            numbers.serialize(strm);
-            
-            // Load it back from the C++ stream
-            strm.seekg(0);
-            MmapArray<int64_t> reloaded;
-            reloaded.deserialize(strm);
-            
-            // Make sure that's right
-            verify_to(reloaded, 20480, 0);
-            
-            // Destroy copy
-        }
-        
-        {
-            // Open a pipe and get read and write ends.
-            int pipefds[2];
-            assert(pipe(pipefds) == 0);
-            
-            // Start a thread to read the pipe
-            std::thread read_thread([](int fd) {
-                // Read a copy from the pipe
-                MmapArray<int64_t> reloaded;
-                reloaded.deserialize(fd);
-                
-                // Make sure that's right
-                verify_to(reloaded, 20480, 0);
-                
-                // CLose our end of the pipe.
-                assert(close(fd) == 0);
-                
-                // Copy goes out of scope
-            }, pipefds[0]);
-            
-            // Save to the write end of the pipe
-            numbers.serialize(pipefds[1]);
-            // Close our end of the pipe so the other end stops streaming.
-            assert(close(pipefds[1]) == 0);
-            
-            // Join the thread
-            read_thread.join();
-        }
-        
-        // Data is preserved after pipe write
-        verify_to(numbers, 20480, 0);
-        
-        // Data is preserved when we resize down after pipe write
-        numbers.resize(120);
-        verify_to(numbers, 120, 0);
-        // And back up again
-        numbers.resize(20480);
-        verify_to(numbers, 120, 0);
-        fill_to(numbers, 20480, 0);
-        verify_to(numbers, 20480, 0);
-        
-        // Write out to the temp file FD
-        numbers.serialize(tmpfd);
-        
-        // Make sure it's still right
-        verify_to(numbers, 20480, 0);
-        
-        {
-            // Load it in another copy, from FD
-            MmapArray<int64_t> reloaded;
-            reloaded.deserialize(tmpfd);
-            
-            // Make sure that's right
-            verify_to(reloaded, 20480, 0);
-            
-            // Destroy copy
-        }
-        
-        {
-            // Load it in another copy, from filename
-            MmapArray<int64_t> reloaded;
-            reloaded.deserialize(std::string(filename));
-            
-            // Make sure that's right
-            verify_to(reloaded, 20480, 0);
-            
-            // Destroy copy
-        }
-        
-        // Modify the original in place
-        numbers.resize(40960);
-        fill_to(numbers, 40960, 1);
-        
-        {
-            // Load it in a new copy
-            MmapArray<int64_t> reloaded;
-            reloaded.deserialize(std::string(filename));
-            
-            // Make sure the modification took
-            verify_to(reloaded, 40960, 1);
-            
-            // Destroy copy
-        }
-        
-        {
-            // Load it in a copy
-            MmapArray<int64_t> reloaded;
-            reloaded.deserialize(std::string(filename));
-            
-            // Sever the copy connection
-            reloaded.dissociate();
-            
-            // Modify the copy
-            reloaded.resize(4096);
-            fill_to(reloaded, 4096, 3);
-            
-            // Make sure original is the same.
-            verify_to(numbers, 40960, 1);
-            
-            // Destroy copy
-        }
-        
-        {
-            // Load it in a copy
-            MmapArray<int64_t> reloaded;
-            reloaded.deserialize(std::string(filename));
-            
-            // Sever the copy connection
-            reloaded.dissociate();
-            
-            // Modify the copy
-            reloaded.resize(4096);
-            fill_to(reloaded, 4096, 3);
-            
-            // Make sure original is the same.
-            verify_to(numbers, 40960, 1);
-            
-            // Destroy copy
-        }
-        
-        // Make sure original is the same.
-        verify_to(numbers, 40960, 1);
-        
-        // Sever connection on original
-        numbers.dissociate();
-        
-        // Modify it again
-        numbers.resize(12);
-        fill_to(numbers, 12, 2);
-        
-        // Destroy it, because modifications to the file by other
-        // non-dissociated loaders may put it into an undefined state.
-    }
-    
-    {
-        // Load it in a copy
-        MmapArray<int64_t> reloaded;
-        reloaded.deserialize(std::string(filename));
-        
-        // Make sure the last modification is not visible
-        verify_to(reloaded, 40960, 1);
-        
-        // Modify the copy
-        reloaded.resize(4096);
-        fill_to(reloaded, 4096, 3);
-    
-        {
-            // Load another copy
-            MmapArray<int64_t> rereloaded;
-            rereloaded.deserialize(std::string(filename));
-            
-            // Make sure the modification is visible
-            verify_to(rereloaded, 4096, 3);
-            
-            // Discard it
-        }
-        
-        // Sever the connection on the copy
-        reloaded.dissociate();
-       
-        // Modify the copy
-        reloaded.resize(4096);
-        fill_to(reloaded, 4096, 4);
-        
-        {
-            // Load another copy
-            MmapArray<int64_t> rereloaded;
-            rereloaded.deserialize(std::string(filename));
-            
-            // Make sure the modification is not visible
-            verify_to(rereloaded, 4096, 3);
-            
-            // Discard it
-        }
-        
-        // Discard loaded copy
-    }
-    
-    
-    // Make the backing file read-only, so reads won't have a write-back link.
-    assert(fchmod(tmpfd, 0400) == 0);
-    
-    {
-        // Load a copy
-        MmapArray<int64_t> reloaded;
-        reloaded.deserialize(std::string(filename));
-        
-        // Modify the copy without dissociating
-        reloaded.resize(512);
-        fill_to(reloaded, 512, 5);
-        
-        // Discard it
-    }
-    
-    {
-        // Load another copy
-        MmapArray<int64_t> reloaded;
-        reloaded.deserialize(std::string(filename));
-        
-        // Make sure the modification to the read-only file is not visible
-        verify_to(reloaded, 4096, 3);
-        
-        // Discard it
-    }
-    
-    // Close our temp file, which should not affect the link.
-    // It also should work; the object isn't allowed to tamper with our
-    // file descriptor.
-    assert(close(tmpfd) == 0);
-    
-    // Try and delete the file out of the directory.
-    unlink(filename);
-    
-    cerr << "MmapBackend tests successful!" << endl;
-}
-
 void test_mapped_structs() {
+    
+    assert(yomo::Manager::count_chains() == 0);
+    assert(yomo::Manager::count_links() == 0);
+    
     {
     
-        using T = big_endian<int64_t>;
+        using T = int64_t;
         using A = bdsg::yomo::Allocator<T>;
         using V = CompatVector<T, A>;
         // Make a thing to hold onto a test array.
@@ -522,6 +188,18 @@ void test_mapped_structs() {
         
         // Construct it
         numbers_holder.construct("GATTACA");
+        
+        // See how much memory we are using
+        std::tuple<size_t, size_t, size_t> total_free_reclaimable = numbers_holder.get_usage();
+        // Total bytes must be no less than free bytes
+        assert(get<0>(total_free_reclaimable) >= get<1>(total_free_reclaimable));
+        // Free bytes must be no less than reclaimable bytes
+        assert(get<1>(total_free_reclaimable) >= get<2>(total_free_reclaimable));
+        
+        // Some bytes should be free in the initial chain link
+        assert(get<1>(total_free_reclaimable) > 0);
+        // But they should all be reclaimable, including the block header
+        assert(get<1>(total_free_reclaimable) == get<2>(total_free_reclaimable));
         
         { 
         
@@ -562,7 +240,7 @@ void test_mapped_structs() {
             verify_to(vec1, 1000, 1);
             
         }
-            
+        
         // We're going to need a temporary file
         // This filename fill be filled in with the actual filename.
         char filename[] = "tmpXXXXXX";
@@ -582,6 +260,39 @@ void test_mapped_structs() {
             vec2.resize(4000);
             fill_to(vec2, 4000, 2);
             verify_to(vec2, 4000, 2);
+            
+            // Check memory usage
+            total_free_reclaimable = numbers_holder.get_usage();
+            // Total bytes must be no less than free bytes
+            assert(get<0>(total_free_reclaimable) >= get<1>(total_free_reclaimable));
+            // Free bytes must be no less than reclaimable bytes
+            assert(get<1>(total_free_reclaimable) >= get<2>(total_free_reclaimable));
+            
+            // At this point we've made it bigger than ever before and required
+            // a new link probably, so nothing should be reclaimable.
+            assert(get<2>(total_free_reclaimable) == 0);
+            // But some space should be free because we've deallocated smaller vectors.
+            assert(get<1>(total_free_reclaimable) > 0);
+            
+            // Make it even bigger!
+            vec2.resize(10000);
+            
+            // And smaller again
+            vec2.resize(4000);
+            
+            // And reallocate smaller
+            vec2.shrink_to_fit();
+            
+            // Check memory usage
+            total_free_reclaimable = numbers_holder.get_usage();
+            // Total bytes must be no less than free bytes
+            assert(get<0>(total_free_reclaimable) >= get<1>(total_free_reclaimable));
+            // Free bytes must be no less than reclaimable bytes
+            assert(get<1>(total_free_reclaimable) >= get<2>(total_free_reclaimable));
+            
+            // At this point some memory should be reclaimable
+            assert(get<2>(total_free_reclaimable) > 0);
+            
         }
         
         numbers_holder.dissociate();
@@ -596,7 +307,18 @@ void test_mapped_structs() {
         }
         
         numbers_holder.reset();
+        
         numbers_holder.load(tmpfd, "GATTACA");
+        
+        // Check memory usage
+        total_free_reclaimable = numbers_holder.get_usage();
+        // Total bytes must be no less than free bytes
+        assert(get<0>(total_free_reclaimable) >= get<1>(total_free_reclaimable));
+        // Free bytes must be no less than reclaimable bytes
+        assert(get<1>(total_free_reclaimable) >= get<2>(total_free_reclaimable));
+        
+        // No bytes should be reclaimable because we saved this through a mapping.
+        assert(get<2>(total_free_reclaimable) == 0);
         
         {
             auto& vec4 = *numbers_holder;
@@ -608,11 +330,13 @@ void test_mapped_structs() {
         
         close(tmpfd);
         unlink(filename);
-        
     }
     
+    assert(yomo::Manager::count_chains() == 0);
+    assert(yomo::Manager::count_links() == 0);
+    
     {
-        using T = big_endian<int64_t>;
+        using T = int64_t;
         using A = bdsg::yomo::Allocator<T>;
         using V1 = CompatVector<T, A>;
         using A2 = bdsg::yomo::Allocator<V1>;
@@ -626,8 +350,11 @@ void test_mapped_structs() {
         bother_vector(*numbers_holder_holder);
     }
     
+    assert(yomo::Manager::count_chains() == 0);
+    assert(yomo::Manager::count_links() == 0);
+    
     {
-        using T = big_endian<int64_t>;
+        using T = int64_t;
         using A = bdsg::yomo::Allocator<T>;
         using V1 = CompatVector<T, A>;
         using A2 = bdsg::yomo::Allocator<V1>;
@@ -640,6 +367,9 @@ void test_mapped_structs() {
         // Now do a vigorous test comparing to a normal vector
         bother_vector(numbers);
     }
+    
+    assert(yomo::Manager::count_chains() == 0);
+    assert(yomo::Manager::count_links() == 0);
     
     {
         // Make sure our bit-packing vector works
@@ -675,10 +405,169 @@ void test_mapped_structs() {
         }
     }
     
+    assert(yomo::Manager::count_chains() == 0);
+    assert(yomo::Manager::count_links() == 0);
+    
+    {
+        // Make sure our bit-packing vector checks bound
+        
+        // Make sure checks that prevent opening corrupted files aren't on.
+        bool saved = bdsg::yomo::Manager::check_chains;
+        bdsg::yomo::Manager::check_chains = false;
+        
+        // Make a vector
+        bdsg::yomo::UniqueMappedPointer<MappedIntVector> vec;
+        vec.construct();
+        vec->width(60);
+        vec->resize(1000);
+        fill_to(*vec, 1000, 1);
+        verify_to(*vec, 1000, 1);
+        
+        // We should pass heap verification
+        vec.check_heap_integrity();
+        
+        // Save it out
+        char filename[] = "tmpXXXXXX";
+        int tmpfd = mkstemp(filename);
+        assert(tmpfd != -1);
+        vec.save(tmpfd);
+        vec.reset();
+        
+        // Drop part of the file
+        auto file_size = lseek(tmpfd, 0, SEEK_END);
+        assert(ftruncate(tmpfd, file_size/2) == 0);
+        
+        // Reload
+        vec.load(tmpfd, "");
+        
+        // Turn on checking of accesses
+        bdsg::yomo::Manager::check_chains = true;
+        try {
+            verify_to(*vec, 1000, 1);
+            // We shouldn't be able to complete this; we should run off the end of the chain.
+            assert(false);
+        } catch (std::out_of_range& e) {
+            // This is the exception we expect to get.
+        }
+        bdsg::yomo::Manager::check_chains = false;
+        
+        try {
+            // We shouldn't pass heap verification even when not checking accesses.
+            vec.check_heap_integrity();
+            assert(false);
+        } catch (std::runtime_error& e) {
+            // This is the exception we expect to get.
+        }
+        
+        vec.reset();
+        
+        close(tmpfd);
+        unlink(filename);
+        
+        bdsg::yomo::Manager::check_chains = saved;
+    }
+    
+    assert(yomo::Manager::count_chains() == 0);
+    assert(yomo::Manager::count_links() == 0);
+    
     cerr << "Mapped Structs tests successful!" << endl;
 }
         
-
+void test_int_vector() {
+    
+    // Make a thing to hold onto a test int vector.
+    bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector> iv;
+    
+    // Have a function we can call to check its size.
+    auto save_and_check_size = [&](size_t expected_size) {
+        // Save it out, creating or clobbering
+        int fd = open("test.dat", O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+        iv.save(fd);
+        close(fd);
+        iv.dissociate();
+        
+        // Make sure that the file has the correct size
+        struct stat file_stats;
+        stat("test.dat", &file_stats);
+        cerr << "Observed file size of " << file_stats.st_size << " bytes" << endl;
+        assert(file_stats.st_size == expected_size);
+        
+        // Load it again
+        bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector> iv2;
+        fd = open("test.dat", O_RDWR);
+        iv2.load(fd, "ints");
+        close(fd);
+        
+        // Make sure the re-loaded object has the correct usage.
+        std::tuple<size_t, size_t, size_t> total_free_reclaimable = iv2.get_usage();
+        size_t post_load_total_bytes = std::get<0>(total_free_reclaimable);
+        cerr << "Observed post-load size of " << post_load_total_bytes << " bytes" << endl;
+        assert(post_load_total_bytes == expected_size);
+    };
+    
+    
+    // Construct it
+    iv.construct("ints");
+    
+    // Give it a width
+    iv->width(20);
+    
+    // Make it big
+    size_t iv_size = 1024 * 1024 * 10;
+    for (size_t i = 1; i < iv_size; i *= 2) {
+        // Keep resizing it up and fragment the heap into many links.
+        iv->resize(i);
+    }
+    iv->resize(iv_size);
+    
+    for (size_t i = 0; i < iv_size; i++) {
+        // Fill it with a distinctive bit pattern
+        (*iv)[i] = 0xF0F0;
+    }
+    
+    // See how much memory we are using
+    std::tuple<size_t, size_t, size_t> total_free_reclaimable = iv.get_usage();
+    size_t required_bytes = std::get<0>(total_free_reclaimable) - std::get<2>(total_free_reclaimable);
+    cerr << std::get<0>(total_free_reclaimable) << " bytes in chain, "
+        << std::get<1>(total_free_reclaimable) << " bytes free, "
+        << std::get<2>(total_free_reclaimable) << " bytes reclaimable" << endl;
+    cerr << iv->size() << "/" << iv->capacity() << " entries of " << iv->width() << " bits is " << (iv->capacity() * iv->width() / 8) << " bytes" << endl;
+    save_and_check_size(required_bytes);
+    
+    // Shrink it back down
+    iv->repack(16, iv_size);
+    total_free_reclaimable = iv.get_usage();
+    required_bytes = std::get<0>(total_free_reclaimable) - std::get<2>(total_free_reclaimable);
+    cerr << std::get<0>(total_free_reclaimable) << " bytes in chain, "
+        << std::get<1>(total_free_reclaimable) << " bytes free, "
+        << std::get<2>(total_free_reclaimable) << " bytes reclaimable" << endl;
+    cerr << iv->size() << "/" << iv->capacity() << " entries of " << iv->width() << " bits is " << (iv->capacity() * iv->width() / 8) << " bytes" << endl;
+    save_and_check_size(required_bytes);
+    
+    // Expand it even more
+    iv->repack(32, iv_size);
+    total_free_reclaimable = iv.get_usage();
+    required_bytes = std::get<0>(total_free_reclaimable) - std::get<2>(total_free_reclaimable);
+    cerr << std::get<0>(total_free_reclaimable) << " bytes in chain, "
+        << std::get<1>(total_free_reclaimable) << " bytes free, "
+        << std::get<2>(total_free_reclaimable) << " bytes reclaimable" << endl;
+    cerr << iv->size() << "/" << iv->capacity() << " entries of " << iv->width() << " bits is " << (iv->capacity() * iv->width() / 8) << " bytes" << endl;
+    save_and_check_size(required_bytes);
+    
+    // And again
+    iv->repack(40, iv_size);
+    total_free_reclaimable = iv.get_usage();
+    required_bytes = std::get<0>(total_free_reclaimable) - std::get<2>(total_free_reclaimable);
+    cerr << std::get<0>(total_free_reclaimable) << " bytes in chain, "
+        << std::get<1>(total_free_reclaimable) << " bytes free, "
+        << std::get<2>(total_free_reclaimable) << " bytes reclaimable" << endl;
+    cerr << iv->size() << "/" << iv->capacity() << " entries of " << iv->width() << " bits is " << (iv->capacity() * iv->width() / 8) << " bytes" << endl;
+    save_and_check_size(required_bytes);
+    
+    unlink("test.dat");
+    cerr << "Int Vector tests successful!" << endl;
+}
+        
 
 void test_serializable_handle_graphs() {
     
@@ -4229,8 +4118,8 @@ void test_hash_graph() {
 }
 
 int main(void) {
-    test_mmap_backend();
     test_mapped_structs();
+    test_int_vector(); 
     test_packed_vector<PackedVector<>>();
     test_packed_vector<PackedVector<CompatBackend>>();
     test_packed_vector<PackedVector<MappedBackend>>();
