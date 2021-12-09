@@ -948,6 +948,7 @@ size_t SnarlDistanceIndex::distance_in_parent(CachedNetHandle& cached_parent,
                                               node_length2, prefix_sum2,
                                               forward_loop2, reverse_loop2,
                                               component2, checked_looping_chain, is_looping_chain,
+                                              get_record_type(cached_parent.record_tag) == MULTICOMPONENT_CHAIN,
                                               get_cached_last_chain_component(cached_parent)),
                     node_lengths_to_add});
 
@@ -2521,7 +2522,8 @@ bool SnarlDistanceIndex::ChainRecord::get_is_looping_chain_connected_backwards()
 size_t SnarlDistanceIndex::ChainRecord::get_distance(size_t rank1, bool left_side1, size_t node_length1, 
     size_t prefix_sum1, size_t forward_loop1, size_t reverse_loop1, size_t component1,
     size_t rank2, bool left_side2, size_t node_length2,
-    size_t prefix_sum2, size_t forward_loop2, size_t reverse_loop2, size_t component2, bool checked_loop, bool is_looping_chain, size_t last_chain_component) const { 
+    size_t prefix_sum2, size_t forward_loop2, size_t reverse_loop2, size_t component2, bool checked_loop, bool is_looping_chain, 
+    bool is_multicomponent_chain, size_t last_chain_component) const { 
 
     //If 1 comes after 2, swap them
     if (rank1 > rank2) {
@@ -2548,7 +2550,7 @@ size_t SnarlDistanceIndex::ChainRecord::get_distance(size_t rank1, bool left_sid
                             prefix_sum1, forward_loop1, reverse_loop1, component1,
                             rank2, left_side2, node_length2,
                             prefix_sum2, forward_loop2, reverse_loop2, component2,
-                            last_chain_component);
+                            is_multicomponent_chain, last_chain_component);
             } else {
                 return std::numeric_limits<size_t>::max();
             }
@@ -2594,7 +2596,7 @@ size_t SnarlDistanceIndex::ChainRecord::get_distance(size_t rank1, bool left_sid
                             prefix_sum1, forward_loop1, reverse_loop1, component1,
                             rank2, left_side2, node_length2,
                             prefix_sum2, forward_loop2, reverse_loop2, component2, 
-                            last_chain_component));
+                            is_multicomponent_chain,last_chain_component));
     }
     return distance;
 }
@@ -2603,21 +2605,20 @@ size_t SnarlDistanceIndex::ChainRecord::get_distance(size_t rank1, bool left_sid
 size_t SnarlDistanceIndex::ChainRecord::get_distance_taking_chain_loop(size_t rank1, bool left_side1, size_t node_length1, 
     size_t prefix_sum1, size_t forward_loop1, size_t reverse_loop1, size_t component1,
     size_t rank2, bool left_side2, size_t node_length2,
-    size_t prefix_sum2, size_t forward_loop2, size_t reverse_loop2, size_t component2, size_t last_component) const {
+    size_t prefix_sum2, size_t forward_loop2, size_t reverse_loop2, size_t component2, 
+    bool is_multicomponent_chain, size_t last_component) const {
     //This is only called by get_distance, so the nodes should be ordered
 #ifdef debug_distances
     assert (rank1 <= rank2);
     assert(get_start_id() == get_end_id());
+    assert(get_record_handle_type() != NODE_HANDLE)
 #endif
 
     /*Note: Because we assume that the nodes are ordered and that we want to take the loop in the chain,
      * we leave the start node going left (either by going left or taking a loop to the right), and
      * enter the end node from the right (from the right or from the left and then looping)
      */
-
-    if (get_record_handle_type() == NODE_HANDLE) {
-        throw runtime_error("error: Trying to get chain distances from a node");
-    } else if (get_record_type() == MULTICOMPONENT_CHAIN) {
+     if (is_multicomponent_chain) {
         bool first_in_first_component = component1 == 0 || component1 == last_component;
         bool second_in_first_component = component2 == 0 || component2 == last_component;
         bool can_loop = get_is_looping_chain_connected_backwards();

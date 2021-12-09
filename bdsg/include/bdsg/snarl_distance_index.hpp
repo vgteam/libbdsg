@@ -1517,6 +1517,7 @@ private:
                                     size_t rank2, bool right_side2, size_t node_length2,
                                     size_t prefix_sum2, size_t forward_loop2, size_t reverse_loop2, size_t component2, 
                                     bool checked_loop = false, bool is_looping_chain = false,
+                                    bool is_multicomponent_chain = false,
                                     size_t last_chain_component = std::numeric_limits<size_t>::max()) const;
 
         ///For a chain that loops (when the start and end node are the same), find the 
@@ -1524,7 +1525,7 @@ private:
         virtual size_t get_distance_taking_chain_loop(size_t rank1, bool right_side1, size_t node_length1, 
                                     size_t prefix_sum1, size_t forward_loop1, size_t reverse_loop1, size_t component1,
                                     size_t rank2, bool right_side2, size_t node_length2,
-                                    size_t prefix_sum2, size_t forward_loop2, size_t reverse_loop2, size_t component2, size_t last_component) const;
+                                    size_t prefix_sum2, size_t forward_loop2, size_t reverse_loop2, size_t component2, bool is_multicomponent, size_t last_component) const;
 
         ////////////////////////// methods for navigating the snarl tree from this chain
 
