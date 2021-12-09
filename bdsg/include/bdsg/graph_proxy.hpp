@@ -498,7 +498,7 @@ protected:
     /// them to a callback which returns false to stop iterating and true to
     /// continue. Returns true if we finished and false if we stopped early.
     virtual bool follow_edges_impl(const handle_t& handle, bool go_left, const std::function<bool(const handle_t&)>& iteratee) const {
-        return get()->follow_edges_impl(handle, go_left, iteratee);
+        return get()->follow_edges(handle, go_left, iteratee);
     }
     
     /// Loop over all the nodes in the graph in their local forward
@@ -508,13 +508,13 @@ protected:
     /// order is not defined. Returns true if we finished and false if we 
     /// stopped early.
     virtual bool for_each_handle_impl(const std::function<bool(const handle_t&)>& iteratee, bool parallel = false) const {
-        return get()->for_each_handle_impl(iteratee, parallel);
+        return get()->for_each_handle(iteratee, parallel);
     }
     
     /// Execute a function on each path in the graph. If it returns false, stop
     /// iteration. Returns true if we finished and false if we stopped early.
     virtual bool for_each_path_handle_impl(const std::function<bool(const path_handle_t&)>& iteratee) const {
-        return get()->for_each_path_handle_impl(iteratee);
+        return get()->for_each_path_handle(iteratee);
     }
     
     /// Execute a function on each step of a handle in any path. If it
@@ -522,7 +522,7 @@ protected:
     /// we stopped early.
     virtual bool for_each_step_on_handle_impl(const handle_t& handle,
         const std::function<bool(const step_handle_t&)>& iteratee) const {
-        return get()->for_each_step_on_handle_impl(handle, iteratee);
+        return get()->for_each_step_on_handle(handle, iteratee);
     }
        
     /// Underlying implementation for "serialize" method
