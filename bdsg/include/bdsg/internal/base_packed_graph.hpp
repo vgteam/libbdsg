@@ -56,7 +56,6 @@ class BasePackedGraph {
     // actually work on us, since we leave as protected/private the protected
     // methods it wants to proxy.
     friend class GraphProxy<BasePackedGraph>;
-    friend class SerializableHandleGraphProxy<BasePackedGraph>;
     
 public:
     BasePackedGraph();
