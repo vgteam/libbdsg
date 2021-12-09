@@ -468,7 +468,7 @@ private:
     };
 
     inline void canonicalize_edge(handle_t& left, handle_t& right) const {
-        if (number_bool_packing::unpack_bit(left) && number_bool_packing::unpack_bit(right)
+        if ((number_bool_packing::unpack_bit(left) && number_bool_packing::unpack_bit(right))
             || ((number_bool_packing::unpack_bit(left) || number_bool_packing::unpack_bit(right)) && as_integer(left) > as_integer(right))) {
             std::swap(left, right);
             left = number_bool_packing::toggle_bit(left);
