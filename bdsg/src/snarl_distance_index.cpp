@@ -1339,6 +1339,22 @@ size_t SnarlDistanceIndex::minimum_length(const net_handle_t& net) const {
         return SnarlTreeRecord(net, &snarl_tree_records).get_min_length();
     }
 }
+size_t SnarlDistanceIndex::maximum_length(const net_handle_t& net) const {
+    if ((SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == TRIVIAL_SNARL || 
+        SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == DISTANCED_TRIVIAL_SNARL) &&
+        get_node_record_offset(net) != 0) {
+        return TrivialSnarlRecord(get_record_offset(net), &snarl_tree_records).get_node_length(get_node_record_offset(net));
+    } else if (SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == SIMPLE_SNARL || 
+               SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == DISTANCED_SIMPLE_SNARL) {
+        if (is_snarl(net)) {
+            return SimpleSnarlRecord(net, &snarl_tree_records).get_max_length();
+        } else {
+            return SimpleSnarlRecord(net, &snarl_tree_records).get_node_length();
+        }
+    } else {
+        return SnarlTreeRecord(net, &snarl_tree_records).get_max_length();
+    }
+}
 nid_t SnarlDistanceIndex::node_id(const net_handle_t& net) const {
     if (is_node(net)) {
         if (get_record_type(snarl_tree_records->at(get_record_offset(net))) == NODE 

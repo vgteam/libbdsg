@@ -447,6 +447,7 @@ public:
      * A looping chain only includes the start/end node once
      */
     size_t minimum_length(const net_handle_t& net) const;
+    size_t maximum_length(const net_handle_t& net) const;
 
     /**
      * What is the node id of the node represented by this net handle
