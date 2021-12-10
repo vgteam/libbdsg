@@ -416,6 +416,7 @@ public:
     //This is not great but better than copying the entire cached net handle I think
     size_t distance_in_parent(CachedNetHandle& cached_parent, CachedNetHandle& cached_child1, bool go_left1, CachedNetHandle& cached_child2, bool go_left2, const HandleGraph* graph=nullptr, size_t distance_limit = std::numeric_limits<size_t>::max()) const;
 
+    size_t distance_to_parent_bound(net_handle_t& cached_parent, bool to_start, net_handle_t& child, bool go_left) const;
     size_t distance_to_parent_bound(CachedNetHandle& cached_parent, bool to_start, CachedNetHandle& child, bool go_left) const;
     
     //Return true if child1 comes before child2 in the chain. 
