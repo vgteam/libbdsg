@@ -1018,8 +1018,9 @@ size_t SnarlDistanceIndex::distance_in_parent(CachedNetHandle& cached_parent,
     }
 }
 size_t SnarlDistanceIndex::distance_to_parent_bound(net_handle_t& parent, bool to_start, net_handle_t& child, bool go_left) const {
-    return distance_to_parent_bound(get_cached_net_handle(parent), to_start,
-                                    get_cached_net_handle(child), go_left);
+    CachedNetHandle cached_parent = get_cached_net_handle(parent);
+    CachedNetHandle cached_child = get_cached_net_handle(child);
+    return distance_to_parent_bound(cached_parent, to_start, cached_child, go_left);
 }
 size_t SnarlDistanceIndex::distance_to_parent_bound(CachedNetHandle& cached_parent, bool to_start, CachedNetHandle& child, bool go_left) const {
 
