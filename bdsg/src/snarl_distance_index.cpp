@@ -1017,7 +1017,7 @@ size_t SnarlDistanceIndex::distance_in_parent(CachedNetHandle& cached_parent,
         throw runtime_error("error: Trying to find distance in the wrong type of handle");
     }
 }
-size_t SnarlDistanceIndex::distance_to_parent_bound(CachedNetHandle& cached_parent, bool to_start, CachedNetHandle& child, bool go_left, const HandleGraph* graph) const {
+size_t SnarlDistanceIndex::distance_to_parent_bound(CachedNetHandle& cached_parent, bool to_start, CachedNetHandle& child, bool go_left) const {
 
     //If the parent is a snarl, then the bound is actually the node and we want the sentinel
     CachedNetHandle parent_bound = is_snarl(cached_parent.net) 
@@ -1037,7 +1037,7 @@ size_t SnarlDistanceIndex::distance_to_parent_bound(CachedNetHandle& cached_pare
     }
     
     return sum({bound_length, 
-                distance_in_parent(cached_parent, parent_bound, false, child, go_left, graph)});
+                distance_in_parent(cached_parent, parent_bound, false, child, go_left)});
 }
 
 
