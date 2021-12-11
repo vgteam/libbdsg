@@ -1486,7 +1486,7 @@ size_t SnarlDistanceIndex::SnarlTreeRecord::get_max_length() const {
     record_t type = get_record_type();
     size_t val;
     if (type == DISTANCED_NODE ) {
-        val = (*records)->at(record_offset + NODE_LENGTH_OFFSET);
+        return (*records)->at(record_offset + NODE_LENGTH_OFFSET);
     } else if (type == TRIVIAL_SNARL || type == DISTANCED_TRIVIAL_SNARL) {
         size_t last_node_offset = TrivialSnarlRecord(record_offset, records).get_node_count()-1;
         return (*records)->at(record_offset + TRIVIAL_SNARL_RECORD_SIZE + (last_node_offset*2) + 1);
@@ -1801,7 +1801,7 @@ void SnarlDistanceIndex::SnarlTreeRecordConstructor::set_max_length(size_t lengt
     record_t type = get_record_type();
     size_t offset;
     if (type == DISTANCED_NODE) {
-        offset = record_offset + NODE_LENGTH_OFFSET;
+        throw runtime_error("error: set the max length of a node");
     } else if (type == DISTANCED_SNARL || type == OVERSIZED_SNARL)  {
         offset = record_offset + SNARL_MAX_LENGTH_OFFSET;
     } else if (type == DISTANCED_SIMPLE_SNARL) {
