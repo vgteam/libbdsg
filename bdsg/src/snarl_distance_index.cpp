@@ -1492,6 +1492,9 @@ size_t SnarlDistanceIndex::SnarlTreeRecord::get_max_length() const {
         return (*records)->at(record_offset + TRIVIAL_SNARL_RECORD_SIZE + (last_node_offset*2) + 1);
     } else if (type == DISTANCED_SNARL || type == OVERSIZED_SNARL)  {
         val = (*records)->at(record_offset + SNARL_MAX_LENGTH_OFFSET);
+    } else if (type == DISTANCED_SIMPLE_SNARL)  {
+        size_t raw_val =  (*records)->at(record_offset + SIMPLE_SNARL_NODE_COUNT_AND_LENGTHS_OFFSET);
+        return raw_val & ((1 << 11) - 1);
     } else if (type == DISTANCED_CHAIN || type == MULTICOMPONENT_CHAIN)  {
         val = (*records)->at(record_offset + CHAIN_MAX_LENGTH_OFFSET);
     } else if (type == NODE || type == SNARL || type == CHAIN) {
