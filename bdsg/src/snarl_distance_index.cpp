@@ -2640,6 +2640,8 @@ size_t SnarlDistanceIndex::ChainRecord::get_distance_taking_chain_loop(size_t ra
      * enter the end node from the right (from the right or from the left and then looping)
      */
      if (is_multicomponent_chain) {
+         last_component = last_component != std::numeric_limits<size_t>::max() ? last_component : 
+            TrivialSnarlRecord(get_first_node_offset() , records).get_chain_component(0, true);
         bool first_in_first_component = component1 == 0 || component1 == last_component;
         bool second_in_first_component = component2 == 0 || component2 == last_component;
         bool can_loop = get_is_looping_chain_connected_backwards();
@@ -4038,7 +4040,7 @@ void SnarlDistanceIndex::set_cached_last_chain_component(CachedNetHandle& cached
         cached_handle.end_bound_in = get_bound(cached_handle.net, false, false);
     }
     TrivialSnarlRecord end_record(get_record_offset(cached_handle.end_bound_in), &snarl_tree_records);
-    cached_handle.last_chain_component = end_record.get_chain_component(get_node_record_offset(cached_handle.end_bound_in));
+    cached_handle.last_chain_component = end_record.get_chain_component(get_node_record_offset(cached_handle.end_bound_in), true);
 
 }
 
