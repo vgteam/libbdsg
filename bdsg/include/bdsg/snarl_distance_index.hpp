@@ -1691,7 +1691,7 @@ public:
             //(TEMP_ROOT, 0) if this is a root level chain
             pair<temp_record_t, size_t> parent;
             size_t min_length;//Including boundary nodes
-            size_t max_length;
+            size_t max_length = 0;
             vector<pair<temp_record_t, size_t>> children; //All children, both nodes and snarls, in order
             //Distances for the chain, one entry per node
             vector<size_t> prefix_sum;
@@ -1716,7 +1716,7 @@ public:
             size_t end_node_length;
             size_t node_count;
             size_t min_length; //Not including boundary nodes
-            size_t max_length;
+            size_t max_length = 0;
             size_t max_distance = 0;
             size_t tree_depth = 0;
             pair<temp_record_t, size_t> parent;
