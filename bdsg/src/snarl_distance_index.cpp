@@ -1017,27 +1017,26 @@ size_t SnarlDistanceIndex::distance_in_parent(CachedNetHandle& cached_parent,
         throw runtime_error("error: Trying to find distance in the wrong type of handle");
     }
 }
-size_t SnarlDistanceIndex::distance_to_parent_bound(net_handle_t& parent, bool to_start, net_handle_t& child, bool go_left, bool check_bound) const {
+size_t SnarlDistanceIndex::distance_to_parent_bound(net_handle_t& parent, bool to_start, net_handle_t& child, bool go_left) const {
     CachedNetHandle cached_parent = get_cached_net_handle(parent);
     CachedNetHandle cached_child = get_cached_net_handle(child);
-    return distance_to_parent_bound(cached_parent, to_start, cached_child, go_left, check_bound);
+    return distance_to_parent_bound(cached_parent, to_start, cached_child, go_left);
 }
-size_t SnarlDistanceIndex::distance_to_parent_bound(CachedNetHandle& cached_parent, bool to_start, CachedNetHandle& child, bool go_left, bool check_bound) const {
+size_t SnarlDistanceIndex::distance_to_parent_bound(CachedNetHandle& cached_parent, bool to_start, CachedNetHandle& child, bool go_left) const {
 
     //If the parent is a snarl, then the bound is actually the node and we want the sentinel
     CachedNetHandle parent_bound = is_snarl(cached_parent.net) 
                                  ? get_cached_net_handle(get_bound(cached_parent.net, !to_start, true), cached_parent.record_tag)
                                  : get_cached_bound(cached_parent, to_start);
-    if (check_bound) {
-        if ((go_left && to_start && parent_bound.net == child.net) || 
-            //If we want the start to the left of the child and the child is the same as the bound 
-            (go_left && !to_start && parent_bound.net == flip(child.net)) ||
-            //If we want the end to the left of the child and the child opposite of the bound
-            (!go_left && to_start && parent_bound.net == child.net) ||
-            //If we want the start to the right of the child and the child opposite of the bound
-            (!go_left && !to_start && parent_bound.net == flip(child.net))) {
-            return 0;
-        }
+    if ((go_left && to_start && parent_bound.net == child.net) || 
+        //If we want the start to the left of the child and the child is the same as the bound 
+        (go_left && !to_start && parent_bound.net == flip(child.net)) ||
+        //If we want the end to the left of the child and the child opposite of the bound
+        (!go_left && to_start && parent_bound.net == flip(child.net)) ||
+        //If we want the start to the right of the child and the child opposite of the bound
+        (!go_left && !to_start && parent_bound.net == (child.net)) {
+        //If we want the end to the right of the child and they are the same
+        return 0;
     }
     //The node length of the boundary node, only set for chains 
     size_t bound_length = !is_chain(cached_parent.net) ? 0 : 
