@@ -1034,7 +1034,7 @@ size_t SnarlDistanceIndex::distance_to_parent_bound(CachedNetHandle& cached_pare
         //If we want the end to the left of the child and the child opposite of the bound
         (!go_left && to_start && parent_bound.net == flip(child.net)) ||
         //If we want the start to the right of the child and the child opposite of the bound
-        (!go_left && !to_start && parent_bound.net == (child.net)) {
+        (!go_left && !to_start && parent_bound.net == (child.net))) {
         //If we want the end to the right of the child and they are the same
         return 0;
     }
