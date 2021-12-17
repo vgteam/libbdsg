@@ -2267,6 +2267,9 @@ size_t SnarlDistanceIndex::SimpleSnarlRecord::get_distance(size_t rank1, bool ri
     }
     if (rank1 == 0 && rank2 == 1) {
         return get_min_length();
+    } else if (rank1 == rank2) {
+        //There are no loops
+        return std::numeric_limits<size_t>::max();
     } else if (rank1 == 0) {
         //If the first node is the start node, then the distance is 0 if the node is not reversed 
         //and we are looking at the left side (or is reversed and right side), inf otherwise 
