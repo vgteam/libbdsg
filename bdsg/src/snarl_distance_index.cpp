@@ -1028,7 +1028,17 @@ size_t SnarlDistanceIndex::distance_to_parent_bound(CachedNetHandle& cached_pare
     CachedNetHandle parent_bound = is_snarl(cached_parent.net) 
                                  ? get_cached_net_handle(get_bound(cached_parent.net, !to_start, true), cached_parent.record_tag)
                                  : get_cached_bound(cached_parent, to_start);
-    if ((go_left && to_start && parent_bound.net == child.net) || 
+    if (is_node(child.net) && get_record_handle_type(get_record_type(cached_parent.record_tag)) == SNARL_HANDLE) {
+        //If this is a node pretending to be a chain in a snarl
+        if ((ends_at(child.net) == START && to_start != go_left) ||
+            (ends_at(child.net) == END && to_start == go_left)) {
+            //If the child is traversed backwards and we're going start to right or end to left
+            //Or the child is traversed forwards and we're going start to left or end to right
+            return 0;
+        } else {
+            return std::numeric_limits<size_t>::max();
+        }
+    } else if ((go_left && to_start && parent_bound.net == child.net) || 
         //If we want the start to the left of the child and the child is the same as the bound 
         (go_left && !to_start && parent_bound.net == flip(child.net)) ||
         //If we want the end to the left of the child and the child opposite of the bound
