@@ -631,6 +631,10 @@ bool SnarlDistanceIndex::follow_net_edges_impl(const net_handle_t& here, const h
 #ifdef debug_snarl_traveral
         assert(parent_record.get_record_handle_type() == CHAIN_HANDLE);
 #endif
+        if (get_record_offset(here) == parent_record.record_offset) {
+            //If this is a trivial chain
+            return true;
+        }
         //If this is a snarl or node, then it is the component of a (possibly pretend) chain
         ChainRecord parent_chain(this_record.get_parent_record_offset(), &snarl_tree_records);
         if (ends_at(here) == START) {
