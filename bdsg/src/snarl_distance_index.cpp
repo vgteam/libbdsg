@@ -1032,7 +1032,7 @@ size_t SnarlDistanceIndex::distance_to_parent_bound(CachedNetHandle& cached_pare
     CachedNetHandle parent_bound = is_snarl(cached_parent.net) 
                                  ? get_cached_net_handle(get_bound(cached_parent.net, !to_start, true), cached_parent.record_tag)
                                  : get_cached_bound(cached_parent, to_start);
-    if (is_node(child.net) && get_record_handle_type(get_record_type(cached_parent.record_tag)) == SNARL_HANDLE) {
+    if (is_trivial_chain(cached_parent)) {
         //If this is a node pretending to be a chain in a snarl
         if ((ends_at(child.net) == START && to_start != go_left) ||
             (ends_at(child.net) == END && to_start == go_left)) {
