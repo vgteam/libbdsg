@@ -1722,7 +1722,8 @@ public:
             pair<temp_record_t, size_t> parent;
             vector<pair<temp_record_t, size_t>> children; //All children, nodes and chains, in arbitrary order
             unordered_set<size_t> tippy_child_ranks; //The ranks of children that are tips
-            unordered_map<pair<pair<size_t, bool>, pair<size_t, bool>>, size_t> distances;
+            vector<tuple<pair<size_t, bool>, pair<size_t, bool>, size_t>> distances;
+            //unordered_map<pair<pair<size_t, bool>, pair<size_t, bool>>, size_t> distances;
             size_t rank_in_parent;
             bool reversed_in_parent;
             //The minimum distances to go into and out of the snarl from the start or end nodes
