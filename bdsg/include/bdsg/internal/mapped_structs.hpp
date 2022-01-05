@@ -984,9 +984,9 @@ public:
     
     /**
      * Actual accessor method that gets the value at a position.
-     * Uses the given width override instead of the stored width to write the value, if set.
+     * Uses the given width override instead of the stored width to read the value.
      */
-    uint64_t unpack(size_t index, size_t width_override = 0) const;
+    uint64_t unpack(size_t index, size_t width_override) const;
     
     /**
      * Proxy that acts as a mutable reference to an entry in the vector.
@@ -1822,7 +1822,7 @@ CompatIntVector<Alloc>::Proxy::Proxy(CompatIntVector& parent, size_t index) : pa
 
 template<typename Alloc>
 CompatIntVector<Alloc>::Proxy::operator uint64_t () const {
-    return parent.unpack(index);
+    return parent.unpack(index, parent.bit_width);
 }
 
 template<typename Alloc>
@@ -1838,7 +1838,7 @@ CompatIntVector<Alloc>::ConstProxy::ConstProxy(const CompatIntVector& parent, si
 
 template<typename Alloc>
 CompatIntVector<Alloc>::ConstProxy::operator uint64_t () const {
-    return parent.unpack(index);
+    return parent.unpack(index, parent.bit_width);
 }
 
 template<typename Alloc>
