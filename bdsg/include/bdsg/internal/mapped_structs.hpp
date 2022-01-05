@@ -984,9 +984,9 @@ public:
     
     /**
      * Actual accessor method that gets the value at a position.
-     * Uses the given width override instead of the stored width to read the value.
+     * Uses the given width instead of the stored width to read the value.
      */
-    uint64_t unpack(size_t index, size_t width_override) const;
+    uint64_t unpack(size_t index, size_t width) const;
     
     /**
      * Proxy that acts as a mutable reference to an entry in the vector.
@@ -1782,37 +1782,15 @@ void CompatIntVector<Alloc>::pack(size_t index, uint64_t value, size_t width_ove
     // And a start bit in that slot
     size_t start_slot_bit_offset = start_bit % std::numeric_limits<uint64_t>::digits;
     // And then save
-#ifdef debug_bit_packing
-    std::cerr << "Write " << value
-        << " of width " << effective_width
-        << " at bit " << start_slot_bit_offset
-        << " in slot " << start_slot << endl; 
-#endif
     sdsl::bits::write_int(&data[start_slot], value, start_slot_bit_offset, effective_width);
 }
 
 template<typename Alloc>
-uint64_t CompatIntVector<Alloc>::unpack(size_t index, size_t width_override) const {
-    // Decide how wide to interpret the items as
-    size_t effective_width = width_override ? width_override : (size_t) bit_width;
+uint64_t CompatIntVector<Alloc>::unpack(size_t index, size_t width) const {
     // Find the bit index we start at
-    size_t start_bit = index * effective_width;
-    // And break into a slot number
-    size_t start_slot = start_bit >> 6;
-    // And a start bit in that slot
-    size_t start_slot_bit_offset = start_bit & 0x3F;
-    
+    size_t start_bit = index * width;
     // And then load
-#ifdef debug_bit_packing
-    std::cerr << "Read value of width " << effective_width
-        << " at bit " << start_slot_bit_offset
-        << " in slot " << start_slot << ": ";
-#endif
-    uint64_t value = sdsl::bits::read_int(&data[start_slot], start_slot_bit_offset, effective_width);
-#ifdef debug_bit_packing
-    std::cerr << value << std::endl;
-#endif
-    return value;
+    return sdsl::bits::read_int(&data[start_bit >> 6], start_bit & 0x3F, width);
 }
 
 template<typename Alloc>
