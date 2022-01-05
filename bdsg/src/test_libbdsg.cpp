@@ -173,6 +173,77 @@ void bother_vector(TwoLevel& storage) {
     }
 }
 
+void test_bit_packing() {
+    // Make an int vector
+    CompatIntVector<> test;
+    // Give it 128 bits
+    test.width(64);
+    test.resize(2);
+    
+    // Make a vector to compare against
+    sdsl::int_vector<> truth;
+    truth.width(64);
+    truth.resize(2);
+    
+    // Define a stage so we can report problems
+    std::string stage = "setup";
+    
+    // Define bit-space accessors for the test vector. Accesses must be aligned on width.
+    auto set_int = [&](size_t offset_bits, size_t value, size_t width) {
+        assert(offset_bits % width == 0);
+        test.pack(offset_bits / width, value, width);
+    };
+    auto get_int = [&](size_t offset_bits, size_t width) {
+        assert(offset_bits % width == 0);
+        return test.unpack(offset_bits / width, width);
+    };
+    
+    // Define combined accessors
+    auto set_both = [&](size_t offset_bits, size_t value, size_t width) {
+        set_int(offset_bits, value, width);
+        truth.set_int(offset_bits, value, width);
+    };
+    auto check_both = [&](size_t offset_bits, size_t width) {
+        auto test_int = get_int(offset_bits, width);
+        auto truth_int = truth.get_int(offset_bits, width);
+        if (test_int != truth_int) {
+            std::cerr << "In stage " << stage << " at offset " << offset_bits << " for width " << width << " test vector had " << test_int << " but truth vector had " << truth_int << std::endl;
+            
+            // Dump some of the bits
+            size_t window_start = offset_bits > width ? offset_bits - width : 0;
+            std::cerr << "Bit\tTruth\tTest" << std::endl;
+            for (size_t i = window_start; i < window_start + 2 * width && i < truth.bit_size(); i++) {
+                std::cerr << i << "\t" << truth.get_int(i, 1) << "\t" << get_int(i, 1) << std::endl;
+            }
+            
+            assert(false);
+        }
+        return test_int;
+    };
+     
+    // Make sure we can zero everything
+    stage = "zero";
+    for (size_t i = 0; i < 2; i++) {
+        set_both(i * 64, 0, 64);
+    }
+    for (size_t i = 0; i < 2; i++) {
+        check_both(i * 64, 64);
+    }
+    
+    // Make sure we can put a bit pattern and get back the right values at all bit widths.
+    stage = "pattern";
+    for (size_t i = 0; i < 2; i++) {
+        set_both(i * 64, 0xCAFEBEBECACAF0F0, 64);
+    }
+    for (size_t width = 1; width < 65; width++) {
+        for (size_t i = 0; i < 128/width; i++) {
+            check_both(i * width, width);
+        }
+    }
+    
+    cerr << "Bit packing tests successful!" << endl;
+}
+
 void test_mapped_structs() {
     
     assert(yomo::Manager::count_chains() == 0);
@@ -409,11 +480,7 @@ void test_mapped_structs() {
     assert(yomo::Manager::count_links() == 0);
     
     {
-        // Make sure our bit-packing vector checks bound
-        
-        // Make sure checks that prevent opening corrupted files aren't on.
-        bool saved = bdsg::yomo::Manager::check_chains;
-        bdsg::yomo::Manager::check_chains = false;
+        // Make sure our bit-packing vector can self-test
         
         // Make a vector
         bdsg::yomo::UniqueMappedPointer<MappedIntVector> vec;
@@ -440,19 +507,8 @@ void test_mapped_structs() {
         // Reload
         vec.load(tmpfd, "");
         
-        // Turn on checking of accesses
-        bdsg::yomo::Manager::check_chains = true;
         try {
-            verify_to(*vec, 1000, 1);
-            // We shouldn't be able to complete this; we should run off the end of the chain.
-            assert(false);
-        } catch (std::out_of_range& e) {
-            // This is the exception we expect to get.
-        }
-        bdsg::yomo::Manager::check_chains = false;
-        
-        try {
-            // We shouldn't pass heap verification even when not checking accesses.
+            // We shouldn't pass heap verification.
             vec.check_heap_integrity();
             assert(false);
         } catch (std::runtime_error& e) {
@@ -463,8 +519,6 @@ void test_mapped_structs() {
         
         close(tmpfd);
         unlink(filename);
-        
-        bdsg::yomo::Manager::check_chains = saved;
     }
     
     assert(yomo::Manager::count_chains() == 0);
@@ -4024,6 +4078,7 @@ void test_hash_graph() {
 }
 
 int main(void) {
+    test_bit_packing();
     test_mapped_structs();
     test_packed_vector<PackedVector<>>();
     test_packed_vector<PackedVector<CompatBackend>>();
