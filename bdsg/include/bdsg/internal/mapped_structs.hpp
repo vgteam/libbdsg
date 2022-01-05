@@ -1788,9 +1788,9 @@ void CompatIntVector<Alloc>::pack(size_t index, uint64_t value, size_t width) {
     // Find the bit index we start at
     size_t start_bit = index * width;
     // And break into a slot number
-    size_t start_slot = start_bit / std::numeric_limits<uint64_t>::digits;
+    size_t start_slot = start_bit >> 6;
     // And a start bit in that slot
-    size_t start_slot_bit_offset = start_bit % std::numeric_limits<uint64_t>::digits;
+    size_t start_slot_bit_offset = start_bit& 0x3F;
     // And then save
     sdsl::bits::write_int(&data[start_slot], value, start_slot_bit_offset, width);
 }
