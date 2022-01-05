@@ -478,11 +478,7 @@ void test_mapped_structs() {
     assert(yomo::Manager::count_links() == 0);
     
     {
-        // Make sure our bit-packing vector checks bound
-        
-        // Make sure checks that prevent opening corrupted files aren't on.
-        bool saved = bdsg::yomo::Manager::check_chains;
-        bdsg::yomo::Manager::check_chains = false;
+        // Make sure our bit-packing vector can self-test
         
         // Make a vector
         bdsg::yomo::UniqueMappedPointer<MappedIntVector> vec;
@@ -509,19 +505,8 @@ void test_mapped_structs() {
         // Reload
         vec.load(tmpfd, "");
         
-        // Turn on checking of accesses
-        bdsg::yomo::Manager::check_chains = true;
         try {
-            verify_to(*vec, 1000, 1);
-            // We shouldn't be able to complete this; we should run off the end of the chain.
-            assert(false);
-        } catch (std::out_of_range& e) {
-            // This is the exception we expect to get.
-        }
-        bdsg::yomo::Manager::check_chains = false;
-        
-        try {
-            // We shouldn't pass heap verification even when not checking accesses.
+            // We shouldn't pass heap verification.
             vec.check_heap_integrity();
             assert(false);
         } catch (std::runtime_error& e) {
@@ -532,8 +517,6 @@ void test_mapped_structs() {
         
         close(tmpfd);
         unlink(filename);
-        
-        bdsg::yomo::Manager::check_chains = saved;
     }
     
     assert(yomo::Manager::count_chains() == 0);
