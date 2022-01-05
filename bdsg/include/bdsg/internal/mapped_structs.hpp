@@ -1798,9 +1798,9 @@ uint64_t CompatIntVector<Alloc>::unpack(size_t index, size_t width_override) con
     // Find the bit index we start at
     size_t start_bit = index * effective_width;
     // And break into a slot number
-    size_t start_slot = start_bit / std::numeric_limits<uint64_t>::digits;
+    size_t start_slot = start_bit >> 6;
     // And a start bit in that slot
-    size_t start_slot_bit_offset = start_bit % std::numeric_limits<uint64_t>::digits;
+    size_t start_slot_bit_offset = start_bit & 0x3F;
     
     // And then load
 #ifdef debug_bit_packing
