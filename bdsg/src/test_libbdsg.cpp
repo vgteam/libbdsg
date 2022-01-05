@@ -4077,7 +4077,6 @@ void test_hash_graph() {
 
 int main(void) {
     test_bit_packing();
-    return 0;
     test_mapped_structs();
     test_packed_vector<PackedVector<>>();
     test_packed_vector<PackedVector<CompatBackend>>();
