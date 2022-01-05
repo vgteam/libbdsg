@@ -853,6 +853,19 @@ public:
     iterator end();
     const_iterator end() const;
     
+    // Allow fast access to the data block
+    
+    /// Get the pointer to the first item in the contiguous array, or nullptr
+    /// if no array is allocated.
+    inline T* get_first() {
+        return (T*)first;
+    }
+    /// Get the pointer to the first item in the contiguous array, or nullptr
+    /// if no array is allocated.
+    inline const T* get_first() const {
+        return (const T*)first;
+    }
+    
     // Compatibility with SDSL-lite serialization
     
     /**
@@ -1790,7 +1803,7 @@ uint64_t CompatIntVector<Alloc>::unpack(size_t index, size_t width) const {
     // Find the bit index we start at
     size_t start_bit = index * width;
     // And then load
-    return sdsl::bits::read_int(&data[start_bit >> 6], start_bit & 0x3F, width);
+    return sdsl::bits::read_int(data.get_first() + (start_bit >> 6), start_bit & 0x3F, width);
 }
 
 template<typename Alloc>
