@@ -1787,6 +1787,8 @@ void CompatIntVector<Alloc>::pack(size_t index, uint64_t value, size_t width) {
     
     // Find the bit index we start at
     size_t start_bit = index * width;
+    // Use the last 6 bits (up to 64) for the offset in the 64-bit word, and
+    // the others for the word number.
     sdsl::bits::write_int(data.get_first() + (start_bit >> 6), value, start_bit & 0x3F, width);
 }
 
@@ -1794,7 +1796,9 @@ template<typename Alloc>
 uint64_t CompatIntVector<Alloc>::unpack(size_t index, size_t width) const {
     // Find the bit index we start at
     size_t start_bit = index * width;
-    // And then load
+    // And then load.
+    // Use the last 6 bits (up to 64) for the offset in the 64-bit word, and
+    // the others for the word number.
     return sdsl::bits::read_int(data.get_first() + (start_bit >> 6), start_bit & 0x3F, width);
 }
 
