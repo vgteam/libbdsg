@@ -220,8 +220,9 @@ void test_bit_packing() {
         }
         return test_int;
     };
-    
+     
     // Make sure we can zero everything
+    stage = "zero";
     for (size_t i = 0; i < 2; i++) {
         set_both(i * 64, 0, 64);
     }
@@ -230,6 +231,7 @@ void test_bit_packing() {
     }
     
     // Make sure we can put a bit pattern and get back the right values at all bit widths.
+    stage = "pattern";
     for (size_t i = 0; i < 2; i++) {
         set_both(i * 64, 0xCAFEBEBECACAF0F0, 64);
     }

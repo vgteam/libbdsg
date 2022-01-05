@@ -989,11 +989,11 @@ public:
     /**
      * Actual accessor method that sets the value at a position.
      * Does not check if value actually fits.
-     * Uses the given width override instead of the stored width to write the value, if set.
+     * Uses the given width instead of the stored width to write the value.
      *
      * Throws if the value will not fit in the relevant number of bits.
      */
-    void pack(size_t index, uint64_t value, size_t width_override = 0);
+    void pack(size_t index, uint64_t value, size_t width);
     
     /**
      * Actual accessor method that gets the value at a position.
@@ -1772,30 +1772,27 @@ void CompatIntVector<Alloc>::repack(size_t new_width, size_t new_size) {
 }
 
 template<typename Alloc>
-void CompatIntVector<Alloc>::pack(size_t index, uint64_t value, size_t width_override) {
-    // Decide how wide to encode the items as
-    size_t effective_width = width_override ? width_override : (size_t) bit_width;
-    
-    if (effective_width < std::numeric_limits<uint64_t>::digits && value) {
+void CompatIntVector<Alloc>::pack(size_t index, uint64_t value, size_t width) {
+    if (width < std::numeric_limits<uint64_t>::digits && value) {
         // It is possible we have been given a number that we cannot represent.
         // Use the compiler's count leading zeroes function, which hopefully it has.
         size_t needed_bits = std::numeric_limits<uint64_t>::digits - __builtin_clzll(value);
-        if (needed_bits > effective_width) {
+        if (needed_bits > width) {
             // The value will not fit.
             throw std::invalid_argument("Need " + std::to_string(needed_bits) +
                                         " bits to represent value " + std::to_string(value) +
-                                        " but only have " + std::to_string(effective_width)); 
+                                        " but only have " + std::to_string(width)); 
         }
     }
     
     // Find the bit index we start at
-    size_t start_bit = index * effective_width;
+    size_t start_bit = index * width;
     // And break into a slot number
     size_t start_slot = start_bit / std::numeric_limits<uint64_t>::digits;
     // And a start bit in that slot
     size_t start_slot_bit_offset = start_bit % std::numeric_limits<uint64_t>::digits;
     // And then save
-    sdsl::bits::write_int(&data[start_slot], value, start_slot_bit_offset, effective_width);
+    sdsl::bits::write_int(&data[start_slot], value, start_slot_bit_offset, width);
 }
 
 template<typename Alloc>
@@ -1818,7 +1815,7 @@ CompatIntVector<Alloc>::Proxy::operator uint64_t () const {
 
 template<typename Alloc>
 auto CompatIntVector<Alloc>::Proxy::operator=(uint64_t new_value) -> Proxy& {
-    parent.pack(index, new_value);
+    parent.pack(index, new_value, parent.bit_width);
     return *this;
 }
 
