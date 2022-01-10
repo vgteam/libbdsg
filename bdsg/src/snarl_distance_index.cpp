@@ -1413,7 +1413,7 @@ bool SnarlDistanceIndex::is_reversed_in_parent(const net_handle_t& net) const {
     SnarlTreeRecord record(net, &snarl_tree_records);
     if (record.get_record_type() == TRIVIAL_SNARL || record.get_record_type() == DISTANCED_TRIVIAL_SNARL) {
         return TrivialSnarlRecord(get_record_offset(net), &snarl_tree_records).get_is_reversed_in_parent(get_node_record_offset(net));
-    } else if (record.get_record_type() == SIMPLE_SNARL || record.get_record_type() == DISTANCED_SIMPLE_SNARL) {
+    } else if ((record.get_record_type() == SIMPLE_SNARL || record.get_record_type() == DISTANCED_SIMPLE_SNARL) && is_chain(net)) {
         return SimpleSnarlRecord(net, &snarl_tree_records).get_node_is_reversed();
     } else {
         return record.get_is_reversed_in_parent();
