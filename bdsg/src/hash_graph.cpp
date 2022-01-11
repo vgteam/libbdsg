@@ -362,8 +362,9 @@ namespace bdsg {
         paths.rehash(paths.size() * 0.5 * (paths.min_load_factor() + paths.max_load_factor()));
     }
     
-    void HashGraph::apply_ordering(const vector<handle_t>& order, bool compact_ids) {
+    bool HashGraph::apply_ordering(const vector<handle_t>& order, bool compact_ids) {
         // TODO: implement ID compaction I guess?
+        return false;
     }
     
     void HashGraph::destroy_handle(const handle_t& handle) {
