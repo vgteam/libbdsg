@@ -161,26 +161,26 @@ bool SnarlDistanceIndex::is_looping_chain(const net_handle_t& net) const {
     return chain_record.get_start_id() == chain_record.get_end_id();
 }
 bool SnarlDistanceIndex::is_ordered_in_chain(const net_handle_t& child1, const net_handle_t& child2) const {
+#ifdef debug_distances
     if (!(is_chain(get_parent(child1)) && get_parent(child1) == get_parent(child2))) {
         throw runtime_error("error: trying to get a handle from a snarl, chain, or root");
-    } else {
-        size_t rank1 = is_node(child1) ? TrivialSnarlRecord(get_record_offset(child1), &snarl_tree_records).get_rank_in_parent(get_node_record_offset(child1))
-                                       : SnarlTreeRecord(child1, &snarl_tree_records).get_rank_in_parent();
-        size_t rank2 = is_node(child2) ? TrivialSnarlRecord(get_record_offset(child2), &snarl_tree_records).get_rank_in_parent(get_node_record_offset(child2))
-                                       : SnarlTreeRecord(child2, &snarl_tree_records).get_rank_in_parent();
-
-        return  rank1 < rank2;
     }
+#endif
+    size_t rank1 = is_node(child1) ? TrivialSnarlRecord(get_record_offset(child1), &snarl_tree_records).get_rank_in_parent(get_node_record_offset(child1))
+                                   : SnarlTreeRecord(child1, &snarl_tree_records).get_rank_in_parent();
+    size_t rank2 = is_node(child2) ? TrivialSnarlRecord(get_record_offset(child2), &snarl_tree_records).get_rank_in_parent(get_node_record_offset(child2))
+                                   : SnarlTreeRecord(child2, &snarl_tree_records).get_rank_in_parent();
+
+    return  rank1 < rank2;
 }
 size_t SnarlDistanceIndex::get_record_offset_in_chain(const net_handle_t& child) const {
-    if (!is_chain(get_parent(child))) {
+#ifdef debug_distances
         throw runtime_error("error: net handle isn't in a chain");
-    } else {
+#endif
 
-        return is_node(child) ? TrivialSnarlRecord(get_record_offset(child), &snarl_tree_records).get_rank_in_parent(get_node_record_offset(child))
-                                       : SnarlTreeRecord(child, &snarl_tree_records).get_rank_in_parent();
+     return is_node(child) ? TrivialSnarlRecord(get_record_offset(child), &snarl_tree_records).get_rank_in_parent(get_node_record_offset(child))
+                                    : SnarlTreeRecord(child, &snarl_tree_records).get_rank_in_parent();
 ;
-    }
 }
 
 bool SnarlDistanceIndex::is_trivial_chain(const net_handle_t& net) const {
@@ -675,9 +675,11 @@ net_handle_t SnarlDistanceIndex::get_parent_traversal(const net_handle_t& traver
         //These are the endpoints or tips in a chain
         SnarlTreeRecord start_record = get_snarl_tree_record(traversal_start);
         SnarlTreeRecord end_record = get_snarl_tree_record(traversal_end);
+#ifdef debug_snarl_traversal
         if (start_record.get_parent_record_offset() != end_record.get_parent_record_offset()) {
             throw runtime_error("error: Looking for parent traversal of two non-siblings");
         }
+#endif
         SnarlTreeRecord parent_record (start_record.get_parent_record_offset(), &snarl_tree_records);
 #ifdef debug_snarl_traversal
         assert(parent_record.get_record_handle_type() == CHAIN_HANDLE);
@@ -723,10 +725,12 @@ net_handle_t SnarlDistanceIndex::get_parent_traversal(const net_handle_t& traver
         } else {
             throw runtime_error("error: trying to get an invalid traversal of a chain");
         }
+#ifdef debug_snarl_traversal
 
         if (!parent_record.has_connectivity(start_endpoint, end_endpoint)) {
             throw runtime_error("error: Trying to get parent traversal that is not connected");
         }
+#endif
 
         return get_net_handle(parent_record.record_offset, 
                               endpoints_to_connectivity(start_endpoint, end_endpoint), 
