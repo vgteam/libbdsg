@@ -123,6 +123,113 @@ public:
 
 public:
 
+    //This stores information about a net handle so that it only needs to be looked up once
+    //to avoid coming back to a record multiple times
+    //Always had a net_handle_t and record tag, may also fill in optional fields which default to inf
+    struct CachedNetHandle {
+
+        public:
+            net_handle_t net;
+            size_t record_tag;
+            bool contains_node_values = false; //This is true if it is for a node
+            bool contains_start_bound=false;
+            bool contains_start_node_values = false; //This is true for the start node
+            bool contains_end_bound=false;
+            bool contains_end_node_values = false;
+
+        private:
+
+            //Values associated with this net
+            size_t rank = std::numeric_limits<size_t>::max();
+            size_t min_length = std::numeric_limits<size_t>::max();
+
+            //Associated net_handles
+            size_t parent_record_offset = std::numeric_limits<size_t>::max();
+            size_t parent_record_tag = std::numeric_limits<size_t>::max();
+
+            //These will always be nodes, even for a snarl (instead of sentinels)
+            net_handle_t start_bound_in;
+            size_t start_bound_tag = std::numeric_limits<size_t>::max();
+            size_t start_bound_length = std::numeric_limits<size_t>::max();
+            net_handle_t end_bound_in;
+            size_t end_bound_tag = std::numeric_limits<size_t>::max();
+            size_t end_bound_length = std::numeric_limits<size_t>::max();
+
+            //This groups gets set for either a node, or for the start node of a snarl
+            bool is_reversed = false; //This is only set for a node 
+            size_t prefix_sum_val = std::numeric_limits<size_t>::max();
+            size_t forward_loop_val = std::numeric_limits<size_t>::max();
+            size_t reverse_loop_val = std::numeric_limits<size_t>::max();
+            size_t chain_component_val = std::numeric_limits<size_t>::max();
+            size_t start_rank = std::numeric_limits<size_t>::max();
+
+
+            //This gets set for the end node of a snarl
+            size_t end_prefix_sum_val = std::numeric_limits<size_t>::max();
+            size_t end_forward_loop_val = std::numeric_limits<size_t>::max();
+            size_t end_reverse_loop_val = std::numeric_limits<size_t>::max();
+            size_t end_chain_component_val = std::numeric_limits<size_t>::max();
+            size_t end_rank = std::numeric_limits<size_t>::max();
+            bool end_is_reversed;
+
+            size_t last_chain_component = std::numeric_limits<size_t>::max();
+
+
+        
+
+        CachedNetHandle(const net_handle_t net_handle, size_t tag): 
+            net(net_handle),
+            record_tag(tag) {
+        };
+
+        friend class SnarlDistanceIndex;
+
+    };
+
+    //Get the cached net handle of a bound of the parent
+    //only fills in values that the parent already knows
+    CachedNetHandle get_cached_bound(const CachedNetHandle& parent, bool get_start) const;
+    CachedNetHandle get_cached_net_handle(const net_handle_t net) const {
+        return CachedNetHandle(net, 
+            snarl_tree_records->at(get_record_offset(net)));
+    }
+    CachedNetHandle get_cached_net_handle(const net_handle_t net, size_t tag) const {
+        return CachedNetHandle(net, tag);
+    }
+
+    //// Methods to find/calculate up and set the values to be cached
+    //Won't do anything if the values have already been found
+
+    //For a node, set is reversed, prefix sum, forward loop, reverse loop, and component
+    void set_cached_node_values(CachedNetHandle& cached_handle) const;
+    void set_cached_rank(CachedNetHandle& cached_handle) const;
+    void set_cached_min_length(CachedNetHandle& cached_handle) const;
+    void set_cached_parent(CachedNetHandle& cached_handle) const;
+    void set_cached_start_bound(CachedNetHandle& cached_handle, bool set_values_in_chain, bool set_length) const;
+    void set_cached_end_bound(CachedNetHandle& cached_handle, bool set_values_in_chain, bool set_length) const;
+    void set_cached_last_chain_component(CachedNetHandle& cached_handle) const;
+
+    //Methods to get cached values, and will set them if necessary
+    net_handle_t get_cached_start_bound(CachedNetHandle& cached_handle) const;
+    net_handle_t get_cached_end_bound(CachedNetHandle& cached_handle) const;
+    size_t get_cached_start_bound_length(CachedNetHandle& cached_handle) const;
+    size_t get_cached_end_bound_length(CachedNetHandle& cached_handle) const;
+    size_t get_cached_parent_offset(CachedNetHandle& cached_handle) const;
+    size_t get_cached_parent_tag(CachedNetHandle& cached_handle) const;
+    size_t get_cached_rank(CachedNetHandle& cached_handle) const;
+    size_t get_cached_min_length(CachedNetHandle& cached_handle) const;
+    bool get_cached_is_reverse(CachedNetHandle& cached_handle) const;
+    //This is for the node 
+    tuple<size_t, size_t, size_t, size_t> get_cached_chain_values(CachedNetHandle& cached_handle) const;
+    //For the start node of a snarl
+    tuple<size_t, size_t, size_t, size_t> get_cached_start_chain_values(CachedNetHandle& cached_handle) const;
+    //For the end node of a snarl
+    tuple<size_t, size_t, size_t, size_t> get_cached_end_chain_values(CachedNetHandle& cached_handle) const;
+    //The last node's component in a chain
+    size_t get_cached_last_chain_component(CachedNetHandle& cached_handle) const;
+
+public:
+
 
 ////////////////// SnarlDecomposition methods
 
@@ -155,6 +262,7 @@ public:
      * Returns true if the given net handle refers to (a traversal of) a trivial chain that represents a single node.
      */
     bool is_trivial_chain(const net_handle_t& net) const;
+    bool is_trivial_chain(const CachedNetHandle& cached_net) const;
     /**
      * Returns true if the given net handle refers to (a traversal of) a single node, and thus has a corresponding handle_t.
      */
@@ -188,6 +296,7 @@ public:
      * Also works on snarl boundary sentinels.
      */
     net_handle_t get_parent(const net_handle_t& child) const;
+    net_handle_t get_parent(CachedNetHandle& cached_child) const;
     
     
     // We have sentinel net_handle_t values for the start/end of each snarl, so
@@ -249,11 +358,6 @@ public:
      */
     endpoint_t ends_at(const net_handle_t& traversal) const;
 
-    /**
-     *
-     */
-    size_t get_rank_in_parent(const net_handle_t& net) const;
-
 protected:
     /**
      * Internal implementation for for_each_child.
@@ -307,9 +411,13 @@ public:
      * Distance limit is the distance after which we give up if we're doing a traversal
      */
     size_t distance_in_parent(const net_handle_t& parent, const net_handle_t& child1, const net_handle_t& child2, const HandleGraph* graph=nullptr, size_t distance_limit = std::numeric_limits<size_t>::max()) const;
+    //The same thing but using cached values
+    //go_left is true if we want to go the opposite direction of the net handles
+    //This is not great but better than copying the entire cached net handle I think
+    size_t distance_in_parent(CachedNetHandle& cached_parent, CachedNetHandle& cached_child1, bool go_left1, CachedNetHandle& cached_child2, bool go_left2, const HandleGraph* graph=nullptr, size_t distance_limit = std::numeric_limits<size_t>::max()) const;
 
-    size_t distance_to_parent_bound(net_handle_t& parent, bool to_start, net_handle_t& child, bool go_left) const;
-
+    size_t distance_to_parent_bound(net_handle_t& cached_parent, bool to_start, net_handle_t& child, bool go_left) const;
+    size_t distance_to_parent_bound(CachedNetHandle& cached_parent, bool to_start, CachedNetHandle& child, bool go_left) const;
     
     //Return true if child1 comes before child2 in the chain. 
     bool is_ordered_in_chain(const net_handle_t& child1, const net_handle_t& child2) const;
@@ -377,7 +485,7 @@ public:
 
     bool has_connectivity(const net_handle_t& net, endpoint_t start, endpoint_t end) const ;
     //TODO: bool has_external_connectivity(const net_handle_t& net, endpoint_t start, endpoint_t end) const {return has_external_connectivity((*records)->at(get_record_offset(net)));} 
-    bool has_external_connectivity(const net_handle_t& net, endpoint_t start, endpoint_t end) const ; 
+    bool has_external_connectivity(const size_t tag, endpoint_t start, endpoint_t end) const ; 
 
 
     /**
@@ -1402,20 +1510,24 @@ private:
         //The ranks are the offsets of the nodes in the chain (points to the record tag)
         //This is the distance between the node sides, leaving the first and entering the second,
         //not including node lengths
-        //is_looping_chain indicates whether this chain loops 
+        //checked_loop is true if we checked that there was a loop and false otherwise
+        //If checked_loop is true, then is_looping_chain indicates whether this chain loops 
         //and last_chain_component is the component of the last thing in the chain
         //TODO: Double check finding the distance for the same node
         virtual size_t get_distance(size_t rank1, bool right_side1, size_t node_length1, 
                                     size_t prefix_sum1, size_t forward_loop1, size_t reverse_loop1, size_t component1,
                                     size_t rank2, bool right_side2, size_t node_length2,
-                                    size_t prefix_sum2, size_t forward_loop2, size_t reverse_loop2, size_t component2) const;
+                                    size_t prefix_sum2, size_t forward_loop2, size_t reverse_loop2, size_t component2, 
+                                    bool checked_loop = false, bool is_looping_chain = false,
+                                    bool is_multicomponent_chain = false,
+                                    size_t last_chain_component = std::numeric_limits<size_t>::max()) const;
 
         ///For a chain that loops (when the start and end node are the same), find the 
         //distance walking around the back of the loop
         virtual size_t get_distance_taking_chain_loop(size_t rank1, bool right_side1, size_t node_length1, 
                                     size_t prefix_sum1, size_t forward_loop1, size_t reverse_loop1, size_t component1,
                                     size_t rank2, bool right_side2, size_t node_length2,
-                                    size_t prefix_sum2, size_t forward_loop2, size_t reverse_loop2, size_t component2) const;
+                                    size_t prefix_sum2, size_t forward_loop2, size_t reverse_loop2, size_t component2, bool is_multicomponent, size_t last_component) const;
 
         ////////////////////////// methods for navigating the snarl tree from this chain
 
