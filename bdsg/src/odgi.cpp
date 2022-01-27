@@ -913,7 +913,7 @@ void ODGI::optimize(bool allow_id_reassignment) {
 
 /// Reorder the graph's internal structure to match that given.
 /// Optionally compact the id space of the graph to match the ordering, from 1->|ordering|.
-void ODGI::apply_ordering(const std::vector<handle_t>& order_in, bool compact_ids) {
+bool ODGI::apply_ordering(const std::vector<handle_t>& order_in, bool compact_ids) {
     ODGI ordered;
     // if we're given an empty order, just compact the ids based on our ordering
     const std::vector<handle_t>* order;
@@ -982,6 +982,7 @@ void ODGI::apply_ordering(const std::vector<handle_t>& order_in, bool compact_id
                 });
         });
     *this = ordered;
+    return compact_ids;
 }
 
 void ODGI::apply_path_ordering(const std::vector<path_handle_t>& order) {

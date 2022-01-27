@@ -154,16 +154,16 @@ struct PyCallBack_bdsg_MutablePositionOverlay : public bdsg::MutablePositionOver
 		}
 		return MutablePositionOverlay::optimize(a0);
 	}
-	void apply_ordering(const class std::vector<handlegraph::handle_t> & a0, bool a1) override { 
+	bool apply_ordering(const class std::vector<handlegraph::handle_t> & a0, bool a1) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::MutablePositionOverlay *>(this), "apply_ordering");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
-			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
-				static pybind11::detail::overload_caster_t<void> caster;
-				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
+				static pybind11::detail::overload_caster_t<bool> caster;
+				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<void>(std::move(o));
+			else return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return MutablePositionOverlay::apply_ordering(a0, a1);
 	}
@@ -1183,8 +1183,8 @@ void bind_bdsg_overlays_path_position_overlays(std::function< pybind11::module &
 		cl.def("divide_handle", (class std::vector<handlegraph::handle_t> (bdsg::MutablePositionOverlay::*)(const struct handlegraph::handle_t &, const class std::vector<unsigned long> &)) &bdsg::MutablePositionOverlay::divide_handle, "Split a handle's underlying node at the given offsets in the handle's\n orientation. Returns all of the handles to the parts. Other handles to\n the node being split may be invalidated. The split pieces stay in the\n same local forward orientation as the original node, but the returned\n handles come in the order and orientation appropriate for the handle\n passed in.\n Updates stored paths.\n\nC++: bdsg::MutablePositionOverlay::divide_handle(const struct handlegraph::handle_t &, const class std::vector<unsigned long> &) --> class std::vector<handlegraph::handle_t>", pybind11::arg("handle"), pybind11::arg("offsets"));
 		cl.def("optimize", [](bdsg::MutablePositionOverlay &o) -> void { return o.optimize(); }, "");
 		cl.def("optimize", (void (bdsg::MutablePositionOverlay::*)(bool)) &bdsg::MutablePositionOverlay::optimize, "Adjust the representation of the graph in memory to improve performance.\n Optionally, allow the node IDs to be reassigned to further improve\n performance.\n Note: Ideally, this method is called one time once there is expected to be\n few graph modifications in the future.\n\nC++: bdsg::MutablePositionOverlay::optimize(bool) --> void", pybind11::arg("allow_id_reassignment"));
-		cl.def("apply_ordering", [](bdsg::MutablePositionOverlay &o, const class std::vector<handlegraph::handle_t> & a0) -> void { return o.apply_ordering(a0); }, "", pybind11::arg("order"));
-		cl.def("apply_ordering", (void (bdsg::MutablePositionOverlay::*)(const class std::vector<handlegraph::handle_t> &, bool)) &bdsg::MutablePositionOverlay::apply_ordering, "Reorder the graph's internal structure to match that given.\n This sets the order that is used for iteration in functions like for_each_handle.\n Optionally compact the id space of the graph to match the ordering, from 1->|ordering|.\n This may be a no-op in the case of graph implementations that do not have any mechanism to maintain an ordering.\n\nC++: bdsg::MutablePositionOverlay::apply_ordering(const class std::vector<handlegraph::handle_t> &, bool) --> void", pybind11::arg("order"), pybind11::arg("compact_ids"));
+		cl.def("apply_ordering", [](bdsg::MutablePositionOverlay &o, const class std::vector<handlegraph::handle_t> & a0) -> bool { return o.apply_ordering(a0); }, "", pybind11::arg("order"));
+		cl.def("apply_ordering", (bool (bdsg::MutablePositionOverlay::*)(const class std::vector<handlegraph::handle_t> &, bool)) &bdsg::MutablePositionOverlay::apply_ordering, "Reorder the graph's internal structure to match that given.\n This sets the order that is used for iteration in functions like for_each_handle.\n If compact_ids is true, may (but will not necessarily) compact the id space of the graph to match the ordering, from 1->|ordering|.\n In other cases, node IDs will be preserved.\n This may be a no-op in the case of graph implementations that do not have any mechanism to maintain an ordering.\n This may invalidate outstanding handles.\n Returns true if node IDs actually were adjusted to match the given order, and false if they remain unchanged.\n\nC++: bdsg::MutablePositionOverlay::apply_ordering(const class std::vector<handlegraph::handle_t> &, bool) --> bool", pybind11::arg("order"), pybind11::arg("compact_ids"));
 		cl.def("set_id_increment", (void (bdsg::MutablePositionOverlay::*)(const long long &)) &bdsg::MutablePositionOverlay::set_id_increment, "No-op function (required by MutableHandleGraph interface)\n\nC++: bdsg::MutablePositionOverlay::set_id_increment(const long long &) --> void", pybind11::arg("min_id"));
 		cl.def("increment_node_ids", (void (bdsg::MutablePositionOverlay::*)(long long)) &bdsg::MutablePositionOverlay::increment_node_ids, "Add the given value to all node IDs.\n Has a default implementation in terms of reassign_node_ids, but can be\n implemented more efficiently in some graphs.\n\nC++: bdsg::MutablePositionOverlay::increment_node_ids(long long) --> void", pybind11::arg("increment"));
 		cl.def("reassign_node_ids", (void (bdsg::MutablePositionOverlay::*)(const class std::function<long long (const long long &)> &)) &bdsg::MutablePositionOverlay::reassign_node_ids, "Renumber all node IDs using the given function, which, given an old ID, returns the new ID.\n Modifies the graph in place. Invalidates all outstanding handles.\n If the graph supports paths, they also must be updated.\n The mapping function may return 0. In this case, the input ID will\n remain unchanged. The mapping function should not return any ID for\n which it would return 0.\n\nC++: bdsg::MutablePositionOverlay::reassign_node_ids(const class std::function<long long (const long long &)> &) --> void", pybind11::arg("get_new_id"));

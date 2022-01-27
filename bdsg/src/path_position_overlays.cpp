@@ -287,11 +287,12 @@ namespace bdsg {
         reindex_path_position();
     }
     
-    void MutablePositionOverlay::apply_ordering(const vector<handle_t>& order, bool compact_ids) {
+    bool MutablePositionOverlay::apply_ordering(const vector<handle_t>& order, bool compact_ids) {
         // depending on the implementation, this may change the values of the handles, which
         // may change the value of the steps, so the index could be entirely invalidated
-        get_graph()->apply_ordering(order, compact_ids);
+        bool result = get_graph()->apply_ordering(order, compact_ids);
         reindex_path_position();
+        return result;
     }
     
     void MutablePositionOverlay::set_id_increment(const nid_t& min_id) {
