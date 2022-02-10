@@ -3,6 +3,7 @@
 #include <functional>
 #include <handlegraph/handle_graph.hpp>
 #include <handlegraph/mutable_handle_graph.hpp>
+#include <handlegraph/mutable_path_handle_graph.hpp>
 #include <handlegraph/path_handle_graph.hpp>
 #include <handlegraph/serializable.hpp>
 #include <handlegraph/types.hpp>
@@ -362,16 +363,16 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 		}
 		return HashGraph::optimize(a0);
 	}
-	void apply_ordering(const class std::vector<handlegraph::handle_t> & a0, bool a1) override { 
+	bool apply_ordering(const class std::vector<handlegraph::handle_t> & a0, bool a1) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "apply_ordering");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
-			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
-				static pybind11::detail::overload_caster_t<void> caster;
-				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
+				static pybind11::detail::overload_caster_t<bool> caster;
+				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<void>(std::move(o));
+			else return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return HashGraph::apply_ordering(a0, a1);
 	}
@@ -740,6 +741,45 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 		}
 		return HashGraph::get_magic_number();
 	}
+	struct handlegraph::path_handle_t rename_path(const struct handlegraph::path_handle_t & a0, const std::string & a1) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "rename_path");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
+			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::path_handle_t>::value) {
+				static pybind11::detail::overload_caster_t<struct handlegraph::path_handle_t> caster;
+				return pybind11::detail::cast_ref<struct handlegraph::path_handle_t>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<struct handlegraph::path_handle_t>(std::move(o));
+		}
+		return MutablePathHandleGraph::rename_path(a0, a1);
+	}
+	void pop_front_step(const struct handlegraph::path_handle_t & a0) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "pop_front_step");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
+				static pybind11::detail::overload_caster_t<void> caster;
+				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<void>(std::move(o));
+		}
+		return MutablePathHandleGraph::pop_front_step(a0);
+	}
+	void pop_back_step(const struct handlegraph::path_handle_t & a0) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "pop_back_step");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
+				static pybind11::detail::overload_caster_t<void> caster;
+				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<void>(std::move(o));
+		}
+		return MutablePathHandleGraph::pop_back_step(a0);
+	}
 	unsigned long get_step_count(const struct handlegraph::handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_step_count");
@@ -930,8 +970,8 @@ void bind_bdsg_internal_utility(std::function< pybind11::module &(std::string co
 		cl.def("divide_handle", (class std::vector<handlegraph::handle_t> (bdsg::HashGraph::*)(const struct handlegraph::handle_t &, const class std::vector<unsigned long> &)) &bdsg::HashGraph::divide_handle, "Split a handle's underlying node at the given offsets in the handle's\n orientation. Returns all of the handles to the parts. Other handles to\n the node being split may be invalidated. The split pieces stay in the\n same local forward orientation as the original node, but the returned\n handles come in the order and orientation appropriate for the handle\n passed in.\n Updates stored paths.\n\nC++: bdsg::HashGraph::divide_handle(const struct handlegraph::handle_t &, const class std::vector<unsigned long> &) --> class std::vector<handlegraph::handle_t>", pybind11::arg("handle"), pybind11::arg("offsets"));
 		cl.def("optimize", [](bdsg::HashGraph &o) -> void { return o.optimize(); }, "");
 		cl.def("optimize", (void (bdsg::HashGraph::*)(bool)) &bdsg::HashGraph::optimize, "Adjust the representation of the graph in memory to improve performance.\n Optionally, allow the node IDs to be reassigned to further improve\n performance.\n Note: Ideally, this method is called one time once there is expected to be\n few graph modifications in the future.\n\nC++: bdsg::HashGraph::optimize(bool) --> void", pybind11::arg("allow_id_reassignment"));
-		cl.def("apply_ordering", [](bdsg::HashGraph &o, const class std::vector<handlegraph::handle_t> & a0) -> void { return o.apply_ordering(a0); }, "", pybind11::arg("order"));
-		cl.def("apply_ordering", (void (bdsg::HashGraph::*)(const class std::vector<handlegraph::handle_t> &, bool)) &bdsg::HashGraph::apply_ordering, "Reorder the graph's internal structure to match that given.\n This sets the order that is used for iteration in functions like for_each_handle.\n Optionally compact the id space of the graph to match the ordering, from 1->|ordering|.\n This may be a no-op in the case of graph implementations that do not have any mechanism to maintain an ordering.\n\nC++: bdsg::HashGraph::apply_ordering(const class std::vector<handlegraph::handle_t> &, bool) --> void", pybind11::arg("order"), pybind11::arg("compact_ids"));
+		cl.def("apply_ordering", [](bdsg::HashGraph &o, const class std::vector<handlegraph::handle_t> & a0) -> bool { return o.apply_ordering(a0); }, "", pybind11::arg("order"));
+		cl.def("apply_ordering", (bool (bdsg::HashGraph::*)(const class std::vector<handlegraph::handle_t> &, bool)) &bdsg::HashGraph::apply_ordering, "Reorder the graph's internal structure to match that given.\n This sets the order that is used for iteration in functions like for_each_handle.\n If compact_ids is true, may (but will not necessarily) compact the id space of the graph to match the ordering, from 1->|ordering|.\n In other cases, node IDs will be preserved.\n This may be a no-op in the case of graph implementations that do not have any mechanism to maintain an ordering.\n This may invalidate outstanding handles.\n Returns true if node IDs actually were adjusted to match the given order, and false if they remain unchanged.\n\nC++: bdsg::HashGraph::apply_ordering(const class std::vector<handlegraph::handle_t> &, bool) --> bool", pybind11::arg("order"), pybind11::arg("compact_ids"));
 		cl.def("get_path_count", (unsigned long (bdsg::HashGraph::*)() const) &bdsg::HashGraph::get_path_count, "Returns the number of paths stored in the graph\n\nC++: bdsg::HashGraph::get_path_count() const --> unsigned long");
 		cl.def("has_path", (bool (bdsg::HashGraph::*)(const std::string &) const) &bdsg::HashGraph::has_path, "Determine if a path name exists and is legal to get a path handle for.\n\nC++: bdsg::HashGraph::has_path(const std::string &) const --> bool", pybind11::arg("path_name"));
 		cl.def("get_path_handle", (struct handlegraph::path_handle_t (bdsg::HashGraph::*)(const std::string &) const) &bdsg::HashGraph::get_path_handle, "Look up the path handle for the given path name.\n The path with that name must exist.\n\nC++: bdsg::HashGraph::get_path_handle(const std::string &) const --> struct handlegraph::path_handle_t", pybind11::arg("path_name"));

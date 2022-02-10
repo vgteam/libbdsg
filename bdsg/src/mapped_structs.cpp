@@ -1508,11 +1508,26 @@ Manager::chainid_t Manager::copy_chain(chainid_t chain, int fd) {
     std::cerr << "Duplicating chain of total size " << total_size << " bytes" << std::endl;
 #endif
     
-    // Make the new chain with the appropriate size hint.
-    chainid_t new_chain = open_chain(fd, total_size).first;
+    if (fd) {
+        // Make sure to clear out the file we are writing to in case we are trying
+        // to overwrite a file.
+        if (ftruncate(fd, 0)) {
+            throw std::runtime_error("Could not truncate destination file: " + std::string(strerror(errno))); 
+        }
+    }
     
-    // Extend it to the required total size if it isn't long enough already
-    extend_chain_to(new_chain, total_size);
+    // Make the new chain with the appropriate size hint.
+    std::pair<chainid_t, bool> chain_info = open_chain(fd, total_size);
+    auto& new_chain = chain_info.first;
+    auto& had_data = chain_info.second;
+    
+    if (had_data) {
+        // If there's something there after we truncate, someone else is
+        // fighting us over the file.
+        throw std::runtime_error("Data was added to file at FD " + std::to_string(fd) + " while we were clearing it");
+    }
+    
+    // If we made a fresh new chain we know the first block will be total_size.
     
     // Copy all the data
     
@@ -1531,7 +1546,12 @@ Manager::chainid_t Manager::copy_chain(chainid_t chain, int fd) {
         // Until we are done, we need to copy an overlapping range between the two chains' links, as a block.
         // The block will reach to the end of a link in one or both chains.
         
-        // Make sure we have mapping addresses of an dpointers to records for
+        // TODO: We really should only ever use this to copy from more divided
+        // to more consolidated blocks; if a new boundary occurs in the new
+        // chain it could break up data that needs to be contiguous. Luckily,
+        // we're in charge of creating our destination chain.
+        
+        // Make sure we have mapping addresses of and pointers to records for
         // the current links.
         {
             // Get read access to manager data structures

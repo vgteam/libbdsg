@@ -12,6 +12,8 @@ void bind_handlegraph_types(std::function< pybind11::module &(std::string const 
 void bind_handlegraph_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_handlegraph_path_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_handlegraph_mutable_path_mutable_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
+void bind_bdsg_graph_proxy(std::function< pybind11::module &(std::string const &namespace_) > &M);
+void bind_bdsg_graph_proxy_1(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_internal_wang_hash(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_internal_mapped_structs(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_internal_mapped_structs_1(std::function< pybind11::module &(std::string const &namespace_) > &M);
@@ -21,8 +23,6 @@ void bind_handlegraph_expanding_overlay_graph(std::function< pybind11::module &(
 void bind_bdsg_overlays_strand_split_overlay(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_internal_is_single_stranded(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_internal_eades_algorithm(std::function< pybind11::module &(std::string const &namespace_) > &M);
-void bind_bdsg_internal_graph_proxy(std::function< pybind11::module &(std::string const &namespace_) > &M);
-void bind_bdsg_internal_graph_proxy_1(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_handlegraph_snarl_decomposition(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_std_bdsg_internal_binder_hook_bind(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_odgi(std::function< pybind11::module &(std::string const &namespace_) > &M);
@@ -65,6 +65,8 @@ PYBIND11_MODULE(bdsg, root_module) {
 	bind_handlegraph_handle_graph(M);
 	bind_handlegraph_path_handle_graph(M);
 	bind_handlegraph_mutable_path_mutable_handle_graph(M);
+	bind_bdsg_graph_proxy(M);
+	bind_bdsg_graph_proxy_1(M);
 	bind_bdsg_internal_wang_hash(M);
 	bind_bdsg_internal_mapped_structs(M);
 	bind_bdsg_internal_mapped_structs_1(M);
@@ -74,8 +76,6 @@ PYBIND11_MODULE(bdsg, root_module) {
 	bind_bdsg_overlays_strand_split_overlay(M);
 	bind_bdsg_internal_is_single_stranded(M);
 	bind_bdsg_internal_eades_algorithm(M);
-	bind_bdsg_internal_graph_proxy(M);
-	bind_bdsg_internal_graph_proxy_1(M);
 	bind_handlegraph_snarl_decomposition(M);
 	bind_std_bdsg_internal_binder_hook_bind(M);
 	bind_bdsg_odgi(M);

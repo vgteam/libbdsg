@@ -58,6 +58,19 @@ struct PyCallBack_handlegraph_MutablePathHandleGraph : public handlegraph::Mutab
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"MutablePathHandleGraph::create_path_handle\"");
 	}
+	struct handlegraph::path_handle_t rename_path(const struct handlegraph::path_handle_t & a0, const std::string & a1) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathHandleGraph *>(this), "rename_path");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
+			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::path_handle_t>::value) {
+				static pybind11::detail::overload_caster_t<struct handlegraph::path_handle_t> caster;
+				return pybind11::detail::cast_ref<struct handlegraph::path_handle_t>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<struct handlegraph::path_handle_t>(std::move(o));
+		}
+		return MutablePathHandleGraph::rename_path(a0, a1);
+	}
 	struct handlegraph::step_handle_t append_step(const struct handlegraph::path_handle_t & a0, const struct handlegraph::handle_t & a1) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathHandleGraph *>(this), "append_step");
@@ -83,6 +96,32 @@ struct PyCallBack_handlegraph_MutablePathHandleGraph : public handlegraph::Mutab
 			else return pybind11::detail::cast_safe<struct handlegraph::step_handle_t>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"MutablePathHandleGraph::prepend_step\"");
+	}
+	void pop_front_step(const struct handlegraph::path_handle_t & a0) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathHandleGraph *>(this), "pop_front_step");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
+				static pybind11::detail::overload_caster_t<void> caster;
+				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<void>(std::move(o));
+		}
+		return MutablePathHandleGraph::pop_front_step(a0);
+	}
+	void pop_back_step(const struct handlegraph::path_handle_t & a0) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathHandleGraph *>(this), "pop_back_step");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
+				static pybind11::detail::overload_caster_t<void> caster;
+				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<void>(std::move(o));
+		}
+		return MutablePathHandleGraph::pop_back_step(a0);
 	}
 	using _binder_ret_0 = struct std::pair<struct handlegraph::step_handle_t, struct handlegraph::step_handle_t>;
 	_binder_ret_0 rewrite_segment(const struct handlegraph::step_handle_t & a0, const struct handlegraph::step_handle_t & a1, const class std::vector<handlegraph::handle_t> & a2) override { 
@@ -702,16 +741,16 @@ struct PyCallBack_handlegraph_MutableHandleGraph : public handlegraph::MutableHa
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"MutableHandleGraph::optimize\"");
 	}
-	void apply_ordering(const class std::vector<handlegraph::handle_t> & a0, bool a1) override { 
+	bool apply_ordering(const class std::vector<handlegraph::handle_t> & a0, bool a1) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutableHandleGraph *>(this), "apply_ordering");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
-			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
-				static pybind11::detail::overload_caster_t<void> caster;
-				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
+				static pybind11::detail::overload_caster_t<bool> caster;
+				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<void>(std::move(o));
+			else return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"MutableHandleGraph::apply_ordering\"");
 	}
@@ -1029,8 +1068,11 @@ void bind_handlegraph_path_handle_graph(std::function< pybind11::module &(std::s
 		cl.def("destroy_path", (void (handlegraph::MutablePathHandleGraph::*)(const struct handlegraph::path_handle_t &)) &handlegraph::MutablePathHandleGraph::destroy_path, "Destroy the given path. Invalidates handles to the path and its steps.\n\nC++: handlegraph::MutablePathHandleGraph::destroy_path(const struct handlegraph::path_handle_t &) --> void", pybind11::arg("path"));
 		cl.def("create_path_handle", [](handlegraph::MutablePathHandleGraph &o, const std::string & a0) -> handlegraph::path_handle_t { return o.create_path_handle(a0); }, "", pybind11::arg("name"));
 		cl.def("create_path_handle", (struct handlegraph::path_handle_t (handlegraph::MutablePathHandleGraph::*)(const std::string &, bool)) &handlegraph::MutablePathHandleGraph::create_path_handle, "Create a path with the given name. The caller must ensure that no path\n with the given name exists already, or the behavior is undefined.\n Returns a handle to the created empty path. Handles to other paths must\n remain valid.\n\nC++: handlegraph::MutablePathHandleGraph::create_path_handle(const std::string &, bool) --> struct handlegraph::path_handle_t", pybind11::arg("name"), pybind11::arg("is_circular"));
+		cl.def("rename_path", (struct handlegraph::path_handle_t (handlegraph::MutablePathHandleGraph::*)(const struct handlegraph::path_handle_t &, const std::string &)) &handlegraph::MutablePathHandleGraph::rename_path, "Renames a path. Existing path_handle_t's may become invalidated..\n\nC++: handlegraph::MutablePathHandleGraph::rename_path(const struct handlegraph::path_handle_t &, const std::string &) --> struct handlegraph::path_handle_t", pybind11::arg("path_handle"), pybind11::arg("new_name"));
 		cl.def("append_step", (struct handlegraph::step_handle_t (handlegraph::MutablePathHandleGraph::*)(const struct handlegraph::path_handle_t &, const struct handlegraph::handle_t &)) &handlegraph::MutablePathHandleGraph::append_step, "Append a visit to a node to the given path. Returns a handle to the new\n final step on the path which is appended. If the path is cirular, the new\n step is placed between the steps considered \"last\" and \"first\" by the\n method path_begin. Handles to prior steps on the path, and to other paths,\n must remain valid.\n\nC++: handlegraph::MutablePathHandleGraph::append_step(const struct handlegraph::path_handle_t &, const struct handlegraph::handle_t &) --> struct handlegraph::step_handle_t", pybind11::arg("path"), pybind11::arg("to_append"));
 		cl.def("prepend_step", (struct handlegraph::step_handle_t (handlegraph::MutablePathHandleGraph::*)(const struct handlegraph::path_handle_t &, const struct handlegraph::handle_t &)) &handlegraph::MutablePathHandleGraph::prepend_step, "Prepend a visit to a node to the given path. Returns a handle to the new\n first step on the path which is appended. If the path is cirular, the new\n step is placed between the steps considered \"last\" and \"first\" by the\n method path_begin. Handles to later steps on the path, and to other paths,\n must remain valid.\n\nC++: handlegraph::MutablePathHandleGraph::prepend_step(const struct handlegraph::path_handle_t &, const struct handlegraph::handle_t &) --> struct handlegraph::step_handle_t", pybind11::arg("path"), pybind11::arg("to_prepend"));
+		cl.def("pop_front_step", (void (handlegraph::MutablePathHandleGraph::*)(const struct handlegraph::path_handle_t &)) &handlegraph::MutablePathHandleGraph::pop_front_step, "Remove the first step in a path. Undefined behavior if path is empty.\n\nC++: handlegraph::MutablePathHandleGraph::pop_front_step(const struct handlegraph::path_handle_t &) --> void", pybind11::arg("path_handle"));
+		cl.def("pop_back_step", (void (handlegraph::MutablePathHandleGraph::*)(const struct handlegraph::path_handle_t &)) &handlegraph::MutablePathHandleGraph::pop_back_step, "Remove the last step in a path. Undefined behavior if path is empty.\n\nC++: handlegraph::MutablePathHandleGraph::pop_back_step(const struct handlegraph::path_handle_t &) --> void", pybind11::arg("path_handle"));
 		cl.def("rewrite_segment", (struct std::pair<struct handlegraph::step_handle_t, struct handlegraph::step_handle_t> (handlegraph::MutablePathHandleGraph::*)(const struct handlegraph::step_handle_t &, const struct handlegraph::step_handle_t &, const class std::vector<handlegraph::handle_t> &)) &handlegraph::MutablePathHandleGraph::rewrite_segment, "Delete a segment of a path and rewrite it as some other sequence of\n steps. Returns a pair of step_handle_t's that indicate the range of the\n new segment in the path. The segment to delete should be designated by\n the first (begin) and past-last (end) step handles.  If the step that is\n returned by path_begin is deleted, path_begin will now return the first\n step from the new segment or, in the case that the new segment is empty,\n the step used as segment_end. Empty ranges consist of two copies of the\n same step handle. Empty ranges in empty paths consist of two copies of\n the end sentinel handle for the path. Rewriting an empty range inserts\n before the provided end handle.\n\nC++: handlegraph::MutablePathHandleGraph::rewrite_segment(const struct handlegraph::step_handle_t &, const struct handlegraph::step_handle_t &, const class std::vector<handlegraph::handle_t> &) --> struct std::pair<struct handlegraph::step_handle_t, struct handlegraph::step_handle_t>", pybind11::arg("segment_begin"), pybind11::arg("segment_end"), pybind11::arg("new_segment"));
 		cl.def("set_circularity", (void (handlegraph::MutablePathHandleGraph::*)(const struct handlegraph::path_handle_t &, bool)) &handlegraph::MutablePathHandleGraph::set_circularity, "Make a path circular or non-circular. If the path is becoming circular, the\n last step is joined to the first step. If the path is becoming linear, the\n step considered \"last\" is unjoined from the step considered \"first\" according\n to the method path_begin.\n\nC++: handlegraph::MutablePathHandleGraph::set_circularity(const struct handlegraph::path_handle_t &, bool) --> void", pybind11::arg("path"), pybind11::arg("circular"));
 		cl.def("assign", (class handlegraph::MutablePathHandleGraph & (handlegraph::MutablePathHandleGraph::*)(const class handlegraph::MutablePathHandleGraph &)) &handlegraph::MutablePathHandleGraph::operator=, "C++: handlegraph::MutablePathHandleGraph::operator=(const class handlegraph::MutablePathHandleGraph &) --> class handlegraph::MutablePathHandleGraph &", pybind11::return_value_policy::automatic, pybind11::arg(""));
@@ -1044,12 +1086,12 @@ void bind_handlegraph_path_handle_graph(std::function< pybind11::module &(std::s
 		cl.def("create_edge", (void (handlegraph::MutableHandleGraph::*)(const struct handlegraph::handle_t &, const struct handlegraph::handle_t &)) &handlegraph::MutableHandleGraph::create_edge, "Create an edge connecting the given handles in the given order and orientations.\n Ignores existing edges.\n\nC++: handlegraph::MutableHandleGraph::create_edge(const struct handlegraph::handle_t &, const struct handlegraph::handle_t &) --> void", pybind11::arg("left"), pybind11::arg("right"));
 		cl.def("create_edge", (void (handlegraph::MutableHandleGraph::*)(const struct std::pair<struct handlegraph::handle_t, struct handlegraph::handle_t> &)) &handlegraph::MutableHandleGraph::create_edge, "Convenient wrapper for create_edge.\n\nC++: handlegraph::MutableHandleGraph::create_edge(const struct std::pair<struct handlegraph::handle_t, struct handlegraph::handle_t> &) --> void", pybind11::arg("edge"));
 		cl.def("apply_orientation", (struct handlegraph::handle_t (handlegraph::MutableHandleGraph::*)(const struct handlegraph::handle_t &)) &handlegraph::MutableHandleGraph::apply_orientation, "Alter the node that the given handle corresponds to so the orientation\n indicated by the handle becomes the node's local forward orientation.\n Rewrites all edges pointing to the node and the node's sequence to\n reflect this. Invalidates all handles to the node (including the one\n passed). Returns a new, valid handle to the node in its new forward\n orientation. Note that it is possible for the node's ID to change.\n Does not update any stored paths. May change the ordering of the underlying\n graph.\n\nC++: handlegraph::MutableHandleGraph::apply_orientation(const struct handlegraph::handle_t &) --> struct handlegraph::handle_t", pybind11::arg("handle"));
-		cl.def("divide_handle", (class std::vector<handlegraph::handle_t> (handlegraph::MutableHandleGraph::*)(const struct handlegraph::handle_t &, const class std::vector<unsigned long> &)) &handlegraph::MutableHandleGraph::divide_handle, "Split a handle's underlying node at the given offsets in the handle's\n orientation. Returns all of the handles to the parts. Other handles to\n the node being split may be invalidated. The split pieces stay in the\n same local forward orientation as the original node, but the returned\n handles come in the order and orientation appropriate for the handle\n passed in.\n Updates stored paths.\n\nC++: handlegraph::MutableHandleGraph::divide_handle(const struct handlegraph::handle_t &, const class std::vector<unsigned long> &) --> class std::vector<handlegraph::handle_t>", pybind11::arg("handle"), pybind11::arg("offsets"));
+		cl.def("divide_handle", (class std::vector<handlegraph::handle_t> (handlegraph::MutableHandleGraph::*)(const struct handlegraph::handle_t &, const class std::vector<unsigned long> &)) &handlegraph::MutableHandleGraph::divide_handle, "Split a handle's underlying node at the given offsets in the handle's\n orientation. Returns all of the handles to the parts. Other handles to\n the node being split may be invalidated. The split pieces stay in the\n same local forward orientation as the original node, but the returned\n handles come in the order and orientation appropriate for the handle\n passed in.\n Updates stored paths.\n This invalidates the passed handles, but not other handles.\n\nC++: handlegraph::MutableHandleGraph::divide_handle(const struct handlegraph::handle_t &, const class std::vector<unsigned long> &) --> class std::vector<handlegraph::handle_t>", pybind11::arg("handle"), pybind11::arg("offsets"));
 		cl.def("divide_handle", (struct std::pair<struct handlegraph::handle_t, struct handlegraph::handle_t> (handlegraph::MutableHandleGraph::*)(const struct handlegraph::handle_t &, unsigned long)) &handlegraph::MutableHandleGraph::divide_handle, "Specialization of divide_handle for a single division point\n\nC++: handlegraph::MutableHandleGraph::divide_handle(const struct handlegraph::handle_t &, unsigned long) --> struct std::pair<struct handlegraph::handle_t, struct handlegraph::handle_t>", pybind11::arg("handle"), pybind11::arg("offset"));
 		cl.def("optimize", [](handlegraph::MutableHandleGraph &o) -> void { return o.optimize(); }, "");
-		cl.def("optimize", (void (handlegraph::MutableHandleGraph::*)(bool)) &handlegraph::MutableHandleGraph::optimize, "Adjust the representation of the graph in memory to improve performance.\n Optionally, allow the node IDs to be reassigned to further improve\n performance.\n Note: Ideally, this method is called one time once there is expected to be\n few graph modifications in the future.\n\nC++: handlegraph::MutableHandleGraph::optimize(bool) --> void", pybind11::arg("allow_id_reassignment"));
-		cl.def("apply_ordering", [](handlegraph::MutableHandleGraph &o, const class std::vector<handlegraph::handle_t> & a0) -> void { return o.apply_ordering(a0); }, "", pybind11::arg("order"));
-		cl.def("apply_ordering", (void (handlegraph::MutableHandleGraph::*)(const class std::vector<handlegraph::handle_t> &, bool)) &handlegraph::MutableHandleGraph::apply_ordering, "Reorder the graph's internal structure to match that given.\n This sets the order that is used for iteration in functions like for_each_handle.\n Optionally may compact the id space of the graph to match the ordering, from 1->|ordering|.\n This may be a no-op in the case of graph implementations that do not have any mechanism to maintain an ordering.\n\nC++: handlegraph::MutableHandleGraph::apply_ordering(const class std::vector<handlegraph::handle_t> &, bool) --> void", pybind11::arg("order"), pybind11::arg("compact_ids"));
+		cl.def("optimize", (void (handlegraph::MutableHandleGraph::*)(bool)) &handlegraph::MutableHandleGraph::optimize, "Adjust the representation of the graph in memory to improve performance.\n Optionally, allow the node IDs to be reassigned to further improve\n performance.\n Note: Ideally, this method is called one time once there is expected to be\n few graph modifications in the future.\n This may invalidate outstanding handles.\n\nC++: handlegraph::MutableHandleGraph::optimize(bool) --> void", pybind11::arg("allow_id_reassignment"));
+		cl.def("apply_ordering", [](handlegraph::MutableHandleGraph &o, const class std::vector<handlegraph::handle_t> & a0) -> bool { return o.apply_ordering(a0); }, "", pybind11::arg("order"));
+		cl.def("apply_ordering", (bool (handlegraph::MutableHandleGraph::*)(const class std::vector<handlegraph::handle_t> &, bool)) &handlegraph::MutableHandleGraph::apply_ordering, "Reorder the graph's internal structure to match that given.\n This sets the order that is used for iteration in functions like for_each_handle.\n If compact_ids is true, may (but will not necessarily) compact the id space of the graph to match the ordering, from 1->|ordering|.\n In other cases, node IDs will be preserved.\n This may be a no-op in the case of graph implementations that do not have any mechanism to maintain an ordering.\n This may invalidate outstanding handles.\n Returns true if node IDs actually were adjusted to match the given order, and false if they remain unchanged.\n\nC++: handlegraph::MutableHandleGraph::apply_ordering(const class std::vector<handlegraph::handle_t> &, bool) --> bool", pybind11::arg("order"), pybind11::arg("compact_ids"));
 		cl.def("set_id_increment", (void (handlegraph::MutableHandleGraph::*)(const long long &)) &handlegraph::MutableHandleGraph::set_id_increment, "Set a minimum id to increment the id space by, used as a hint during construction.\n May have no effect on a backing implementation.\n\nC++: handlegraph::MutableHandleGraph::set_id_increment(const long long &) --> void", pybind11::arg("min_id"));
 		cl.def("increment_node_ids", (void (handlegraph::MutableHandleGraph::*)(long long)) &handlegraph::MutableHandleGraph::increment_node_ids, "Add the given value to all node IDs.\n Has a default implementation in terms of reassign_node_ids, but can be\n implemented more efficiently in some graphs.\n\nC++: handlegraph::MutableHandleGraph::increment_node_ids(long long) --> void", pybind11::arg("increment"));
 		cl.def("increment_node_ids", (void (handlegraph::MutableHandleGraph::*)(long)) &handlegraph::MutableHandleGraph::increment_node_ids, "This specialization for long appears to be needed to avoid confusion about nid_t\n\nC++: handlegraph::MutableHandleGraph::increment_node_ids(long) --> void", pybind11::arg("increment"));

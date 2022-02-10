@@ -17,7 +17,7 @@
 #include "bdsg/internal/hash_map.hpp"
 #include "bdsg/internal/utility.hpp"
 #include "bdsg/internal/eades_algorithm.hpp"
-#include "bdsg/internal/graph_proxy.hpp"
+#include "bdsg/graph_proxy.hpp"
 
 #include <arpa/inet.h>
 
@@ -52,9 +52,9 @@ using namespace handlegraph;
 template<typename Backend = STLBackend>
 class BasePackedGraph {
 
-    // We must be friends with the proxy class for it to actually work on us,
-    // since we leave as protected/private the protected methods it wants to
-    // proxy.
+    // We must be friends with the proxy class and its components for it to
+    // actually work on us, since we leave as protected/private the protected
+    // methods it wants to proxy.
     friend class GraphProxy<BasePackedGraph>;
     
 public:
@@ -106,14 +106,14 @@ public:
     /// Loop over all the handles to next/previous (right/left) nodes. Passes
     /// them to a callback which returns false to stop iterating and true to
     /// continue. Returns true if we finished and false if we stopped early.
-    bool follow_edges_impl(const handle_t& handle, bool go_left, const std::function<bool(const handle_t&)>& iteratee) const;
+    bool follow_edges(const handle_t& handle, bool go_left, const std::function<bool(const handle_t&)>& iteratee) const;
     
     /// Loop over all the nodes in the graph in their local forward
     /// orientations, in their internal stored order. Stop if the iteratee
     /// returns false. Can be told to run in parallel, in which case stopping
     /// after a false return value is on a best-effort basis and iteration
     /// order is not defined.
-    bool for_each_handle_impl(const std::function<bool(const handle_t&)>& iteratee, bool parallel = false) const;
+    bool for_each_handle(const std::function<bool(const handle_t&)>& iteratee, bool parallel = false) const;
     
     /// Return the total number of edges in the graph. If not overridden,
     /// counts them all in linear time.
@@ -233,9 +233,12 @@ public:
     
     /// Reorder the graph's internal structure to match that given.
     /// This sets the order that is used for iteration in functions like for_each_handle.
-    /// Optionally compact the id space of the graph to match the ordering, from 1->|ordering|.
+    /// If compact_ids is true, may (but will not necessarily) compact the id space of the graph to match the ordering, from 1->|ordering|.
+    /// In other cases, node IDs will be preserved.
     /// This may be a no-op in the case of graph implementations that do not have any mechanism to maintain an ordering.
-    void apply_ordering(const vector<handle_t>& order, bool compact_ids = false);
+    /// This may invalidate outstanding handles.
+    /// Returns true if node IDs actually were adjusted to match the given order, and false if they remain unchanged.
+    bool apply_ordering(const vector<handle_t>& order, bool compact_ids = false);
     
     ////////////////////////////////////////////////////////////////////////////
     // Path handle interface
@@ -312,11 +315,11 @@ public:
     path_handle_t get_path_handle_of_step(const step_handle_t& step_handle) const;
     
     /// Execute a function on each path in the graph
-    bool for_each_path_handle_impl(const std::function<bool(const path_handle_t&)>& iteratee) const;
+    bool for_each_path_handle(const std::function<bool(const path_handle_t&)>& iteratee) const;
     
     /// Calls the given function for each step of the given handle on a path.
-    bool for_each_step_on_handle_impl(const handle_t& handle,
-                                      const function<bool(const step_handle_t&)>& iteratee) const;
+    bool for_each_step_on_handle(const handle_t& handle,
+                                 const function<bool(const step_handle_t&)>& iteratee) const;
                                       
     /// Returns a vector of all steps of a node on paths. Optionally restricts to
     /// steps that match the handle in orientation.
@@ -1150,7 +1153,7 @@ template<typename Backend>
 void BasePackedGraph<Backend>::create_edge(const handle_t& left, const handle_t& right) {
     
     // look for the edge
-    bool add_edge = follow_edges_impl(left, false, [&](const handle_t& next) {
+    bool add_edge = follow_edges(left, false, [&](const handle_t& next) {
         return next != right;
     });
     
@@ -1234,7 +1237,7 @@ string BasePackedGraph<Backend>::get_sequence(const handle_t& handle) const {
 }
 
 template<typename Backend>
-bool BasePackedGraph<Backend>::follow_edges_impl(const handle_t& handle, bool go_left,
+bool BasePackedGraph<Backend>::follow_edges(const handle_t& handle, bool go_left,
                                     const std::function<bool(const handle_t&)>& iteratee) const {
     // toward start = true, toward end = false
     bool direction = get_is_reverse(handle) != go_left;
@@ -1279,7 +1282,7 @@ size_t BasePackedGraph<Backend>::get_degree(const handle_t& handle, bool go_left
     // implementation, which we can't use because we're not allowed virtual
     // methods.
     size_t count = 0;
-    follow_edges_impl(handle, go_left, [&](const handle_t& ignored) {
+    follow_edges(handle, go_left, [&](const handle_t& ignored) {
         // Just manually count every edge we get by looking at the handle in
         // that orientation
         count++;
@@ -1294,7 +1297,7 @@ bool BasePackedGraph<Backend>::has_edge(const handle_t& left, const handle_t& ri
     // implementation, which we can't use because we're not allowed virtual
     // methods.
     bool not_seen = true;
-    follow_edges_impl(left, false, [&](const handle_t& next) {
+    follow_edges(left, false, [&](const handle_t& next) {
         not_seen = (next != right);
         return not_seen;
     });
@@ -1302,7 +1305,7 @@ bool BasePackedGraph<Backend>::has_edge(const handle_t& left, const handle_t& ri
 }
 
 template<typename Backend>
-bool BasePackedGraph<Backend>::for_each_handle_impl(const std::function<bool(const handle_t&)>& iteratee,
+bool BasePackedGraph<Backend>::for_each_handle(const std::function<bool(const handle_t&)>& iteratee,
                                        bool parallel) const {
     
     if (parallel) {
@@ -1636,7 +1639,7 @@ void BasePackedGraph<Backend>::destroy_handle(const handle_t& handle) {
     // Clear out any paths on this handle.
     // We need to first compose a list of distinct visiting paths.
     std::unordered_set<path_handle_t> visiting_paths;
-    for_each_step_on_handle_impl(handle, [&](const step_handle_t& step) {
+    for_each_step_on_handle(handle, [&](const step_handle_t& step) {
         visiting_paths.insert(get_path_handle_of_step(step));
         return true;
     });
@@ -1648,7 +1651,7 @@ void BasePackedGraph<Backend>::destroy_handle(const handle_t& handle) {
     deleted_bases += get_length(handle);
     
     // remove the back-references to the edges
-    follow_edges_impl(handle, false, [&](const handle_t& next) {
+    follow_edges(handle, false, [&](const handle_t& next) {
         remove_edge_reference(flip(next), flip(handle));
         
         // we don't actually bother removing the reference, but we will also consider
@@ -1659,7 +1662,7 @@ void BasePackedGraph<Backend>::destroy_handle(const handle_t& handle) {
         }
         return true;
     });
-    follow_edges_impl(handle, true, [&](const handle_t& prev) {
+    follow_edges(handle, true, [&](const handle_t& prev) {
         
         remove_edge_reference(prev, handle);
         
@@ -2264,12 +2267,13 @@ void BasePackedGraph<Backend>::optimize(bool allow_id_reassignment) {
 }
 
 template<typename Backend>
-void BasePackedGraph<Backend>::apply_ordering(const vector<handle_t>& order, bool compact_ids) {
+bool BasePackedGraph<Backend>::apply_ordering(const vector<handle_t>& order, bool compact_ids) {
     
     if (compact_ids) {
         // reassign IDs into a contiguous interval ordered by an approximate sort
         this->compact_ids(order);
     }
+    return compact_ids;
 }
 
 template<typename Backend>
@@ -2333,7 +2337,7 @@ template<typename Backend>
 size_t BasePackedGraph<Backend>::get_step_count(const handle_t& handle) const {
     // TODO: This mostly duplicates the libhandlegraph default implementation.
     size_t count = 0;
-    for_each_step_on_handle_impl(handle, [&](const step_handle_t& step) {
+    for_each_step_on_handle(handle, [&](const step_handle_t& step) {
         ++count;
         return true;
     });
@@ -2346,7 +2350,7 @@ size_t BasePackedGraph<Backend>::get_path_count() const {
 }
 
 template<typename Backend>
-bool BasePackedGraph<Backend>::for_each_path_handle_impl(const std::function<bool(const path_handle_t&)>& iteratee) const {
+bool BasePackedGraph<Backend>::for_each_path_handle(const std::function<bool(const path_handle_t&)>& iteratee) const {
     for (const auto& path_id_record : path_id) {
         if (!iteratee(as_path_handle(path_id_record.second))) {
             return false;
@@ -2428,7 +2432,7 @@ path_handle_t BasePackedGraph<Backend>::get_path_handle_of_step(const step_handl
 }
 
 template<typename Backend>
-bool BasePackedGraph<Backend>::for_each_step_on_handle_impl(const handle_t& handle,
+bool BasePackedGraph<Backend>::for_each_step_on_handle(const handle_t& handle,
                                                const function<bool(const step_handle_t&)>& iteratee) const {
     
     size_t path_membership = path_membership_node_iv.get(graph_index_to_node_member_index(graph_iv_index(handle)));
@@ -2463,7 +2467,7 @@ std::vector<step_handle_t> BasePackedGraph<Backend>::steps_of_handle(const handl
     // TODO: This somewhat duplicates the libhandlegraph implementation
     std::vector<step_handle_t> found;
     
-    for_each_step_on_handle_impl(handle, [&](const step_handle_t& step) {
+    for_each_step_on_handle(handle, [&](const step_handle_t& step) {
         // For each handle step
         if (!match_orientation || get_is_reverse(handle) == get_is_reverse(get_handle_of_step(step))) {
             // If its orientation is acceptable, keep it

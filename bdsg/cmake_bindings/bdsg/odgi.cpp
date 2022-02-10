@@ -3,6 +3,7 @@
 #include <handlegraph/deletable_handle_graph.hpp>
 #include <handlegraph/handle_graph.hpp>
 #include <handlegraph/mutable_handle_graph.hpp>
+#include <handlegraph/mutable_path_handle_graph.hpp>
 #include <handlegraph/serializable.hpp>
 #include <handlegraph/types.hpp>
 #include <ios>
@@ -635,16 +636,16 @@ struct PyCallBack_bdsg_ODGI : public bdsg::ODGI {
 		}
 		return ODGI::clear();
 	}
-	void apply_ordering(const class std::vector<handlegraph::handle_t> & a0, bool a1) override { 
+	bool apply_ordering(const class std::vector<handlegraph::handle_t> & a0, bool a1) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::ODGI *>(this), "apply_ordering");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
-			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
-				static pybind11::detail::overload_caster_t<void> caster;
-				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
+				static pybind11::detail::overload_caster_t<bool> caster;
+				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<void>(std::move(o));
+			else return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return ODGI::apply_ordering(a0, a1);
 	}
@@ -752,6 +753,45 @@ struct PyCallBack_bdsg_ODGI : public bdsg::ODGI {
 			else return pybind11::detail::cast_safe<_binder_ret_0>(std::move(o));
 		}
 		return ODGI::rewrite_segment(a0, a1, a2);
+	}
+	struct handlegraph::path_handle_t rename_path(const struct handlegraph::path_handle_t & a0, const std::string & a1) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::ODGI *>(this), "rename_path");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
+			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::path_handle_t>::value) {
+				static pybind11::detail::overload_caster_t<struct handlegraph::path_handle_t> caster;
+				return pybind11::detail::cast_ref<struct handlegraph::path_handle_t>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<struct handlegraph::path_handle_t>(std::move(o));
+		}
+		return MutablePathHandleGraph::rename_path(a0, a1);
+	}
+	void pop_front_step(const struct handlegraph::path_handle_t & a0) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::ODGI *>(this), "pop_front_step");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
+				static pybind11::detail::overload_caster_t<void> caster;
+				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<void>(std::move(o));
+		}
+		return MutablePathHandleGraph::pop_front_step(a0);
+	}
+	void pop_back_step(const struct handlegraph::path_handle_t & a0) override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::ODGI *>(this), "pop_back_step");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
+				static pybind11::detail::overload_caster_t<void> caster;
+				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<void>(std::move(o));
+		}
+		return MutablePathHandleGraph::pop_back_step(a0);
 	}
 	unsigned long get_edge_count() const override { 
 		pybind11::gil_scoped_acquire gil;
@@ -921,8 +961,8 @@ void bind_bdsg_odgi(std::function< pybind11::module &(std::string const &namespa
 		cl.def("clear", (void (bdsg::ODGI::*)()) &bdsg::ODGI::clear, "Remove all nodes, edges, and paths. \n\nC++: bdsg::ODGI::clear() --> void");
 		cl.def("clear_paths", (void (bdsg::ODGI::*)()) &bdsg::ODGI::clear_paths, "Remove all stored paths\n\nC++: bdsg::ODGI::clear_paths() --> void");
 		cl.def("swap_handles", (void (bdsg::ODGI::*)(const struct handlegraph::handle_t &, const struct handlegraph::handle_t &)) &bdsg::ODGI::swap_handles, "Swap the nodes corresponding to the given handles, in the ordering used\n by for_each_handle when looping over the graph. Other handles to the\n nodes being swapped must not be invalidated. If a swap is made while\n for_each_handle is running, it affects the order of the handles\n traversed during the current traversal (so swapping an already seen\n handle to a later handle's position will make the seen handle be visited\n again and the later handle not be visited at all).\n\nC++: bdsg::ODGI::swap_handles(const struct handlegraph::handle_t &, const struct handlegraph::handle_t &) --> void", pybind11::arg("a"), pybind11::arg("b"));
-		cl.def("apply_ordering", [](bdsg::ODGI &o, const class std::vector<handlegraph::handle_t> & a0) -> void { return o.apply_ordering(a0); }, "", pybind11::arg("order"));
-		cl.def("apply_ordering", (void (bdsg::ODGI::*)(const class std::vector<handlegraph::handle_t> &, bool)) &bdsg::ODGI::apply_ordering, "Reorder the graph's internal structure to match that given.\n Optionally compact the id space of the graph to match the ordering, from 1->|ordering|.\n\nC++: bdsg::ODGI::apply_ordering(const class std::vector<handlegraph::handle_t> &, bool) --> void", pybind11::arg("order"), pybind11::arg("compact_ids"));
+		cl.def("apply_ordering", [](bdsg::ODGI &o, const class std::vector<handlegraph::handle_t> & a0) -> bool { return o.apply_ordering(a0); }, "", pybind11::arg("order"));
+		cl.def("apply_ordering", (bool (bdsg::ODGI::*)(const class std::vector<handlegraph::handle_t> &, bool)) &bdsg::ODGI::apply_ordering, "Reorder the graph's internal structure to match that given.\n Optionally compact the id space of the graph to match the ordering, from 1->|ordering|.\n Returns true if node IDs actually were adjusted to match the given order, and false if they remain unchanged.\n\nC++: bdsg::ODGI::apply_ordering(const class std::vector<handlegraph::handle_t> &, bool) --> bool", pybind11::arg("order"), pybind11::arg("compact_ids"));
 		cl.def("optimize", [](bdsg::ODGI &o) -> void { return o.optimize(); }, "");
 		cl.def("optimize", (void (bdsg::ODGI::*)(bool)) &bdsg::ODGI::optimize, "Organize the graph for better performance and memory use\n\nC++: bdsg::ODGI::optimize(bool) --> void", pybind11::arg("allow_id_reassignment"));
 		cl.def("apply_path_ordering", (void (bdsg::ODGI::*)(const class std::vector<handlegraph::path_handle_t> &)) &bdsg::ODGI::apply_path_ordering, "Reorder the graph's paths as given.\n\nC++: bdsg::ODGI::apply_path_ordering(const class std::vector<handlegraph::path_handle_t> &) --> void", pybind11::arg("order"));
