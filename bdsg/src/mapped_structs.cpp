@@ -689,12 +689,7 @@ void Manager::dump(chainid_t chain) {
 void Manager::dump_links(ostream& out) {
     out << "All chain links: " << std::endl;
     for (auto& link : address_space_index) {
-        out << "\t" << (void*)link.first 
-            << "-" << (void*)(link.first + link.second.length) 
-            << " in chain " << link.second.first 
-            << " with next link at " << link.second.next 
-            << " is " << (link.second.mapping == nullptr ? " not " : "" ) << "mapped" 
-            << std::endl; 
+        out << "\t" << (void*)link.first << "-" << (void*)(link.first + link.second.length) << " in chain " << link.second.first << " with next link at " << link.second.next << std::endl; 
     }
 }
     
