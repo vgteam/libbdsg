@@ -60,7 +60,8 @@ namespace bdsg {
         implementation.dissociate();
     }
     
-    void MappedPackedGraph::serialize(const std::function<void(const void*, size_t)>& iteratee ) const {
+    void MappedPackedGraph::serialize(const std::function<void(const void*, size_t)>& iteratee) const {
+        // Pass the same iteratee back to the implementation pointer.
         implementation.save(iteratee);
     }
     

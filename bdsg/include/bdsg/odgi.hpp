@@ -317,7 +317,8 @@ public:
 
     /// Reorder the graph's internal structure to match that given.
     /// Optionally compact the id space of the graph to match the ordering, from 1->|ordering|.
-    void apply_ordering(const std::vector<handle_t>& order, bool compact_ids = false);
+    /// Returns true if node IDs actually were adjusted to match the given order, and false if they remain unchanged.
+    bool apply_ordering(const std::vector<handle_t>& order, bool compact_ids = false);
 
     /// Organize the graph for better performance and memory use
     void optimize(bool allow_id_reassignment = true);
@@ -468,7 +469,7 @@ private:
     };
 
     inline void canonicalize_edge(handle_t& left, handle_t& right) const {
-        if (number_bool_packing::unpack_bit(left) && number_bool_packing::unpack_bit(right)
+        if ((number_bool_packing::unpack_bit(left) && number_bool_packing::unpack_bit(right))
             || ((number_bool_packing::unpack_bit(left) || number_bool_packing::unpack_bit(right)) && as_integer(left) > as_integer(right))) {
             std::swap(left, right);
             left = number_bool_packing::toggle_bit(left);

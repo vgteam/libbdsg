@@ -13,7 +13,7 @@
 #include <handlegraph/trivially_serializable.hpp>
 
 #include "bdsg/internal/base_packed_graph.hpp"
-#include "bdsg/internal/graph_proxy.hpp"
+#include "bdsg/graph_proxy.hpp"
 
 
 namespace bdsg {
@@ -72,12 +72,14 @@ public:
     void dissociate();
     
     /**
-     * Serialize us to the given file descriptor. We must not change at all.
+     * Serialize us as a series of in-memory blocks shown to the given finction.
+     * Backs const serialization to FDs, and serialization to streams.
      */
-    void serialize(const std::function<void(const void*, size_t)>& iteratee ) const;
+    void serialize(const std::function<void(const void*, size_t)>& iteratee) const;
     
     /**
-     * Serialize us to the given file descriptor.
+     * Serialize us to the given file descriptor and establish a write-back
+     * link.
      */
     void serialize(int fd);
     
@@ -86,10 +88,10 @@ public:
      */
     void deserialize(int fd);
     
-    // We aren't allowed to override serialize() and deserialize() for streams;
-    // we must use serialize_members and deserialize_members and let
-    // libhandlegraph manage the magic number.
-    // TODO: That's not how YOMO wants to work; it wants to have the prefix already. 
+    // We aren't going to override serialize() and deserialize() for streams,
+    // because TriviallySerializable has a nice implementation for them, so we
+    // still need to implement serialization and reading of everything past the
+    // magic number.
     
     /**
      * Serialize everything except the magic number to the given stream.
