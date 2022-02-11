@@ -379,6 +379,19 @@ public:
     //TODO: bool has_external_connectivity(const net_handle_t& net, endpoint_t start, endpoint_t end) const {return has_external_connectivity((*records)->at(get_record_offset(net)));} 
     bool has_external_connectivity(const net_handle_t& net, endpoint_t start, endpoint_t end) const ; 
 
+    /**
+     * Get the rank of a net in its parent
+     */
+    size_t get_rank_in_parent(const net_handle_t& net) const;
+
+    /**
+     * For a node in a chain, get the values of the node in the chain
+     */
+    size_t get_prefix_sum_value(const net_handle_t& net) const;
+    size_t get_forward_loop_value(const net_handle_t& net) const;
+    size_t get_reverse_loop_value(const net_handle_t& net) const;
+    size_t get_chain_component(const net_handle_t& net) const;
+
 
     /**
      * Get the minimum distance between two positions in the graph

@@ -1680,6 +1680,78 @@ bool SnarlDistanceIndex::has_external_connectivity(const net_handle_t& net, endp
     }
 }
 
+ize_t SnarlDistanceIndex::get_rank_in_parent(const net_handle_t& net) const {
+    size_t tag = snarl_tree_records->at(get_record_offset(net));
+    if (get_record_type(tag) == TRIVIAL_SNARL ||
+        get_record_type(tag) == DISTANCED_TRIVIAL_SNARL) {
+        //If this is a trivial snarl (one or more nodes in a chain), then we want the index into snarl_tree_records
+        return TrivialSnarlRecord(get_record_offset(net), &snarl_tree_records).get_rank_in_parent(get_node_record_offset(net));
+    } else if (get_record_type(tag) == SIMPLE_SNARL ||
+        get_record_type(tag) == DISTANCED_SIMPLE_SNARL) {
+        //If this is a simple snarl, then it depends on whether we consider it to be the node or snarl
+        if (is_snarl(net)) {
+            //If it's the snarl, then we want the offset in snarl_tree_records
+            return get_record_offset(net);
+        } else {
+            //If it's a node then we want the rank in the snarl
+            return get_node_record_offset(net);
+        }
+    } else {
+        return SnarlTreeRecord(net, &snarl_tree_records).get_rank_in_parent();
+    }
+}
+size_t SnarlDistanceIndex::get_prefix_sum_value(const net_handle_t net) const {
+#ifdef debug_distances
+    net_handle_t parent = get_parent(net);
+    if (!is_node(net) || !is_chain(parent) || is_trivial_chain(parent)) {
+        throw runtime_error("error: Trying to get chain values from a net_handle_t that isn't a node in a chain");
+    }
+#endif
+    if (!is_chain(get_parent(net)) || is_trivial_chain(get_parent(net))) {
+        return std::numeric_limits<size_t>::max();
+    }
+    return TrivialSnarlRecord(get_record_offset(net), &snarl_tree_records).get_prefix_sum(get_node_record_offset(net));
+}
+
+size_t SnarlDistanceIndex::get_forward_loop_value(const net_handle_t net) const {
+#ifdef debug_distances
+    net_handle_t parent = get_parent(net);
+    if (!is_node(net) || !is_chain(parent) || is_trivial_chain(parent)) {
+        throw runtime_error("error: Trying to get chain values from a net_handle_t that isn't a node in a chain");
+    }
+#endif
+    if (!is_chain(get_parent(net)) || is_trivial_chain(get_parent(net))) {
+        return std::numeric_limits<size_t>::max();
+    }
+    return TrivialSnarlRecord(get_record_offset(net), &snarl_tree_records).get_forward_loop(get_node_record_offset(net));
+}
+
+size_t SnarlDistanceIndex::get_reverse_loop_value(const net_handle_t net) const {
+#ifdef debug_distances
+    net_handle_t parent = get_parent(net);
+    if (!is_node(net) || !is_chain(parent) || is_trivial_chain(parent)) {
+        throw runtime_error("error: Trying to get chain values from a net_handle_t that isn't a node in a chain");
+    }
+#endif
+    if (!is_chain(get_parent(net)) || is_trivial_chain(get_parent(net))) {
+        return std::numeric_limits<size_t>::max();
+    }
+    return TrivialSnarlRecord(get_record_offset(net), &snarl_tree_records).get_reverse_loop(get_node_record_offset(net));
+}
+
+size_t SnarlDistanceIndex::get_chain_component(const net_handle_t net) const {
+#ifdef debug_distances
+    net_handle_t parent = get_parent(net);
+    if (!is_node(net) || !is_chain(parent) || is_trivial_chain(parent)) {
+        throw runtime_error("error: Trying to get chain values from a net_handle_t that isn't a node in a chain");
+    }
+#endif
+    if (!is_chain(get_parent(net)) || is_trivial_chain(get_parent(net))) {
+        return std::numeric_limits<size_t>::max();
+    }
+    return TrivialSnarlRecord(get_record_offset(net), &snarl_tree_records).get_chain_component(get_node_record_offset(net));
+}
+
 size_t SnarlDistanceIndex::SnarlTreeRecord::get_parent_record_offset() const {
     record_t type = get_record_type();
     if (type == ROOT) {
