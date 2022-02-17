@@ -1730,7 +1730,7 @@ public:
             vector<size_t> forward_loops;
             vector<size_t> backward_loops;
             vector<size_t> chain_components;//Which component does each node belong to, usually all 0s
-            size_t rank_in_parent;
+            size_t rank_in_parent = std::numeric_limits<size_t>::max();
             bool reversed_in_parent;
             bool is_trivial;
             bool is_tip = false;
