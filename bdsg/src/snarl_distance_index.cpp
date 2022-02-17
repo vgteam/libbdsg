@@ -3263,7 +3263,7 @@ string SnarlDistanceIndex::net_handle_as_string(const net_handle_t& net) const {
 
 //Print entire index to cout as csv:
 //self, parent, # children, depth
-void SnarlDistanceIndex::print_self() const r
+void SnarlDistanceIndex::print_self() const {
     cout << "#self,parent,#children,depth" << endl; 
     print_descendants_of(get_root());
 
