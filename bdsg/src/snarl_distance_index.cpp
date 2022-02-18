@@ -1979,6 +1979,7 @@ void SnarlDistanceIndex::SnarlTreeRecordConstructor::set_rank_in_parent(size_t r
         offset = record_offset + NODE_RANK_OFFSET;
     } else if (type == ROOT_SNARL || type == DISTANCED_ROOT_SNARL) {
         (*records)->at(record_offset + SNARL_MIN_LENGTH_OFFSET) = rank;
+        return;
     } else if (type == SNARL || type == DISTANCED_SNARL || type == OVERSIZED_SNARL
             ||  type == SIMPLE_SNARL
             || type == DISTANCED_SIMPLE_SNARL)  {
@@ -3822,7 +3823,9 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
             SnarlTreeRecordConstructor record_constructor(record_to_offset[make_pair(temp_index_i, component_index)],
                                                               &snarl_tree_records);
 
-            //record_constructor.set_rank_in_parent(component_num);
+            if (record.get_record_handle_type() == CHAIN_HANDLE || record.get_record_handle_type() == ROOT_HANDLE) {
+                record_constructor.set_rank_in_parent(component_num);
+            }
             if (record.get_record_type() != ROOT_SNARL && record.get_record_type() != DISTANCED_ROOT_SNARL) {
                 //If this isn't a root snarl, check for connectivity in the root
                 handle_t start_out = graph->get_handle(record.get_start_id(), !record.get_start_orientation());
