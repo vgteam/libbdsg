@@ -201,9 +201,15 @@ public:
     //Won't do anything if the values have already been found
 
     //For a node, set is reversed, prefix sum, forward loop, reverse loop, and component
-    void set_cached_node_values(CachedNetHandle& cached_handle) const;
+    //If prefix sum isn't inf, then set all the given values
+    void set_cached_node_values(CachedNetHandle& cached_handle, 
+                                size_t prefix_sum = std::numeric_limits<size_t>::max(), 
+                                size_t fd_loop = std::numeric_limits<size_t>::max(), 
+                                size_t rev_loop = std::numeric_limits<size_t>::max(),
+                                size_t component = std::numeric_limits<size_t>::max(),
+                                bool is_reversed = false) const;
     void set_cached_rank(CachedNetHandle& cached_handle) const;
-    void set_cached_min_length(CachedNetHandle& cached_handle) const;
+    void set_cached_min_length(CachedNetHandle& cached_handle, size_t length = std::numeric_limits<size_t>::max()) const;
     void set_cached_parent(CachedNetHandle& cached_handle) const;
     void set_cached_start_bound(CachedNetHandle& cached_handle, bool set_values_in_chain, bool set_length) const;
     void set_cached_end_bound(CachedNetHandle& cached_handle, bool set_values_in_chain, bool set_length) const;
@@ -244,6 +250,11 @@ public:
      * snarl, and false otherwise.
      */
     bool is_root(const net_handle_t& net) const;
+    /**
+     * Return true if the given handle refers to (a traversal of) a root-level
+     * snarl that is technically the root
+     */
+    bool is_root_snarl(const net_handle_t& net) const;
     
     /**
      * Returns true if the given net handle refers to (a traversal of) a snarl.

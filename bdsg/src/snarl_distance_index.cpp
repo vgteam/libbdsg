@@ -119,6 +119,11 @@ net_handle_t SnarlDistanceIndex::get_root() const {
 bool SnarlDistanceIndex::is_root(const net_handle_t& net) const {
     return get_handle_type(net) == ROOT_HANDLE;
 }
+bool SnarlDistanceIndex::is_root_snarl(const net_handle_t& net) const {
+    return get_handle_type(net) == ROOT_HANDLE &&
+           (SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == ROOT_SNARL || 
+           SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == DISTANCED_ROOT_SNARL);
+}
 
 bool SnarlDistanceIndex::is_snarl(const net_handle_t& net) const {
 #ifdef debug_distances
@@ -3976,9 +3981,17 @@ SnarlDistanceIndex::CachedNetHandle SnarlDistanceIndex::get_cached_bound(
     }
 }
 
-void SnarlDistanceIndex::set_cached_node_values(CachedNetHandle& cached_handle) const {
+void SnarlDistanceIndex::set_cached_node_values(CachedNetHandle& cached_handle, 
+        size_t prefix_sum, size_t fd_loop, size_t rev_loop,size_t component, bool is_reversed ) const {
 
     if (!cached_handle.contains_node_values){
+        if (prefix_sum != std::numeric_limits<size_t>::max()) {
+            cached_handle.prefix_sum_val = prefix_sum;
+            cached_handle.forward_loop_val = fd_loop;
+            cached_handle.reverse_loop_val = rev_loop;
+            cached_handle.chain_component_val = component;
+            cached_handle.is_reversed = is_reversed; 
+        }
         if (get_record_type(cached_handle.record_tag) == DISTANCED_TRIVIAL_SNARL) {
             cached_handle.contains_node_values = true;
 
@@ -4009,9 +4022,13 @@ void SnarlDistanceIndex::set_cached_rank(CachedNetHandle& cached_handle) const {
         }
     }
 }
-void SnarlDistanceIndex::set_cached_min_length(CachedNetHandle& cached_handle) const {
+void SnarlDistanceIndex::set_cached_min_length(CachedNetHandle& cached_handle, size_t length) const {
     if (cached_handle.min_length == std::numeric_limits<size_t>::max()) {
-        cached_handle.min_length = minimum_length(cached_handle.net);
+        if (length == std::numeric_limits<size_t>::max()) {
+            cached_handle.min_length = minimum_length(cached_handle.net);
+        } else {
+            cached_handle.min_length = length;
+        }
     }
 }
 void SnarlDistanceIndex::set_cached_parent(CachedNetHandle& cached_handle) const {
