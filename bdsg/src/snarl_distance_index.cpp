@@ -3991,8 +3991,8 @@ void SnarlDistanceIndex::set_cached_node_values(CachedNetHandle& cached_handle,
             cached_handle.reverse_loop_val = rev_loop;
             cached_handle.chain_component_val = component;
             cached_handle.is_reversed = is_reversed; 
-        }
-        if (get_record_type(cached_handle.record_tag) == DISTANCED_TRIVIAL_SNARL) {
+            return;
+        } else if (get_record_type(cached_handle.record_tag) == DISTANCED_TRIVIAL_SNARL) {
             cached_handle.contains_node_values = true;
 
             TrivialSnarlRecord record(get_record_offset(cached_handle.net), &snarl_tree_records);
