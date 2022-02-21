@@ -120,6 +120,13 @@ bool SnarlDistanceIndex::is_root(const net_handle_t& net) const {
     return get_handle_type(net) == ROOT_HANDLE;
 }
 
+bool SnarlDistanceIndex::is_root_snarl(const net_handle_t& net) const {
+    return get_handle_type(net) == ROOT_HANDLE &&
+           (SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == ROOT_SNARL ||
+           SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == DISTANCED_ROOT_SNARL);
+}
+
+
 bool SnarlDistanceIndex::is_snarl(const net_handle_t& net) const {
 #ifdef debug_distances
 if(get_handle_type(net) == SNARL_HANDLE){

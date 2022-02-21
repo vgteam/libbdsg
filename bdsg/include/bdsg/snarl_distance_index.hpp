@@ -137,6 +137,12 @@ public:
      * snarl, and false otherwise.
      */
     bool is_root(const net_handle_t& net) const;
+    /**
+     * Return true if the given handle refers to (a traversal of) a snarl of the root,
+     * which is considered to be the root but actually refers to a subset of the children 
+     * of the root that are connected
+     */
+    bool is_root_snarl(const net_handle_t& net) const;
     
     /**
      * Returns true if the given net handle refers to (a traversal of) a snarl.
