@@ -203,6 +203,7 @@ public:
     //For a node, set is reversed, prefix sum, forward loop, reverse loop, and component
     //If prefix sum isn't inf, then set all the given values
     void set_cached_node_values(CachedNetHandle& cached_handle, 
+                                bool include_values = false,
                                 size_t prefix_sum = std::numeric_limits<size_t>::max(), 
                                 size_t fd_loop = std::numeric_limits<size_t>::max(), 
                                 size_t rev_loop = std::numeric_limits<size_t>::max(),

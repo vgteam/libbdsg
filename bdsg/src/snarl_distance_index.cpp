@@ -3982,15 +3982,16 @@ SnarlDistanceIndex::CachedNetHandle SnarlDistanceIndex::get_cached_bound(
 }
 
 void SnarlDistanceIndex::set_cached_node_values(CachedNetHandle& cached_handle, 
-        size_t prefix_sum, size_t fd_loop, size_t rev_loop,size_t component, bool is_reversed ) const {
+        bool include_values, size_t prefix_sum, size_t fd_loop, size_t rev_loop,size_t component, bool is_reversed ) const {
 
     if (!cached_handle.contains_node_values){
-        if (prefix_sum != std::numeric_limits<size_t>::max()) {
+        if (include_values) {
             cached_handle.prefix_sum_val = prefix_sum;
             cached_handle.forward_loop_val = fd_loop;
             cached_handle.reverse_loop_val = rev_loop;
             cached_handle.chain_component_val = component;
             cached_handle.is_reversed = is_reversed; 
+            cached_handle.contains_node_values = true;
             return;
         } else if (get_record_type(cached_handle.record_tag) == DISTANCED_TRIVIAL_SNARL) {
             cached_handle.contains_node_values = true;
