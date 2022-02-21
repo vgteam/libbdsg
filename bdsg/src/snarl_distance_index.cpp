@@ -1435,6 +1435,40 @@ size_t SnarlDistanceIndex::get_depth(const net_handle_t& net) const {
         
 }
 
+size_t SnarlDistanceIndex::get_connected_component_number(const net_handle_t& net) const {
+    if (get_record_offset(net) == 0) {
+        throw runtime_error("error: trying to get the connected component number of the root");
+    }
+    net_handle_t child = net;
+    net_handle_t parent = get_parent(net);
+    while (!is_root(parent)) {
+        child = parent;
+        parent = get_parent(child);
+    }
+    if (get_record_offset(parent) == 0) {
+        //If the parent is actually the root
+        return SnarlTreeRecord(child, &snarl_tree_records).get_rank_in_parent();
+    } else {
+        //Otherwise, it must be a root-level snarl pretending to be a root
+        return SnarlTreeRecord(parent, &snarl_tree_records).get_rank_in_parent();
+    }
+}
+
+
+net_handle_t SnarlDistanceIndex::get_handle_from_connected_component(size_t num) const {
+    size_t child_offset = snarl_tree_records->at(ROOT_RECORD_SIZE + num);
+    net_handle_record_t type = SnarlTreeRecord(child_offset, &snarl_tree_records).get_record_handle_type();
+    if (type == NODE_HANDLE) {
+        //If this child is a node, then pretend it's a chain
+        return get_net_handle(child_offset, START_END, CHAIN_HANDLE);
+    } else if (type == SNARL_HANDLE) {
+        return get_net_handle(child_offset, START_END, ROOT_HANDLE);
+    } else {
+        return get_net_handle(child_offset, START_END, type);
+    }
+}
+
+
 
 bool SnarlDistanceIndex::has_connectivity(const net_handle_t& net, endpoint_t start, endpoint_t end) const {
     SnarlTreeRecord record(net, &snarl_tree_records);
@@ -1569,8 +1603,11 @@ size_t SnarlDistanceIndex::SnarlTreeRecord::get_rank_in_parent() const {
         return (*records)->at(record_offset + NODE_RANK_OFFSET);
     } else if (type == TRIVIAL_SNARL || type == DISTANCED_TRIVIAL_SNARL)  {
         throw runtime_error("error: node ranks need the node offsets");
+    } else if (type == ROOT_SNARL || type == DISTANCED_ROOT_SNARL) {
+        //For root snarls, the rank gets stored in the length slot
+        return (*records)->at( record_offset + SNARL_MIN_LENGTH_OFFSET);
     } else if (type == SNARL || type == DISTANCED_SNARL || type == OVERSIZED_SNARL
-            || type == ROOT_SNARL || type == DISTANCED_ROOT_SNARL || type == SIMPLE_SNARL
+            ||  type == SIMPLE_SNARL
             || type == DISTANCED_SIMPLE_SNARL)  {
         return record_offset;
     } else if (type == CHAIN || type == DISTANCED_CHAIN || type == MULTICOMPONENT_CHAIN)  {
@@ -1893,8 +1930,11 @@ void SnarlDistanceIndex::SnarlTreeRecordConstructor::set_rank_in_parent(size_t r
     size_t offset;
     if (type == NODE || type == DISTANCED_NODE) {
         offset = record_offset + NODE_RANK_OFFSET;
+    } else if (type == ROOT_SNARL || type == DISTANCED_ROOT_SNARL) {
+        (*records)->at(record_offset + SNARL_MIN_LENGTH_OFFSET) = rank;
+        return;
     } else if (type == SNARL || type == DISTANCED_SNARL || type == OVERSIZED_SNARL
-            || type == ROOT_SNARL || type == DISTANCED_ROOT_SNARL || type == SIMPLE_SNARL
+            ||  type == SIMPLE_SNARL
             || type == DISTANCED_SIMPLE_SNARL)  {
         cerr << "SETTING THE RANK OF A SNARL WHICH I'M PRETTY SURE DOESN'T MEAN ANYTHING" << endl;
         return;
@@ -3724,6 +3764,10 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                                     &snarl_tree_records);
             SnarlTreeRecordConstructor record_constructor(record_to_offset[make_pair(temp_index_i, component_index)],
                                                               &snarl_tree_records);
+
+            if (record.get_record_handle_type() == CHAIN_HANDLE || record.get_record_handle_type() == ROOT_HANDLE) {
+                record_constructor.set_rank_in_parent(component_num);
+            }
             if (record.get_record_type() != ROOT_SNARL && record.get_record_type() != DISTANCED_ROOT_SNARL) {
                 //If this isn't a root snarl
                 handle_t start_out = graph->get_handle(record.get_start_id(), !record.get_start_orientation());

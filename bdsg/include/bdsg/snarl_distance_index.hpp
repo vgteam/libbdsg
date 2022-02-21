@@ -375,6 +375,25 @@ public:
      */
     size_t get_depth(const net_handle_t& net) const;
 
+
+    /**
+     * Given a handle, return a unique identifier for the connected component that it's on
+     * Connected components are based on the connectivity of the graph, so there may be fewer
+     * connected components than there are root-level structures. For example, if two root-level
+     * chains are connected to each other in the root, then they will be considered one connected
+     * component but two separate root-level chains
+     */
+    size_t get_connected_component_number(const net_handle_t& net) const;
+
+    /**
+     * Given the connected component number (from get_connected_component_number), get the
+     * root-level handle pointing to it.
+     * If the connected component is a root-level snarl, then this may return a "root" handle,
+     * but it will actually point to the snarl
+     */
+    net_handle_t get_handle_from_connected_component(size_t num) const;
+
+
     bool has_connectivity(const net_handle_t& net, endpoint_t start, endpoint_t end) const ;
     //TODO: bool has_external_connectivity(const net_handle_t& net, endpoint_t start, endpoint_t end) const {return has_external_connectivity((*records)->at(get_record_offset(net)));} 
     bool has_external_connectivity(const net_handle_t& net, endpoint_t start, endpoint_t end) const ; 
