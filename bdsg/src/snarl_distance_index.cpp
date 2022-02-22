@@ -172,11 +172,15 @@ bool SnarlDistanceIndex::is_ordered_in_chain(const net_handle_t& child1, const n
     if (!(is_chain(get_parent(child1)) && get_parent(child1) == get_parent(child2))) {
         throw runtime_error("error: trying to get a handle from a snarl, chain, or root");
     }
-#endif
+    /*TODO: This is the proper way to do it but it takes too long so just double check this if anything changes
     size_t rank1 = is_node(child1) ? TrivialSnarlRecord(get_record_offset(child1), &snarl_tree_records).get_rank_in_parent(get_node_record_offset(child1))
                                    : SnarlTreeRecord(child1, &snarl_tree_records).get_rank_in_parent();
     size_t rank2 = is_node(child2) ? TrivialSnarlRecord(get_record_offset(child2), &snarl_tree_records).get_rank_in_parent(get_node_record_offset(child2))
                                    : SnarlTreeRecord(child2, &snarl_tree_records).get_rank_in_parent();
+     */
+#endif
+    size_t rank1 = get_record_offset(child1) + get_node_record_offset(child1);
+    size_t rank2 = get_record_offset(child2) + get_node_record_offset(child2);
 
     return  rank1 < rank2;
 }
