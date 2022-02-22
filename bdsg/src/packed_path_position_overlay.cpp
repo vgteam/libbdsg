@@ -208,11 +208,32 @@ handle_t PackedPositionOverlay::get_underlying_handle(const handle_t& handle) co
 
 void PackedPositionOverlay::index_path_positions() {
     
-    size_t cumul_path_size = 0;
-    
+    // I'm not sure how to pass handles to OMP tasks by value, when we'd return
+    // out of the functions that created the tasks and are holding the tasks'
+    // locals. So first we'll collect all the path handles.
+    // TODO: deduplicate with BBHashHelper's copy of all the path handles?
+    std::vector<path_handle_t> path_handles;
     for_each_path_handle([&](const path_handle_t& path_handle) {
-        cumul_path_size += get_step_count(path_handle);
+        path_handles.push_back(path_handle);
     });
+    
+    // We need to keep track of path start step rank among all path steps, so we
+    // can fill in the indexes in parallel for each path.
+    // We make this one longer so we can keep the final partial sum.
+    std::vector<size_t> path_starts(path_handles.size() + 1, 0);
+    
+    // Get the lengths of all the paths in steps
+    std::atomic<size_t> cumul_path_size = 0;
+    #pragma omp parallel for
+    for (size_t i = 0; i < path_handles.size(); i++) {
+        // Step counting requires a scan in some graph implementations, so do it in parallel.
+        path_starts[i + 1] = get_step_count(path_handles[i]);
+    }
+    
+    // Compute partial sums in place up through the last one, which is total
+    // number of steps overall.
+    std::partial_sum(path_starts.begin(), path_starts.end(), path_starts.begin());
+    auto& cumul_path_size = path_starts.back();
     
     // resize the vectors to the number of step handles
     steps_0.resize(cumul_path_size);
@@ -223,27 +244,31 @@ void PackedPositionOverlay::index_path_positions() {
     // make a perfect minimal hash over the step handles
     step_hash = new boomphf::mphf<step_handle_t, StepHash>(cumul_path_size, BBHashHelper(graph), get_thread_count(), 2.0, false, false);
     
-    size_t i = 0;
-    for_each_path_handle([&](const path_handle_t& path_handle) {
+    // Need to make sure we use the same path handle order.
+    #pragma omp parallel for
+    for (size_t i = 0; i < path_handles.size(); i++) {
+        auto& path_handle = path_handles[i];
+        size_t step_overall = path_starts[i];
+        
         // make a range corresponding to this path handle
         auto& range = path_range[as_integer(path_handle)];
-        range.first = i;
+        range.first = step_overall;
         size_t position = 0;
         for_each_step_in_path(path_handle, [&](const step_handle_t& step) {
             
             // fill in the position to step index
-            steps_0.set(i, as_integers(step)[0]);
-            steps_1.set(i, as_integers(step)[1]);
-            positions.set(i, position);
+            steps_0.set(step_overall, as_integers(step)[0]);
+            steps_1.set(step_overall, as_integers(step)[1]);
+            positions.set(step_overall, position);
             
             // fill in the step to position index
             step_positions.set(step_hash->lookup(step), position);
             
             position += get_length(get_handle_of_step(step));
-            ++i;
+            ++step_overall;
         });
-        range.second = i;
-    });
+        range.second = step_overall;
+    }
 }
 
 uint64_t PackedPositionOverlay::StepHash::operator()(const step_handle_t& step, uint64_t seed) const {
