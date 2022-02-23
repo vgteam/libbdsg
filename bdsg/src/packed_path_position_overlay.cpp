@@ -251,8 +251,12 @@ void PackedPositionOverlay::index_path_positions() {
         size_t step_overall = path_starts[i];
         
         // make a range corresponding to this path handle
-        auto& range = path_range[as_integer(path_handle)];
-        range.first = step_overall;
+        std::pair<size_t, size_t>* range;
+        #pragma omp critical path_range
+        {
+            range = &path_range[as_integer(path_handle)];
+        }
+        range->first = step_overall;
         size_t position = 0;
         for_each_step_in_path(path_handle, [&](const step_handle_t& step) {
             
@@ -267,7 +271,7 @@ void PackedPositionOverlay::index_path_positions() {
             position += get_length(get_handle_of_step(step));
             ++step_overall;
         });
-        range.second = step_overall;
+        range->second = step_overall;
     }
 }
 
