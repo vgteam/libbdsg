@@ -7,14 +7,6 @@ PackedPositionOverlay::PackedPositionOverlay(const PathHandleGraph* graph) : gra
     index_path_positions();
 }
 
-PackedPositionOverlay::PackedPositionOverlay() {
-    
-}
-
-PackedPositionOverlay::~PackedPositionOverlay() {
-    delete step_hash;
-}
-
 bool PackedPositionOverlay::has_node(nid_t node_id) const {
     return graph->has_node(node_id);
 }
@@ -154,13 +146,13 @@ bool PackedPositionOverlay::for_each_step_on_handle_impl(const handle_t& handle,
 
 size_t PackedPositionOverlay::get_path_length(const path_handle_t& path_handle) const {
     const auto& range = path_range.at(as_integer(path_handle));
-    if (range.first == range.second) {
+    if (range.start == range.end) {
         return 0;
     }
     step_handle_t step;
-    as_integers(step)[0] = steps_0.get(range.second - 1);
-    as_integers(step)[1] = steps_1.get(range.second - 1);
-    return positions.get(range.second - 1) + get_length(get_handle_of_step(step));
+    as_integers(step)[0] = range.index->steps_0.get(range.end - 1);
+    as_integers(step)[1] = range.index->steps_1.get(range.end - 1);
+    return range.index->positions.get(range.end - 1) + get_length(get_handle_of_step(step));
 }
 
 size_t PackedPositionOverlay::get_position_of_step(const step_handle_t& step) const {
@@ -183,11 +175,11 @@ step_handle_t PackedPositionOverlay::get_step_at_position(const path_handle_t& p
     }
     
     // bisect search within the range to find the index with the steps
-    size_t low = range.first;
-    size_t hi = range.second;
+    size_t low = range.start;
+    size_t hi = range.end;
     while (hi > low + 1) {
         size_t mid = (hi + low) / 2;
-        if (position < positions.get(mid)) {
+        if (position < range.index->positions.get(mid)) {
             hi = mid;
         }
         else {
@@ -197,8 +189,8 @@ step_handle_t PackedPositionOverlay::get_step_at_position(const path_handle_t& p
     
     // unpack the integers at the same index into a step
     step_handle_t step;
-    as_integers(step)[0] = steps_0.get(low);
-    as_integers(step)[1] = steps_1.get(low);
+    as_integers(step)[0] = range.index->steps_0.get(low);
+    as_integers(step)[1] = range.index->steps_1.get(low);
     return step;
 }
 
@@ -217,62 +209,95 @@ void PackedPositionOverlay::index_path_positions() {
         path_handles.push_back(path_handle);
     });
     
-    // We need to keep track of path start step rank among all path steps, so we
-    // can fill in the indexes in parallel for each path.
-    // We make this one longer so we can keep the final partial sum.
-    std::vector<size_t> path_starts(path_handles.size() + 1, 0);
-    
-    // Get the lengths of all the paths in steps
-    std::atomic<size_t> cumul_path_size = 0;
+    // Then get the lengths of all the paths
+    std::vector<size_t> path_lengths(path_handles.size(), 0);
     #pragma omp parallel for
     for (size_t i = 0; i < path_handles.size(); i++) {
         // Step counting requires a scan in some graph implementations, so do it in parallel.
-        path_starts[i + 1] = get_step_count(path_handles[i]);
+        path_lengths[i] = get_step_count(path_handles[i]);
     }
     
-    // Compute partial sums in place up through the last one, which is total
-    // number of steps overall.
-    std::partial_sum(path_starts.begin(), path_starts.end(), path_starts.begin());
-    auto& cumul_path_size = path_starts.back();
-    
-    // resize the vectors to the number of step handles
-    steps_0.resize(cumul_path_size);
-    steps_1.resize(cumul_path_size);
-    positions.resize(cumul_path_size);
-    step_positions.resize(cumul_path_size);
-    
-    // make a perfect minimal hash over the step handles
-    step_hash = new boomphf::mphf<step_handle_t, StepHash>(cumul_path_size, BBHashHelper(graph), get_thread_count(), 2.0, false, false);
-    
-    // Need to make sure we use the same path handle order.
-    #pragma omp parallel for
+    // Then find the collections of paths to index together.
+    // These iterators will be range bounds pf paths to put in the indexes.
+    std::vector<std::vector<path_handle_t>::iterator> bounds;
+    bounds.push_back(path_handles.begin());
+    // And this will be the cumulative path length of all the paths in each collection.
+    std::vector<size_t> path_set_steps;
+    size_t accumulated_length = 0;
     for (size_t i = 0; i < path_handles.size(); i++) {
-        auto& path_handle = path_handles[i];
-        size_t step_overall = path_starts[i];
-        
-        // make a range corresponding to this path handle
-        std::pair<size_t, size_t>* range;
-        #pragma omp critical path_range
-        {
-            range = &path_range[as_integer(path_handle)];
+        if (accumulated_length >= STEPS_PER_INDEX) {
+            // We need to start a new index with this path
+            bounds.push_back(path_handles.begin() + i);
+            path_set_steps.push_back(accumulated_length);
+            accumulated_length = 0;
         }
-        range->first = step_overall;
-        size_t position = 0;
-        for_each_step_in_path(path_handle, [&](const step_handle_t& step) {
-            
-            // fill in the position to step index
-            steps_0.set(step_overall, as_integers(step)[0]);
-            steps_1.set(step_overall, as_integers(step)[1]);
-            positions.set(step_overall, position);
-            
-            // fill in the step to position index
-            step_positions.set(step_hash->lookup(step), position);
-            
-            position += get_length(get_handle_of_step(step));
-            ++step_overall;
-        });
-        range->second = step_overall;
+        // Remember that this path's steps went into this index.
+        accumulated_length += path_lengths[i];
     }
+    bounds.push_back(path_handles.end());
+    path_set_steps.push_back(accumulated_length);
+    
+    // Now we know how many indexes we need
+    indexes.resize(path_set_steps.size());
+    
+    #pragma omp parallel for
+    for (size_t i = 0; i < path_set_steps.size(); i++) {
+        // For each set of paths to index together
+        auto& begin_path = bounds[i];
+        auto& end_path = bounds[i + 1];
+        // And the number of steps on its paths
+        auto& cumul_path_size = range_steps[i];
+        
+        // And the index we are building into
+        auto& index = indexes[i];
+        
+        // resize the vectors to the number of step handles
+        index.steps_0.resize(cumul_path_size);
+        index.steps_1.resize(cumul_path_size);
+        index.positions.resize(cumul_path_size);
+        index.step_positions.resize(cumul_path_size);
+        
+        // Make a perfect minimal hash over the step handles on the selected paths
+        // Use the number of threads a child OMP team would get.
+        index.step_hash.reset(new boomphf::mphf<step_handle_t, StepHash>(cumul_path_size, BBHashHelper(graph, begin_path, end_path), get_thread_count(), 2.0, false, false));
+        
+        // Walk a cursor through steps among the path set
+        size_t step_overall = 0;
+        
+        for (size_t i = 0; i < end_path - begin_path; i++) {
+            // For each path we are indexing
+            auto& path_handle = *(begin_path + i);
+            // Find the information we store about where this path handle lives
+            PathRange* range;
+            #pragma omp critical (path_range)
+            {
+                // Allocate in the map and store the address
+                range = &path_range[as_integer(path_handle)];
+            }
+            // Populate the index and start info
+            range->index = &index;
+            range->start = step_overall;
+            // And walk a base position cursor along the path
+            size_t position = 0;
+            for_each_step_in_path(path_handle, [&](const step_handle_t& step) {
+                
+                // fill in the position to step index
+                index.steps_0.set(step_overall, as_integers(step)[0]);
+                index.steps_1.set(step_overall, as_integers(step)[1]);
+                index.positions.set(step_overall, position);
+                
+                // fill in the step to position index
+                index.step_positions.set(step_hash->lookup(step), position);
+                
+                position += get_length(get_handle_of_step(step));
+                ++step_overall;
+            });
+            // Populate the end info
+            range->end = step_overall;
+        }
+        
+    }
+    
 }
 
 uint64_t PackedPositionOverlay::StepHash::operator()(const step_handle_t& step, uint64_t seed) const {
