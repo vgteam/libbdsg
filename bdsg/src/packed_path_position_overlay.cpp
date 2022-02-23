@@ -156,11 +156,13 @@ size_t PackedPositionOverlay::get_path_length(const path_handle_t& path_handle) 
 }
 
 size_t PackedPositionOverlay::get_position_of_step(const step_handle_t& step) const {
-    if (step == path_end(get_path_handle_of_step(step))) {
-        return get_path_length(get_path_handle_of_step(step));
+    auto path = get_path_handle_of_step(step); 
+    if (step == path_end(path)) {
+        return get_path_length(path);
     }
     else {
-        return step_positions.get(step_hash->lookup(step));
+        auto& range = path_range.at(as_integer(path));
+        return range.index->step_positions.get(range.index->step_hash->lookup(step));
     }
 }
 
@@ -246,7 +248,7 @@ void PackedPositionOverlay::index_path_positions() {
         auto& begin_path = bounds[i];
         auto& end_path = bounds[i + 1];
         // And the number of steps on its paths
-        auto& cumul_path_size = range_steps[i];
+        auto& cumul_path_size = path_set_steps[i];
         
         // And the index we are building into
         auto& index = indexes[i];
@@ -287,7 +289,7 @@ void PackedPositionOverlay::index_path_positions() {
                 index.positions.set(step_overall, position);
                 
                 // fill in the step to position index
-                index.step_positions.set(step_hash->lookup(step), position);
+                index.step_positions.set(index.step_hash->lookup(step), position);
                 
                 position += get_length(get_handle_of_step(step));
                 ++step_overall;

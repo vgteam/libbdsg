@@ -321,7 +321,7 @@ private:
 };
 
 template<typename InputIt>
-BBHashHelper::BBHashHelper(const PathHandleGraph* graph, InputIt first_path, Input_it last_path) : graph(graph) {
+BBHashHelper::BBHashHelper(const PathHandleGraph* graph, InputIt first_path, InputIt last_path) : graph(graph) {
     path_handles.reserve(last_path - first_path);
     for (InputIt it = first_path; it != last_path; ++it) {
         if (!graph->is_empty(*it)) {
