@@ -160,6 +160,18 @@ if (get_handle_type(net) ==CHAIN_HANDLE) {
 #endif
     return get_handle_type(net) == CHAIN_HANDLE;
 }
+bool SnarlDistanceIndex::is_multicomponent_chain(const net_handle_t& net) const {
+#ifdef debug_distances
+if (get_handle_type(net) ==CHAIN_HANDLE) {
+    assert(SnarlTreeRecord(net, &snarl_tree_records).get_record_handle_type() == CHAIN_HANDLE ||
+    SnarlTreeRecord(net, &snarl_tree_records).get_record_handle_type() == NODE_HANDLE ||
+    SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == SIMPLE_SNARL ||
+    SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == DISTANCED_SIMPLE_SNARL);
+}
+#endif
+    return get_handle_type(net) == CHAIN_HANDLE 
+        && SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == MULTICOMPONENT_CHAIN;
+}
 bool SnarlDistanceIndex::is_looping_chain(const net_handle_t& net) const {
     if (!is_chain(net)) {
         return false;
@@ -1505,10 +1517,10 @@ size_t SnarlDistanceIndex::get_prefix_sum_value(const net_handle_t net) const {
     if (!is_node(net) || !is_chain(parent) || is_trivial_chain(parent)) {
         throw runtime_error("error: Trying to get chain values from a net_handle_t that isn't a node in a chain");
     }
-#endif
     if (!is_chain(get_parent(net)) || is_trivial_chain(get_parent(net))) {
         return std::numeric_limits<size_t>::max();
     }
+#endif
     return TrivialSnarlRecord(get_record_offset(net), &snarl_tree_records).get_prefix_sum(get_node_record_offset(net));
 }
 
@@ -1518,10 +1530,10 @@ size_t SnarlDistanceIndex::get_forward_loop_value(const net_handle_t net) const 
     if (!is_node(net) || !is_chain(parent) || is_trivial_chain(parent)) {
         throw runtime_error("error: Trying to get chain values from a net_handle_t that isn't a node in a chain");
     }
-#endif
     if (!is_chain(get_parent(net)) || is_trivial_chain(get_parent(net))) {
         return std::numeric_limits<size_t>::max();
     }
+#endif
     return TrivialSnarlRecord(get_record_offset(net), &snarl_tree_records).get_forward_loop(get_node_record_offset(net));
 }
 
@@ -1531,10 +1543,10 @@ size_t SnarlDistanceIndex::get_reverse_loop_value(const net_handle_t net) const 
     if (!is_node(net) || !is_chain(parent) || is_trivial_chain(parent)) {
         throw runtime_error("error: Trying to get chain values from a net_handle_t that isn't a node in a chain");
     }
-#endif
     if (!is_chain(get_parent(net)) || is_trivial_chain(get_parent(net))) {
         return std::numeric_limits<size_t>::max();
     }
+#endif
     return TrivialSnarlRecord(get_record_offset(net), &snarl_tree_records).get_reverse_loop(get_node_record_offset(net));
 }
 
@@ -1544,10 +1556,10 @@ size_t SnarlDistanceIndex::get_chain_component(const net_handle_t net) const {
     if (!is_node(net) || !is_chain(parent) || is_trivial_chain(parent)) {
         throw runtime_error("error: Trying to get chain values from a net_handle_t that isn't a node in a chain");
     }
-#endif
     if (!is_chain(get_parent(net)) || is_trivial_chain(get_parent(net))) {
         return std::numeric_limits<size_t>::max();
     }
+#endif
     return TrivialSnarlRecord(get_record_offset(net), &snarl_tree_records).get_chain_component(get_node_record_offset(net));
 }
 

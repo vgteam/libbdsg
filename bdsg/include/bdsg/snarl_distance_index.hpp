@@ -153,6 +153,7 @@ public:
      * Returns true if the given net handle refers to (a traversal of) a chain.
      */
     bool is_chain(const net_handle_t& net) const;
+    bool is_multicomponent_chain(const net_handle_t& net) const;
     /**
      * Returns true if the given net handle refers to (a traversal of) a chain that loops (a chain where the first and last node are the same).
      */
@@ -417,6 +418,7 @@ public:
 
     /**
      * Get the distance index values for nodes in a chain
+     * These will all fail if the parent of net is not a chain
      */
     size_t get_prefix_sum_value(const net_handle_t net) const;
     size_t get_forward_loop_value(const net_handle_t net) const;
