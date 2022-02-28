@@ -325,6 +325,9 @@ public:
     //mean anything but I need it
     size_t get_record_offset_in_chain(const net_handle_t& child) const;
 
+    bool is_externally_start_end_connected(const net_handle_t net) const {return is_externally_start_end_connected(snarl_tree_records->at(get_record_offset(net)));}
+    bool is_externally_start_start_connected(const net_handle_t net) const {return is_externally_start_start_connected(snarl_tree_records->at(get_record_offset(net)));}
+    bool is_externally_end_end_connected(const net_handle_t net) const {return is_externally_end_end_connected(snarl_tree_records->at(get_record_offset(net)));}
 
     /** 
      * For two net handles, get a net handle lowest common ancestor
