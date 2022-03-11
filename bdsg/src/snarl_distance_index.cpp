@@ -1041,7 +1041,6 @@ size_t SnarlDistanceIndex::distance_to_parent_bound(net_handle_t& parent, bool t
         }
     }
     net_handle_t parent_bound = get_bound(parent, !to_start, true);
-    cerr << "Distance to bound " << net_handle_as_string(parent_bound) << endl;
 
     //If we are looking at the left side of the child
     bool left_of_child = ends_at(child) == START ? !go_left : go_left;
