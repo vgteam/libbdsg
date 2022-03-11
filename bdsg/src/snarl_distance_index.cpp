@@ -1041,14 +1041,17 @@ size_t SnarlDistanceIndex::distance_to_parent_bound(net_handle_t& parent, bool t
         }
     }
     net_handle_t parent_bound = get_bound(parent, !to_start, true);
+    cerr << "Distance to bound " << net_handle_as_string(parent_bound) << endl;
 
-    if ((go_left && to_start && parent_bound == child) || 
+    //If we are looking at the left side of the child
+    bool left_of_child = ends_at(child) == START ? !go_left : go_left;
+    if ((left_of_child && to_start && parent_bound == child) || 
         //If we want the start to the left of the child and the child is the same as the bound 
-        (go_left && !to_start && parent_bound == flip(child)) ||
+        (left_of_child && !to_start && parent_bound == child) ||
         //If we want the end to the left of the child and the child opposite of the bound
-        (!go_left && to_start && parent_bound == flip(child)) ||
+        (!left_of_child && to_start && parent_bound == flip(child)) ||
         //If we want the start to the right of the child and the child opposite of the bound
-        (!go_left && !to_start && parent_bound == (child))) {
+        (!left_of_child && !to_start && parent_bound == flip(child))) {
         //If we want the end to the right of the child and they are the same
         return 0;
     }
