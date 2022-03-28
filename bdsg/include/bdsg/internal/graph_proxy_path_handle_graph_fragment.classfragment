@@ -184,14 +184,14 @@ protected:
     /// stops if the iteratee returns false.
     virtual bool for_each_path_of_sense_impl(const Sense& sense,
         const std::function<bool(const path_handle_t&)>& iteratee) const{
-        return this->get()->for_each_path_of_sense_impl(sense, iteratee);
+        return this->get()->for_each_path_of_sense(sense, iteratee);
     }
     
     /// Loop through all steps on the given handle for paths with the given
     /// sense. Returns false and stops if the iteratee returns false.
     virtual bool for_each_step_of_sense_impl(const handle_t& visited, const Sense& sense,
         const std::function<bool(const step_handle_t&)>& iteratee) const{
-        return this->get()->for_each_step_of_sense_impl(visited, sense, iteratee);
+        return this->get()->for_each_step_of_sense(visited, sense, iteratee);
     }
     
 #endif
