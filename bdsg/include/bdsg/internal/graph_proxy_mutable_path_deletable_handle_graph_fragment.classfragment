@@ -199,5 +199,17 @@ public:
     virtual void clear() {
         this->get()->clear();
     }
+    
+    // We also include the path metadata stuff here for now
+    
+    virtual path_handle_t create_path(const PathMetadata::Sense& sense,
+                                      const std::string& sample,
+                                      const std::string& locus,
+                                      const int64_t& haplotype,
+                                      const int64_t& phase_block,
+                                      const std::pair<int64_t, int64_t>& subrange,
+                                      bool is_circular = false) {
+        return this->get()->create_path(sense, sample, locus, haplotype, phase_block, subrange, is_circular);
+    }
 
 #endif
