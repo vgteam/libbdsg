@@ -187,7 +187,7 @@ protected:
                                              const std::unordered_set<std::string>* samples,
                                              const std::unordered_set<std::string>* loci,
                                              const std::function<bool(const path_handle_t&)>& iteratee) const {
-        return this->get()->for_each_path_matching_impl(senses, samples, loci, iteratee);
+        return this->get()->for_each_path_matching(senses, samples, loci, iteratee);
     }
     
     /// Loop through all steps on the given handle for paths with the given
