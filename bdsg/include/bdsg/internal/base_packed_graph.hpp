@@ -450,9 +450,12 @@ public:
                               const std::pair<int64_t, int64_t>& subrange,
                               bool is_circular = false);
                               
-    /// Loop through all the paths with the given sense. Returns false and
-    /// stops if the iteratee returns false.
-    bool for_each_path_of_sense(const PathMetadata::Sense& sense,
+    /// Loop through all the paths matching the given query. Query elements
+    /// which are null match everything. Returns false and stops if the
+    /// iteratee returns false.
+    bool for_each_path_matching(const std::unordered_set<PathMetadata::Sense>* senses,
+                                const std::unordered_set<std::string>* samples,
+                                const std::unordered_set<std::string>* loci,
                                 const std::function<bool(const path_handle_t&)>& iteratee) const;
     
     /// Loop through all steps on the given handle for paths with the given
@@ -3071,14 +3074,24 @@ std::pair<int64_t, int64_t> BasePackedGraph<Backend>::get_subrange(const path_ha
 }
 
 template<typename Backend>
-bool BasePackedGraph<Backend>::for_each_path_of_sense(const PathMetadata::Sense& sense,
+bool BasePackedGraph<Backend>::for_each_path_matching(const std::unordered_set<PathMetadata::Sense>* senses,
+                                                      const std::unordered_set<std::string>* samples,
+                                                      const std::unordered_set<std::string>* loci,
                                                       const std::function<bool(const path_handle_t&)>& iteratee) const {
     return for_each_path_handle([&](const path_handle_t& handle) {
-        if (get_sense(handle) != sense) {
-            // Skip this non-matching handle
+        if (senses && !senses->count(get_sense(handle))) {
+            // Sense doesn't match
             return true;
         }
-        // And emit any matching handles
+        if (samples && !samples->count(get_sample_name(handle))) {
+            // Sample name doesn't match
+            return true;
+        }
+        if (loci && !loci->count(get_locus_name(handle))) {
+            // Locus name doesn't match
+            return true;
+        }
+        // Emit any matching handles
         return iteratee(handle);
     });
 }
