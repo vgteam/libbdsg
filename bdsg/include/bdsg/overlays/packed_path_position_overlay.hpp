@@ -32,8 +32,12 @@ class PackedPositionOverlay : public PathPositionHandleGraph, public ExpandingOv
 public:
     
     PackedPositionOverlay(const PathHandleGraph* graph);
-    PackedPositionOverlay();
-    ~PackedPositionOverlay();
+    PackedPositionOverlay() = default;
+    PackedPositionOverlay(const PackedPositionOverlay& other) = default;
+    PackedPositionOverlay(PackedPositionOverlay&& other) = default;
+    ~PackedPositionOverlay() = default;
+    PackedPositionOverlay& operator=(const PackedPositionOverlay& other) = default;
+    PackedPositionOverlay& operator=(PackedPositionOverlay&& other) = default;
 
     ////////////////////////////////////////////////////////////////////////////
     // HandleGraph interface
@@ -230,24 +234,45 @@ protected:
     /// The graph we're overlaying
     const PathHandleGraph* graph = nullptr;
     
-    /// Map from path_handle to the range of indexes that contain its records
-    /// in the steps and positions vectors
-    hash_map<int64_t, pair<size_t, size_t>> path_range;
+    /// To facillitate parallel construction, we keep the index info for each
+    /// path (or collection of tiny paths) in a separate object.
+    struct PathIndex {
+        /// The first half of the steps
+        PagedVector<> steps_0;
+        
+        /// The second half of the steps
+        PagedVector<> steps_1;
+        
+        /// The positions of the steps
+        PagedVector<> positions;
+        
+        /// A perfect minimal hash function for the step handles on the path(s)
+        /// We keep this in a vector so that we can be copyable, which the Python bindings want.
+        /// TODO: replace with std::optional when we upgrade to C++17.
+        std::vector<boomphf::mphf<step_handle_t, StepHash>> step_hash;
+        
+        /// The position of the step that hashes to a given index
+        PackedVector<> step_positions;
+    };
     
-    /// The first half of the steps
-    PagedVector<> steps_0;
+    /// This holds the indexes, each of which belongs to a path or collection
+    /// of short paths.
+    vector<PathIndex> indexes;
     
-    /// The second half of the steps
-    PagedVector<> steps_1;
+    /// And this represents a reference to an offset range in a PathIndex, where a path can be found.
+    struct PathRange {
+        size_t index_number;
+        size_t start;
+        size_t end;
+    };
     
-    /// The positions of the steps
-    PagedVector<> positions;
+    /// Map from path_handle to the index and range of positions that contain
+    /// its records in the steps and positions vectors
+    hash_map<int64_t, PathRange> path_range;
     
-    /// A perfect minimal hash function for the step handles
-    boomphf::mphf<step_handle_t, StepHash>* step_hash = nullptr;
+    /// How many steps do we want per index? We will glom small paths together in the same index to hit this.
+    const static size_t STEPS_PER_INDEX = 1000000;
     
-    /// The position of the step that hashes to a given index
-    PackedVector<> step_positions;
 };
 
 /*
@@ -256,7 +281,11 @@ protected:
  */
 struct BBHashHelper {
 public:
+    /// Set up for iteration over all paths in the given graph
     BBHashHelper(const PathHandleGraph* graph);
+    /// Set up for iteration over the given paths (as iterators over path_handle_ts)
+    template<typename InputIt>
+    BBHashHelper(const PathHandleGraph* graph, InputIt first_path, InputIt last_path);
     BBHashHelper() = delete;
     ~BBHashHelper() = default;
     
@@ -296,6 +325,17 @@ private:
     
     friend class iterator;
 };
+
+template<typename InputIt>
+BBHashHelper::BBHashHelper(const PathHandleGraph* graph, InputIt first_path, InputIt last_path) : graph(graph) {
+    path_handles.reserve(last_path - first_path);
+    for (InputIt it = first_path; it != last_path; ++it) {
+        if (!graph->is_empty(*it)) {
+            // this path contains steps, we want to iterate over it
+            path_handles.push_back(*it);
+        }
+    };
+}
     
 }
 
