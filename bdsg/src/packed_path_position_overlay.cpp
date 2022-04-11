@@ -1,9 +1,13 @@
 #include "bdsg/overlays/packed_path_position_overlay.hpp"
 #include "bdsg/internal/utility.hpp"
 
+#include <omp.h> // BINDER_IGNORE because Binder can't find this
+
+//#define debug
+
 namespace bdsg {
 
-PackedPositionOverlay::PackedPositionOverlay(const PathHandleGraph* graph) : graph(graph) {
+PackedPositionOverlay::PackedPositionOverlay(const PathHandleGraph* graph, size_t steps_per_index) : graph(graph), steps_per_index(steps_per_index) {
     index_path_positions();
 }
 
@@ -221,20 +225,37 @@ void PackedPositionOverlay::index_path_positions() {
     #pragma omp parallel for
     for (size_t i = 0; i < path_handles.size(); i++) {
         // Step counting requires a scan in some graph implementations, so do it in parallel.
+#ifdef debug
+        #pragma omp critical (cerr)
+        std::cerr << "Getting length of path " << get_path_name(path_handles[i]) << std::endl;
+#endif
+
         path_lengths[i] = get_step_count(path_handles[i]);
     }
     
     // Then find the collections of paths to index together.
-    // These iterators will be range bounds pf paths to put in the indexes.
+    // These iterators will be range bounds of paths to put in the indexes.
     std::vector<std::vector<path_handle_t>::iterator> bounds;
     bounds.push_back(path_handles.begin());
+    
+#ifdef debug
+    #pragma omp critical (cerr)
+    std::cerr << "Starting a new index " << (bounds.size() - 1) << " with path " << get_path_name(*bounds.back()) << std::endl;
+#endif
+    
     // And this will be the cumulative path length of all the paths in each collection.
     std::vector<size_t> path_set_steps;
     size_t accumulated_length = 0;
     for (size_t i = 0; i < path_handles.size(); i++) {
-        if (accumulated_length >= STEPS_PER_INDEX) {
+        if (accumulated_length >= steps_per_index) {
             // We need to start a new index with this path
             bounds.push_back(path_handles.begin() + i);
+            
+#ifdef debug
+            #pragma omp critical (cerr)
+            std::cerr << "Starting a new index " << (bounds.size() - 1) << " with path " << get_path_name(*bounds.back()) << std::endl;
+#endif
+            
             path_set_steps.push_back(accumulated_length);
             accumulated_length = 0;
         }
@@ -246,6 +267,12 @@ void PackedPositionOverlay::index_path_positions() {
     
     // Now we know how many indexes we need
     indexes.resize(path_set_steps.size());
+    
+            
+#ifdef debug
+        #pragma omp critical (cerr)
+        std::cerr << "Using " << indexes.size() << " indexes" << std::endl;
+#endif
     
     #pragma omp parallel for
     for (size_t i = 0; i < path_set_steps.size(); i++) {
@@ -264,6 +291,11 @@ void PackedPositionOverlay::index_path_positions() {
         index.positions.resize(cumul_path_size);
         index.step_positions.resize(cumul_path_size);
         
+#ifdef debug
+        #pragma omp critical (cerr)
+        std::cerr << "T" << omp_get_thread_num() << ": Sized index " << i << " for " << cumul_path_size << " steps" << std::endl;
+#endif
+        
         // Make a perfect minimal hash over the step handles on the selected paths
         // Use the number of threads a child OMP team would get.
         index.step_hash.emplace_back(cumul_path_size, BBHashHelper(graph, begin_path, end_path), get_thread_count(), 2.0, false, false);
@@ -274,16 +306,12 @@ void PackedPositionOverlay::index_path_positions() {
         for (size_t j = 0; j < end_path - begin_path; j++) {
             // For each path we are indexing
             auto& path_handle = *(begin_path + j);
-            // Find the information we store about where this path handle lives
-            PathRange* range;
-            #pragma omp critical (path_range)
-            {
-                // Allocate in the map and store the address
-                range = &path_range[as_integer(path_handle)];
-            }
+            // Initialize a PathRange on the stack
+            PathRange range;
+            
             // Populate the index and start info
-            range->index_number = i;
-            range->start = step_overall;
+            range.index_number = i;
+            range.start = step_overall;
             // And walk a base position cursor along the path
             size_t position = 0;
             for_each_step_in_path(path_handle, [&](const step_handle_t& step) {
@@ -300,7 +328,21 @@ void PackedPositionOverlay::index_path_positions() {
                 ++step_overall;
             });
             // Populate the end info
-            range->end = step_overall;
+            range.end = step_overall;
+            
+#ifdef debug
+            #pragma omp critical (cerr)
+            std::cerr << "T" << omp_get_thread_num() << ": Path " << get_path_name(path_handle) << " takes up range " << range.start << " to " << range.end << " in index " << range.index_number << std::endl;
+#endif
+            
+            // Commit to the map from path to path range. We must protect all
+            // access in a critical section, not just the hash table lookup.
+            //
+            // If we worked on a pointer to an item in the hash table, another
+            // thread could add a new item and make our item be deallocated
+            // while we were working on it.
+            #pragma omp critical (path_range)
+            path_range.emplace(as_integer(path_handle), std::move(range));
         }
         
     }

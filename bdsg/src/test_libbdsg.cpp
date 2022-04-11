@@ -16,6 +16,8 @@
 #include <functional>
 #include <stdexcept>
 
+#include <omp.h> // BINDER_IGNORE because Binder can't find this
+
 #include <sys/stat.h>
 #include <handlegraph/algorithms/are_equivalent.hpp>
 
@@ -3509,6 +3511,76 @@ void test_packed_graph() {
     cerr << "PackedGraph tests successful!" << endl;
 }
 
+void test_multithreaded_overlay_construction() {
+    HashGraph graph;
+    
+    std::string node_content = "GATTACACATTAG";
+    size_t node_count = 1000;
+    size_t true_path_length = node_count * node_content.size();
+    size_t path_count = 10;
+    // We should coalesce 2 paths into each index.
+    size_t steps_per_index = node_count * 2;
+    
+    // Make a long linear graph
+    std::vector<handle_t> nodes;
+    for (size_t i = 0; i < node_count; i++) {
+        nodes.push_back(graph.create_handle(node_content));
+        if (nodes.size() > 1) {
+            graph.create_edge(nodes[nodes.size() - 2], nodes[nodes.size() - 1]);
+        }
+    }
+    
+    // Make a bunch of paths and keep their names
+    std::vector<string> paths;
+    for (size_t i = 0; i < path_count; i++) {
+        string path_name = "path" + std::to_string(i);
+        paths.push_back(path_name);
+        path_handle_t path_handle = graph.create_path_handle(path_name);
+        for (auto& visit : nodes) {
+            graph.append_step(path_handle, visit);
+        }
+    }
+    
+    // Back up the thread count we have been using.
+    int backup_thread_count = omp_get_max_threads();
+    for (int thread_count = 1; thread_count <= 4; thread_count++) {
+        // Try this number of threads
+        omp_set_num_threads(thread_count);
+        
+        // Make an overlay with this many threads for construction
+        PackedPositionOverlay overlay(&graph, steps_per_index);
+        
+        // Make sure it is right
+        for (auto& path_name : paths) {
+            assert(overlay.has_path(path_name));
+            path_handle_t path_handle = overlay.get_path_handle(path_name);
+            // Make sure they have the right name and length.
+            assert(overlay.get_path_name(path_handle) == path_name);
+            assert(overlay.get_path_length(path_handle) == true_path_length);
+            for (size_t i = 0; i < true_path_length; i++) {
+                // For each position
+                // Figure out what node and orientation it should have.
+                handle_t true_underlying_handle = nodes.at(i / node_content.size());
+                // Find its step
+                step_handle_t seen_step = overlay.get_step_at_position(path_handle, i);
+                // Make sure it is on the right path
+                assert(overlay.get_path_handle_of_step(seen_step) == path_handle);
+                // Make sure it is the right node
+                handle_t observed_handle = overlay.get_handle_of_step(seen_step);
+                assert(overlay.get_underlying_handle(observed_handle) == true_underlying_handle);
+                // Make sure the step is at the right place
+                size_t true_step_start = i - (i % node_content.size());
+                assert(overlay.get_position_of_step(seen_step) == true_step_start);
+            }
+        }
+        
+    }
+    // Go back to the default thread count.
+    omp_set_num_threads(backup_thread_count);
+    
+    cerr << "Multithreaded PackedPositionOverlay tests successful!" << endl;
+}
+
 void test_path_position_overlays() {
     
     vector<MutablePathDeletableHandleGraph*> implementations;
@@ -4139,6 +4211,7 @@ int main(void) {
     test_path_position_overlays();
     test_vectorizable_overlays();
     test_packed_subgraph_overlay();
+    test_multithreaded_overlay_construction();
     test_mapped_packed_graph();
     test_hash_graph();
 }
