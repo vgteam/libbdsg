@@ -3,7 +3,7 @@
 
 #include <omp.h>
 
-#define debug
+//#define debug
 
 namespace bdsg {
 

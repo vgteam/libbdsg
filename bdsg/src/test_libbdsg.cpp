@@ -3543,9 +3543,8 @@ void test_multithreaded_overlay_construction() {
     
     // Back up the thread count we have been using.
     int backup_thread_count = omp_get_max_threads();
-    for (int thread_count = 1; thread_count < 32; thread_count++) {
+    for (int thread_count = 1; thread_count <= 4; thread_count++) {
         // Try this number of threads
-        cerr << "Test PackedPositionOverlay construction with " << thread_count << " threads" << endl;
         omp_set_num_threads(thread_count);
         
         // Make an overlay with this many threads for construction
@@ -4191,7 +4190,6 @@ void test_hash_graph() {
 }
 
 int main(void) {
-    test_multithreaded_overlay_construction();
     test_mapped_structs();
     test_int_vector(); 
     test_packed_vector<PackedVector<>>();
@@ -4213,6 +4211,7 @@ int main(void) {
     test_path_position_overlays();
     test_vectorizable_overlays();
     test_packed_subgraph_overlay();
+    test_multithreaded_overlay_construction();
     test_mapped_packed_graph();
     test_hash_graph();
 }
