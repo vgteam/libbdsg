@@ -1,9 +1,11 @@
 #include "bdsg/overlays/packed_path_position_overlay.hpp"
 #include "bdsg/internal/utility.hpp"
 
+#define debug
+
 namespace bdsg {
 
-PackedPositionOverlay::PackedPositionOverlay(const PathHandleGraph* graph) : graph(graph) {
+PackedPositionOverlay::PackedPositionOverlay(const PathHandleGraph* graph, size_t steps_per_index) : graph(graph), steps_per_index(steps_per_index) {
     index_path_positions();
 }
 
@@ -146,13 +148,22 @@ bool PackedPositionOverlay::for_each_step_on_handle_impl(const handle_t& handle,
 
 size_t PackedPositionOverlay::get_path_length(const path_handle_t& path_handle) const {
     const auto& range = path_range.at(as_integer(path_handle));
+#ifdef debug
+    #pragma omp critical (cerr)
+    std::cerr << "Path " << get_path_name(path_handle) << " is at index " << range.index_number << " from " << range.start << " to " << range.end << std::endl;
+#endif
     if (range.start == range.end) {
         return 0;
     }
     step_handle_t step;
     as_integers(step)[0] = indexes[range.index_number].steps_0.get(range.end - 1);
     as_integers(step)[1] = indexes[range.index_number].steps_1.get(range.end - 1);
-    return indexes[range.index_number].positions.get(range.end - 1) + get_length(get_handle_of_step(step));
+    size_t length = indexes[range.index_number].positions.get(range.end - 1) + get_length(get_handle_of_step(step));
+#ifdef debug
+    #pragma omp critical (cerr)
+    std::cerr << "Reporting length of path " << get_path_name(path_handle) << " as " << length << std::endl;
+#endif
+    return length;
 }
 
 size_t PackedPositionOverlay::get_position_of_step(const step_handle_t& step) const {
@@ -221,20 +232,37 @@ void PackedPositionOverlay::index_path_positions() {
     #pragma omp parallel for
     for (size_t i = 0; i < path_handles.size(); i++) {
         // Step counting requires a scan in some graph implementations, so do it in parallel.
+#ifdef debug
+        #pragma omp critical (cerr)
+        std::cerr << "Getting length of path " << get_path_name(path_handles[i]) << std::endl;
+#endif
+
         path_lengths[i] = get_step_count(path_handles[i]);
     }
     
     // Then find the collections of paths to index together.
-    // These iterators will be range bounds pf paths to put in the indexes.
+    // These iterators will be range bounds of paths to put in the indexes.
     std::vector<std::vector<path_handle_t>::iterator> bounds;
     bounds.push_back(path_handles.begin());
+    
+#ifdef debug
+        #pragma omp critical (cerr)
+        std::cerr << "Starting a new index " << (bounds.size() - 1) << " with path " << get_path_name(*bounds.back()) << std::endl;
+#endif
+    
     // And this will be the cumulative path length of all the paths in each collection.
     std::vector<size_t> path_set_steps;
     size_t accumulated_length = 0;
     for (size_t i = 0; i < path_handles.size(); i++) {
-        if (accumulated_length >= STEPS_PER_INDEX) {
+        if (accumulated_length >= steps_per_index) {
             // We need to start a new index with this path
             bounds.push_back(path_handles.begin() + i);
+            
+#ifdef debug
+            #pragma omp critical (cerr)
+            std::cerr << "Starting a new index " << (bounds.size() - 1) << " with path " << get_path_name(*bounds.back()) << std::endl;
+#endif
+            
             path_set_steps.push_back(accumulated_length);
             accumulated_length = 0;
         }
@@ -246,6 +274,12 @@ void PackedPositionOverlay::index_path_positions() {
     
     // Now we know how many indexes we need
     indexes.resize(path_set_steps.size());
+    
+            
+#ifdef debug
+        #pragma omp critical (cerr)
+        std::cerr << "Using " << indexes.size() << " indexes" << std::endl;
+#endif
     
     #pragma omp parallel for
     for (size_t i = 0; i < path_set_steps.size(); i++) {
@@ -263,6 +297,11 @@ void PackedPositionOverlay::index_path_positions() {
         index.steps_1.resize(cumul_path_size);
         index.positions.resize(cumul_path_size);
         index.step_positions.resize(cumul_path_size);
+        
+#ifdef debug
+        #pragma omp critical (cerr)
+        std::cerr << "Sized index " << i << " for " << cumul_path_size << " steps" << std::endl;
+#endif
         
         // Make a perfect minimal hash over the step handles on the selected paths
         // Use the number of threads a child OMP team would get.
@@ -301,6 +340,11 @@ void PackedPositionOverlay::index_path_positions() {
             });
             // Populate the end info
             range->end = step_overall;
+            
+#ifdef debug
+            #pragma omp critical (cerr)
+            std::cerr << "Path " << get_path_name(path_handle) << " takes up range " << range->start << " to " << range->end << " in index " << range->index_number << std::endl;
+#endif
         }
         
     }

@@ -3517,10 +3517,13 @@ void test_multithreaded_overlay_construction() {
     std::string node_content = "GATTACACATTAG";
     size_t node_count = 1000;
     size_t true_path_length = node_count * node_content.size();
+    size_t path_count = 10;
+    // We should coalesce 2 paths into each index.
+    size_t steps_per_index = node_count * 2;
     
     // Make a long linear graph
     std::vector<handle_t> nodes;
-    for (size_t i = 0; i < 1000; i++) {
+    for (size_t i = 0; i < node_count; i++) {
         nodes.push_back(graph.create_handle(node_content));
         if (nodes.size() > 1) {
             graph.create_edge(nodes[nodes.size() - 2], nodes[nodes.size() - 1]);
@@ -3529,7 +3532,7 @@ void test_multithreaded_overlay_construction() {
     
     // Make a bunch of paths and keep their names
     std::vector<string> paths;
-    for (size_t i = 0; i < 1000; i++) {
+    for (size_t i = 0; i < path_count; i++) {
         string path_name = "path" + std::to_string(i);
         paths.push_back(path_name);
         path_handle_t path_handle = graph.create_path_handle(path_name);
@@ -3542,10 +3545,11 @@ void test_multithreaded_overlay_construction() {
     int backup_thread_count = omp_get_max_threads();
     for (int thread_count = 1; thread_count < 32; thread_count++) {
         // Try this number of threads
+        cerr << "Test PackedPositionOverlay construction with " << thread_count << " threads" << endl;
         omp_set_num_threads(thread_count);
         
         // Make an overlay with this many threads for construction
-        PackedPositionOverlay overlay(&graph);
+        PackedPositionOverlay overlay(&graph, steps_per_index);
         
         // Make sure it is right
         for (auto& path_name : paths) {
