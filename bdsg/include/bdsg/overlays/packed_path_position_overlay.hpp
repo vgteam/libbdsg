@@ -33,7 +33,11 @@ public:
     
     PackedPositionOverlay(const PathHandleGraph* graph);
     PackedPositionOverlay() = default;
+    PackedPositionOverlay(const PackedPositionOverlay& other) = default;
+    PackedPositionOverlay(PackedPositionOverlay&& other) = default;
     ~PackedPositionOverlay() = default;
+    PackedPositionOverlay& operator=(const PackedPositionOverlay& other) = default;
+    PackedPositionOverlay& operator=(PackedPositionOverlay&& other) = default;
 
     ////////////////////////////////////////////////////////////////////////////
     // HandleGraph interface
@@ -243,7 +247,9 @@ protected:
         PagedVector<> positions;
         
         /// A perfect minimal hash function for the step handles on the path(s)
-        std::unique_ptr<boomphf::mphf<step_handle_t, StepHash>> step_hash;
+        /// We keep this in a vector so that we can be copyable, which the Python bindings want.
+        /// TODO: replace with std::optional when we upgrade to C++17.
+        std::vector<boomphf::mphf<step_handle_t, StepHash>> step_hash;
         
         /// The position of the step that hashes to a given index
         PackedVector<> step_positions;
@@ -255,7 +261,7 @@ protected:
     
     /// And this represents a reference to an offset range in a PathIndex, where a path can be found.
     struct PathRange {
-        PathIndex* index;
+        size_t index_number;
         size_t start;
         size_t end;
     };

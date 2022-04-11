@@ -150,9 +150,9 @@ size_t PackedPositionOverlay::get_path_length(const path_handle_t& path_handle) 
         return 0;
     }
     step_handle_t step;
-    as_integers(step)[0] = range.index->steps_0.get(range.end - 1);
-    as_integers(step)[1] = range.index->steps_1.get(range.end - 1);
-    return range.index->positions.get(range.end - 1) + get_length(get_handle_of_step(step));
+    as_integers(step)[0] = indexes[range.index_number].steps_0.get(range.end - 1);
+    as_integers(step)[1] = indexes[range.index_number].steps_1.get(range.end - 1);
+    return indexes[range.index_number].positions.get(range.end - 1) + get_length(get_handle_of_step(step));
 }
 
 size_t PackedPositionOverlay::get_position_of_step(const step_handle_t& step) const {
@@ -162,7 +162,12 @@ size_t PackedPositionOverlay::get_position_of_step(const step_handle_t& step) co
     }
     else {
         auto& range = path_range.at(as_integer(path));
-        return range.index->step_positions.get(range.index->step_hash->lookup(step));
+        const boomphf::mphf<step_handle_t, StepHash>& const_step_hash = indexes[range.index_number].step_hash.back();
+        // We can't use the lookup function on a const mphf, because it isn't
+        // marked const. But it is thread safe and really ought to be const. So
+        // we cast away the const here.
+        boomphf::mphf<step_handle_t, StepHash>& step_hash = const_cast<boomphf::mphf<step_handle_t, StepHash>&>(const_step_hash);
+        return indexes[range.index_number].step_positions.get(step_hash.lookup(step));
     }
 }
 
@@ -181,7 +186,7 @@ step_handle_t PackedPositionOverlay::get_step_at_position(const path_handle_t& p
     size_t hi = range.end;
     while (hi > low + 1) {
         size_t mid = (hi + low) / 2;
-        if (position < range.index->positions.get(mid)) {
+        if (position < indexes[range.index_number].positions.get(mid)) {
             hi = mid;
         }
         else {
@@ -191,8 +196,8 @@ step_handle_t PackedPositionOverlay::get_step_at_position(const path_handle_t& p
     
     // unpack the integers at the same index into a step
     step_handle_t step;
-    as_integers(step)[0] = range.index->steps_0.get(low);
-    as_integers(step)[1] = range.index->steps_1.get(low);
+    as_integers(step)[0] = indexes[range.index_number].steps_0.get(low);
+    as_integers(step)[1] = indexes[range.index_number].steps_1.get(low);
     return step;
 }
 
@@ -261,14 +266,14 @@ void PackedPositionOverlay::index_path_positions() {
         
         // Make a perfect minimal hash over the step handles on the selected paths
         // Use the number of threads a child OMP team would get.
-        index.step_hash.reset(new boomphf::mphf<step_handle_t, StepHash>(cumul_path_size, BBHashHelper(graph, begin_path, end_path), get_thread_count(), 2.0, false, false));
+        index.step_hash.emplace_back(cumul_path_size, BBHashHelper(graph, begin_path, end_path), get_thread_count(), 2.0, false, false);
         
         // Walk a cursor through steps among the path set
         size_t step_overall = 0;
         
-        for (size_t i = 0; i < end_path - begin_path; i++) {
+        for (size_t j = 0; j < end_path - begin_path; j++) {
             // For each path we are indexing
-            auto& path_handle = *(begin_path + i);
+            auto& path_handle = *(begin_path + j);
             // Find the information we store about where this path handle lives
             PathRange* range;
             #pragma omp critical (path_range)
@@ -277,7 +282,7 @@ void PackedPositionOverlay::index_path_positions() {
                 range = &path_range[as_integer(path_handle)];
             }
             // Populate the index and start info
-            range->index = &index;
+            range->index_number = i;
             range->start = step_overall;
             // And walk a base position cursor along the path
             size_t position = 0;
@@ -289,7 +294,7 @@ void PackedPositionOverlay::index_path_positions() {
                 index.positions.set(step_overall, position);
                 
                 // fill in the step to position index
-                index.step_positions.set(index.step_hash->lookup(step), position);
+                index.step_positions.set(index.step_hash.back().lookup(step), position);
                 
                 position += get_length(get_handle_of_step(step));
                 ++step_overall;
