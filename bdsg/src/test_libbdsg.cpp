@@ -16,7 +16,7 @@
 #include <functional>
 #include <stdexcept>
 
-#include <omp.h>
+#include <omp.h> // BINDER_IGNORE because Binder can't find this
 
 #include <sys/stat.h>
 #include <handlegraph/algorithms/are_equivalent.hpp>
