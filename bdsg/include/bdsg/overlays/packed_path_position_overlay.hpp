@@ -273,7 +273,7 @@ protected:
     };
     
     /// Map from path_handle to the index and range of positions that contain
-    /// its records in the steps and positions vectors
+    /// its records in the steps and positions vectors.
     hash_map<int64_t, PathRange> path_range;
 };
 
