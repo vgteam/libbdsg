@@ -273,7 +273,11 @@ protected:
     };
     
     /// Map from path_handle to the index and range of positions that contain
-    /// its records in the steps and positions vectors.
+    /// its records in the steps and positions vectors. Note that access to
+    /// existing entries is not thread-safe with the addition of new entries!
+    /// Adding a new entry may deallocate existing entries, and will invalidate
+    /// pointers and references to them! This is different from how the STL
+    /// unordered_map behaves!
     hash_map<int64_t, PathRange> path_range;
 };
 
