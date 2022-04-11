@@ -306,16 +306,12 @@ void PackedPositionOverlay::index_path_positions() {
         for (size_t j = 0; j < end_path - begin_path; j++) {
             // For each path we are indexing
             auto& path_handle = *(begin_path + j);
-            // Find the information we store about where this path handle lives
-            PathRange* range;
-            #pragma omp critical (path_range)
-            {
-                // Allocate in the map and store the address
-                range = &path_range[as_integer(path_handle)];
-            }
+            // Initialize a PathRange on the stack
+            PathRange range;
+            
             // Populate the index and start info
-            range->index_number = i;
-            range->start = step_overall;
+            range.index_number = i;
+            range.start = step_overall;
             // And walk a base position cursor along the path
             size_t position = 0;
             for_each_step_in_path(path_handle, [&](const step_handle_t& step) {
@@ -332,12 +328,21 @@ void PackedPositionOverlay::index_path_positions() {
                 ++step_overall;
             });
             // Populate the end info
-            range->end = step_overall;
+            range.end = step_overall;
             
 #ifdef debug
             #pragma omp critical (cerr)
-            std::cerr << "T" << omp_get_thread_num() << ": Path " << get_path_name(path_handle) << " takes up range " << range->start << " to " << range->end << " in index " << range->index_number << std::endl;
+            std::cerr << "T" << omp_get_thread_num() << ": Path " << get_path_name(path_handle) << " takes up range " << range.start << " to " << range.end << " in index " << range.index_number << std::endl;
 #endif
+            
+            // Commit to the map from path to path range. We must protect all
+            // access in a critical section, not just the hash table lookup.
+            //
+            // If we worked on a pointer to an item in the hash table, another
+            // thread could add a new item and make our item be deallocated
+            // while we were working on it.
+            #pragma omp critical (path_range)
+            path_range.emplace(as_integer(path_handle), std::move(range));
         }
         
     }
