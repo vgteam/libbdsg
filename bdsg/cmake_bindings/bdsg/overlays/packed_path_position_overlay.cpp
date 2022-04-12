@@ -718,12 +718,11 @@ void bind_bdsg_overlays_packed_path_position_overlay(std::function< pybind11::mo
 {
 	{ // bdsg::PackedPositionOverlay file:bdsg/overlays/packed_path_position_overlay.hpp line:30
 		pybind11::class_<bdsg::PackedPositionOverlay, std::shared_ptr<bdsg::PackedPositionOverlay>, PyCallBack_bdsg_PackedPositionOverlay, handlegraph::PathPositionHandleGraph, handlegraph::ExpandingOverlayGraph> cl(M("bdsg"), "PackedPositionOverlay", "");
-		cl.def( pybind11::init<const class handlegraph::PathHandleGraph *>(), pybind11::arg("graph") );
+		cl.def( pybind11::init( [](const class handlegraph::PathHandleGraph * a0){ return new bdsg::PackedPositionOverlay(a0); }, [](const class handlegraph::PathHandleGraph * a0){ return new PyCallBack_bdsg_PackedPositionOverlay(a0); } ), "doc");
+		cl.def( pybind11::init<const class handlegraph::PathHandleGraph *, unsigned long>(), pybind11::arg("graph"), pybind11::arg("steps_per_index") );
 
-		cl.def( pybind11::init( [](){ return new bdsg::PackedPositionOverlay(); }, [](){ return new PyCallBack_bdsg_PackedPositionOverlay(); } ) );
 		cl.def( pybind11::init( [](PyCallBack_bdsg_PackedPositionOverlay const &o){ return new PyCallBack_bdsg_PackedPositionOverlay(o); } ) );
 		cl.def( pybind11::init( [](bdsg::PackedPositionOverlay const &o){ return new bdsg::PackedPositionOverlay(o); } ) );
-		cl.def("assign", (class bdsg::PackedPositionOverlay & (bdsg::PackedPositionOverlay::*)(const class bdsg::PackedPositionOverlay &)) &bdsg::PackedPositionOverlay::operator=, "C++: bdsg::PackedPositionOverlay::operator=(const class bdsg::PackedPositionOverlay &) --> class bdsg::PackedPositionOverlay &", pybind11::return_value_policy::automatic, pybind11::arg("other"));
 		cl.def("has_node", (bool (bdsg::PackedPositionOverlay::*)(long long) const) &bdsg::PackedPositionOverlay::has_node, "Method to check if a node exists by ID\n\nC++: bdsg::PackedPositionOverlay::has_node(long long) const --> bool", pybind11::arg("node_id"));
 		cl.def("get_handle", [](bdsg::PackedPositionOverlay const &o, const long long & a0) -> handlegraph::handle_t { return o.get_handle(a0); }, "", pybind11::arg("node_id"));
 		cl.def("get_handle", (struct handlegraph::handle_t (bdsg::PackedPositionOverlay::*)(const long long &, bool) const) &bdsg::PackedPositionOverlay::get_handle, "Look up the handle for the node with the given ID in the given orientation\n\nC++: bdsg::PackedPositionOverlay::get_handle(const long long &, bool) const --> struct handlegraph::handle_t", pybind11::arg("node_id"), pybind11::arg("is_reverse"));
@@ -759,5 +758,24 @@ void bind_bdsg_overlays_packed_path_position_overlay(std::function< pybind11::mo
 		cl.def("get_position_of_step", (unsigned long (bdsg::PackedPositionOverlay::*)(const struct handlegraph::step_handle_t &) const) &bdsg::PackedPositionOverlay::get_position_of_step, "Returns the position along the path of the beginning of this step measured in\n bases of sequence. In a circular path, positions start at the step returned by\n path_begin().\n\nC++: bdsg::PackedPositionOverlay::get_position_of_step(const struct handlegraph::step_handle_t &) const --> unsigned long", pybind11::arg("step"));
 		cl.def("get_step_at_position", (struct handlegraph::step_handle_t (bdsg::PackedPositionOverlay::*)(const struct handlegraph::path_handle_t &, const unsigned long &) const) &bdsg::PackedPositionOverlay::get_step_at_position, "Returns the step at this position, measured in bases of sequence starting at\n the step returned by path_begin(). If the position is past the end of the\n path, returns path_end().\n\nC++: bdsg::PackedPositionOverlay::get_step_at_position(const struct handlegraph::path_handle_t &, const unsigned long &) const --> struct handlegraph::step_handle_t", pybind11::arg("path"), pybind11::arg("position"));
 		cl.def("get_underlying_handle", (struct handlegraph::handle_t (bdsg::PackedPositionOverlay::*)(const struct handlegraph::handle_t &) const) &bdsg::PackedPositionOverlay::get_underlying_handle, "Returns the handle in the underlying graph that corresponds to a handle in the\n overlay\n\nC++: bdsg::PackedPositionOverlay::get_underlying_handle(const struct handlegraph::handle_t &) const --> struct handlegraph::handle_t", pybind11::arg("handle"));
+	}
+	{ // bdsg::BBHashHelper file:bdsg/overlays/packed_path_position_overlay.hpp line:288
+		pybind11::class_<bdsg::BBHashHelper, std::shared_ptr<bdsg::BBHashHelper>> cl(M("bdsg"), "BBHashHelper", "");
+		{ // bdsg::BBHashHelper::iterator file:bdsg/overlays/packed_path_position_overlay.hpp line:298
+			auto & enclosing_class = cl;
+			pybind11::class_<bdsg::BBHashHelper::iterator, std::shared_ptr<bdsg::BBHashHelper::iterator>> cl(enclosing_class, "iterator", "");
+			cl.def( pybind11::init( [](bdsg::BBHashHelper::iterator const &o){ return new bdsg::BBHashHelper::iterator(o); } ) );
+			cl.def("assign", (struct bdsg::BBHashHelper::iterator & (bdsg::BBHashHelper::iterator::*)(const struct bdsg::BBHashHelper::iterator &)) &bdsg::BBHashHelper::iterator::operator=, "C++: bdsg::BBHashHelper::iterator::operator=(const struct bdsg::BBHashHelper::iterator &) --> struct bdsg::BBHashHelper::iterator &", pybind11::return_value_policy::automatic, pybind11::arg("other"));
+			cl.def("plus_plus", (struct bdsg::BBHashHelper::iterator & (bdsg::BBHashHelper::iterator::*)()) &bdsg::BBHashHelper::iterator::operator++, "C++: bdsg::BBHashHelper::iterator::operator++() --> struct bdsg::BBHashHelper::iterator &", pybind11::return_value_policy::automatic);
+			cl.def("__mul__", (struct handlegraph::step_handle_t (bdsg::BBHashHelper::iterator::*)() const) &bdsg::BBHashHelper::iterator::operator*, "C++: bdsg::BBHashHelper::iterator::operator*() const --> struct handlegraph::step_handle_t");
+			cl.def("__eq__", (bool (bdsg::BBHashHelper::iterator::*)(const struct bdsg::BBHashHelper::iterator &) const) &bdsg::BBHashHelper::iterator::operator==, "C++: bdsg::BBHashHelper::iterator::operator==(const struct bdsg::BBHashHelper::iterator &) const --> bool", pybind11::arg("other"));
+			cl.def("__ne__", (bool (bdsg::BBHashHelper::iterator::*)(const struct bdsg::BBHashHelper::iterator &) const) &bdsg::BBHashHelper::iterator::operator!=, "C++: bdsg::BBHashHelper::iterator::operator!=(const struct bdsg::BBHashHelper::iterator &) const --> bool", pybind11::arg("other"));
+		}
+
+		cl.def( pybind11::init<const class handlegraph::PathHandleGraph *>(), pybind11::arg("graph") );
+
+		cl.def( pybind11::init( [](bdsg::BBHashHelper const &o){ return new bdsg::BBHashHelper(o); } ) );
+		cl.def("begin", (struct bdsg::BBHashHelper::iterator (bdsg::BBHashHelper::*)() const) &bdsg::BBHashHelper::begin, "C++ style range begin over steps\n\nC++: bdsg::BBHashHelper::begin() const --> struct bdsg::BBHashHelper::iterator");
+		cl.def("end", (struct bdsg::BBHashHelper::iterator (bdsg::BBHashHelper::*)() const) &bdsg::BBHashHelper::end, "C++ style range end over steps\n\nC++: bdsg::BBHashHelper::end() const --> struct bdsg::BBHashHelper::iterator");
 	}
 }

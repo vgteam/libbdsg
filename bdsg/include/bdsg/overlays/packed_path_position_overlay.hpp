@@ -31,7 +31,10 @@ class PackedPositionOverlay : public PathPositionHandleGraph, public ExpandingOv
         
 public:
     
-    PackedPositionOverlay(const PathHandleGraph* graph);
+    /// Make a new PackedPositionOverlay, on the given graph. Glom short paths
+    /// together to make internal indexes each over at least the given number
+    /// of steps.
+    PackedPositionOverlay(const PathHandleGraph* graph, size_t steps_per_index = 1000000);
     PackedPositionOverlay() = default;
     PackedPositionOverlay(const PackedPositionOverlay& other) = default;
     PackedPositionOverlay(PackedPositionOverlay&& other) = default;
@@ -234,6 +237,9 @@ protected:
     /// The graph we're overlaying
     const PathHandleGraph* graph = nullptr;
     
+    /// The number of steps we target when coalescing small paths into larger indexes.
+    const size_t steps_per_index;
+    
     /// To facillitate parallel construction, we keep the index info for each
     /// path (or collection of tiny paths) in a separate object.
     struct PathIndex {
@@ -267,12 +273,12 @@ protected:
     };
     
     /// Map from path_handle to the index and range of positions that contain
-    /// its records in the steps and positions vectors
+    /// its records in the steps and positions vectors. Note that access to
+    /// existing entries is not thread-safe with the addition of new entries!
+    /// Adding a new entry may deallocate existing entries, and will invalidate
+    /// pointers and references to them! This is different from how the STL
+    /// unordered_map behaves!
     hash_map<int64_t, PathRange> path_range;
-    
-    /// How many steps do we want per index? We will glom small paths together in the same index to hit this.
-    const static size_t STEPS_PER_INDEX = 1000000;
-    
 };
 
 /*

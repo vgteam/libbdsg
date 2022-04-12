@@ -1,10 +1,6 @@
 #include "bdsg/internal/utility.hpp"
 
-// Binder can't always find OpenMP's headers.
-// So we hackily declare the one OppenMP function we use, to avoid including omp.h.
-extern "C" {
-    int omp_get_num_threads(void) throw();
-}
+#include <omp.h> // BINDER_IGNORE because Binder can't find this
 
 namespace bdsg {
 
