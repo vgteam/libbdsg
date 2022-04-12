@@ -1556,7 +1556,7 @@ size_t SnarlDistanceIndex::get_reverse_loop_value(const net_handle_t net) const 
     return TrivialSnarlRecord(get_record_offset(net), &snarl_tree_records).get_reverse_loop(get_node_record_offset(net));
 }
 
-size_t SnarlDistanceIndex::get_chain_component(const net_handle_t net) const {
+size_t SnarlDistanceIndex::get_chain_component(const net_handle_t net, bool get_end) const {
 #ifdef debug_distances
     net_handle_t parent = get_parent(net);
     if (!is_node(net) || !is_chain(parent) || is_trivial_chain(parent)) {
@@ -1566,7 +1566,7 @@ size_t SnarlDistanceIndex::get_chain_component(const net_handle_t net) const {
         return std::numeric_limits<size_t>::max();
     }
 #endif
-    return TrivialSnarlRecord(get_record_offset(net), &snarl_tree_records).get_chain_component(get_node_record_offset(net));
+    return TrivialSnarlRecord(get_record_offset(net), &snarl_tree_records).get_chain_component(get_node_record_offset(net), get_end);
 }
 
 

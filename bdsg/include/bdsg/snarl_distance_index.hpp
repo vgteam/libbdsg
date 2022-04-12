@@ -426,7 +426,11 @@ public:
     size_t get_prefix_sum_value(const net_handle_t net) const;
     size_t get_forward_loop_value(const net_handle_t net) const;
     size_t get_reverse_loop_value(const net_handle_t net) const;
-    size_t get_chain_component(const net_handle_t net) const;
+    //If get_end is true, then get the second component of the last node in a looping chain
+    //If the chain loops, then the first and last node are the same
+    //If it is also a multicomponent, chain, then it is in two different components
+    //If get_end is true, then get the larger of the two components
+    size_t get_chain_component(const net_handle_t net, bool get_end = false) const;
 
     
 //////////////////////////////////////////  The actual distance index
