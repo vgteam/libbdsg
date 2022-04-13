@@ -532,7 +532,7 @@ private:
     const static size_t CHAIN_RECORD_SIZE = 10;
     const static size_t CHAIN_NODE_COUNT_OFFSET = 1;
     const static size_t CHAIN_PARENT_OFFSET = 2;
-    const static size_t CHAIN_MIN_LENGTH_OFFSET = 3; //If this is a multicomponent chain, then the actual min length is 0, but this will be the length of the first component since it is the only length that matters when looping around the outside of the chain
+    const static size_t CHAIN_MIN_LENGTH_OFFSET = 3; //If this is a multicomponent chain, then the actual min length is 0, but this will be the length of the last component since it is the only length that matters when looping around the outside of the chain
     const static size_t CHAIN_MAX_LENGTH_OFFSET = 4;
     const static size_t CHAIN_RANK_OFFSET = 5;
     const static size_t CHAIN_START_NODE_OFFSET = 6;

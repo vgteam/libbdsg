@@ -1360,6 +1360,8 @@ size_t SnarlDistanceIndex::minimum_length(const net_handle_t& net) const {
         } else {
             return SimpleSnarlRecord(net, &snarl_tree_records).get_node_length();
         }
+    } else if (SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == MULTICOMPONENT_CHAIN) {
+        return std::numeric_limits<size_t>::max();
     } else {
         return SnarlTreeRecord(net, &snarl_tree_records).get_min_length();
     }
