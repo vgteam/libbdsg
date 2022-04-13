@@ -403,7 +403,7 @@ public:
     ////////////////////////////////////////////////////////////////////////////
     
     /// What is the given path meant to be representing?
-    PathMetadata::Sense get_sense(const path_handle_t& handle) const;
+    PathSense get_sense(const path_handle_t& handle) const;
     
     /// Get the name of the sample or assembly asociated with the
     /// path-or-thread, or NO_SAMPLE_NAME if it does not belong to one.
@@ -415,12 +415,12 @@ public:
     
     /// Get the haplotype number (0 or 1, for diploid) of the path-or-thread,
     /// or NO_HAPLOTYPE if it does not belong to one.
-    int64_t get_haplotype(const path_handle_t& handle) const;
+    size_t get_haplotype(const path_handle_t& handle) const;
     
     /// Get the phase block number (contiguously phased region of a sample,
     /// contig, and haplotype) of the path-or-thread, or NO_PHASE_BLOCK if it
     /// does not belong to one.
-    int64_t get_phase_block(const path_handle_t& handle) const;
+    size_t get_phase_block(const path_handle_t& handle) const;
     
     /// Get the bounds of the path-or-thread that are actually represented
     /// here. Should be NO_SUBRANGE if the entirety is represented here, and
@@ -429,7 +429,7 @@ public:
     ///
     /// If no end position is stored, NO_END_POSITION may be returned for the
     /// end position.
-    std::pair<int64_t, int64_t> get_subrange(const path_handle_t& handle) const;
+    subrange_t get_subrange(const path_handle_t& handle) const;
     
     /**
      * Add a path with the given metadata. Any item can be the corresponding
@@ -442,18 +442,18 @@ public:
      * Handles to other paths must
      * remain valid.
      */
-    path_handle_t create_path(const PathMetadata::Sense& sense,
+    path_handle_t create_path(const PathSense& sense,
                               const std::string& sample,
                               const std::string& locus,
-                              const int64_t& haplotype,
-                              const int64_t& phase_block,
-                              const std::pair<int64_t, int64_t>& subrange,
+                              const size_t& haplotype,
+                              const size_t& phase_block,
+                              const subrange_t& subrange,
                               bool is_circular = false);
                               
     /// Loop through all the paths matching the given query. Query elements
     /// which are null match everything. Returns false and stops if the
     /// iteratee returns false.
-    bool for_each_path_matching(const std::unordered_set<PathMetadata::Sense>* senses,
+    bool for_each_path_matching(const std::unordered_set<PathSense>* senses,
                                 const std::unordered_set<std::string>* samples,
                                 const std::unordered_set<std::string>* loci,
                                 const std::function<bool(const path_handle_t&)>& iteratee) const;
@@ -461,7 +461,7 @@ public:
     /// Loop through all steps on the given handle for paths with the given
     /// sense. Returns false and stops if the iteratee returns false.
     bool for_each_step_of_sense(const handle_t& visited,
-                                const PathMetadata::Sense& sense,
+                                const PathSense& sense,
                                 const std::function<bool(const step_handle_t&)>& iteratee) const;
 
     ////////////////////////////////////////////////////////////////////////////
@@ -3044,7 +3044,7 @@ void BasePackedGraph<Backend>::reassign_node_ids(const std::function<nid_t(const
 }
 
 template<typename Backend>
-PathMetadata::Sense BasePackedGraph<Backend>::get_sense(const path_handle_t& handle) const {
+PathSense BasePackedGraph<Backend>::get_sense(const path_handle_t& handle) const {
     return PathMetadata::parse_sense(get_path_name(handle));
 }
 
@@ -3059,22 +3059,22 @@ std::string BasePackedGraph<Backend>::get_locus_name(const path_handle_t& handle
 }
 
 template<typename Backend>
-int64_t BasePackedGraph<Backend>::get_haplotype(const path_handle_t& handle) const {
+size_t BasePackedGraph<Backend>::get_haplotype(const path_handle_t& handle) const {
     return PathMetadata::parse_haplotype(get_path_name(handle));
 }
 
 template<typename Backend>
-int64_t BasePackedGraph<Backend>::get_phase_block(const path_handle_t& handle) const {
+size_t BasePackedGraph<Backend>::get_phase_block(const path_handle_t& handle) const {
     return PathMetadata::parse_phase_block(get_path_name(handle));
 }
 
 template<typename Backend>
-std::pair<int64_t, int64_t> BasePackedGraph<Backend>::get_subrange(const path_handle_t& handle) const {
+subrange_t BasePackedGraph<Backend>::get_subrange(const path_handle_t& handle) const {
     return PathMetadata::parse_subrange(get_path_name(handle));
 }
 
 template<typename Backend>
-bool BasePackedGraph<Backend>::for_each_path_matching(const std::unordered_set<PathMetadata::Sense>* senses,
+bool BasePackedGraph<Backend>::for_each_path_matching(const std::unordered_set<PathSense>* senses,
                                                       const std::unordered_set<std::string>* samples,
                                                       const std::unordered_set<std::string>* loci,
                                                       const std::function<bool(const path_handle_t&)>& iteratee) const {
@@ -3098,7 +3098,7 @@ bool BasePackedGraph<Backend>::for_each_path_matching(const std::unordered_set<P
 
 template<typename Backend>
 bool BasePackedGraph<Backend>::for_each_step_of_sense(const handle_t& visited,
-                                                      const PathMetadata::Sense& sense,
+                                                      const PathSense& sense,
                                                       const std::function<bool(const step_handle_t&)>& iteratee) const {
     return for_each_step_on_handle(visited, [&](const step_handle_t& handle) {
         if (get_sense(get_path_handle_of_step(handle)) != sense) {
@@ -3111,12 +3111,12 @@ bool BasePackedGraph<Backend>::for_each_step_of_sense(const handle_t& visited,
 }
 
 template<typename Backend>
-path_handle_t BasePackedGraph<Backend>::create_path(const PathMetadata::Sense& sense,
+path_handle_t BasePackedGraph<Backend>::create_path(const PathSense& sense,
                                                     const std::string& sample,
                                                     const std::string& locus,
-                                                    const int64_t& haplotype,
-                                                    const int64_t& phase_block,
-                                                    const std::pair<int64_t, int64_t>& subrange,
+                                                    const size_t& haplotype,
+                                                    const size_t& phase_block,
+                                                    const subrange_t& subrange,
                                                     bool is_circular) {
     return create_path_handle(PathMetadata::create_path_name(sense, sample, locus, haplotype, phase_block, subrange), is_circular);
 }

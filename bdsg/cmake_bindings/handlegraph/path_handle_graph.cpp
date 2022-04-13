@@ -36,7 +36,7 @@
 struct PyCallBack_handlegraph_MutablePathMetadata : public handlegraph::MutablePathMetadata {
 	using handlegraph::MutablePathMetadata::MutablePathMetadata;
 
-	struct handlegraph::path_handle_t create_path(const enum handlegraph::PathMetadata::Sense & a0, const std::string & a1, const std::string & a2, const long & a3, const long & a4, const struct std::pair<long, long> & a5, bool a6) override { 
+	struct handlegraph::path_handle_t create_path(const enum handlegraph::PathSense & a0, const std::string & a1, const std::string & a2, const long & a3, const long & a4, const struct std::pair<unsigned long, unsigned long> & a5, bool a6) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathMetadata *>(this), "create_path");
 		if (overload) {
@@ -62,16 +62,16 @@ struct PyCallBack_handlegraph_MutablePathMetadata : public handlegraph::MutableP
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"MutablePathMetadata::create_path_handle\"");
 	}
-	enum handlegraph::PathMetadata::Sense get_sense(const struct handlegraph::path_handle_t & a0) const override { 
+	enum handlegraph::PathSense get_sense(const struct handlegraph::path_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathMetadata *>(this), "get_sense");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<enum handlegraph::PathMetadata::Sense>::value) {
-				static pybind11::detail::overload_caster_t<enum handlegraph::PathMetadata::Sense> caster;
-				return pybind11::detail::cast_ref<enum handlegraph::PathMetadata::Sense>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<enum handlegraph::PathSense>::value) {
+				static pybind11::detail::overload_caster_t<enum handlegraph::PathSense> caster;
+				return pybind11::detail::cast_ref<enum handlegraph::PathSense>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<enum handlegraph::PathMetadata::Sense>(std::move(o));
+			else return pybind11::detail::cast_safe<enum handlegraph::PathSense>(std::move(o));
 		}
 		return PathMetadata::get_sense(a0);
 	}
@@ -101,33 +101,33 @@ struct PyCallBack_handlegraph_MutablePathMetadata : public handlegraph::MutableP
 		}
 		return PathMetadata::get_locus_name(a0);
 	}
-	long get_haplotype(const struct handlegraph::path_handle_t & a0) const override { 
+	unsigned long get_haplotype(const struct handlegraph::path_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathMetadata *>(this), "get_haplotype");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<long>::value) {
-				static pybind11::detail::overload_caster_t<long> caster;
-				return pybind11::detail::cast_ref<long>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
+				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long>(std::move(o));
+			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return PathMetadata::get_haplotype(a0);
 	}
-	long get_phase_block(const struct handlegraph::path_handle_t & a0) const override { 
+	unsigned long get_phase_block(const struct handlegraph::path_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathMetadata *>(this), "get_phase_block");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<long>::value) {
-				static pybind11::detail::overload_caster_t<long> caster;
-				return pybind11::detail::cast_ref<long>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
+				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long>(std::move(o));
+			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return PathMetadata::get_phase_block(a0);
 	}
-	using _binder_ret_0 = struct std::pair<long, long>;
+	using _binder_ret_0 = struct std::pair<unsigned long, unsigned long>;
 	_binder_ret_0 get_subrange(const struct handlegraph::path_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathMetadata *>(this), "get_subrange");
@@ -141,7 +141,7 @@ struct PyCallBack_handlegraph_MutablePathMetadata : public handlegraph::MutableP
 		}
 		return PathMetadata::get_subrange(a0);
 	}
-	bool for_each_path_matching_impl(const class std::unordered_set<enum handlegraph::PathMetadata::Sense, struct std::hash<enum handlegraph::PathMetadata::Sense>, struct std::equal_to<enum handlegraph::PathMetadata::Sense>, class std::allocator<enum handlegraph::PathMetadata::Sense> > * a0, const class std::unordered_set<std::string, struct std::hash<std::string>, struct std::equal_to<std::string >, class std::allocator<std::string > > * a1, const class std::unordered_set<std::string, struct std::hash<std::string>, struct std::equal_to<std::string >, class std::allocator<std::string > > * a2, const class std::function<bool (const struct handlegraph::path_handle_t &)> & a3) const override { 
+	bool for_each_path_matching_impl(const class std::unordered_set<enum handlegraph::PathSense, struct std::hash<enum handlegraph::PathSense>, struct std::equal_to<enum handlegraph::PathSense>, class std::allocator<enum handlegraph::PathSense> > * a0, const class std::unordered_set<std::string, struct std::hash<std::string>, struct std::equal_to<std::string >, class std::allocator<std::string > > * a1, const class std::unordered_set<std::string, struct std::hash<std::string>, struct std::equal_to<std::string >, class std::allocator<std::string > > * a2, const class std::function<bool (const struct handlegraph::path_handle_t &)> & a3) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathMetadata *>(this), "for_each_path_matching_impl");
 		if (overload) {
@@ -154,7 +154,7 @@ struct PyCallBack_handlegraph_MutablePathMetadata : public handlegraph::MutableP
 		}
 		return PathMetadata::for_each_path_matching_impl(a0, a1, a2, a3);
 	}
-	bool for_each_step_of_sense_impl(const struct handlegraph::handle_t & a0, const enum handlegraph::PathMetadata::Sense & a1, const class std::function<bool (const struct handlegraph::step_handle_t &)> & a2) const override { 
+	bool for_each_step_of_sense_impl(const struct handlegraph::handle_t & a0, const enum handlegraph::PathSense & a1, const class std::function<bool (const struct handlegraph::step_handle_t &)> & a2) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathMetadata *>(this), "for_each_step_of_sense_impl");
 		if (overload) {
@@ -850,16 +850,16 @@ struct PyCallBack_handlegraph_MutablePathHandleGraph : public handlegraph::Mutab
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::for_each_handle_impl\"");
 	}
-	enum handlegraph::PathMetadata::Sense get_sense(const struct handlegraph::path_handle_t & a0) const override { 
+	enum handlegraph::PathSense get_sense(const struct handlegraph::path_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathHandleGraph *>(this), "get_sense");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<enum handlegraph::PathMetadata::Sense>::value) {
-				static pybind11::detail::overload_caster_t<enum handlegraph::PathMetadata::Sense> caster;
-				return pybind11::detail::cast_ref<enum handlegraph::PathMetadata::Sense>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<enum handlegraph::PathSense>::value) {
+				static pybind11::detail::overload_caster_t<enum handlegraph::PathSense> caster;
+				return pybind11::detail::cast_ref<enum handlegraph::PathSense>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<enum handlegraph::PathMetadata::Sense>(std::move(o));
+			else return pybind11::detail::cast_safe<enum handlegraph::PathSense>(std::move(o));
 		}
 		return PathMetadata::get_sense(a0);
 	}
@@ -889,33 +889,33 @@ struct PyCallBack_handlegraph_MutablePathHandleGraph : public handlegraph::Mutab
 		}
 		return PathMetadata::get_locus_name(a0);
 	}
-	long get_haplotype(const struct handlegraph::path_handle_t & a0) const override { 
+	unsigned long get_haplotype(const struct handlegraph::path_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathHandleGraph *>(this), "get_haplotype");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<long>::value) {
-				static pybind11::detail::overload_caster_t<long> caster;
-				return pybind11::detail::cast_ref<long>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
+				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long>(std::move(o));
+			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return PathMetadata::get_haplotype(a0);
 	}
-	long get_phase_block(const struct handlegraph::path_handle_t & a0) const override { 
+	unsigned long get_phase_block(const struct handlegraph::path_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathHandleGraph *>(this), "get_phase_block");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<long>::value) {
-				static pybind11::detail::overload_caster_t<long> caster;
-				return pybind11::detail::cast_ref<long>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
+				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long>(std::move(o));
+			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return PathMetadata::get_phase_block(a0);
 	}
-	using _binder_ret_1 = struct std::pair<long, long>;
+	using _binder_ret_1 = struct std::pair<unsigned long, unsigned long>;
 	_binder_ret_1 get_subrange(const struct handlegraph::path_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathHandleGraph *>(this), "get_subrange");
@@ -929,7 +929,7 @@ struct PyCallBack_handlegraph_MutablePathHandleGraph : public handlegraph::Mutab
 		}
 		return PathMetadata::get_subrange(a0);
 	}
-	bool for_each_path_matching_impl(const class std::unordered_set<enum handlegraph::PathMetadata::Sense, struct std::hash<enum handlegraph::PathMetadata::Sense>, struct std::equal_to<enum handlegraph::PathMetadata::Sense>, class std::allocator<enum handlegraph::PathMetadata::Sense> > * a0, const class std::unordered_set<std::string, struct std::hash<std::string>, struct std::equal_to<std::string >, class std::allocator<std::string > > * a1, const class std::unordered_set<std::string, struct std::hash<std::string>, struct std::equal_to<std::string >, class std::allocator<std::string > > * a2, const class std::function<bool (const struct handlegraph::path_handle_t &)> & a3) const override { 
+	bool for_each_path_matching_impl(const class std::unordered_set<enum handlegraph::PathSense, struct std::hash<enum handlegraph::PathSense>, struct std::equal_to<enum handlegraph::PathSense>, class std::allocator<enum handlegraph::PathSense> > * a0, const class std::unordered_set<std::string, struct std::hash<std::string>, struct std::equal_to<std::string >, class std::allocator<std::string > > * a1, const class std::unordered_set<std::string, struct std::hash<std::string>, struct std::equal_to<std::string >, class std::allocator<std::string > > * a2, const class std::function<bool (const struct handlegraph::path_handle_t &)> & a3) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathHandleGraph *>(this), "for_each_path_matching_impl");
 		if (overload) {
@@ -942,7 +942,7 @@ struct PyCallBack_handlegraph_MutablePathHandleGraph : public handlegraph::Mutab
 		}
 		return PathMetadata::for_each_path_matching_impl(a0, a1, a2, a3);
 	}
-	bool for_each_step_of_sense_impl(const struct handlegraph::handle_t & a0, const enum handlegraph::PathMetadata::Sense & a1, const class std::function<bool (const struct handlegraph::step_handle_t &)> & a2) const override { 
+	bool for_each_step_of_sense_impl(const struct handlegraph::handle_t & a0, const enum handlegraph::PathSense & a1, const class std::function<bool (const struct handlegraph::step_handle_t &)> & a2) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathHandleGraph *>(this), "for_each_step_of_sense_impl");
 		if (overload) {
@@ -955,7 +955,7 @@ struct PyCallBack_handlegraph_MutablePathHandleGraph : public handlegraph::Mutab
 		}
 		return PathMetadata::for_each_step_of_sense_impl(a0, a1, a2);
 	}
-	struct handlegraph::path_handle_t create_path(const enum handlegraph::PathMetadata::Sense & a0, const std::string & a1, const std::string & a2, const long & a3, const long & a4, const struct std::pair<long, long> & a5, bool a6) override { 
+	struct handlegraph::path_handle_t create_path(const enum handlegraph::PathSense & a0, const std::string & a1, const std::string & a2, const long & a3, const long & a4, const struct std::pair<unsigned long, unsigned long> & a5, bool a6) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathHandleGraph *>(this), "create_path");
 		if (overload) {
@@ -1376,8 +1376,8 @@ void bind_handlegraph_path_handle_graph(std::function< pybind11::module &(std::s
 		pybind11::class_<handlegraph::MutablePathMetadata, std::shared_ptr<handlegraph::MutablePathMetadata>, PyCallBack_handlegraph_MutablePathMetadata, handlegraph::PathMetadata> cl(M("handlegraph"), "MutablePathMetadata", "This is the interface for mutable embedded path and haplotype thread\n metadata (see PathMetadata).\n\n Comes with a default implementation of this interface, based on\n a name-based create_path_handle() and special path name formatting.\n\n ");
 		cl.def(pybind11::init<PyCallBack_handlegraph_MutablePathMetadata const &>());
 		cl.def( pybind11::init( [](){ return new PyCallBack_handlegraph_MutablePathMetadata(); } ) );
-		cl.def("create_path", [](handlegraph::MutablePathMetadata &o, const enum handlegraph::PathMetadata::Sense & a0, const std::string & a1, const std::string & a2, const long & a3, const long & a4, const struct std::pair<long, long> & a5) -> handlegraph::path_handle_t { return o.create_path(a0, a1, a2, a3, a4, a5); }, "", pybind11::arg("sense"), pybind11::arg("sample"), pybind11::arg("locus"), pybind11::arg("haplotype"), pybind11::arg("phase_block"), pybind11::arg("subrange"));
-		cl.def("create_path", (struct handlegraph::path_handle_t (handlegraph::MutablePathMetadata::*)(const enum handlegraph::PathMetadata::Sense &, const std::string &, const std::string &, const long &, const long &, const struct std::pair<long, long> &, bool)) &handlegraph::MutablePathMetadata::create_path, "Add a path with the given metadata. Any item can be the corresponding\n unset sentinel (PathMetadata::NO_LOCUS_NAME,\n PathMetadata::NO_PHASE_BLOCK, etc.).\n\n Implementations may refuse to store paths-or-threads of certain senses\n when relevant fields are unset.\n\n Handles to other paths must\n remain valid.\n\nC++: handlegraph::MutablePathMetadata::create_path(const enum handlegraph::PathMetadata::Sense &, const std::string &, const std::string &, const long &, const long &, const struct std::pair<long, long> &, bool) --> struct handlegraph::path_handle_t", pybind11::arg("sense"), pybind11::arg("sample"), pybind11::arg("locus"), pybind11::arg("haplotype"), pybind11::arg("phase_block"), pybind11::arg("subrange"), pybind11::arg("is_circular"));
+		cl.def("create_path", [](handlegraph::MutablePathMetadata &o, const enum handlegraph::PathSense & a0, const std::string & a1, const std::string & a2, const long & a3, const long & a4, const struct std::pair<unsigned long, unsigned long> & a5) -> handlegraph::path_handle_t { return o.create_path(a0, a1, a2, a3, a4, a5); }, "", pybind11::arg("sense"), pybind11::arg("sample"), pybind11::arg("locus"), pybind11::arg("haplotype"), pybind11::arg("phase_block"), pybind11::arg("subrange"));
+		cl.def("create_path", (struct handlegraph::path_handle_t (handlegraph::MutablePathMetadata::*)(const enum handlegraph::PathSense &, const std::string &, const std::string &, const long &, const long &, const struct std::pair<unsigned long, unsigned long> &, bool)) &handlegraph::MutablePathMetadata::create_path, "Add a path with the given metadata. Any item can be the corresponding\n unset sentinel (PathMetadata::NO_LOCUS_NAME,\n PathMetadata::NO_PHASE_BLOCK, etc.).\n\n Implementations may refuse to store paths-or-threads of certain senses\n when relevant fields are unset.\n\n Handles to other paths must\n remain valid.\n\nC++: handlegraph::MutablePathMetadata::create_path(const enum handlegraph::PathSense &, const std::string &, const std::string &, const long &, const long &, const struct std::pair<unsigned long, unsigned long> &, bool) --> struct handlegraph::path_handle_t", pybind11::arg("sense"), pybind11::arg("sample"), pybind11::arg("locus"), pybind11::arg("haplotype"), pybind11::arg("phase_block"), pybind11::arg("subrange"), pybind11::arg("is_circular"));
 		cl.def("assign", (class handlegraph::MutablePathMetadata & (handlegraph::MutablePathMetadata::*)(const class handlegraph::MutablePathMetadata &)) &handlegraph::MutablePathMetadata::operator=, "C++: handlegraph::MutablePathMetadata::operator=(const class handlegraph::MutablePathMetadata &) --> class handlegraph::MutablePathMetadata &", pybind11::return_value_policy::automatic, pybind11::arg(""));
 	}
 	{ // handlegraph::MutablePathHandleGraph file:handlegraph/mutable_path_handle_graph.hpp line:20

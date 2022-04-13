@@ -862,16 +862,16 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 		}
 		return HandleGraph::get_total_length();
 	}
-	enum handlegraph::PathMetadata::Sense get_sense(const struct handlegraph::path_handle_t & a0) const override { 
+	enum handlegraph::PathSense get_sense(const struct handlegraph::path_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_sense");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<enum handlegraph::PathMetadata::Sense>::value) {
-				static pybind11::detail::overload_caster_t<enum handlegraph::PathMetadata::Sense> caster;
-				return pybind11::detail::cast_ref<enum handlegraph::PathMetadata::Sense>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<enum handlegraph::PathSense>::value) {
+				static pybind11::detail::overload_caster_t<enum handlegraph::PathSense> caster;
+				return pybind11::detail::cast_ref<enum handlegraph::PathSense>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<enum handlegraph::PathMetadata::Sense>(std::move(o));
+			else return pybind11::detail::cast_safe<enum handlegraph::PathSense>(std::move(o));
 		}
 		return PathMetadata::get_sense(a0);
 	}
@@ -901,33 +901,33 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 		}
 		return PathMetadata::get_locus_name(a0);
 	}
-	long get_haplotype(const struct handlegraph::path_handle_t & a0) const override { 
+	unsigned long get_haplotype(const struct handlegraph::path_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_haplotype");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<long>::value) {
-				static pybind11::detail::overload_caster_t<long> caster;
-				return pybind11::detail::cast_ref<long>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
+				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long>(std::move(o));
+			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return PathMetadata::get_haplotype(a0);
 	}
-	long get_phase_block(const struct handlegraph::path_handle_t & a0) const override { 
+	unsigned long get_phase_block(const struct handlegraph::path_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_phase_block");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<long>::value) {
-				static pybind11::detail::overload_caster_t<long> caster;
-				return pybind11::detail::cast_ref<long>(std::move(o), caster);
+			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
+				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long>(std::move(o));
+			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return PathMetadata::get_phase_block(a0);
 	}
-	using _binder_ret_1 = struct std::pair<long, long>;
+	using _binder_ret_1 = struct std::pair<unsigned long, unsigned long>;
 	_binder_ret_1 get_subrange(const struct handlegraph::path_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_subrange");
@@ -941,7 +941,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 		}
 		return PathMetadata::get_subrange(a0);
 	}
-	bool for_each_path_matching_impl(const class std::unordered_set<enum handlegraph::PathMetadata::Sense, struct std::hash<enum handlegraph::PathMetadata::Sense>, struct std::equal_to<enum handlegraph::PathMetadata::Sense>, class std::allocator<enum handlegraph::PathMetadata::Sense> > * a0, const class std::unordered_set<std::string, struct std::hash<std::string>, struct std::equal_to<std::string >, class std::allocator<std::string > > * a1, const class std::unordered_set<std::string, struct std::hash<std::string>, struct std::equal_to<std::string >, class std::allocator<std::string > > * a2, const class std::function<bool (const struct handlegraph::path_handle_t &)> & a3) const override { 
+	bool for_each_path_matching_impl(const class std::unordered_set<enum handlegraph::PathSense, struct std::hash<enum handlegraph::PathSense>, struct std::equal_to<enum handlegraph::PathSense>, class std::allocator<enum handlegraph::PathSense> > * a0, const class std::unordered_set<std::string, struct std::hash<std::string>, struct std::equal_to<std::string >, class std::allocator<std::string > > * a1, const class std::unordered_set<std::string, struct std::hash<std::string>, struct std::equal_to<std::string >, class std::allocator<std::string > > * a2, const class std::function<bool (const struct handlegraph::path_handle_t &)> & a3) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "for_each_path_matching_impl");
 		if (overload) {
@@ -954,7 +954,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 		}
 		return PathMetadata::for_each_path_matching_impl(a0, a1, a2, a3);
 	}
-	bool for_each_step_of_sense_impl(const struct handlegraph::handle_t & a0, const enum handlegraph::PathMetadata::Sense & a1, const class std::function<bool (const struct handlegraph::step_handle_t &)> & a2) const override { 
+	bool for_each_step_of_sense_impl(const struct handlegraph::handle_t & a0, const enum handlegraph::PathSense & a1, const class std::function<bool (const struct handlegraph::step_handle_t &)> & a2) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "for_each_step_of_sense_impl");
 		if (overload) {
@@ -967,7 +967,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 		}
 		return PathMetadata::for_each_step_of_sense_impl(a0, a1, a2);
 	}
-	struct handlegraph::path_handle_t create_path(const enum handlegraph::PathMetadata::Sense & a0, const std::string & a1, const std::string & a2, const long & a3, const long & a4, const struct std::pair<long, long> & a5, bool a6) override { 
+	struct handlegraph::path_handle_t create_path(const enum handlegraph::PathSense & a0, const std::string & a1, const std::string & a2, const long & a3, const long & a4, const struct std::pair<unsigned long, unsigned long> & a5, bool a6) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "create_path");
 		if (overload) {
