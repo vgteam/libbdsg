@@ -1079,13 +1079,13 @@ pair<net_handle_t, bool> SnarlDistanceIndex::lowest_common_ancestor(const net_ha
     std::unordered_set<net_handle_t> net1_ancestors;
     while (!is_root(parent1)){
         net1_ancestors.insert(canonical(parent1));
-        parent1 = canonical(get_parent(parent1));
+        parent1 = get_parent(parent1);
     }
 
     while (net1_ancestors.count(canonical(parent2)) == 0 && !is_root(parent2)){
         //Go up until the parent2 matches something in the ancestors of net1
         //This loop will end because everything is in the same root eventually
-        parent2 = canonical(get_parent(parent2));
+        parent2 = get_parent(parent2);
     }
 
     bool is_connected = true;
@@ -1369,7 +1369,7 @@ size_t SnarlDistanceIndex::minimum_length(const net_handle_t& net) const {
 
 size_t SnarlDistanceIndex::chain_minimum_length(const net_handle_t& net) const {
 #ifdef debug_distances
-    assert(is_chain(net);
+    assert(is_chain(net));
 #endif
     return ChainRecord(net, &snarl_tree_records).get_min_length();
 }
