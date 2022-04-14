@@ -1366,6 +1366,13 @@ size_t SnarlDistanceIndex::minimum_length(const net_handle_t& net) const {
         return SnarlTreeRecord(net, &snarl_tree_records).get_min_length();
     }
 }
+
+size_t SnarlDistanceIndex::chain_minimum_length(const net_handle_t& net) const {
+#ifdef debug_distances
+    assert(is_chain(net);
+#endif
+    return ChainRecord(net, &snarl_tree_records).get_min_length();
+}
 size_t SnarlDistanceIndex::maximum_length(const net_handle_t& net) const {
     if ((SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == TRIVIAL_SNARL || 
         SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == DISTANCED_TRIVIAL_SNARL) &&
