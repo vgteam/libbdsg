@@ -7,7 +7,6 @@
 #include <bdsg/packed_graph.hpp>
 #include <functional>
 #include <handlegraph/mutable_path_handle_graph.hpp>
-#include <handlegraph/mutable_path_metadata.hpp>
 #include <handlegraph/types.hpp>
 #include <ios>
 #include <istream>
@@ -1032,19 +1031,6 @@ struct PyCallBack_bdsg_PackedGraph : public bdsg::PackedGraph {
 			else return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return MutablePathHandleGraph::pop_back_step(a0);
-	}
-	struct handlegraph::path_handle_t create_path(const enum handlegraph::PathSense & a0, const std::string & a1, const std::string & a2, const long & a3, const long & a4, const struct std::pair<unsigned long, unsigned long> & a5, bool a6) override { 
-		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedGraph *>(this), "create_path");
-		if (overload) {
-			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1, a2, a3, a4, a5, a6);
-			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::path_handle_t>::value) {
-				static pybind11::detail::overload_caster_t<struct handlegraph::path_handle_t> caster;
-				return pybind11::detail::cast_ref<struct handlegraph::path_handle_t>(std::move(o), caster);
-			}
-			else return pybind11::detail::cast_safe<struct handlegraph::path_handle_t>(std::move(o));
-		}
-		return MutablePathMetadata::create_path(a0, a1, a2, a3, a4, a5, a6);
 	}
 };
 
@@ -2080,19 +2066,6 @@ struct PyCallBack_bdsg_MappedPackedGraph : public bdsg::MappedPackedGraph {
 			else return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return MutablePathHandleGraph::pop_back_step(a0);
-	}
-	struct handlegraph::path_handle_t create_path(const enum handlegraph::PathSense & a0, const std::string & a1, const std::string & a2, const long & a3, const long & a4, const struct std::pair<unsigned long, unsigned long> & a5, bool a6) override { 
-		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::MappedPackedGraph *>(this), "create_path");
-		if (overload) {
-			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1, a2, a3, a4, a5, a6);
-			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::path_handle_t>::value) {
-				static pybind11::detail::overload_caster_t<struct handlegraph::path_handle_t> caster;
-				return pybind11::detail::cast_ref<struct handlegraph::path_handle_t>(std::move(o), caster);
-			}
-			else return pybind11::detail::cast_safe<struct handlegraph::path_handle_t>(std::move(o));
-		}
-		return MutablePathMetadata::create_path(a0, a1, a2, a3, a4, a5, a6);
 	}
 };
 

@@ -775,7 +775,7 @@ struct PyCallBack_handlegraph_MutablePathMutableHandleGraph : public handlegraph
 		}
 		return PathMetadata::for_each_step_of_sense_impl(a0, a1, a2);
 	}
-	struct handlegraph::path_handle_t create_path(const enum handlegraph::PathSense & a0, const std::string & a1, const std::string & a2, const long & a3, const long & a4, const struct std::pair<unsigned long, unsigned long> & a5, bool a6) override { 
+	struct handlegraph::path_handle_t create_path(const enum handlegraph::PathSense & a0, const std::string & a1, const std::string & a2, const unsigned long & a3, const unsigned long & a4, const struct std::pair<unsigned long, unsigned long> & a5, bool a6) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathMutableHandleGraph *>(this), "create_path");
 		if (overload) {
@@ -2102,7 +2102,7 @@ struct PyCallBack_handlegraph_MutablePathDeletableHandleGraph : public handlegra
 		}
 		return PathMetadata::for_each_step_of_sense_impl(a0, a1, a2);
 	}
-	struct handlegraph::path_handle_t create_path(const enum handlegraph::PathSense & a0, const std::string & a1, const std::string & a2, const long & a3, const long & a4, const struct std::pair<unsigned long, unsigned long> & a5, bool a6) override { 
+	struct handlegraph::path_handle_t create_path(const enum handlegraph::PathSense & a0, const std::string & a1, const std::string & a2, const unsigned long & a3, const unsigned long & a4, const struct std::pair<unsigned long, unsigned long> & a5, bool a6) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "create_path");
 		if (overload) {
