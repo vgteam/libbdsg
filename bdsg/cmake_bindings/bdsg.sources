@@ -1,6 +1,7 @@
 bdsg.cpp
 handlegraph/types.cpp
 handlegraph/handle_graph.cpp
+handlegraph/path_metadata.cpp
 handlegraph/path_handle_graph.cpp
 handlegraph/mutable_path_mutable_handle_graph.cpp
 bdsg/graph_proxy.cpp

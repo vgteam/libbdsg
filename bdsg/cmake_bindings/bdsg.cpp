@@ -10,6 +10,7 @@ typedef std::function< pybind11::module & (std::string const &) > ModuleGetter;
 
 void bind_handlegraph_types(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_handlegraph_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
+void bind_handlegraph_path_metadata(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_handlegraph_path_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_handlegraph_mutable_path_mutable_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_graph_proxy(std::function< pybind11::module &(std::string const &namespace_) > &M);
@@ -63,6 +64,7 @@ PYBIND11_MODULE(bdsg, root_module) {
 
 	bind_handlegraph_types(M);
 	bind_handlegraph_handle_graph(M);
+	bind_handlegraph_path_metadata(M);
 	bind_handlegraph_path_handle_graph(M);
 	bind_handlegraph_mutable_path_mutable_handle_graph(M);
 	bind_bdsg_graph_proxy(M);
