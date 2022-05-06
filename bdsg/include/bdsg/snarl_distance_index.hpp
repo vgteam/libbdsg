@@ -1104,6 +1104,8 @@ private:
         TrivialSnarlRecord() {};
 
         virtual size_t get_node_count() const;
+        //Returns the prefix sum, forward loop, reverse loop, and component
+        //The component will be 0 for the first/last node of a looping chain
         virtual tuple<size_t, size_t, size_t, size_t> get_chain_values(size_t node_rank) const;
         virtual size_t get_prefix_sum(size_t node_rank) const;
         virtual size_t get_forward_loop(size_t node_rank) const ;
@@ -1452,11 +1454,12 @@ private:
         //not including node lengths
         //is_looping_chain indicates whether this chain loops 
         //and last_chain_component is the component of the last thing in the chain
+        //component is the default component of the chain and end_component is the component if it is a looping chain and we want the second component of the first/last node
         //TODO: Double check finding the distance for the same node
         virtual size_t get_distance(size_t rank1, bool right_side1, size_t node_length1, 
-                                    size_t prefix_sum1, size_t forward_loop1, size_t reverse_loop1, size_t component1,
+                                    size_t prefix_sum1, size_t forward_loop1, size_t reverse_loop1, size_t component1, size_t end_component1,
                                     size_t rank2, bool right_side2, size_t node_length2,
-                                    size_t prefix_sum2, size_t forward_loop2, size_t reverse_loop2, size_t component2) const;
+                                    size_t prefix_sum2, size_t forward_loop2, size_t reverse_loop2, size_t component2, size_t end_component2) const;
 
         ///For a chain that loops (when the start and end node are the same), find the 
         //distance walking around the back of the loop
