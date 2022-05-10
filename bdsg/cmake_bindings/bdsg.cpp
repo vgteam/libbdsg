@@ -10,6 +10,7 @@ typedef std::function< pybind11::module & (std::string const &) > ModuleGetter;
 
 void bind_handlegraph_types(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_handlegraph_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
+void bind_handlegraph_path_metadata(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_handlegraph_path_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_handlegraph_mutable_path_mutable_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_graph_proxy(std::function< pybind11::module &(std::string const &namespace_) > &M);
@@ -28,7 +29,7 @@ void bind_std_bdsg_internal_binder_hook_bind(std::function< pybind11::module &(s
 void bind_bdsg_odgi(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_handlegraph_path_position_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_overlays_packed_path_position_overlay(std::function< pybind11::module &(std::string const &namespace_) > &M);
-void bind_bdsg_overlays_packed_path_position_overlay_1(std::function< pybind11::module &(std::string const &namespace_) > &M);
+void bind_bdsg_overlays_packed_subgraph_overlay(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_overlays_path_position_overlays(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_overlays_path_subgraph_overlay(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_overlays_vectorizable_overlays(std::function< pybind11::module &(std::string const &namespace_) > &M);
@@ -63,6 +64,7 @@ PYBIND11_MODULE(bdsg, root_module) {
 
 	bind_handlegraph_types(M);
 	bind_handlegraph_handle_graph(M);
+	bind_handlegraph_path_metadata(M);
 	bind_handlegraph_path_handle_graph(M);
 	bind_handlegraph_mutable_path_mutable_handle_graph(M);
 	bind_bdsg_graph_proxy(M);
@@ -81,7 +83,7 @@ PYBIND11_MODULE(bdsg, root_module) {
 	bind_bdsg_odgi(M);
 	bind_handlegraph_path_position_handle_graph(M);
 	bind_bdsg_overlays_packed_path_position_overlay(M);
-	bind_bdsg_overlays_packed_path_position_overlay_1(M);
+	bind_bdsg_overlays_packed_subgraph_overlay(M);
 	bind_bdsg_overlays_path_position_overlays(M);
 	bind_bdsg_overlays_path_subgraph_overlay(M);
 	bind_bdsg_overlays_vectorizable_overlays(M);

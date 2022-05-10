@@ -115,67 +115,127 @@ void VectorizableOverlay::index_nodes_and_edges() {
     
     // index our node ranks
     rank_to_node.clear();
-    rank_to_node.reserve(get_node_count() + 1);
+    size_t node_count = get_node_count();
+    // Eventually the forst slot here is reserved for the nonexistent rank 0.
+    rank_to_node.reserve(node_count + 1);
+    // First we will fill this in just as a buffer, with all the node IDs.
+    rank_to_node.resize(node_count);
     node_to_rank.reset();
     
-    size_t seq_length = 0;
+    std::atomic<size_t> seq_length(0);
+    std::atomic<size_t> next_free_slot(0);
+    // Scan all the graph's nodes in parallel
     underlying_graph->for_each_handle([&](const handle_t& handle) {
         seq_length += underlying_graph->get_length(handle);
-        // We are just using this as a buffer for now.
-        rank_to_node.push_back(underlying_graph->get_id(handle));
-    });
+        // We are just using rank_to_node as a buffer for now.
+        // Grab ourselves a slot nobody else is writing to.
+        size_t slot = next_free_slot++;
+        rank_to_node[slot] = underlying_graph->get_id(handle);
+    }, true);
     
-    // Now sort the handles by node ID, ascending.
-    // This means the minimal perfect hash function should always see the same
-    // input, so it should always produe the same ordering.
-    std::sort(rank_to_node.begin(), rank_to_node.end());
+    vector<pair<pair<nid_t, bool>, pair<nid_t, bool>>> edge_buffer;
     
+    // Do our node sort in parallel with our edge scan and sort.
+    // TODO: Make each sort parallel instead with C++17?
+    #pragma omp parallel
+    {
+        #pragma omp single
+        {
+            #pragma omp task
+            {
+                // Sort the handles by node ID, ascending.
+                // This means the minimal perfect hash function should always see the same
+                // input, so it should always produce the same ordering.
+                std::sort(rank_to_node.begin(), rank_to_node.end());
+            }
+            
+            #pragma omp task
+            {
+                // We also need to do the edges. We need to impose an arbitrary order besed
+                // entirely on node IDs and orientations.
+                // TODO: It would be nice to do this in parallel, but we'd really want an
+                // overall edge count forst, and most graph implementations seem to
+                // implement that as a serial scan of the graph, so it wouldn't really
+                // help.
+                // TODO: Can we use the one parallel loop over the nodes to
+                // replace this somehow?
+                edge_to_rank.reset();
+                underlying_graph->for_each_edge([&](const edge_t& edge) {
+                    // Fill the buffer with ID, orientation representations of the edges.
+                    edge_buffer.push_back(canonicalize_edge(edge));
+                });
+            
+                // Sort edges in some consistent order, so we always feed the same thing to
+                // the minimal perfect hash function for the same graph.
+                std::sort(edge_buffer.begin(), edge_buffer.end());
+            }
+            #pragma omp taskwait
+        }
+    }
+    
+    // Make edge PMHF. Does its own threading. Do it first so we can drop the edge buffer.
+    // note: we're mapping to 0-based rank, so need to add one after lookup
+    edge_to_rank.reset(new boomphf::mphf<pair<pair<nid_t, bool>, pair<nid_t, bool>>, boomph_pair_pair_hash<nid_t, bool, nid_t, bool>>(
+        edge_buffer.size(), edge_buffer, get_thread_count(), 2.0, false, false));
+    edge_buffer.clear();
+    
+    // Make node PMHF. Does its own threading.
     // Note: we're mapping to 0-based rank, so need to add one after lookup
     node_to_rank.reset(new boomphf::mphf<nid_t, boomphf::SingleHashFunctor<nid_t>>(rank_to_node.size(), rank_to_node,
                                                                                    get_thread_count(), 2.0, false, false));
     
     
     // Add one slot to keep ranks in this table 1-based.
-    rank_to_node.resize(rank_to_node.size() + 1);
+    rank_to_node.resize(node_count + 1);
     // Rank slot 0 should never be read. Put the 0 node ID which should never exist.
     rank_to_node[0] = 0;
     
+    // We also want node lengths in rank order.
+    // This might be a bit big, but we compress it into a bit vector later.
+    std::vector<size_t> node_lengths;
+    node_lengths.resize(rank_to_node.size());
+    node_lengths[0] = 0;
+    
     // Fill in the ranks by reading back from the boomph, which can't be iterated by itself.
     // It defines its own order that it wants us to use.
+    // Make sure to do this in parallel too.
     underlying_graph->for_each_handle([&](const handle_t& handle) {
         // Note that we don't depend on this iteration being in any particular order.
         nid_t id = underlying_graph->get_id(handle);
-        rank_to_node[node_to_rank->lookup(id) + 1] = id;
-    });
-
+        size_t rank = node_to_rank->lookup(id) + 1;
+        rank_to_node[rank] = id;
+        
+        // Now get the node length. Save a get_handle by doing it here.
+        node_lengths[rank] =  underlying_graph->get_length(handle);
+    }, true);
+    
+    
     // Index our node offsets along the linearized sequence
     sdsl::util::assign(s_bv, sdsl::bit_vector(seq_length));
     seq_length = 0;
     for (size_t node_rank = 1; node_rank < rank_to_node.size(); ++node_rank) {
         s_bv[seq_length] = 1;
-        // TODO: this is one get_handle per node which may not be cheap.
-        seq_length += underlying_graph->get_length(underlying_graph->get_handle(rank_to_node[node_rank]));
+        seq_length += node_lengths[node_rank];
     }
-    sdsl::util::assign(s_bv_rank, sdsl::rank_support_v<1>(&s_bv));
-    sdsl::util::assign(s_bv_select, sdsl::bit_vector::select_1_type(&s_bv));
+    node_lengths.clear();
     
-    // Now we need to do the edges. We need to impose an arbitrary order besed entirely on node IDs and orientations.
-    
-    edge_to_rank.reset();
-    vector<pair<pair<nid_t, bool>, pair<nid_t, bool>>> edge_buffer;
-    underlying_graph->for_each_edge([&](const edge_t& edge) {
-        // Fill the buffer with ID, orientation representations of the edges.
-        edge_buffer.push_back(canonicalize_edge(edge));
-    });
-    
-    // Sort them in some consistent order, so we always feed the same thing to
-    // the minimal perfect hash function for the same graph.
-    std::sort(edge_buffer.begin(), edge_buffer.end());
-    
-    // note: we're mapping to 0-based rank, so need to add one after lookup
-    edge_to_rank.reset(new boomphf::mphf<pair<pair<nid_t, bool>, pair<nid_t, bool>>, boomph_pair_pair_hash<nid_t, bool, nid_t, bool>>(
-        edge_buffer.size(), edge_buffer, get_thread_count(), 2.0, false, false));
-    edge_buffer.clear();
+    #pragma omp parallel
+    {
+        #pragma omp single
+        {
+            #pragma omp task
+            {
+                // Populate rank data structures
+                sdsl::util::assign(s_bv_rank, sdsl::rank_support_v<1>(&s_bv));
+            }
+            #pragma omp task
+            {
+                // And populate select data structures in parallel
+                sdsl::util::assign(s_bv_select, sdsl::bit_vector::select_1_type(&s_bv));
+            }
+            #pragma omp taskwait
+        }
+    }
 }
 
 pair<pair<nid_t, bool>, pair<nid_t, bool>> VectorizableOverlay::canonicalize_edge(const edge_t& edge) const {

@@ -1,15 +1,17 @@
-#include <bdsg/overlays/packed_path_position_overlay.hpp>
 #include <bdsg/overlays/packed_subgraph_overlay.hpp>
 #include <bdsg/overlays/path_position_overlays.hpp>
 #include <functional>
 #include <handlegraph/handle_graph.hpp>
 #include <handlegraph/path_handle_graph.hpp>
+#include <handlegraph/path_metadata.hpp>
 #include <handlegraph/path_position_handle_graph.hpp>
 #include <handlegraph/types.hpp>
 #include <iterator>
 #include <memory>
 #include <sstream> // __str__
 #include <string>
+#include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -859,29 +861,115 @@ struct PyCallBack_bdsg_PositionOverlay : public bdsg::PositionOverlay {
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::for_each_handle_impl\"");
 	}
+	enum handlegraph::PathSense get_sense(const struct handlegraph::path_handle_t & a0) const override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PositionOverlay *>(this), "get_sense");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<enum handlegraph::PathSense>::value) {
+				static pybind11::detail::overload_caster_t<enum handlegraph::PathSense> caster;
+				return pybind11::detail::cast_ref<enum handlegraph::PathSense>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<enum handlegraph::PathSense>(std::move(o));
+		}
+		return PathMetadata::get_sense(a0);
+	}
+	std::string get_sample_name(const struct handlegraph::path_handle_t & a0) const override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PositionOverlay *>(this), "get_sample_name");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<std::string>::value) {
+				static pybind11::detail::overload_caster_t<std::string> caster;
+				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<std::string>(std::move(o));
+		}
+		return PathMetadata::get_sample_name(a0);
+	}
+	std::string get_locus_name(const struct handlegraph::path_handle_t & a0) const override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PositionOverlay *>(this), "get_locus_name");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<std::string>::value) {
+				static pybind11::detail::overload_caster_t<std::string> caster;
+				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<std::string>(std::move(o));
+		}
+		return PathMetadata::get_locus_name(a0);
+	}
+	unsigned long get_haplotype(const struct handlegraph::path_handle_t & a0) const override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PositionOverlay *>(this), "get_haplotype");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
+				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+		}
+		return PathMetadata::get_haplotype(a0);
+	}
+	unsigned long get_phase_block(const struct handlegraph::path_handle_t & a0) const override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PositionOverlay *>(this), "get_phase_block");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
+				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+		}
+		return PathMetadata::get_phase_block(a0);
+	}
+	using _binder_ret_0 = struct std::pair<unsigned long, unsigned long>;
+	_binder_ret_0 get_subrange(const struct handlegraph::path_handle_t & a0) const override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PositionOverlay *>(this), "get_subrange");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<_binder_ret_0>::value) {
+				static pybind11::detail::overload_caster_t<_binder_ret_0> caster;
+				return pybind11::detail::cast_ref<_binder_ret_0>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<_binder_ret_0>(std::move(o));
+		}
+		return PathMetadata::get_subrange(a0);
+	}
+	bool for_each_path_matching_impl(const class std::unordered_set<enum handlegraph::PathSense, struct std::hash<enum handlegraph::PathSense>, struct std::equal_to<enum handlegraph::PathSense>, class std::allocator<enum handlegraph::PathSense> > * a0, const class std::unordered_set<std::string, struct std::hash<std::string>, struct std::equal_to<std::string >, class std::allocator<std::string > > * a1, const class std::unordered_set<std::string, struct std::hash<std::string>, struct std::equal_to<std::string >, class std::allocator<std::string > > * a2, const class std::function<bool (const struct handlegraph::path_handle_t &)> & a3) const override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PositionOverlay *>(this), "for_each_path_matching_impl");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1, a2, a3);
+			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
+				static pybind11::detail::overload_caster_t<bool> caster;
+				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<bool>(std::move(o));
+		}
+		return PathMetadata::for_each_path_matching_impl(a0, a1, a2, a3);
+	}
+	bool for_each_step_of_sense_impl(const struct handlegraph::handle_t & a0, const enum handlegraph::PathSense & a1, const class std::function<bool (const struct handlegraph::step_handle_t &)> & a2) const override { 
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PositionOverlay *>(this), "for_each_step_of_sense_impl");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1, a2);
+			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
+				static pybind11::detail::overload_caster_t<bool> caster;
+				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<bool>(std::move(o));
+		}
+		return PathMetadata::for_each_step_of_sense_impl(a0, a1, a2);
+	}
 };
 
-void bind_bdsg_overlays_packed_path_position_overlay_1(std::function< pybind11::module &(std::string const &namespace_) > &M)
+void bind_bdsg_overlays_packed_subgraph_overlay(std::function< pybind11::module &(std::string const &namespace_) > &M)
 {
-	{ // bdsg::BBHashHelper file:bdsg/overlays/packed_path_position_overlay.hpp line:257
-		pybind11::class_<bdsg::BBHashHelper, std::shared_ptr<bdsg::BBHashHelper>> cl(M("bdsg"), "BBHashHelper", "");
-		{ // bdsg::BBHashHelper::iterator file:bdsg/overlays/packed_path_position_overlay.hpp line:263
-			auto & enclosing_class = cl;
-			pybind11::class_<bdsg::BBHashHelper::iterator, std::shared_ptr<bdsg::BBHashHelper::iterator>> cl(enclosing_class, "iterator", "");
-			cl.def( pybind11::init( [](bdsg::BBHashHelper::iterator const &o){ return new bdsg::BBHashHelper::iterator(o); } ) );
-			cl.def("assign", (struct bdsg::BBHashHelper::iterator & (bdsg::BBHashHelper::iterator::*)(const struct bdsg::BBHashHelper::iterator &)) &bdsg::BBHashHelper::iterator::operator=, "C++: bdsg::BBHashHelper::iterator::operator=(const struct bdsg::BBHashHelper::iterator &) --> struct bdsg::BBHashHelper::iterator &", pybind11::return_value_policy::automatic, pybind11::arg("other"));
-			cl.def("plus_plus", (struct bdsg::BBHashHelper::iterator & (bdsg::BBHashHelper::iterator::*)()) &bdsg::BBHashHelper::iterator::operator++, "C++: bdsg::BBHashHelper::iterator::operator++() --> struct bdsg::BBHashHelper::iterator &", pybind11::return_value_policy::automatic);
-			cl.def("__mul__", (struct handlegraph::step_handle_t (bdsg::BBHashHelper::iterator::*)() const) &bdsg::BBHashHelper::iterator::operator*, "C++: bdsg::BBHashHelper::iterator::operator*() const --> struct handlegraph::step_handle_t");
-			cl.def("__eq__", (bool (bdsg::BBHashHelper::iterator::*)(const struct bdsg::BBHashHelper::iterator &) const) &bdsg::BBHashHelper::iterator::operator==, "C++: bdsg::BBHashHelper::iterator::operator==(const struct bdsg::BBHashHelper::iterator &) const --> bool", pybind11::arg("other"));
-			cl.def("__ne__", (bool (bdsg::BBHashHelper::iterator::*)(const struct bdsg::BBHashHelper::iterator &) const) &bdsg::BBHashHelper::iterator::operator!=, "C++: bdsg::BBHashHelper::iterator::operator!=(const struct bdsg::BBHashHelper::iterator &) const --> bool", pybind11::arg("other"));
-		}
-
-		cl.def( pybind11::init<const class handlegraph::PathHandleGraph *>(), pybind11::arg("graph") );
-
-		cl.def( pybind11::init( [](bdsg::BBHashHelper const &o){ return new bdsg::BBHashHelper(o); } ) );
-		cl.def("begin", (struct bdsg::BBHashHelper::iterator (bdsg::BBHashHelper::*)() const) &bdsg::BBHashHelper::begin, "C++ style range begin over steps\n\nC++: bdsg::BBHashHelper::begin() const --> struct bdsg::BBHashHelper::iterator");
-		cl.def("end", (struct bdsg::BBHashHelper::iterator (bdsg::BBHashHelper::*)() const) &bdsg::BBHashHelper::end, "C++ style range end over steps\n\nC++: bdsg::BBHashHelper::end() const --> struct bdsg::BBHashHelper::iterator");
-	}
 	{ // bdsg::PackedSubgraphOverlay file:bdsg/overlays/packed_subgraph_overlay.hpp line:27
 		pybind11::class_<bdsg::PackedSubgraphOverlay, std::shared_ptr<bdsg::PackedSubgraphOverlay>, PyCallBack_bdsg_PackedSubgraphOverlay, handlegraph::ExpandingOverlayGraph> cl(M("bdsg"), "PackedSubgraphOverlay", "");
 		cl.def( pybind11::init<const class handlegraph::HandleGraph *>(), pybind11::arg("graph") );
