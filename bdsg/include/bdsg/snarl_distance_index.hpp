@@ -492,7 +492,7 @@ private:
      *
      */
     
-public:
+private:
 //TODO: This should definitely not be public
     bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector> snarl_tree_records;
 

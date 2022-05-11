@@ -561,8 +561,6 @@ void bind_bdsg_snarl_distance_index(std::function< pybind11::module &(std::strin
 			.value("TEMP_ROOT", bdsg::SnarlDistanceIndex::TEMP_ROOT)
 			.export_values();
 
-		cl.def_readwrite("snarl_tree_records", &bdsg::SnarlDistanceIndex::snarl_tree_records);
-		cl.def_readwrite("snarl_size_limit", &bdsg::SnarlDistanceIndex::snarl_size_limit);
 		cl.def("serialize", [](bdsg::SnarlDistanceIndex &o, const std::string & a0) -> void { return o.serialize(a0); }, "", pybind11::arg("filename"));
 		cl.def("deserialize", [](bdsg::SnarlDistanceIndex &o, const std::string & a0) -> void { return o.deserialize(a0); }, "", pybind11::arg("filename"));
 		cl.def("dissociate", (void (bdsg::SnarlDistanceIndex::*)()) &bdsg::SnarlDistanceIndex::dissociate, "C++: bdsg::SnarlDistanceIndex::dissociate() --> void");
