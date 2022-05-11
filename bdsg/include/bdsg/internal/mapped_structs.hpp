@@ -853,6 +853,19 @@ public:
     iterator end();
     const_iterator end() const;
     
+    // Allow fast access to the data block
+    
+    /// Get the pointer to the first item in the contiguous array, or nullptr
+    /// if no array is allocated.
+    inline T* get_first() {
+        return (T*)first;
+    }
+    /// Get the pointer to the first item in the contiguous array, or nullptr
+    /// if no array is allocated.
+    inline const T* get_first() const {
+        return (const T*)first;
+    }
+    
     // Compatibility with SDSL-lite serialization
     
     /**
@@ -976,17 +989,17 @@ public:
     /**
      * Actual accessor method that sets the value at a position.
      * Does not check if value actually fits.
-     * Uses the given width override instead of the stored width to write the value, if set.
+     * Uses the given width instead of the stored width to write the value.
      *
      * Throws if the value will not fit in the relevant number of bits.
      */
-    void pack(size_t index, uint64_t value, size_t width_override = 0);
+    void pack(size_t index, uint64_t value, size_t width);
     
     /**
      * Actual accessor method that gets the value at a position.
-     * Uses the given width override instead of the stored width to write the value, if set.
+     * Uses the given width instead of the stored width to read the value.
      */
-    uint64_t unpack(size_t index, size_t width_override = 0) const;
+    uint64_t unpack(size_t index, size_t width) const;
     
     /**
      * Proxy that acts as a mutable reference to an entry in the vector.
@@ -1759,99 +1772,34 @@ void CompatIntVector<Alloc>::repack(size_t new_width, size_t new_size) {
 }
 
 template<typename Alloc>
-void CompatIntVector<Alloc>::pack(size_t index, uint64_t value, size_t width_override) {
-    // Decide how wide to encode the items as
-    size_t effective_width = width_override ? width_override : (size_t) bit_width;
-    
-    if (effective_width < std::numeric_limits<uint64_t>::digits && value) {
+void CompatIntVector<Alloc>::pack(size_t index, uint64_t value, size_t width) {
+    if (width < std::numeric_limits<uint64_t>::digits && value) {
         // It is possible we have been given a number that we cannot represent.
         // Use the compiler's count leading zeroes function, which hopefully it has.
         size_t needed_bits = std::numeric_limits<uint64_t>::digits - __builtin_clzll(value);
-        if (needed_bits > effective_width) {
+        if (needed_bits > width) {
             // The value will not fit.
             throw std::invalid_argument("Need " + std::to_string(needed_bits) +
                                         " bits to represent value " + std::to_string(value) +
-                                        " but only have " + std::to_string(effective_width)); 
+                                        " but only have " + std::to_string(width)); 
         }
     }
     
     // Find the bit index we start at
-    size_t start_bit = index * effective_width;
-    // And break into a slot number
-    size_t start_slot = start_bit / std::numeric_limits<uint64_t>::digits;
-    // And a start bit in that slot
-    size_t start_slot_bit_offset = start_bit % std::numeric_limits<uint64_t>::digits;
-    // And then save
-#ifdef debug_bit_packing
-    std::cerr << "Write " << value
-        << " of width " << effective_width
-        << " at bit " << start_slot_bit_offset
-        << " in slot " << start_slot << endl; 
-#endif
-    sdsl::bits::write_int(&data[start_slot], value, start_slot_bit_offset, effective_width);
+    size_t start_bit = index * width;
+    // Use the last 6 bits (up to 64) for the offset in the 64-bit word, and
+    // the others for the word number.
+    sdsl::bits::write_int(data.get_first() + (start_bit >> 6), value, start_bit & 0x3F, width);
 }
 
 template<typename Alloc>
-uint64_t CompatIntVector<Alloc>::unpack(size_t index, size_t width_override) const {
-    // Decide how wide to interpret the items as
-    size_t effective_width = width_override ? width_override : (size_t) bit_width;
+uint64_t CompatIntVector<Alloc>::unpack(size_t index, size_t width) const {
     // Find the bit index we start at
-    size_t start_bit = index * effective_width;
-    // And break into a slot number
-    size_t start_slot = start_bit / std::numeric_limits<uint64_t>::digits;
-    // And a start bit in that slot
-    size_t start_slot_bit_offset = start_bit % std::numeric_limits<uint64_t>::digits;
-    
-    if (yomo::Manager::check_chains) {
-        // Do some bounds checking
-    
-        // Work out if we span into the next slot
-        bool into_next_slot = (start_slot_bit_offset + effective_width > std::numeric_limits<uint64_t>::digits);
-        if (start_slot >= data.size() || (into_next_slot && start_slot + 1 >= data.size())) {
-            // We want to go out of range of the vector.
-            throw std::out_of_range("Reading item " + std::to_string(index) +
-                " of width " + std::to_string(effective_width) + " accesses slot " + std::to_string(start_slot) +
-                (into_next_slot ? ("and slot " + std::to_string(into_next_slot + 1)) : "") +
-                " but we only have " + std::to_string(data.size()) + " slots and " +
-                std::to_string(size()) + " items");
-        }
-        
-        // Define the memory range we plan to access, inclusive
-        const uint64_t* access_first = &data[start_slot];
-        const uint64_t* access_last =  access_first + into_next_slot;
-        
-        // Make sure we aren't trying to go across chains
-        auto our_chain = yomo::Manager::get_chain(this);
-        for (const uint64_t* access_addr = access_first; access_addr != access_last + 1; access_addr++) {
-            // For each slot we need to read
-            
-            auto other_chain = yomo::Manager::get_chain(access_addr);
-            
-            if (other_chain != our_chain) {
-                // We're accessing something past the end of the chain somehow.
-                std::stringstream msg;
-                msg << "error[CompatIntVector]: Attempting to access address " << access_addr
-                    << " for vector at " << this << " with data at " << &data[0]
-                    << " but we are in chain " << our_chain
-                    << " and accessed address is in chain " << other_chain
-                    << ". Is the entire file mapped?" << std::endl;
-                yomo::Manager::dump_links(msg);
-                throw std::out_of_range(msg.str());
-            }
-        }
-    }
-    
-    // And then load
-#ifdef debug_bit_packing
-    std::cerr << "Read value of width " << effective_width
-        << " at bit " << start_slot_bit_offset
-        << " in slot " << start_slot << ": ";
-#endif
-    uint64_t value = sdsl::bits::read_int(&data[start_slot], start_slot_bit_offset, effective_width);
-#ifdef debug_bit_packing
-    std::cerr << value << std::endl;
-#endif
-    return value;
+    size_t start_bit = index * width;
+    // And then load.
+    // Use the last 6 bits (up to 64) for the offset in the 64-bit word, and
+    // the others for the word number.
+    return sdsl::bits::read_int(data.get_first() + (start_bit >> 6), start_bit & 0x3F, width);
 }
 
 template<typename Alloc>
@@ -1861,12 +1809,12 @@ CompatIntVector<Alloc>::Proxy::Proxy(CompatIntVector& parent, size_t index) : pa
 
 template<typename Alloc>
 CompatIntVector<Alloc>::Proxy::operator uint64_t () const {
-    return parent.unpack(index);
+    return parent.unpack(index, parent.bit_width);
 }
 
 template<typename Alloc>
 auto CompatIntVector<Alloc>::Proxy::operator=(uint64_t new_value) -> Proxy& {
-    parent.pack(index, new_value);
+    parent.pack(index, new_value, parent.bit_width);
     return *this;
 }
 
@@ -1877,7 +1825,7 @@ CompatIntVector<Alloc>::ConstProxy::ConstProxy(const CompatIntVector& parent, si
 
 template<typename Alloc>
 CompatIntVector<Alloc>::ConstProxy::operator uint64_t () const {
-    return parent.unpack(index);
+    return parent.unpack(index, parent.bit_width);
 }
 
 template<typename Alloc>
