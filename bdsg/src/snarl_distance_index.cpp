@@ -12,7 +12,7 @@ namespace bdsg {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //Constructor
 SnarlDistanceIndex::SnarlDistanceIndex() {
-    snarl_tree_records.construct(tag);
+    snarl_tree_records.construct(get_prefix());
     snarl_tree_records->width(64);
 }
 SnarlDistanceIndex::~SnarlDistanceIndex() {
@@ -775,27 +775,40 @@ void SnarlDistanceIndex::serialize(const std::function<void(const void*, size_t)
     snarl_tree_records.save(iteratee);
 }
 void SnarlDistanceIndex::serialize(int fd) {
+    //This gets called by TriviallySerializable::serialize(filename), which doesn't
+    //write the prefix so it must be written here
     snarl_tree_records.save(fd);
 }
 void SnarlDistanceIndex::deserialize(int fd) {
-    snarl_tree_records.load(fd, tag);
+    //This gets called by TriviallySerializable::deserialize(filename), which
+    //doesn't check for the prefix, so this should expect it
+    snarl_tree_records.load(fd, get_prefix());
 }
 
 void SnarlDistanceIndex::serialize_members(std::ostream& out) const {
+    //This gets called by Serializable::serialize(ostream), which writes the prefix
+    //so don't write the prefix here
     snarl_tree_records.save_after_prefix(out, get_prefix());
 }
 void SnarlDistanceIndex::deserialize_members(std::istream& in){
+    //This gets called by Serializable::deserialize(istream), which has already
+    //read the prefix, so don't expect the prefix
     snarl_tree_records.load_after_prefix(in, get_prefix());
 }
 
 uint32_t SnarlDistanceIndex::get_magic_number()const {
     //random number?
-    return 1738636486;
+    return magic_number;
 }
 //Copied from MappedPackedGraph
 std::string SnarlDistanceIndex::get_prefix() const {
-    //TODO: I don't know if this is ok
-    return tag;
+    //return the magic number as a string
+
+    //Reinterpret the magic number as a char array (with 4 chars) 
+    uint32_t number = htonl(magic_number);
+    const char* as_chars = reinterpret_cast<const char*> (&number);
+    std::string as_string(as_chars, as_chars+4);
+    return as_string;
 }
 
 
