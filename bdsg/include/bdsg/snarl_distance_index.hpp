@@ -10,6 +10,7 @@
 #include <handlegraph/trivially_serializable.hpp>
 #include <bdsg/internal/mapped_structs.hpp>
 #include <string>
+#include <arpa/inet.h>
 
 //TODO: get_record_handle_type isn't going to be accurate for simple snarls since they can represent nodes too
 
@@ -512,7 +513,7 @@ public:
 
 private:
 
-    std::string tag = "DistanceIndex3.0";
+    uint32_t magic_number = 1738636486;
 
 
 /////// These are used to interpret the distance index, which is just a vector of ints
