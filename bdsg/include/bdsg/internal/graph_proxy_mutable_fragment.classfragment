@@ -2,7 +2,7 @@
 // Meant to be included inside a class!
 // Nobody tell Doxygen!
 
-// Methods that all graph proxies need
+// Methods that all graph proxies with mutating methods need
 
 #ifdef BDSG_INSIDE_CLASS
 
@@ -10,6 +10,6 @@ protected:
     /**
      * Get the object that actually provides the graph methods.
      */
-    virtual const BackingGraph* get() const = 0;
+    virtual BackingGraph* get() = 0;
     
 #endif

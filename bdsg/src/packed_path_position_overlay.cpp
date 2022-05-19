@@ -11,141 +11,46 @@ PackedPositionOverlay::PackedPositionOverlay(const PathHandleGraph* graph, size_
     index_path_positions();
 }
 
-bool PackedPositionOverlay::has_node(nid_t node_id) const {
-    return graph->has_node(node_id);
+bool PackedPositionOverlay::for_each_path_matching_impl(const std::unordered_set<PathSense>* senses,
+                                                        const std::unordered_set<std::string>* samples,
+                                                        const std::unordered_set<std::string>* loci,
+                                                        const std::function<bool(const path_handle_t&)>& iteratee) const {
+    
+    return graph->for_each_path_matching(senses, samples, loci, [&](const path_handle_t& path) -> bool {
+        if (graph->get_sense(path) != PathSense::HAPLOTYPE) {
+            // Allow non-haplotype paths, which we indexed.
+            return iteratee(path);
+        } else {
+            // Skip haplotype paths.
+            return true;
+        }
+    });
 }
 
-handle_t PackedPositionOverlay::get_handle(const nid_t& node_id, bool is_reverse) const {
-    return graph->get_handle(node_id, is_reverse);
-}
+bool PackedPositionOverlay::for_each_step_of_sense_impl(const handle_t& visited,
+                                                        const PathSense& sense,
+                                                        const std::function<bool(const step_handle_t&)>& iteratee) const {
 
-nid_t PackedPositionOverlay::get_id(const handle_t& handle) const {
-    return graph->get_id(handle);
-}
+    return graph->for_each_step_of_sense(visited, sense, [&](const step_handle_t& step) -> bool {
+        path_handle_t path = graph->get_path_handle_of_step(step);
+        if (graph->get_sense(path) != PathSense::HAPLOTYPE) {
+            // Allow non-haplotype paths, which we indexed.
+            return iteratee(step);
+        } else {
+            // Skip haplotype paths.
+            return true;
+        }
+    });
 
-bool PackedPositionOverlay::get_is_reverse(const handle_t& handle) const {
-    return graph->get_is_reverse(handle);
 }
-
-handle_t PackedPositionOverlay::flip(const handle_t& handle) const {
-    return graph->flip(handle);
-}
-
-size_t PackedPositionOverlay::get_length(const handle_t& handle) const {
-    return graph->get_length(handle);
-}
-
-string PackedPositionOverlay::get_sequence(const handle_t& handle) const {
-    return graph->get_sequence(handle);
-}
-
-bool PackedPositionOverlay::follow_edges_impl(const handle_t& handle, bool go_left, const std::function<bool(const handle_t&)>& iteratee) const {
-    return graph->follow_edges(handle, go_left, iteratee);
-}
-
-bool PackedPositionOverlay::for_each_handle_impl(const std::function<bool(const handle_t&)>& iteratee, bool parallel) const {
-    return graph->for_each_handle(iteratee, parallel);
-}
-
-size_t PackedPositionOverlay::get_degree(const handle_t& handle, bool go_left) const {
-    return graph->get_degree(handle, go_left);
-}
-
-bool PackedPositionOverlay::has_edge(const handle_t& left, const handle_t& right) const {
-    return graph->has_edge(left, right);
-}
-
-char PackedPositionOverlay::get_base(const handle_t& handle, size_t index) const {
-    return graph->get_base(handle, index);
-}
-
-std::string PackedPositionOverlay::get_subsequence(const handle_t& handle, size_t index, size_t size) const {
-    return graph->get_subsequence(handle, index, size);
-}
-
-size_t PackedPositionOverlay::get_node_count(void) const {
-    return graph->get_node_count();
-}
-
-nid_t PackedPositionOverlay::min_node_id(void) const {
-    return graph->min_node_id();
-}
-
-nid_t PackedPositionOverlay::max_node_id(void) const {
-    return graph->max_node_id();
-}
-
-size_t PackedPositionOverlay::get_path_count() const {
-    return graph->get_path_count();
-}
-
+                                                         
 bool PackedPositionOverlay::has_path(const std::string& path_name) const {
-    return graph->has_path(path_name);
-}
-
-path_handle_t PackedPositionOverlay::get_path_handle(const std::string& path_name) const {
-    return graph->get_path_handle(path_name);
-}
-
-string PackedPositionOverlay::get_path_name(const path_handle_t& path_handle) const {
-    return graph->get_path_name(path_handle);
-}
-
-bool PackedPositionOverlay::get_is_circular(const path_handle_t& path_handle) const {
-    return graph->get_is_circular(path_handle);
-}
-
-size_t PackedPositionOverlay::get_step_count(const path_handle_t& path_handle) const {
-    return graph->get_step_count(path_handle);
-}
-
-handle_t PackedPositionOverlay::get_handle_of_step(const step_handle_t& step_handle) const {
-    return graph->get_handle_of_step(step_handle);
-}
-
-step_handle_t PackedPositionOverlay::path_begin(const path_handle_t& path_handle) const {
-    return graph->path_begin(path_handle);
-}
-
-step_handle_t PackedPositionOverlay::path_end(const path_handle_t& path_handle) const {
-    return graph->path_end(path_handle);
-}
-
-step_handle_t PackedPositionOverlay::path_back(const path_handle_t& path_handle) const {
-    return graph->path_back(path_handle);
-}
-
-step_handle_t PackedPositionOverlay::path_front_end(const path_handle_t& path_handle) const {
-    return graph->path_front_end(path_handle);
-}
-
-bool PackedPositionOverlay::has_next_step(const step_handle_t& step_handle) const {
-    return graph->has_next_step(step_handle);
-}
-
-bool PackedPositionOverlay::has_previous_step(const step_handle_t& step_handle) const {
-    return graph->has_previous_step(step_handle);
-}
-
-step_handle_t PackedPositionOverlay::get_next_step(const step_handle_t& step_handle) const {
-    return graph->get_next_step(step_handle);
-}
-
-step_handle_t PackedPositionOverlay::get_previous_step(const step_handle_t& step_handle) const {
-    return graph->get_previous_step(step_handle);
-}
-
-path_handle_t PackedPositionOverlay::get_path_handle_of_step(const step_handle_t& step_handle) const {
-    return graph->get_path_handle_of_step(step_handle);
-}
-
-bool PackedPositionOverlay::for_each_path_handle_impl(const std::function<bool(const path_handle_t&)>& iteratee) const {
-    return graph->for_each_path_handle(iteratee);
-}
-
-bool PackedPositionOverlay::for_each_step_on_handle_impl(const handle_t& handle,
-                                                         const function<bool(const step_handle_t&)>& iteratee) const {
-    return graph->for_each_step_on_handle(handle, iteratee);
+    if (!graph->has_path(path_name)) {
+        return false;
+    }
+    path_handle_t path = graph->get_path_handle(path_name);
+    // Haplotype paths officially don't exist, since they aren't indexed.
+    return graph->get_sense(path) != PathSense::HAPLOTYPE;
 }
 
 size_t PackedPositionOverlay::get_path_length(const path_handle_t& path_handle) const {

@@ -15,6 +15,7 @@
 #include <handlegraph/util.hpp>
 #include <BooPHF.h>
 
+#include "bdsg/graph_proxy.hpp"
 #include "bdsg/internal/hash_map.hpp"
 #include "bdsg/internal/packed_structs.hpp"
 
@@ -27,7 +28,7 @@ using namespace handlegraph;
  * An overlay that adds the PathPositionHandleGraph interface to a static PathHandleGraph
  * by augmenting it with compressed index data structures
  */
-class PackedPositionOverlay : public PathPositionHandleGraph, public ExpandingOverlayGraph {
+class PackedPositionOverlay : public PathPositionHandleGraph, public ExpandingOverlayGraph, public PathHandleGraphProxy<PathHandleGraph> {
         
 public:
     
@@ -41,160 +42,40 @@ public:
     ~PackedPositionOverlay() = default;
     PackedPositionOverlay& operator=(const PackedPositionOverlay& other) = default;
     PackedPositionOverlay& operator=(PackedPositionOverlay&& other) = default;
+    
+    // Most path handle graph stuff is provided by the proxy
 
-    ////////////////////////////////////////////////////////////////////////////
-    // HandleGraph interface
-    ////////////////////////////////////////////////////////////////////////////
-    
-    /// Method to check if a node exists by ID
-    bool has_node(nid_t node_id) const;
-    
-    /// Look up the handle for the node with the given ID in the given orientation
-    handle_t get_handle(const nid_t& node_id, bool is_reverse = false) const;
-    
-    /// Get the ID from a handle
-    nid_t get_id(const handle_t& handle) const;
-    
-    /// Get the orientation of a handle
-    bool get_is_reverse(const handle_t& handle) const;
-    
-    /// Invert the orientation of a handle (potentially without getting its ID)
-    handle_t flip(const handle_t& handle) const;
-    
-    /// Get the length of a node
-    size_t get_length(const handle_t& handle) const;
-    
-    /// Get the sequence of a node, presented in the handle's local forward orientation.
-    string get_sequence(const handle_t& handle) const;
-    
 private:
     
-    /// Loop over all the handles to next/previous (right/left) nodes. Passes
-    /// them to a callback which returns false to stop iterating and true to
-    /// continue. Returns true if we finished and false if we stopped early.
-    bool follow_edges_impl(const handle_t& handle, bool go_left, const std::function<bool(const handle_t&)>& iteratee) const;
+    inline const PathHandleGraph* get() const {
+        return graph;
+    }
     
-    /// Loop over all the nodes in the graph in their local forward
-    /// orientations, in their internal stored order. Stop if the iteratee
-    /// returns false. Can be told to run in parallel, in which case stopping
-    /// after a false return value is on a best-effort basis and iteration
-    /// order is not defined.
-    bool for_each_handle_impl(const std::function<bool(const handle_t&)>& iteratee, bool parallel = false) const;
-    
-public:
-    
-    /// Get the number of edges on the right (go_left = false) or left (go_left
-    /// = true) side of the given handle. The default implementation is O(n) in
-    /// the number of edges returned, but graph implementations that track this
-    /// information more efficiently can override this method.
-    size_t get_degree(const handle_t& handle, bool go_left) const;
-    
-    /// Returns true if there is an edge that allows traversal from the left
-    /// handle to the right handle. By default O(n) in the number of edges
-    /// on left, but can be overridden with more efficient implementations.
-    bool has_edge(const handle_t& left, const handle_t& right) const;
-    
-    /// Returns one base of a handle's sequence, in the orientation of the
-    /// handle.
-    char get_base(const handle_t& handle, size_t index) const;
-    
-    /// Returns a substring of a handle's sequence, in the orientation of the
-    /// handle. If the indicated substring would extend beyond the end of the
-    /// handle's sequence, the return value is truncated to the sequence's end.
-    std::string get_subsequence(const handle_t& handle, size_t index, size_t size) const;
-    
-    /// Return the number of nodes in the graph
-    size_t get_node_count(void) const;
-    
-    /// Return the smallest ID in the graph, or some smaller number if the
-    /// smallest ID is unavailable. Return value is unspecified if the graph is empty.
-    nid_t min_node_id(void) const;
-    
-    /// Return the largest ID in the graph, or some larger number if the
-    /// largest ID is unavailable. Return value is unspecified if the graph is empty.
-    nid_t max_node_id(void) const;
-    
-    ////////////////////////////////////////////////////////////////////////////
-    // Path handle interface
-    ////////////////////////////////////////////////////////////////////////////
-    
-    /// Returns the number of paths stored in the graph
-    size_t get_path_count() const;
+    // But we override some methods, because we need to hide paths we don't end up indexing.
 
+public:
+    /// Loop through all the paths matching the given query. Query elements
+    /// which are null match everything. Returns false and stops if the
+    /// iteratee returns false.
+    bool for_each_path_matching_impl(const std::unordered_set<PathSense>* senses,
+                                     const std::unordered_set<std::string>* samples,
+                                     const std::unordered_set<std::string>* loci,
+                                     const std::function<bool(const path_handle_t&)>& iteratee) const;
+    
+    /// Loop through all steps on the given handle for paths with the given
+    /// sense. Returns false and stops if the iteratee returns false.
+    bool for_each_step_of_sense_impl(const handle_t& visited,
+                                     const PathSense& sense,
+                                     const std::function<bool(const step_handle_t&)>& iteratee) const;
+                                     
     /// Determine if a path name exists and is legal to get a path handle for.
     bool has_path(const std::string& path_name) const;
-
-    /// Look up the path handle for the given path name.
-    /// The path with that name must exist.
-    path_handle_t get_path_handle(const std::string& path_name) const;
-
-    /// Look up the name of a path from a handle to it
-    string get_path_name(const path_handle_t& path_handle) const;
     
-    /// Look up whether a path is circular
-    bool get_is_circular(const path_handle_t& path_handle) const;
-
-    /// Returns the number of node steps in the path
-    size_t get_step_count(const path_handle_t& path_handle) const;
-
-    /// Get a node handle (node ID and orientation) from a handle to an step on a path
-    handle_t get_handle_of_step(const step_handle_t& step_handle) const;
-
-    /// Get a handle to the first step, or in a circular path to an arbitrary step
-    /// considered "first". If the path is empty, returns the past-the-last step
-    /// returned by path_end.
-    step_handle_t path_begin(const path_handle_t& path_handle) const;
-    
-    /// Get a handle to a fictitious position past the end of a path. This position is
-    /// return by get_next_step for the final step in a path in a non-circular path.
-    /// Note that get_next_step will *NEVER* return this value for a circular path.
-    step_handle_t path_end(const path_handle_t& path_handle) const;
-    
-    /// Get a handle to the last step, which will be an arbitrary step in a circular path that
-    /// we consider "last" based on our construction of the path. If the path is empty
-    /// then the implementation must return the same value as path_front_end().
-    step_handle_t path_back(const path_handle_t& path_handle) const;
-    
-    /// Get a handle to a fictitious position before the beginning of a path. This position is
-    /// return by get_previous_step for the first step in a path in a non-circular path.
-    /// Note: get_previous_step will *NEVER* return this value for a circular path.
-    step_handle_t path_front_end(const path_handle_t& path_handle) const;
-    
-    /// Returns true if the step is not the last step in a non-circular path.
-    bool has_next_step(const step_handle_t& step_handle) const;
-    
-    /// Returns true if the step is not the first step in a non-circular path.
-    bool has_previous_step(const step_handle_t& step_handle) const;
-    
-    /// Returns a handle to the next step on the path. If the given step is the final step
-    /// of a non-circular path, returns the past-the-last step that is also returned by
-    /// path_end. In a circular path, the "last" step will loop around to the "first" (i.e.
-    /// the one returned by path_begin).
-    /// Note: to iterate over each step one time, even in a circular path, consider
-    /// for_each_step_in_path.
-    step_handle_t get_next_step(const step_handle_t& step_handle) const;
-    
-    /// Returns a handle to the previous step on the path. If the given step is the first
-    /// step of a non-circular path, this method has undefined behavior. In a circular path,
-    /// it will loop around from the "first" step (i.e. the one returned by path_begin) to
-    /// the "last" step.
-    /// Note: to iterate over each step one time, even in a circular path, consider
-    /// for_each_step_in_path.
-    step_handle_t get_previous_step(const step_handle_t& step_handle) const;
-    
-    /// Returns a handle to the path that an step is on
-    path_handle_t get_path_handle_of_step(const step_handle_t& step_handle) const;
-    
-private:
-    /// Execute a function on each path in the graph
-    bool for_each_path_handle_impl(const std::function<bool(const path_handle_t&)>& iteratee) const;
-    
-    /// Calls the given function for each step of the given handle on a path.
-    bool for_each_step_on_handle_impl(const handle_t& handle,
-                                      const function<bool(const step_handle_t&)>& iteratee) const;
+    // We don't need to intercept get_path_handle because it's not allowed to
+    // be called if has_path is false.
     
 public:
-    
+
     ////////////////////////////////////////////////////////////////////////////
     // Path position interface
     ////////////////////////////////////////////////////////////////////////////

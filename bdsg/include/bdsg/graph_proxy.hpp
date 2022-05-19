@@ -24,7 +24,8 @@ using namespace handlegraph;
 
 // So we code gen the types we need by including unguarded, fragmentary
 // class-contents headers into several types of proxy.
-// This is so we can achieve code sharing between different proxies with different feature sets, without using inheritance.
+// This is so we can achieve code sharing between different proxies with
+// different feature sets, without using inheritance.
 // Macros would be nicer, but thay can't easily be multi-line.
 
 // The fragments are protected with an #ifdef BDSG_INSIDE_CLASS / #endif,
@@ -43,7 +44,7 @@ using namespace handlegraph;
  * backing implementation.
  */
 template<typename BackingGraph> 
-struct PathHandleGraphProxy : public PathHandleGraph {
+struct PathHandleGraphProxy : virtual public PathHandleGraph {
     #define BDSG_INSIDE_CLASS
     #include "bdsg/internal/graph_proxy_fragment.classfragment" // BINDER_IGNORE
     #include "bdsg/internal/graph_proxy_handle_graph_fragment.classfragment" // BINDER_IGNORE
@@ -57,11 +58,12 @@ struct PathHandleGraphProxy : public PathHandleGraph {
  * object that need not implement either, as long as it satisfies the concept.
  */
 template<typename BackingGraph>
-struct GraphProxy : public MutablePathDeletableHandleGraph, public SerializableHandleGraph {
+struct GraphProxy : virtual public MutablePathDeletableHandleGraph, virtual public SerializableHandleGraph {
     #define BDSG_INSIDE_CLASS
     #include "bdsg/internal/graph_proxy_fragment.classfragment" // BINDER_IGNORE
     #include "bdsg/internal/graph_proxy_handle_graph_fragment.classfragment" // BINDER_IGNORE
     #include "bdsg/internal/graph_proxy_path_handle_graph_fragment.classfragment" // BINDER_IGNORE
+    #include "bdsg/internal/graph_proxy_mutable_fragment.classfragment" // BINDER_IGNORE
     #include "bdsg/internal/graph_proxy_mutable_path_deletable_handle_graph_fragment.classfragment" // BINDER_IGNORE
     #include "bdsg/internal/graph_proxy_serializable_handle_graph_fragment.classfragment" // BINDER_IGNORE
     #undef BDSG_INSIDE_CLASS

@@ -3,6 +3,7 @@
 // Nobody tell Doxygen!
 
 // Methods needed for implementing PathHandleGraph, in addition to what HandleGraph has.
+// Also includes the PathMetadata methods.
 
 #ifdef BDSG_INSIDE_CLASS
 
@@ -192,8 +193,9 @@ protected:
     
     /// Loop through all steps on the given handle for paths with the given
     /// sense. Returns false and stops if the iteratee returns false.
-    virtual bool for_each_step_of_sense_impl(const handle_t& visited, const PathSense& sense,
-        const std::function<bool(const step_handle_t&)>& iteratee) const{
+    virtual bool for_each_step_of_sense_impl(const handle_t& visited,
+                                             const PathSense& sense,
+                                             const std::function<bool(const step_handle_t&)>& iteratee) const {
         return this->get()->for_each_step_of_sense(visited, sense, iteratee);
     }
     
