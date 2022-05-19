@@ -10,6 +10,7 @@
 
 #include <handlegraph/mutable_path_deletable_handle_graph.hpp>
 #include <handlegraph/serializable_handle_graph.hpp>
+#include <handlegraph/path_position_handle_graph.hpp>
 
 namespace bdsg {
 
@@ -65,6 +66,38 @@ struct PathHandleGraphProxy : virtual public PathHandleGraph {
     #include "bdsg/internal/graph_proxy_fragment.classfragment" // BINDER_IGNORE
     #include "bdsg/internal/graph_proxy_handle_graph_fragment.classfragment" // BINDER_IGNORE
     #include "bdsg/internal/graph_proxy_path_handle_graph_fragment.classfragment" // BINDER_IGNORE
+    #undef BDSG_INSIDE_CLASS
+};
+
+/**
+ * Defines a proxy you can inherit to implement path methods only of
+ * PathHandleGraph by referencing a different backing implementation, which
+ * implements the concept if not the interface.
+ *
+ * Can be multiple-inherited alongside other proxies and will use the same
+ * backing implementation.
+ */
+template<typename BackingGraph> 
+struct PathProxy : virtual public PathHandleGraph {
+    #define BDSG_INSIDE_CLASS
+    #include "bdsg/internal/graph_proxy_fragment.classfragment" // BINDER_IGNORE
+    #include "bdsg/internal/graph_proxy_path_handle_graph_fragment.classfragment" // BINDER_IGNORE
+    #undef BDSG_INSIDE_CLASS
+};
+
+/**
+ * Defines a proxy you can inherit to implement path position methods only of
+ * PathPositionHandleGraph by referencing a different backing implementation,
+ * which implements the concept if not the interface.
+ *
+ * Can be multiple-inherited alongside other proxies and will use the same
+ * backing implementation.
+ */
+template<typename BackingGraph> 
+struct PositionProxy : virtual public PathPositionHandleGraph {
+    #define BDSG_INSIDE_CLASS
+    #include "bdsg/internal/graph_proxy_fragment.classfragment" // BINDER_IGNORE
+    #include "bdsg/internal/graph_proxy_path_position_handle_graph_fragment.classfragment" // BINDER_IGNORE
     #undef BDSG_INSIDE_CLASS
 };
 

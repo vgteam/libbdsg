@@ -1,0 +1,32 @@
+// UNGUARDED CODE FRAGMENT FOR PROXY CODE GENERATION!
+// Meant to be included inside a class!
+// Nobody tell Doxygen!
+
+// Methods needed for implementing PathPositionHandleGraph, in addition to what
+// PathHandleGraph has.
+
+#ifdef BDSG_INSIDE_CLASS
+
+public:
+    /// Returns the length of a path measured in bases of sequence.
+    virtual size_t get_path_length(const path_handle_t& path_handle) const {
+        return this->get()->get_path_length(path_handle);
+    }
+    
+    /// Returns the position along the path of the beginning of this step measured in
+    /// bases of sequence. In a circular path, positions start at the step returned by
+    /// path_begin().
+    virtual size_t get_position_of_step(const step_handle_t& step) const {
+        return this->get()->get_position_of_step(step);
+    }
+    
+    /// Returns the step at this position, measured in bases of sequence starting at
+    /// the step returned by path_begin(). If the position is past the end of the
+    /// path, returns path_end().
+    virtual step_handle_t get_step_at_position(const path_handle_t& path,
+                                               const size_t& position) const {
+        return this->get()->get_step_at_position(path, position);
+    }
+
+   
+#endif

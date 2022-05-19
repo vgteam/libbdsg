@@ -46,58 +46,6 @@ path_handle_t PathSubgraphOverlay::get_path_handle(const std::string& path_name)
     }
 }
 
-std::string PathSubgraphOverlay::get_path_name(const path_handle_t& path_handle) const {
-    return backing_path_graph->get_path_name(path_handle);
-}
-    
-bool PathSubgraphOverlay::get_is_circular(const path_handle_t& path_handle) const {
-    return backing_path_graph->get_is_circular(path_handle);
-}
-    
-size_t PathSubgraphOverlay::get_step_count(const path_handle_t& path_handle) const {
-    return backing_path_graph->get_step_count(path_handle);
-}
-    
-handle_t PathSubgraphOverlay::get_handle_of_step(const step_handle_t& step_handle) const {
-    return backing_path_graph->get_handle_of_step(step_handle);
-}
-    
-path_handle_t PathSubgraphOverlay::get_path_handle_of_step(const step_handle_t& step_handle) const {
-    return backing_path_graph->get_path_handle_of_step(step_handle);
-}
-
-step_handle_t PathSubgraphOverlay::path_begin(const path_handle_t& path_handle) const {
-    return backing_path_graph->path_begin(path_handle);
-}
-    
-step_handle_t PathSubgraphOverlay::path_end(const path_handle_t& path_handle) const {
-    return backing_path_graph->path_end(path_handle);
-}
-    
-step_handle_t PathSubgraphOverlay::path_back(const path_handle_t& path_handle) const {
-    return backing_path_graph->path_back(path_handle);
-}
-    
-step_handle_t PathSubgraphOverlay::path_front_end(const path_handle_t& path_handle) const {
-    return backing_path_graph->path_front_end(path_handle);
-}
-
-bool PathSubgraphOverlay::has_next_step(const step_handle_t& step_handle) const {
-    return backing_path_graph->has_next_step(step_handle);
-}
-
-bool PathSubgraphOverlay::has_previous_step(const step_handle_t& step_handle) const {
-    return backing_path_graph->has_previous_step(step_handle);
-}
-    
-step_handle_t PathSubgraphOverlay::get_next_step(const step_handle_t& step_handle) const {
-    return backing_path_graph->get_next_step(step_handle);
-}
-    
-step_handle_t PathSubgraphOverlay::get_previous_step(const step_handle_t& step_handle) const {
-    return backing_path_graph->get_previous_step(step_handle);
-}
-
 bool PathSubgraphOverlay::for_each_path_handle_impl(const std::function<bool(const path_handle_t&)>& iteratee) const {
     bool keep_going = true;
     for (auto path_it = path_subset.begin(); keep_going && path_it != path_subset.end(); ++path_it) {
@@ -109,7 +57,48 @@ bool PathSubgraphOverlay::for_each_path_handle_impl(const std::function<bool(con
 
 bool PathSubgraphOverlay::for_each_step_on_handle_impl(const handle_t& handle,
                                                        const std::function<bool(const step_handle_t&)>& iteratee) const {
-    return backing_path_graph->for_each_step_on_handle(handle, iteratee);
+    return backing_path_graph->for_each_step_on_handle(handle, [&](const step_handle_t& step) -> bool {
+        path_handle_t path = backing_path_graph->get_path_handle_of_step(step);
+        if (path_subset.count(path)) {
+            return iteratee(step);
+        } else {
+            // Skip steps on paths that are not in the subset.
+            return true;
+        }
+    });
+}
+
+bool PathSubgraphOverlay::for_each_path_matching_impl(const std::unordered_set<PathSense>* senses,
+                                                      const std::unordered_set<std::string>* samples,
+                                                      const std::unordered_set<std::string>* loci,
+                                                      const std::function<bool(const path_handle_t&)>& iteratee) const {
+    
+    return backing_path_graph->for_each_path_matching(senses, samples, loci, [&](const path_handle_t& path) -> bool {
+        if (path_subset.count(path)) {
+            return iteratee(path);
+        } else {
+            // Skip paths that are not in the subset.
+            // TODO: would filtering the subset ourselves be faster?
+            return true;
+        }
+    });
+
+}
+                    
+bool PathSubgraphOverlay::for_each_step_of_sense_impl(const handle_t& visited,
+                                                      const PathSense& sense,
+                                                      const std::function<bool(const step_handle_t&)>& iteratee) const {
+                                                      
+                                                      
+    return backing_path_graph->for_each_step_of_sense(visited, sense, [&](const step_handle_t& step) -> bool {
+        path_handle_t path = backing_path_graph->get_path_handle_of_step(step);
+        if (path_subset.count(path)) {
+            return iteratee(step);
+        } else {
+            // Skip steps on paths that are not in the subset.
+            return true;
+        }
+    });
 }
 
 }
