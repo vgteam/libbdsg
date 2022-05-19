@@ -35,26 +35,6 @@ handle_t SubgraphOverlay::get_handle(const nid_t& node_id, bool is_reverse) cons
     }
 }
     
-nid_t SubgraphOverlay::get_id(const handle_t& handle) const {
-    return backing_graph->get_id(handle);
-}
-    
-bool SubgraphOverlay::get_is_reverse(const handle_t& handle) const {
-    return backing_graph->get_is_reverse(handle);
-}
-
-handle_t SubgraphOverlay::flip(const handle_t& handle) const {
-    return backing_graph->flip(handle);
-}
-    
-size_t SubgraphOverlay::get_length(const handle_t& handle) const {
-    return backing_graph->get_length(handle);
-}
-
-std::string SubgraphOverlay::get_sequence(const handle_t& handle) const {
-    return backing_graph->get_sequence(handle);
-}
-    
 size_t SubgraphOverlay::get_node_count() const {
     return node_subset->size();
 }

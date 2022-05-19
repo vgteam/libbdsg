@@ -14,6 +14,8 @@
 
 #include <unordered_set>
 
+#include "bdsg/graph_proxy.hpp"
+
 namespace bdsg {
 
 using namespace std;
@@ -27,7 +29,7 @@ using namespace handlegraph;
  * subset, but it's not bulletproof: handles from outside the subset
  * won't undergo any special checks.  
  */
-class SubgraphOverlay : virtual public HandleGraph {
+class SubgraphOverlay : virtual public HandleGraph, public HandleGraphProxy<HandleGraph> {
 
 public:
     /**
@@ -45,26 +47,10 @@ public:
 
     /// Method to check if a node exists by ID
     virtual bool has_node(nid_t node_id) const;
+    
+    /// Get a handle to the given node in the given orientation. Node must exist.
+    handle_t get_handle(const nid_t& node_id, bool is_reverse) const;
    
-    /// Look up the handle for the node with the given ID in the given orientation
-    virtual handle_t get_handle(const nid_t& node_id, bool is_reverse = false) const;
-    
-    /// Get the ID from a handle
-    virtual nid_t get_id(const handle_t& handle) const;
-    
-    /// Get the orientation of a handle
-    virtual bool get_is_reverse(const handle_t& handle) const;
-    
-    /// Invert the orientation of a handle (potentially without getting its ID)
-    virtual handle_t flip(const handle_t& handle) const;
-    
-    /// Get the length of a node
-    virtual size_t get_length(const handle_t& handle) const;
-    
-    /// Get the sequence of a node, presented in the handle's local forward
-    /// orientation.
-    virtual std::string get_sequence(const handle_t& handle) const;
-    
     /// Return the number of nodes in the graph
     virtual size_t get_node_count() const;
     
@@ -92,7 +78,12 @@ protected:
     virtual bool for_each_handle_impl(const std::function<bool(const handle_t&)>& iteratee, bool parallel = false) const;
 
 protected:
-
+    
+    /// Get the HandleGraph to which most methods should be delegated.
+    inline const HandleGraph* get() const {
+        return backing_graph;
+    }
+    
     /// the backing graph
     const HandleGraph* backing_graph;
 
