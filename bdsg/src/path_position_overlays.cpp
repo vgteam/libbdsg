@@ -14,141 +14,46 @@ namespace bdsg {
         
     }
     
-    bool PositionOverlay::has_node(nid_t node_id) const {
-        return get_graph()->has_node(node_id);
+    bool PositionOverlay::for_each_path_matching_impl(const std::unordered_set<PathSense>* senses,
+                                                            const std::unordered_set<std::string>* samples,
+                                                            const std::unordered_set<std::string>* loci,
+                                                            const std::function<bool(const path_handle_t&)>& iteratee) const {
+        
+        return graph->for_each_path_matching(senses, samples, loci, [&](const path_handle_t& path) -> bool {
+            if (graph->get_sense(path) != PathSense::HAPLOTYPE) {
+                // Allow non-haplotype paths, which we indexed.
+                return iteratee(path);
+            } else {
+                // Skip haplotype paths.
+                return true;
+            }
+        });
     }
-    
-    handle_t PositionOverlay::get_handle(const nid_t& node_id, bool is_reverse) const {
-        return get_graph()->get_handle(node_id, is_reverse);
+
+    bool PositionOverlay::for_each_step_of_sense_impl(const handle_t& visited,
+                                                            const PathSense& sense,
+                                                            const std::function<bool(const step_handle_t&)>& iteratee) const {
+
+        return graph->for_each_step_of_sense(visited, sense, [&](const step_handle_t& step) -> bool {
+            path_handle_t path = graph->get_path_handle_of_step(step);
+            if (graph->get_sense(path) != PathSense::HAPLOTYPE) {
+                // Allow non-haplotype paths, which we indexed.
+                return iteratee(step);
+            } else {
+                // Skip haplotype paths.
+                return true;
+            }
+        });
+
     }
-    
-    nid_t PositionOverlay::get_id(const handle_t& handle) const {
-        return get_graph()->get_id(handle);
-    }
-    
-    bool PositionOverlay::get_is_reverse(const handle_t& handle) const {
-        return get_graph()->get_is_reverse(handle);
-    }
-    
-    handle_t PositionOverlay::flip(const handle_t& handle) const {
-        return get_graph()->flip(handle);
-    }
-    
-    size_t PositionOverlay::get_length(const handle_t& handle) const {
-        return get_graph()->get_length(handle);
-    }
-    
-    string PositionOverlay::get_sequence(const handle_t& handle) const {
-        return get_graph()->get_sequence(handle);
-    }
-    
-    bool PositionOverlay::follow_edges_impl(const handle_t& handle, bool go_left, const std::function<bool(const handle_t&)>& iteratee) const {
-        return get_graph()->follow_edges(handle, go_left, iteratee);
-    }
-    
-    bool PositionOverlay::for_each_handle_impl(const std::function<bool(const handle_t&)>& iteratee, bool parallel) const {
-        return get_graph()->for_each_handle(iteratee, parallel);
-    }
-    
-    size_t PositionOverlay::get_degree(const handle_t& handle, bool go_left) const {
-        return get_graph()->get_degree(handle, go_left);
-    }
-    
-    bool PositionOverlay::has_edge(const handle_t& left, const handle_t& right) const {
-        return get_graph()->has_edge(left, right);
-    }
-    
-    char PositionOverlay::get_base(const handle_t& handle, size_t index) const {
-        return get_graph()->get_base(handle, index);
-    }
-    
-    std::string PositionOverlay::get_subsequence(const handle_t& handle, size_t index, size_t size) const {
-        return get_graph()->get_subsequence(handle, index, size);
-    }
-    
-    size_t PositionOverlay::get_node_count(void) const {
-        return get_graph()->get_node_count();
-    }
-    
-    nid_t PositionOverlay::min_node_id(void) const {
-        return get_graph()->min_node_id();
-    }
-    
-    nid_t PositionOverlay::max_node_id(void) const {
-        return get_graph()->max_node_id();
-    }
-    
-    size_t PositionOverlay::get_path_count() const {
-        return get_graph()->get_path_count();
-    }
-    
+                                                             
     bool PositionOverlay::has_path(const std::string& path_name) const {
-        return get_graph()->has_path(path_name);
-    }
-    
-    path_handle_t PositionOverlay::get_path_handle(const std::string& path_name) const {
-        return get_graph()->get_path_handle(path_name);
-    }
-    
-    string PositionOverlay::get_path_name(const path_handle_t& path_handle) const {
-        return get_graph()->get_path_name(path_handle);
-    }
-    
-    bool PositionOverlay::get_is_circular(const path_handle_t& path_handle) const {
-        return get_graph()->get_is_circular(path_handle);
-    }
-    
-    size_t PositionOverlay::get_step_count(const path_handle_t& path_handle) const {
-        return get_graph()->get_step_count(path_handle);
-    }
-    
-    handle_t PositionOverlay::get_handle_of_step(const step_handle_t& step_handle) const {
-        return get_graph()->get_handle_of_step(step_handle);
-    }
-    
-    step_handle_t PositionOverlay::path_begin(const path_handle_t& path_handle) const {
-        return get_graph()->path_begin(path_handle);
-    }
-    
-    step_handle_t PositionOverlay::path_end(const path_handle_t& path_handle) const {
-        return get_graph()->path_end(path_handle);
-    }
-    
-    step_handle_t PositionOverlay::path_back(const path_handle_t& path_handle) const {
-        return get_graph()->path_back(path_handle);
-    }
-    
-    step_handle_t PositionOverlay::path_front_end(const path_handle_t& path_handle) const {
-        return get_graph()->path_front_end(path_handle);
-    }
-    
-    bool PositionOverlay::has_next_step(const step_handle_t& step_handle) const {
-        return get_graph()->has_next_step(step_handle);
-    }
-    
-    bool PositionOverlay::has_previous_step(const step_handle_t& step_handle) const {
-        return get_graph()->has_previous_step(step_handle);
-    }
-    
-    step_handle_t PositionOverlay::get_next_step(const step_handle_t& step_handle) const {
-        return get_graph()->get_next_step(step_handle);
-    }
-    
-    step_handle_t PositionOverlay::get_previous_step(const step_handle_t& step_handle) const {
-        return get_graph()->get_previous_step(step_handle);
-    }
-    
-    path_handle_t PositionOverlay::get_path_handle_of_step(const step_handle_t& step_handle) const {
-        return get_graph()->get_path_handle_of_step(step_handle);
-    }
-    
-    bool PositionOverlay::for_each_path_handle_impl(const std::function<bool(const path_handle_t&)>& iteratee) const {
-        return get_graph()->for_each_path_handle(iteratee);
-    }
-    
-    bool PositionOverlay::for_each_step_on_handle_impl(const handle_t& handle,
-                                                       const function<bool(const step_handle_t&)>& iteratee) const {
-        return get_graph()->for_each_step_on_handle(handle, iteratee);
+        if (!graph->has_path(path_name)) {
+            return false;
+        }
+        path_handle_t path = graph->get_path_handle(path_name);
+        // Haplotype paths officially don't exist, since they aren't indexed.
+        return graph->get_sense(path) != PathSense::HAPLOTYPE;
     }
     
     size_t PositionOverlay::get_path_length(const path_handle_t& path_handle) const {
@@ -159,7 +64,7 @@ namespace bdsg {
         }
         else {
             return (last->first
-                    + get_graph()->get_length(get_graph()->get_handle_of_step(last->second))
+                    + get()->get_length(get()->get_handle_of_step(last->second))
                     - min_path_offset.at(path_handle));
         }
         
@@ -176,13 +81,13 @@ namespace bdsg {
         
         const auto& path_step_by_position = step_by_position.at(path);
         if (path_step_by_position.empty()) {
-            return get_graph()->path_end(path);
+            return get()->path_end(path);
         }
         
         auto iter = --path_step_by_position.upper_bound(lookup_position);
-        if (lookup_position - iter->first >= get_graph()->get_length(get_graph()->get_handle_of_step(iter->second))) {
+        if (lookup_position - iter->first >= get()->get_length(get()->get_handle_of_step(iter->second))) {
             // this only occurs if the position was past the last base in the path
-            return get_graph()->path_end(path);
+            return get()->path_end(path);
         }
         else {
             return iter->second;
@@ -195,14 +100,14 @@ namespace bdsg {
     
     void PositionOverlay::index_path_positions() {
         
-        get_graph()->for_each_path_handle([&](const path_handle_t& path) {
+        get()->for_each_path_handle([&](const path_handle_t& path) {
             int64_t offset = 0;
             min_path_offset[path] = offset;
             auto& path_step_by_position = step_by_position[path];
-            get_graph()->for_each_step_in_path(path, [&](const step_handle_t& step) {
+            get()->for_each_step_in_path(path, [&](const step_handle_t& step) {
                 offset_by_step[step] = offset;
                 path_step_by_position[offset] = step;
-                offset += get_graph()->get_length(get_graph()->get_handle_of_step(step));
+                offset += get()->get_length(get()->get_handle_of_step(step));
             });
         });
     }
@@ -219,29 +124,8 @@ namespace bdsg {
         
     }
     
-    handle_t MutablePositionOverlay::create_handle(const std::string& sequence) {
-        return get_graph()->create_handle(sequence);
-    }
-    
-    handle_t MutablePositionOverlay::create_handle(const std::string& sequence, const nid_t& id) {
-        return get_graph()->create_handle(sequence, id);
-    }
-    
-    void MutablePositionOverlay::destroy_handle(const handle_t& handle) {
-        // note: destroying a handle on a path is U.B., so don't worry about it
-        get_graph()->destroy_handle(handle);
-    }
-    
-    void MutablePositionOverlay::create_edge(const handle_t& left, const handle_t& right) {
-        get_graph()->create_edge(left, right);
-    }
-    
-    void MutablePositionOverlay::destroy_edge(const handle_t& left, const handle_t& right) {
-        get_graph()->destroy_edge(left, right);
-    }
-    
     void MutablePositionOverlay::clear(void) {
-        get_graph()->clear();
+        get()->clear();
         offset_by_step.clear();
         step_by_position.clear();
         min_path_offset.clear();
@@ -257,7 +141,7 @@ namespace bdsg {
         });
         
         // do the flip
-        handle_t new_handle = get_graph()->apply_orientation(handle);
+        handle_t new_handle = get()->apply_orientation(handle);
         
         for_each_step_on_handle(new_handle, [&](const step_handle_t& new_step) {
             reindex_contiguous_segment(new_step);
@@ -272,7 +156,7 @@ namespace bdsg {
             offset_by_step.erase(step);
         });
         
-        auto new_handles = get_graph()->divide_handle(handle, offsets);
+        auto new_handles = get()->divide_handle(handle, offsets);
         
         for_each_step_on_handle(new_handles.front(), [&](const step_handle_t& new_step) {
             reindex_contiguous_segment(new_step);
@@ -283,14 +167,14 @@ namespace bdsg {
     
     void MutablePositionOverlay::optimize(bool allow_id_reassignment) {
         // optimization may include arbitrary changes that invalidate all handles, need to reindex
-        get_graph()->optimize(allow_id_reassignment);
+        get()->optimize(allow_id_reassignment);
         reindex_path_position();
     }
     
     bool MutablePositionOverlay::apply_ordering(const vector<handle_t>& order, bool compact_ids) {
         // depending on the implementation, this may change the values of the handles, which
         // may change the value of the steps, so the index could be entirely invalidated
-        bool result = get_graph()->apply_ordering(order, compact_ids);
+        bool result = get()->apply_ordering(order, compact_ids);
         reindex_path_position();
         return result;
     }
@@ -301,13 +185,13 @@ namespace bdsg {
     
     void MutablePositionOverlay::increment_node_ids(nid_t increment) {
         // this can invalidate step handles, so there's no real option except to reindex completely
-        get_graph()->increment_node_ids(increment);
+        get()->increment_node_ids(increment);
         reindex_path_position();
     }
 
     void MutablePositionOverlay::reassign_node_ids(const std::function<nid_t(const nid_t&)>& get_new_id) {
         // this can invalidate step handles, so there's no real option except to reindex completely
-        get_graph()->reassign_node_ids(get_new_id);
+        get()->reassign_node_ids(get_new_id);
         reindex_path_position();
     }
 
@@ -320,11 +204,11 @@ namespace bdsg {
             offset_by_step.erase(step);
         });
         
-        get_graph()->destroy_path(path);
+        get()->destroy_path(path);
     }
     
     path_handle_t MutablePositionOverlay::create_path_handle(const string& name, bool is_circular) {
-        path_handle_t path_handle = get_graph()->create_path_handle(name, is_circular);
+        path_handle_t path_handle = get()->create_path_handle(name, is_circular);
         min_path_offset[path_handle] = 0;
         step_by_position[path_handle] = map<int64_t, step_handle_t>();
         return path_handle;
@@ -332,7 +216,7 @@ namespace bdsg {
     
     step_handle_t MutablePositionOverlay::append_step(const path_handle_t& path, const handle_t& to_append) {
         int64_t position = get_path_length(path) + min_path_offset[path];
-        step_handle_t step = get_graph()->append_step(path, to_append);
+        step_handle_t step = get()->append_step(path, to_append);
         step_by_position[path][position] = step;
         offset_by_step[step] = position;
         return step;
@@ -340,7 +224,7 @@ namespace bdsg {
     
     step_handle_t MutablePositionOverlay::prepend_step(const path_handle_t& path, const handle_t& to_prepend) {
         min_path_offset[path] -= get_length(to_prepend);
-        step_handle_t step = get_graph()->prepend_step(path, to_prepend);
+        step_handle_t step = get()->prepend_step(path, to_prepend);
         offset_by_step[step] = min_path_offset[path];
         step_by_position[path][min_path_offset[path]] = step;
         return step;
@@ -361,7 +245,7 @@ namespace bdsg {
             offset_by_step.erase(step);
         }
         
-        auto new_range = get_graph()->rewrite_segment(segment_begin, segment_end, new_segment);
+        auto new_range = get()->rewrite_segment(segment_begin, segment_end, new_segment);
         
         // reindex the new suffix of the path
         for (auto step = new_range.first; step != path_end(get_path_handle_of_step(new_range.first)); step = get_next_step(step)) {
@@ -371,10 +255,6 @@ namespace bdsg {
         }
         
         return new_range;
-    }
-    
-    void MutablePositionOverlay::set_circularity(const path_handle_t& path, bool circular) {
-        return get_graph()->set_circularity(path, circular);
     }
     
     void MutablePositionOverlay::reindex_path_position() {
@@ -428,7 +308,11 @@ namespace bdsg {
         }
     }
     
-    MutablePathDeletableHandleGraph* MutablePositionOverlay::get_graph() {
+    MutablePathDeletableHandleGraph* MutablePositionOverlay::get() {
+        return mutable_graph;
+    }
+    
+    const MutablePathDeletableHandleGraph* MutablePositionOverlay::get() const {
         return mutable_graph;
     }
 }

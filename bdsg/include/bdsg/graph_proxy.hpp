@@ -36,11 +36,27 @@ using namespace handlegraph;
 // it still tries to parse everything there.
 
 /**
+ * Defines a proxy you can inherit to implement HandleGraph by referencing a
+ * different backing implementation, which implements the concept if not the
+ * interface.
+ *
+ * Can be multiple-inherited alongside other proxies and will use the same
+ * backing implementation.
+ */
+template<typename BackingGraph> 
+struct HandleGraphProxy : virtual public HandleGraph {
+    #define BDSG_INSIDE_CLASS
+    #include "bdsg/internal/graph_proxy_fragment.classfragment" // BINDER_IGNORE
+    #include "bdsg/internal/graph_proxy_handle_graph_fragment.classfragment" // BINDER_IGNORE
+    #undef BDSG_INSIDE_CLASS
+};
+
+/**
  * Defines a proxy you can inherit to implement PathHandleGraph by referencing a
  * different backing implementation, which implements the concept if not the
  * interface.
  *
- * Can be multiple-inherited alongsize other proxies and will use the same
+ * Can be multiple-inherited alongside other proxies and will use the same
  * backing implementation.
  */
 template<typename BackingGraph> 
@@ -49,6 +65,41 @@ struct PathHandleGraphProxy : virtual public PathHandleGraph {
     #include "bdsg/internal/graph_proxy_fragment.classfragment" // BINDER_IGNORE
     #include "bdsg/internal/graph_proxy_handle_graph_fragment.classfragment" // BINDER_IGNORE
     #include "bdsg/internal/graph_proxy_path_handle_graph_fragment.classfragment" // BINDER_IGNORE
+    #undef BDSG_INSIDE_CLASS
+};
+
+/**
+ * Defines a proxy you can inherit to implement MutablePathDeletableHandleGraph by referencing a
+ * different backing implementation, which implements the concept if not the
+ * interface.
+ *
+ * Can be multiple-inherited alongside other proxies and will use the same
+ * backing implementation.
+ */
+template<typename BackingGraph>
+struct MutablePathDeletableHandleGraphProxy : virtual public MutablePathDeletableHandleGraph {
+    #define BDSG_INSIDE_CLASS
+    #include "bdsg/internal/graph_proxy_fragment.classfragment" // BINDER_IGNORE
+    #include "bdsg/internal/graph_proxy_handle_graph_fragment.classfragment" // BINDER_IGNORE
+    #include "bdsg/internal/graph_proxy_path_handle_graph_fragment.classfragment" // BINDER_IGNORE
+    #include "bdsg/internal/graph_proxy_mutable_fragment.classfragment" // BINDER_IGNORE
+    #include "bdsg/internal/graph_proxy_mutable_path_deletable_handle_graph_fragment.classfragment" // BINDER_IGNORE
+    #undef BDSG_INSIDE_CLASS
+};
+
+/**
+ * Defines a proxy you can inherit to implement mutation and deletion methods
+ * only from MutablePathDeletableHandleGraph, by referencing a different
+ * backing implementation, which implements the concept if not the interface.
+ *
+ * Can be multiple-inherited alongside other proxies and will use the same
+ * backing implementation.
+ */
+template<typename BackingGraph>
+struct MutablePathDeletableProxy : virtual public MutablePathDeletableHandleGraph {
+    #define BDSG_INSIDE_CLASS
+    #include "bdsg/internal/graph_proxy_mutable_fragment.classfragment" // BINDER_IGNORE
+    #include "bdsg/internal/graph_proxy_mutable_path_deletable_handle_graph_fragment.classfragment" // BINDER_IGNORE
     #undef BDSG_INSIDE_CLASS
 };
 

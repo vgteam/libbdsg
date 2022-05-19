@@ -12,6 +12,7 @@
 #include <handlegraph/expanding_overlay_graph.hpp>
 #include <handlegraph/util.hpp>
 
+#include "bdsg/graph_proxy.hpp"
 #include "bdsg/internal/packed_structs.hpp"
 
 namespace bdsg {
@@ -24,7 +25,7 @@ using namespace handlegraph;
  * graph. Subgraph must consist of a subset of the parent graph's
  * nodes and all of the edges in the parent graph that connect them.
  */
-class PackedSubgraphOverlay : public ExpandingOverlayGraph {
+class PackedSubgraphOverlay : public ExpandingOverlayGraph, public HandleGraphProxy<HandleGraph> {
         
 public:
     
@@ -51,29 +52,11 @@ public:
     void remove_node(const handle_t& handle);
     
     ////////////////////////////////////////////////////////////////////////////
-    // HandleGraph interface
+    // HandleGraph interface overrides
     ////////////////////////////////////////////////////////////////////////////
     
     /// Method to check if a node exists by ID
     bool has_node(nid_t node_id) const;
-    
-    /// Look up the handle for the node with the given ID in the given orientation
-    handle_t get_handle(const nid_t& node_id, bool is_reverse = false) const;
-    
-    /// Get the ID from a handle
-    nid_t get_id(const handle_t& handle) const;
-    
-    /// Get the orientation of a handle
-    bool get_is_reverse(const handle_t& handle) const;
-    
-    /// Invert the orientation of a handle (potentially without getting its ID)
-    handle_t flip(const handle_t& handle) const;
-    
-    /// Get the length of a node
-    size_t get_length(const handle_t& handle) const;
-    
-    /// Get the sequence of a node, presented in the handle's local forward orientation.
-    string get_sequence(const handle_t& handle) const;
     
 private:
     
@@ -90,15 +73,6 @@ private:
     bool for_each_handle_impl(const std::function<bool(const handle_t&)>& iteratee, bool parallel = false) const;
     
 public:
-    
-    /// Returns one base of a handle's sequence, in the orientation of the
-    /// handle.
-    char get_base(const handle_t& handle, size_t index) const;
-    
-    /// Returns a substring of a handle's sequence, in the orientation of the
-    /// handle. If the indicated substring would extend beyond the end of the
-    /// handle's sequence, the return value is truncated to the sequence's end.
-    std::string get_subsequence(const handle_t& handle, size_t index, size_t size) const;
     
     /// Return the number of nodes in the graph
     size_t get_node_count(void) const;
@@ -122,6 +96,11 @@ public:
     handle_t get_underlying_handle(const handle_t& handle) const;
     
 protected:
+
+    /// Get the HandleGraph to which most methods should be delegated.
+    inline const HandleGraph* get() const {
+        return graph;
+    }
     
     /// The graph we're overlaying
     const HandleGraph* graph = nullptr;

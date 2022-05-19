@@ -43,10 +43,11 @@ public:
     PackedPositionOverlay& operator=(const PackedPositionOverlay& other) = default;
     PackedPositionOverlay& operator=(PackedPositionOverlay&& other) = default;
     
-    // Most path handle graph stuff is provided by the proxy
+    // Most path handle graph stuff is provided by the proxy.
 
 private:
     
+    /// Get the PathHandleGraph to which most methods should be delegated.
     inline const PathHandleGraph* get() const {
         return graph;
     }

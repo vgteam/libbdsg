@@ -41,30 +41,6 @@ bool PackedSubgraphOverlay::has_node(nid_t node_id) const {
     }
 }
 
-handle_t PackedSubgraphOverlay::get_handle(const nid_t& node_id, bool is_reverse) const {
-    return graph->get_handle(node_id, is_reverse);
-}
-
-nid_t PackedSubgraphOverlay::get_id(const handle_t& handle) const {
-    return graph->get_id(handle);
-}
-
-bool PackedSubgraphOverlay::get_is_reverse(const handle_t& handle) const {
-    return graph->get_is_reverse(handle);
-}
-
-handle_t PackedSubgraphOverlay::flip(const handle_t& handle) const {
-    return graph->flip(handle);
-}
-
-size_t PackedSubgraphOverlay::get_length(const handle_t& handle) const {
-    return graph->get_length(handle);
-}
-
-string PackedSubgraphOverlay::get_sequence(const handle_t& handle) const {
-    return graph->get_sequence(handle);
-}
-
 bool PackedSubgraphOverlay::follow_edges_impl(const handle_t& handle, bool go_left, const std::function<bool(const handle_t&)>& iteratee) const {
     return graph->follow_edges(handle, go_left, [&](const handle_t& next) {
         if (subgraph_handles.find(handlegraph::as_integer(graph->forward(next)))) {
@@ -85,14 +61,6 @@ bool PackedSubgraphOverlay::for_each_handle_impl(const std::function<bool(const 
         keep_going = iteratee(handlegraph::as_handle(*iter));
     }
     return keep_going;
-}
-
-char PackedSubgraphOverlay::get_base(const handle_t& handle, size_t index) const {
-    return graph->get_base(handle, index);
-}
-
-std::string PackedSubgraphOverlay::get_subsequence(const handle_t& handle, size_t index, size_t size) const {
-    return graph->get_subsequence(handle, index, size);
 }
 
 size_t PackedSubgraphOverlay::get_node_count(void) const {
