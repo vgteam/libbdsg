@@ -3,6 +3,8 @@
 
 #include <omp.h> // BINDER_IGNORE because Binder can't find this
 
+#include <mutex>
+
 //#define debug
 
 namespace bdsg {
@@ -11,57 +13,19 @@ PackedPositionOverlay::PackedPositionOverlay(const PathHandleGraph* graph, size_
     index_path_positions();
 }
 
-bool PackedPositionOverlay::for_each_path_matching_impl(const std::unordered_set<PathSense>* senses,
-                                                        const std::unordered_set<std::string>* samples,
-                                                        const std::unordered_set<std::string>* loci,
-                                                        const std::function<bool(const path_handle_t&)>& iteratee) const {
-    
-    return graph->for_each_path_matching(senses, samples, loci, [&](const path_handle_t& path) -> bool {
-        if (graph->get_sense(path) != PathSense::HAPLOTYPE) {
-            // Allow non-haplotype paths, which we indexed.
-            return iteratee(path);
-        } else {
-            // Skip haplotype paths.
-            return true;
-        }
-    });
-}
-
-bool PackedPositionOverlay::for_each_step_of_sense_impl(const handle_t& visited,
-                                                        const PathSense& sense,
-                                                        const std::function<bool(const step_handle_t&)>& iteratee) const {
-
-    return graph->for_each_step_of_sense(visited, sense, [&](const step_handle_t& step) -> bool {
-        path_handle_t path = graph->get_path_handle_of_step(step);
-        if (graph->get_sense(path) != PathSense::HAPLOTYPE) {
-            // Allow non-haplotype paths, which we indexed.
-            return iteratee(step);
-        } else {
-            // Skip haplotype paths.
-            return true;
-        }
-    });
-
-}
-                                                         
-bool PackedPositionOverlay::has_path(const std::string& path_name) const {
-    if (!graph->has_path(path_name)) {
-        return false;
-    }
-    path_handle_t path = graph->get_path_handle(path_name);
-    // Haplotype paths officially don't exist, since they aren't indexed.
-    return graph->get_sense(path) != PathSense::HAPLOTYPE;
-}
-
 size_t PackedPositionOverlay::get_path_length(const path_handle_t& path_handle) const {
-    const auto& range = path_range.at(as_integer(path_handle));
-    if (range.start == range.end) {
-        return 0;
-    }
-    step_handle_t step;
-    as_integers(step)[0] = indexes[range.index_number].steps_0.get(range.end - 1);
-    as_integers(step)[1] = indexes[range.index_number].steps_1.get(range.end - 1);
-    return indexes[range.index_number].positions.get(range.end - 1) + get_length(get_handle_of_step(step));
+    size_t result;
+    with_range_for_path(path_handle, [&](const PathRange& range) {
+        if (range.start == range.end) {
+            result = 0;
+        } else {
+            step_handle_t step;
+            as_integers(step)[0] = indexes[range.index_number].steps_0.get(range.end - 1);
+            as_integers(step)[1] = indexes[range.index_number].steps_1.get(range.end - 1);
+            result = indexes[range.index_number].positions.get(range.end - 1) + get_length(get_handle_of_step(step));
+        }
+    });
+    return result;
 }
 
 size_t PackedPositionOverlay::get_position_of_step(const step_handle_t& step) const {
@@ -70,46 +34,53 @@ size_t PackedPositionOverlay::get_position_of_step(const step_handle_t& step) co
         return get_path_length(path);
     }
     else {
-        auto& range = path_range.at(as_integer(path));
-        const boomphf::mphf<step_handle_t, StepHash>& const_step_hash = indexes[range.index_number].step_hash.back();
-        // We can't use the lookup function on a const mphf, because it isn't
-        // marked const. But it is thread safe and really ought to be const. So
-        // we cast away the const here.
-        boomphf::mphf<step_handle_t, StepHash>& step_hash = const_cast<boomphf::mphf<step_handle_t, StepHash>&>(const_step_hash);
-        return indexes[range.index_number].step_positions.get(step_hash.lookup(step));
+        size_t result;
+        with_range_for_path(path, [&](const PathRange& range) {
+            const boomphf::mphf<step_handle_t, StepHash>& const_step_hash = indexes[range.index_number].step_hash.back();
+            // We can't use the lookup function on a const mphf, because it isn't
+            // marked const. But it is thread safe and really ought to be const. So
+            // we cast away the const here.
+            boomphf::mphf<step_handle_t, StepHash>& step_hash = const_cast<boomphf::mphf<step_handle_t, StepHash>&>(const_step_hash);
+            return indexes[range.index_number].step_positions.get(step_hash.lookup(step));
+        });
+        return result;
     }
 }
 
 step_handle_t PackedPositionOverlay::get_step_at_position(const path_handle_t& path,
                                                           const size_t& position) const {
     
-    const auto& range = path_range.at(as_integer(path));
-    
     // check if position it outside the range (handles edge case of an empty path too)
+    // TODO: We do another lock and unlock to get the path length; can we eliminate it?
+    // Seems better to do it first than to make the lock need to be reentrant.
     if (position >= get_path_length(path)) {
         return path_end(path);
     }
     
-    // bisect search within the range to find the index with the steps
-    size_t low = range.start;
-    size_t hi = range.end;
-    while (hi > low + 1) {
-        size_t mid = (hi + low) / 2;
-        if (position < indexes[range.index_number].positions.get(mid)) {
-            hi = mid;
+    step_handle_t result;
+    with_range_for_path(path, [&](const PathRange& range) {
+        // bisect search within the range to find the index with the steps
+        size_t low = range.start;
+        size_t hi = range.end;
+        while (hi > low + 1) {
+            size_t mid = (hi + low) / 2;
+            if (position < indexes[range.index_number].positions.get(mid)) {
+                hi = mid;
+            }
+            else {
+                low = mid;
+            }
         }
-        else {
-            low = mid;
-        }
-    }
-    
-    // unpack the integers at the same index into a step
-    step_handle_t step;
-    as_integers(step)[0] = indexes[range.index_number].steps_0.get(low);
-    as_integers(step)[1] = indexes[range.index_number].steps_1.get(low);
-    return step;
+        
+        // unpack the integers at the same index into a step
+        step_handle_t step;
+        as_integers(step)[0] = indexes[range.index_number].steps_0.get(low);
+        as_integers(step)[1] = indexes[range.index_number].steps_1.get(low);
+        result = step;
+    });
+    return result;
 }
-
+    
 handle_t PackedPositionOverlay::get_underlying_handle(const handle_t& handle) const {
     return handle;
 }
@@ -121,7 +92,9 @@ void PackedPositionOverlay::index_path_positions() {
     // locals. So first we'll collect all the path handles.
     // TODO: deduplicate with BBHashHelper's copy of all the path handles?
     std::vector<path_handle_t> path_handles;
-    for_each_path_handle([&](const path_handle_t& path_handle) {
+    
+    // Pre-index all the paths that aren't haplotype paths.
+    graph->for_each_path_matching({PathSense::REFERENCE, PathSense::GENERIC}, {}, {}, [&](const path_handle_t& path_handle) {
         path_handles.push_back(path_handle);
     });
     
@@ -187,71 +160,131 @@ void PackedPositionOverlay::index_path_positions() {
         // And the number of steps on its paths
         auto& cumul_path_size = path_set_steps[i];
         
-        // And the index we are building into
-        auto& index = indexes[i];
+        // Build an index for these paths, of this total length, into the
+        // pre-allocated index slot.
+        compute_index_for_paths(begin_path, end_path, cumul_path_size, i);
+    }
+}
+
+void PackedPositionOverlay::compute_index_for_paths(const std::vector<path_handle_t>::const_iterator& begin_path,
+                                                    const std::vector<path_handle_t>::const_iterator& end_path,
+                                                    size_t cumul_path_size,
+                                                    size_t destination_index_number) const {
         
-        // resize the vectors to the number of step handles
-        index.steps_0.resize(cumul_path_size);
-        index.steps_1.resize(cumul_path_size);
-        index.positions.resize(cumul_path_size);
-        index.step_positions.resize(cumul_path_size);
+    // Find the index we are building into
+    auto& index = indexes[destination_index_number];
+    
+    // resize the vectors to the number of step handles
+    index.steps_0.resize(cumul_path_size);
+    index.steps_1.resize(cumul_path_size);
+    index.positions.resize(cumul_path_size);
+    index.step_positions.resize(cumul_path_size);
+    
+#ifdef debug
+    #pragma omp critical (cerr)
+    std::cerr << "T" << omp_get_thread_num() << ": Sized index " << destination_index_number << " for " << cumul_path_size << " steps" << std::endl;
+#endif
+    
+    // Make a perfect minimal hash over the step handles on the selected paths
+    // Use the number of threads a child OMP team would get.
+    index.step_hash.emplace_back(cumul_path_size, BBHashHelper(graph, begin_path, end_path), get_thread_count(), 2.0, false, false);
+    
+    // Walk a cursor through steps among the path set
+    size_t step_overall = 0;
+    
+    for (size_t j = 0; j < end_path - begin_path; j++) {
+        // For each path we are indexing
+        auto& path_handle = *(begin_path + j);
+        // Initialize a PathRange on the stack
+        PathRange range;
+        
+        // Populate the index and start info
+        range.index_number = destination_index_number;
+        range.start = step_overall;
+        // And walk a base position cursor along the path
+        size_t position = 0;
+        for_each_step_in_path(path_handle, [&](const step_handle_t& step) {
+            
+            // fill in the position to step index
+            index.steps_0.set(step_overall, as_integers(step)[0]);
+            index.steps_1.set(step_overall, as_integers(step)[1]);
+            index.positions.set(step_overall, position);
+            
+            // fill in the step to position index
+            index.step_positions.set(index.step_hash.back().lookup(step), position);
+            
+            position += get_length(get_handle_of_step(step));
+            ++step_overall;
+        });
+        // Populate the end info
+        range.end = step_overall;
         
 #ifdef debug
         #pragma omp critical (cerr)
-        std::cerr << "T" << omp_get_thread_num() << ": Sized index " << i << " for " << cumul_path_size << " steps" << std::endl;
+        std::cerr << "T" << omp_get_thread_num() << ": Path " << get_path_name(path_handle) << " takes up range " << range.start << " to " << range.end << " in index " << range.index_number << std::endl;
 #endif
         
-        // Make a perfect minimal hash over the step handles on the selected paths
-        // Use the number of threads a child OMP team would get.
-        index.step_hash.emplace_back(cumul_path_size, BBHashHelper(graph, begin_path, end_path), get_thread_count(), 2.0, false, false);
-        
-        // Walk a cursor through steps among the path set
-        size_t step_overall = 0;
-        
-        for (size_t j = 0; j < end_path - begin_path; j++) {
-            // For each path we are indexing
-            auto& path_handle = *(begin_path + j);
-            // Initialize a PathRange on the stack
-            PathRange range;
-            
-            // Populate the index and start info
-            range.index_number = i;
-            range.start = step_overall;
-            // And walk a base position cursor along the path
-            size_t position = 0;
-            for_each_step_in_path(path_handle, [&](const step_handle_t& step) {
-                
-                // fill in the position to step index
-                index.steps_0.set(step_overall, as_integers(step)[0]);
-                index.steps_1.set(step_overall, as_integers(step)[1]);
-                index.positions.set(step_overall, position);
-                
-                // fill in the step to position index
-                index.step_positions.set(index.step_hash.back().lookup(step), position);
-                
-                position += get_length(get_handle_of_step(step));
-                ++step_overall;
-            });
-            // Populate the end info
-            range.end = step_overall;
-            
-#ifdef debug
-            #pragma omp critical (cerr)
-            std::cerr << "T" << omp_get_thread_num() << ": Path " << get_path_name(path_handle) << " takes up range " << range.start << " to " << range.end << " in index " << range.index_number << std::endl;
-#endif
-            
-            // Commit to the map from path to path range. We must protect all
-            // access in a critical section, not just the hash table lookup.
-            //
-            // If we worked on a pointer to an item in the hash table, another
-            // thread could add a new item and make our item be deallocated
-            // while we were working on it.
-            #pragma omp critical (path_range)
-            path_range.emplace(as_integer(path_handle), std::move(range));
-        }
-        
+        // Commit to the map from path to path range. We must protect all
+        // access in a critical section, not just the hash table lookup.
+        //
+        // If we worked on a pointer to an item in the hash table, another
+        // thread could add a new item and make our item be deallocated
+        // while we were working on it.
+        #pragma omp critical (path_range)
+        path_range.emplace(as_integer(path_handle), std::move(range));
     }
     
+}
+
+void PackedPositionOverlay::with_range_for_path(const path_handle_t& path_handle, const std::function<void(const PathRange&)>& callback) const {
+    {
+        // Get a reader lock
+        std::shared_lock<std::shared_timed_mutex> lock(index_mutex);
+        
+        // Check if the thing is there.
+        auto found = path_range.find(as_integer(path_handle));
+        if (found != path_range.end()) {
+            // If it is, use it right now, unlock, and return
+            callback(found->second);
+            return;
+        }
+        
+        // If it isn't, unlock.
+        // Don't try and escalate the lock because we may race with other
+        // things who also need to make the index.
+    }
+    
+    // We probably need to index the path. Get a total length for the path in
+    // steps. This is likely to involve a scan. Lots of threads will do this at
+    // once for a popular path and race, but that's probably better than
+    // everyone waiting around for everyone else when they're accessing
+    // different paths.
+    size_t total_steps = graph->get_step_count(path_handle);
+    
+    // To make the index, we need a vector of path handles to index.
+    std::vector<path_handle_t> path_list{path_handle};
+    
+    {
+        // Get a writer lock.
+        std::unique_lock<std::shared_timed_mutex> lock(index_mutex);
+        
+        // Check if the thing is there now.
+        auto found = path_range.find(as_integer(path_handle));
+        if (found == path_range.end()) {
+            // If it isn't, make it.
+            
+            // We need a new index slot
+            indexes.emplace_back();
+            
+            // Do the indexing into the slot and update the ranges hash table
+            compute_index_for_paths(path_list.begin(), path_list.end(), total_steps, indexes.size() - 1);
+        }
+        
+        // Unlock
+    }
+    
+    // Now we know the thing is there, so recurse to go back to the reader lock part.
+    with_range_for_path(path_handle, callback);
 }
 
 uint64_t PackedPositionOverlay::StepHash::operator()(const step_handle_t& step, uint64_t seed) const {

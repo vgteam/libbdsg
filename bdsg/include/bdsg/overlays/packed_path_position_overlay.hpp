@@ -19,6 +19,8 @@
 #include "bdsg/internal/hash_map.hpp"
 #include "bdsg/internal/packed_structs.hpp"
 
+#include <shared_mutex>
+
 namespace bdsg {
     
 using namespace std;
@@ -52,35 +54,11 @@ private:
         return graph;
     }
     
-    // But we override some methods, because we need to hide paths we don't end up indexing.
-
-public:
-    /// Loop through all the paths matching the given query. Query elements
-    /// which are null match everything. Returns false and stops if the
-    /// iteratee returns false.
-    bool for_each_path_matching_impl(const std::unordered_set<PathSense>* senses,
-                                     const std::unordered_set<std::string>* samples,
-                                     const std::unordered_set<std::string>* loci,
-                                     const std::function<bool(const path_handle_t&)>& iteratee) const;
-    
-    /// Loop through all steps on the given handle for paths with the given
-    /// sense. Returns false and stops if the iteratee returns false.
-    bool for_each_step_of_sense_impl(const handle_t& visited,
-                                     const PathSense& sense,
-                                     const std::function<bool(const step_handle_t&)>& iteratee) const;
-                                     
-    /// Determine if a path name exists and is legal to get a path handle for.
-    bool has_path(const std::string& path_name) const;
-    
-    // We don't need to intercept get_path_handle because it's not allowed to
-    // be called if has_path is false.
-    
-public:
-
     ////////////////////////////////////////////////////////////////////////////
     // Path position interface
     ////////////////////////////////////////////////////////////////////////////
-    
+
+public:
     /// Returns the length of a path measured in bases of sequence.
     size_t get_path_length(const path_handle_t& path_handle) const;
     
@@ -106,21 +84,10 @@ public:
     handle_t get_underlying_handle(const handle_t& handle) const;
     
 protected:
-    
-    
     // local BBHash style hash function for step handles
     struct StepHash {
         uint64_t operator()(const step_handle_t& step, uint64_t seed = 0xAAAAAAAA55555555ULL) const;
     };
-    
-    /// Construct the index over path positions
-    void index_path_positions();
-    
-    /// The graph we're overlaying
-    const PathHandleGraph* graph = nullptr;
-    
-    /// The number of steps we target when coalescing small paths into larger indexes.
-    const size_t steps_per_index;
     
     /// To facillitate parallel construction, we keep the index info for each
     /// path (or collection of tiny paths) in a separate object.
@@ -143,10 +110,6 @@ protected:
         PackedVector<> step_positions;
     };
     
-    /// This holds the indexes, each of which belongs to a path or collection
-    /// of short paths.
-    vector<PathIndex> indexes;
-    
     /// And this represents a reference to an offset range in a PathIndex, where a path can be found.
     struct PathRange {
         size_t index_number;
@@ -154,13 +117,53 @@ protected:
         size_t end;
     };
     
+    /// Construct the index over path positions
+    void index_path_positions();
+    
+    /// Construct an index for the paths in the given range, with the given
+    /// total length, and store it to the given slot in indexes. Registers the
+    /// created index in path_range so it will be used for queries for the
+    /// selected paths.
+    ///
+    /// This is marked as const because it only modifies mutable fields.
+    void compute_index_for_paths(const std::vector<path_handle_t>::const_iterator& begin_path,
+                                 const std::vector<path_handle_t>::const_iterator& end_path,
+                                 size_t cumul_path_size,
+                                 size_t destination_index_number) const;
+                                                        
+    /// This is the One True Way to read from path_range and by extension indexes.
+    /// Do not access these members outside of the callback here, after initial indexing!
+    ///
+    /// This function takes care of doing readers-writer locking, and making
+    /// sure that the path you are talking about has actually been indexed. If
+    /// it is not actually indexed, it will be indexed for you (and the object
+    /// will be modified, despite the const-ness of this method). 
+    void with_range_for_path(const path_handle_t& path_handle, const std::function<void(const PathRange&)>& callback) const;
+    
+    /// The graph we're overlaying
+    const PathHandleGraph* graph = nullptr;
+    
+    /// The number of steps we target when coalescing small paths into larger indexes.
+    const size_t steps_per_index;
+    
+    /// This holds the indexes, each of which belongs to a path or collection
+    /// of short paths.
+    /// Only access through with_range_for_path(), after initial construction!
+    mutable vector<PathIndex> indexes;
+    
     /// Map from path_handle to the index and range of positions that contain
     /// its records in the steps and positions vectors. Note that access to
     /// existing entries is not thread-safe with the addition of new entries!
     /// Adding a new entry may deallocate existing entries, and will invalidate
     /// pointers and references to them! This is different from how the STL
     /// unordered_map behaves!
-    hash_map<int64_t, PathRange> path_range;
+    /// Only access through with_range_for_path(), after initial construction!
+    mutable hash_map<int64_t, PathRange> path_range;
+    
+    /// Use this mutex for a readers-writer lock on the index data structures
+    /// (indexes and path_range), so they can be dynamically uptated if it
+    /// turns out we wanted to index paths we didn't index initially.
+    mutable std::shared_timed_mutex index_mutex;
 };
 
 /*
