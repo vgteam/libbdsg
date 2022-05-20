@@ -73,7 +73,7 @@ private:
     bool for_each_handle_impl(const std::function<bool(const handle_t&)>& iteratee, bool parallel = false) const;
     
 public:
-    
+
     /// Return the number of nodes in the graph
     size_t get_node_count(void) const;
     
@@ -84,6 +84,25 @@ public:
     /// Return the largest ID in the graph, or some larger number if the
     /// largest ID is unavailable. Return value is unspecified if the graph is empty.
     nid_t max_node_id(void) const;
+    
+    /// Get the number of edges on the right (go_left = false) or left (go_left
+    /// = true) side of the given handle. The default implementation is O(n) in
+    /// the number of edges returned, but graph implementations that track this
+    /// information more efficiently can override this method.
+    virtual size_t get_degree(const handle_t& handle, bool go_left) const;
+    
+    /// Returns true if there is an edge that allows traversal from the left
+    /// handle to the right handle. By default O(n) in the number of edges
+    /// on left, but can be overridden with more efficient implementations.
+    virtual bool has_edge(const handle_t& left, const handle_t& right) const;
+    
+    /// Return the total number of edges in the graph. If not overridden,
+    /// counts them all in linear time.
+    virtual size_t get_edge_count() const;
+    
+    /// Return the total length of all nodes in the graph, in bp. If not
+    /// overridden, loops over all nodes in linear time.
+    virtual size_t get_total_length() const;
     
     ////////////////////////////////////////////////////////////////////////////
     // Expanding overlay interface

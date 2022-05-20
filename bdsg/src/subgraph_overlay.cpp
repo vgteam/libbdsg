@@ -82,4 +82,24 @@ bool SubgraphOverlay::for_each_handle_impl(const std::function<bool(const handle
     }
 }
 
+size_t SubgraphOverlay::get_degree(const handle_t& handle, bool go_left) const {
+    // Use the HandleGraph implementation
+    return HandleGraph::get_degree(handle, go_left);
+}
+
+bool SubgraphOverlay::has_edge(const handle_t& left, const handle_t& right) const {
+    // Use the HandleGraph implementation
+    return HandleGraph::has_edge(left, right);
+}
+
+size_t SubgraphOverlay::get_edge_count() const {
+    // Use the HandleGraph implementation
+    return HandleGraph::get_edge_count();
+}
+
+size_t SubgraphOverlay::get_total_length() const {
+    // Use the HandleGraph implementation
+    return HandleGraph::get_total_length();
+}
+
 }

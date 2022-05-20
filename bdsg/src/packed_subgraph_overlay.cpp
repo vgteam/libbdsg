@@ -75,6 +75,26 @@ nid_t PackedSubgraphOverlay::max_node_id(void) const {
     return max_id;
 }
 
+size_t PackedSubgraphOverlay::get_degree(const handle_t& handle, bool go_left) const {
+    // Use the HandleGraph implementation
+    return HandleGraph::get_degree(handle, go_left);
+}
+
+bool PackedSubgraphOverlay::has_edge(const handle_t& left, const handle_t& right) const {
+    // Use the HandleGraph implementation
+    return HandleGraph::has_edge(left, right);
+}
+
+size_t PackedSubgraphOverlay::get_edge_count() const {
+    // Use the HandleGraph implementation
+    return HandleGraph::get_edge_count();
+}
+
+size_t PackedSubgraphOverlay::get_total_length() const {
+    // Use the HandleGraph implementation
+    return HandleGraph::get_total_length();
+}
+
 handle_t PackedSubgraphOverlay::get_underlying_handle(const handle_t& handle) const {
     return handle;
 }

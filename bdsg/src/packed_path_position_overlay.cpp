@@ -41,7 +41,7 @@ size_t PackedPositionOverlay::get_position_of_step(const step_handle_t& step) co
             // marked const. But it is thread safe and really ought to be const. So
             // we cast away the const here.
             boomphf::mphf<step_handle_t, StepHash>& step_hash = const_cast<boomphf::mphf<step_handle_t, StepHash>&>(const_step_hash);
-            return indexes[range.index_number].step_positions.get(step_hash.lookup(step));
+            result = indexes[range.index_number].step_positions.get(step_hash.lookup(step));
         });
         return result;
     }
