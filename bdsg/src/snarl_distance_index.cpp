@@ -441,6 +441,10 @@ size_t SnarlDistanceIndex::get_rank_in_parent(const net_handle_t& net) const {
     }
 }
 
+size_t SnarlDistanceIndex::connected_component_count() const {
+    return RootRecord (get_root(), &snarl_tree_records).get_connected_component_count();
+}
+
 //TODO: I'm also allowing this for the root
 bool SnarlDistanceIndex::for_each_child_impl(const net_handle_t& traversal, const std::function<bool(const net_handle_t&)>& iteratee) const {
 #ifdef debug_snarl_traversal

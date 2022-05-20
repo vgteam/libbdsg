@@ -262,6 +262,13 @@ public:
      */
     size_t get_rank_in_parent(const net_handle_t& net) const;
 
+    /**
+     * How many connected components are in this graph?
+     * This returns the number of topological connected components, not necessarily the 
+     * number of nodes in the top-level snarl 
+     */
+    size_t connected_component_count() const;
+
 protected:
     /**
      * Internal implementation for for_each_child.
