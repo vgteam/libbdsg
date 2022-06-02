@@ -1062,6 +1062,7 @@ private:
          * and the offset and orientation of this node on the path
          */
         virtual size_t get_path_record_offset() const;
+        virtual size_t get_path_component() const;
         virtual size_t get_path_offset() const;
         virtual bool get_path_orientation() const;
 
@@ -1112,7 +1113,7 @@ private:
         virtual void set_node_id(nid_t value);
         virtual void set_rank_in_parent(size_t value);
         virtual void set_node_length(size_t value);
-        virtual void set_path_record_offset(size_t offset) const;
+        virtual void set_path_record_offset(size_t offset, size_t component) const;
         virtual void set_path_offset(size_t offset, bool orientation) const;
     };
 
@@ -1706,6 +1707,7 @@ public:
 
             //For the shortest path through a top-level structure
             pair<temp_record_t, size_t> path_ancestor = make_pair(TEMP_ROOT, std::numeric_limits<size_t>::max());
+            size_t path_component = std::numeric_limits<size_t>::max();
             size_t path_offset = std::numeric_limits<size_t>::max();
             bool path_orientation;
 
