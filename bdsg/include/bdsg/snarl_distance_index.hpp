@@ -478,12 +478,20 @@ private:
      * - A node record for nodes in snarls/roots
      *   These will be interspersed between chains more or less based on where they are in the snarl tree
      *   [node tag, node id, pointer to parent, node length, rank in parent]
+     *
+     *  The index also stores the shortest path through each top-level structure (which is usually a chain)
+     *  This is stored for each node, the path shortest path that passes through it and the offset and orientation along the path
+     *  FOr nodes in chains, nothing additional needs to be stored, because the offset is the same as the prefix sum of the node
+     *  For all other nodes, we need to store a pointer to the top-level structure (chain or snarl), and the offset and orientation in the path 
+     *  These are stored in NODE_PATH and NODE_PATH_OFFSET
      */
-    const static size_t NODE_RECORD_SIZE = 5;
+    const static size_t NODE_RECORD_SIZE = 7;
     const static size_t NODE_ID_OFFSET = 1;
     const static size_t NODE_PARENT_OFFSET = 2;
     const static size_t NODE_LENGTH_OFFSET = 3;
     const static size_t NODE_RANK_OFFSET = 4;
+    const static size_t NODE_PATH_OFFSET = 5;
+    const static size_t NODE_PATH_OFFSET_OFFSET = 6;
  
     /*Chain record
 
@@ -1050,6 +1058,13 @@ private:
 
         virtual size_t get_node_length() const;
 
+        /*For the shortest path through the connected component that this node is on, what is the location of the chain record (for now only chains),
+         * and the offset and orientation of this node on the path
+         */
+        virtual size_t get_path_record_offset() const;
+        virtual size_t get_path_offset() const;
+        virtual bool get_path_orientation() const;
+
     };
 
     struct NodeRecordConstructor : NodeRecord , SnarlTreeRecordConstructor {
@@ -1097,6 +1112,8 @@ private:
         virtual void set_node_id(nid_t value);
         virtual void set_rank_in_parent(size_t value);
         virtual void set_node_length(size_t value);
+        virtual void set_path_record_offset(size_t offset) const;
+        virtual void set_path_offset(size_t offset, bool orientation) const;
     };
 
     struct TrivialSnarlRecord : SnarlTreeRecord {
@@ -1686,6 +1703,12 @@ public:
             bool reversed_in_parent;
             bool is_tip = false;
             size_t root_snarl_index = std::numeric_limits<size_t>::max();
+
+            //For the shortest path through a top-level structure
+            pair<temp_record_t, size_t> path_ancestor = make_pair(TEMP_ROOT, std::numeric_limits<size_t>::max());
+            size_t path_offset = std::numeric_limits<size_t>::max();
+            bool path_orientation;
+
             const static size_t get_max_record_length() {
                 return NODE_RECORD_SIZE;} 
         };

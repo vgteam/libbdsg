@@ -2489,6 +2489,16 @@ size_t SnarlDistanceIndex::NodeRecord::get_node_length() const {
     //}
 }
 
+size_t SnarlDistanceIndex::NodeRecord::get_path_record_offset() const {
+    return (*records)->at(record_offset + NODE_PATH_OFFSET);
+}
+size_t SnarlDistanceIndex::NodeRecord::get_path_offset() const {
+    return (*records)->at(record_offset + NODE_PATH_OFFSET_OFFSET) << 1;
+}
+bool SnarlDistanceIndex::NodeRecord::get_path_orientation() const {
+    return (*records)->at(record_offset + NODE_PATH_OFFSET_OFFSET) & 1;
+}
+
 
 size_t SnarlDistanceIndex::TrivialSnarlRecord::get_node_count() const {
     return (*records)->at(record_offset+TRIVIAL_SNARL_NODE_COUNT_OFFSET);
@@ -2630,6 +2640,14 @@ void SnarlDistanceIndex::NodeRecordConstructor::set_rank_in_parent(size_t value)
     assert((*records)->at(record_offset + NODE_RANK_OFFSET) == 0);
 #endif
     (*records)->at(record_offset + NODE_RANK_OFFSET) = value;
+}
+
+void SnarlDistanceIndex::NodeRecordConstructor::set_path_record_offset(size_t offset) const {
+    (*records)->at(record_offset + NODE_PATH_OFFSET) = offset;
+}
+void SnarlDistanceIndex::NodeRecordConstructor::set_path_offset(size_t offset, bool orientation) const {
+    size_t val = offset << 1 | orientation;
+    (*records)->at(record_offset + NODE_PATH_OFFSET_OFFSET) = val;
 }
 
 void SnarlDistanceIndex::TrivialSnarlRecordConstructor::set_node_count(size_t value) const {
@@ -3732,6 +3750,13 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                     node_record.set_node_length(temp_node_record.node_length);
                     node_record.set_rank_in_parent(temp_chain_record.rank_in_parent);
                     node_record.set_parent_record_offset(record_to_offset[make_pair(temp_index_i, temp_chain_record.parent)]);
+
+                    //Set the value for the top-level path
+                    if (temp_node_record.path_offset != std::numeric_limits<size_t>::max()) {
+                        size_t ancestor_offset = record_to_offset[std::make_pair(temp_index_i , temp_node_record.path_ancestor)];
+                        node_record.set_path_record_offset(ancestor_offset);
+                        node_record.set_path_offset(temp_node_record.path_offset, temp_node_record.path_orientation);
+                    }
 
                     record_to_offset.emplace(make_pair(temp_index_i, current_record_index), node_record.record_offset);
 
