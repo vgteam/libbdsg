@@ -448,101 +448,52 @@ public:
 
     
 //////////////////////////////////////////  The actual distance index
-private:
     
+private:
+
     /**
-     *
-     * This stores all records for the root, nodes, chains/snarls, and snarls' children
-     * 
-     * It's really made up of five types of vectors: 
-     * 
-     * - The (single) root vector has the format:
-     *   [root tag, # connected components, # nodes, min_node_id, [pointer to node/snarl/chain record] x N], [pointer to node] x M]
-     *   The root vector stores the root of every connected component, which can be a 
-     *   node, snarl, or chain
-     *
-     * - A chain record for each chain, which is interspersed node and snarl records:
-     *   [chain tag, #nodes, pointer to parent, min length, max length, rank in parent, start, end, pointer to last child
-     *       [ (node record), snarl record size, (snarl record), snarl record size] x N] 
-     *          (plus an extra node id, prefix sum, fd loop, rev loop at the end for the last node), 0, 0
-     *    The two 0's at the end indicates that it's the end of the chain
-     *    snarl_record_size is the number of things in the snarl record (so 0 if there is no snarl there)
-     *    start/end include the orientations
-     * 
-     * - A snarl record for each snarl, which are stuck in chains
-     *   [snarl tag, # nodes, pointer to parent, min length, max length, rank in parent, 
-     *      pointer to children (in child vector), start, end, distance vector]
-     *   Trivial snarls will still be contained within a chain
-     *   Single nodes will technically be contained in a chain, but not stored as a chain
-     *   The rank of the start node will always be 0 and the end node rank will be 1
-     *   start/end are the start and end nodes, include the orientations
-     *   For the first and last nodes, we only care about the node sides pointing in
-     *   Each node side in the actual distance matrix will be 2*(rank-1) for the left side, and 
-     *   2rank+1 for the right side, and 0 for the start, 1 for the end, where we only keep the 
-     *   inner node side of the start and end
-     *   Node count is the number of nodes, not including boundary nodes
-     *   
-     * - A node record for nodes in chains
-     *   TODO: make the pointer to the parent how far backwards to go to get to the beginning of the chain and
-     *   the last bit will be true if the node is reversed in the parent
-     *   [node tag, node id, pointer to parent, node length, prefix sum, fd loop, rev loop]
-     *
-     * - A node record for nodes in snarls/roots
-     *   These will be interspersed between chains more or less based on where they are in the snarl tree
-     *   [node tag, node id, pointer to parent, node length, rank in parent]
-     * 
-     * - The (single) child vector, listing children in snarls
-     *   [child vector tag, (pointer to records) x N
-     *   Each snarl will have a pointer into here, and will also know how many children it has
-     * 
-     * 
-     *   For each of the "rank_in_parent" fields, the last bit is 1 if it is reversed in the parent
-     *
+     * This vector is the entire distance index. It is split up into "records" that are defined below
      */
-    
-private:
-//TODO: This should definitely not be public
     bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector> snarl_tree_records;
-
-    /* If this is 0, then don't store distances
-     * Otherwise, for snarls with more children than snarl_size_limit, only store the distances
-     * that include boundary nodes (OVERSIZED_SNARL)
-     */
-    size_t snarl_size_limit = 1000;
-
-/////////////////  Construction methods
-public:
-
-    void set_snarl_size_limit (size_t size) {snarl_size_limit=size;}
-
-
-
-
-private:
-
-    uint32_t magic_number = 1738636486;
-
 
 /////// These are used to interpret the distance index, which is just a vector of ints
 /////// Uses a SnarlTreeRecord as the main class for defining and interpreting the records
 /////// SnarlTreeRecords are given a base pointer, which points to the start of the record
 /////// These tell the record how big it is and the offsets of each of its values
     
-    //Root record
+    /*Root record
+    
+     * - The (single) root vector has the format:
+     *   [root tag, # connected components, # nodes, min_node_id, max depth [pointer to node/snarl/chain record] x N], [pointer to node+ node offset] x M]
+     *   The root vector stores the root of every connected component, which can be a 
+     *   node, snarl, or chain
+     */
     const static size_t ROOT_RECORD_SIZE = 5;
     const static size_t COMPONENT_COUNT_OFFSET = 1;
     const static size_t NODE_COUNT_OFFSET = 2;
     const static size_t MIN_NODE_ID_OFFSET = 3;
     const static size_t MAX_TREE_DEPTH_OFFSET = 4;
 
-    //Node record
+    /*Node record
+     * - A node record for nodes in snarls/roots
+     *   These will be interspersed between chains more or less based on where they are in the snarl tree
+     *   [node tag, node id, pointer to parent, node length, rank in parent]
+     */
     const static size_t NODE_RECORD_SIZE = 5;
     const static size_t NODE_ID_OFFSET = 1;
     const static size_t NODE_PARENT_OFFSET = 2;
     const static size_t NODE_LENGTH_OFFSET = 3;
     const static size_t NODE_RANK_OFFSET = 4;
  
-    //Chain record
+    /*Chain record
+
+     * - A chain record for each chain, which is interspersed node and snarl records:
+     *   The nodes are all stored in a "TrivialSnarl", which is a bunch of nodes with no snarls between them
+     *   [chain tag, #nodes, pointer to parent, min length, max length, rank in parent, start, end, pointer to last child
+     *       [ (trivial nodes), (snarl record),] x N] 
+     *    snarl_record_size is the number of things in the snarl record (so 0 if there is no snarl there)
+     *    start/end include the orientations
+     */ 
     const static size_t CHAIN_RECORD_SIZE = 10;
     const static size_t CHAIN_NODE_COUNT_OFFSET = 1;
     const static size_t CHAIN_PARENT_OFFSET = 2;
@@ -554,11 +505,16 @@ private:
     const static size_t CHAIN_LAST_CHILD_OFFSET = 8; //The offset of the last thing in the chain - node or (if looping chain) snarl
     const static size_t CHAIN_DEPTH_OFFSET = 9;
 
-    //Trivial snarl record (which occurs within a chain)
-    //These contain up to 128 nodes with nothing between them
-    //The record is followed by [node id+orientation, right prefix sum] for each node in the trivial snarl
-    //So the total length of the trivial snarl is 8+2*#nodes
-    //The right prefix sum is the sum from the start of the trivial chain to the right side of the node (relative to the chain)
+    /*Trivial snarl record (which occurs within a chain) representing nodes in a chain
+     * These contain up to 128 nodes with nothing between them
+
+     *   [trivial snarl tag, pointer to parent, node count, prefix sum, fd loop, rev loop, component]
+
+     * The record is followed by [node id+orientation, right prefix sum] for each node in the trivial snarl
+     * So the total length of the trivial snarl is 8+2*#nodes
+     * The right prefix sum is the sum from the start of the trivial chain to the right side of the node (relative to the chain)
+ 
+     */
     const static size_t BITS_FOR_TRIVIAL_NODE_OFFSET = 8;
     const static size_t MAX_TRIVIAL_SNARL_NODE_COUNT =  (1 << BITS_FOR_TRIVIAL_NODE_OFFSET) -1;
     const static size_t TRIVIAL_SNARL_RECORD_SIZE = 7;
@@ -569,7 +525,19 @@ private:
     const static size_t TRIVIAL_SNARL_REVERSE_LOOP_OFFSET = 5;
     const static size_t TRIVIAL_SNARL_COMPONENT_OFFSET = 6;
    
-    //Snarl record (which occurs within a chain)
+    /*Snarl record (which occurs within a chain)
+     * 
+     * - A snarl record for each snarl, which are stuck in chains
+     *   [snarl tag, # nodes, pointer to parent, min length, max length, rank in parent, 
+     *      pointer to children (in child vector), distance vector]
+     *   The rank of the start node will always be 0 and the end node rank will be 1
+     *   start/end are the start and end nodes, include the orientations
+     *   For the first and last nodes, we only care about the node sides pointing in
+     *   Each node side in the actual distance matrix will be 2*(rank-1) for the left side, and 
+     *   2rank+1 for the right side, and 0 for the start, 1 for the end, where we only keep the 
+     *   inner node side of the start and end
+     *   Node count is the number of nodes, not including boundary nodes
+     */
     const static size_t SNARL_RECORD_SIZE = 6;
     const static size_t SNARL_NODE_COUNT_OFFSET = 1;
     const static size_t SNARL_PARENT_OFFSET = 2;
@@ -577,18 +545,42 @@ private:
     const static size_t SNARL_MAX_LENGTH_OFFSET = 4;
     const static size_t SNARL_CHILD_RECORD_OFFSET = 5;
 
-    //A simple snarl 
+    /*A simple snarl for bubbles with only nodes with two edges, one to each bound
+     * [simple snarl tag, node count+length, parent, [node id, node length]xN
+    */
     const static size_t SIMPLE_SNARL_RECORD_SIZE = 3;
     //This one stores the node count and min and max lengths of the snarl
     //It'll take 26 bits: 11 for each length
     const static size_t SIMPLE_SNARL_NODE_COUNT_AND_LENGTHS_OFFSET = 1;
     const static size_t SIMPLE_SNARL_PARENT_OFFSET = 2;
 
+     /*  At the end is the (single) child vector, listing children in snarls
+     *   [child vector tag, (pointer to records) x N
+     *   Each snarl will have a pointer into here, and will also know how many children it has
+     */ 
+
 
 
 
     //The snarl size is repeated immediately after a chain node record (so the offset is CHAIN_NODE(_MULTICOMPONENT)_RECORD_SIZE -1)
     //If there is a snarl, the snarl size is repeated after the snarl record
+
+
+
+    /* If this is 0, then don't store distances
+     * Otherwise, for snarls with more children than snarl_size_limit, only store the distances
+     * that include boundary nodes (OVERSIZED_SNARL)
+     */
+    size_t snarl_size_limit = 1000;
+    uint32_t magic_number = 1738636486;
+
+/////////////////  Construction methods
+public:
+
+    void set_snarl_size_limit (size_t size) {snarl_size_limit=size;}
+
+
+
 
 ////////////////////////////////////  How we define different properties of the distance index
 
