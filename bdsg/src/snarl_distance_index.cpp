@@ -3604,9 +3604,9 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
 
                                 //Add distances and record connectivity
                                 for (const auto& it : temp_snarl_record.distances) {
-                                    pair<size_t, size_t> node_rank1 = std::get<0>(it);
-                                    pair<size_t, size_t> node_rank2 = std::get<1>(it);
-                                    const size_t distance = std::get<2>(it);
+                                    pair<size_t, size_t> node_rank1 = it.first.first;
+                                    pair<size_t, size_t> node_rank2 = it.first.second;
+                                    const size_t distance = it.second;
 
                                     if (snarl_size_limit != 0 &&
                                         (temp_snarl_record.node_count < snarl_size_limit ||
@@ -3789,9 +3789,9 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
 
 
                     for (const auto& it : temp_snarl_record.distances) {
-                        const pair<size_t, bool> node_rank1 = std::get<0>(it);
-                        const pair<size_t, bool> node_rank2 = std::get<1>(it);
-                        const size_t distance = std::get<2>(it);
+                        const pair<size_t, bool> node_rank1 = it.first.first;
+                        const pair<size_t, bool> node_rank2 = it.first.second;
+                        const size_t distance = it.second;
                         //TODO: I"m checking this but also automatically making a distanced snarl
                         //If we are keeping track of distances and either this is a small enough snarl,
                         //or the snarl is too big but we are looking at the boundaries
