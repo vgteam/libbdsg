@@ -446,6 +446,18 @@ public:
     //If get_end is true, then get the larger of the two components
     size_t get_chain_component(const net_handle_t net, bool get_end = false) const;
 
+    //This must be given a node (or trivial chain) or snarl as input
+    //We find the longest min length paths through each of the top-level connected components 
+    //(possibly multiple per connected component)
+    //First size_t is an identifier for the component (offset of the record)
+    //Second size_t is the chain component
+    //Third is the offset along the path
+    //bool is true if it is reversed along the path
+    //This is the same as the prefix sum along the top-level chain
+    //Nodes aren't all guaranteed to have an offset, even if they are on a minimum length path
+    //All values are infinity if the values weren't stored
+    tuple<size_t, size_t,size_t, bool> get_longest_path_and_offset(const net_handle_t net) const;
+
     
 //////////////////////////////////////////  The actual distance index
     
@@ -1124,6 +1136,8 @@ private:
         virtual size_t get_node_count() const;
         //Returns the prefix sum, forward loop, reverse loop, and component
         //The component will be 0 for the first/last node of a looping chain
+
+        //Node ranks are from get_node_record_offset(net_handle_T)
         virtual tuple<size_t, size_t, size_t, size_t> get_chain_values(size_t node_rank) const;
         virtual size_t get_prefix_sum(size_t node_rank) const;
         virtual size_t get_forward_loop(size_t node_rank) const ;

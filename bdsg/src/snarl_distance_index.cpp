@@ -1603,6 +1603,79 @@ size_t SnarlDistanceIndex::get_chain_component(const net_handle_t net, bool get_
     return TrivialSnarlRecord(get_record_offset(net), &snarl_tree_records).get_chain_component(get_node_record_offset(net), get_end);
 }
 
+tuple<size_t, size_t, size_t, bool> SnarlDistanceIndex::get_longest_path_and_offset(const net_handle_t net) const {
+    if (is_node(net)) {
+        net_handle_t parent = get_parent(net);
+        if (is_trivial_chain(parent)) {
+            //If this is the child of a snarl
+            if  (get_record_type(snarl_tree_records->at(get_record_offset(net))) == NODE 
+            || get_record_type(snarl_tree_records->at(get_record_offset(net))) == DISTANCED_NODE){
+                NodeRecord node_record (net, &snarl_tree_records);
+                if (node_record.get_path_record_offset() == 0) { 
+                    //If the record offset of the top-level chain is 0, then we didn't save values
+                    return std::make_tuple(std::numeric_limits<size_t>::max(),
+                                           std::numeric_limits<size_t>::max(),
+                                           std::numeric_limits<size_t>::max(),
+                                           false);
+                } else {
+                    return make_tuple(node_record.get_path_record_offset(),
+                                      node_record.get_path_component(),
+                                      node_record.get_path_offset(),
+                                      node_record.get_path_orientation());
+                }
+            } else if (is_root(get_parent(get_parent(get_parent(parent)))) && get_node_record_offset(net) == 2){
+                //Otherwise, if it's a simple snarl whose parent is a root-chain
+                net_handle_t grandparent_snarl = get_parent(parent);
+                net_handle_t greatgrandparent_chain = get_parent(grandparent_snarl);
+                ChainRecord chain_record(greatgrandparent_chain, &snarl_tree_records);
+
+                net_handle_t start_node = chain_record.get_next_child(grandparent_snarl, true); 
+                TrivialSnarlRecord start_node_record(get_record_offset(start_node), &snarl_tree_records);
+
+
+                SimpleSnarlRecord snarl_record (net, &snarl_tree_records);
+                return make_tuple(get_record_offset(greatgrandparent_chain),
+                                  start_node_record.get_chain_component(get_node_record_offset(start_node), false),
+                                  sum({start_node_record.get_prefix_sum(get_node_record_offset(start_node)),
+                                       start_node_record.get_node_length(get_node_record_offset(start_node))}) ,
+                                  snarl_record.get_node_is_reversed(get_node_record_offset(net)));
+            }
+            return std::make_tuple(std::numeric_limits<size_t>::max(),
+                                   std::numeric_limits<size_t>::max(),
+                                   std::numeric_limits<size_t>::max(),
+                                   false);
+        } else {
+            //Otherwise, it is a node in a chain, and for now we only care if it is the top-level chain
+            if (is_root(get_parent(parent))){
+                //If this is the child of a root-level chain
+                TrivialSnarlRecord trivial_snarl_record(get_record_offset(net), &snarl_tree_records);
+                size_t node_rank = get_node_record_offset(net);
+                return make_tuple(trivial_snarl_record.get_parent_record_offset(),
+                                  trivial_snarl_record.get_chain_component(node_rank, false),
+                                  trivial_snarl_record.get_prefix_sum(node_rank),
+                                  trivial_snarl_record.get_is_reversed_in_parent(node_rank));
+            } else {
+                return std::make_tuple(std::numeric_limits<size_t>::max(),
+                                       std::numeric_limits<size_t>::max(),
+                                       std::numeric_limits<size_t>::max(),
+                                       false);
+            }
+        }
+
+    } else if (is_snarl(net)) {
+        //TODO: I think I do want to add this in at some point
+        return std::make_tuple(std::numeric_limits<size_t>::max(),
+                               std::numeric_limits<size_t>::max(),
+                               std::numeric_limits<size_t>::max(),
+                               false);
+    } else {
+        return std::make_tuple(std::numeric_limits<size_t>::max(),
+                               std::numeric_limits<size_t>::max(),
+                               std::numeric_limits<size_t>::max(),
+                               false);
+    }
+}
+
 
 
 size_t SnarlDistanceIndex::SnarlTreeRecord::get_min_length() const {
@@ -2604,6 +2677,7 @@ size_t SnarlDistanceIndex::TrivialSnarlRecord::get_chain_component(size_t node_r
     }
     return (*records)->at(record_offset + TRIVIAL_SNARL_COMPONENT_OFFSET);
 }
+
 size_t SnarlDistanceIndex::TrivialSnarlRecord::get_node_length(size_t node_rank) const {
     if (node_rank == 0) {
         return (*records)->at(record_offset + TRIVIAL_SNARL_RECORD_SIZE + (2*node_rank)+1);
@@ -3762,6 +3836,9 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                         size_t ancestor_offset = record_to_offset[std::make_pair(temp_index_i , temp_node_record.path_ancestor)];
                         node_record.set_path_record_offset(ancestor_offset, temp_node_record.path_component);
                         node_record.set_path_offset(temp_node_record.path_offset, temp_node_record.path_orientation);
+                    } else {
+                        node_record.set_path_record_offset(0, 0);
+                        node_record.set_path_offset(0, false);
                     }
 
                     record_to_offset.emplace(make_pair(temp_index_i, current_record_index), node_record.record_offset);
@@ -3835,6 +3912,15 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                 node_record.set_node_length(temp_node_record.node_length);
                 node_record.set_rank_in_parent(temp_node_record.rank_in_parent);
                 node_record.set_parent_record_offset(record_to_offset[make_pair(temp_index_i, temp_node_record.parent)]);
+                //Set the value for the top-level path
+                if (temp_node_record.path_offset != std::numeric_limits<size_t>::max()) {
+                    size_t ancestor_offset = record_to_offset[std::make_pair(temp_index_i , temp_node_record.path_ancestor)];
+                    node_record.set_path_record_offset(ancestor_offset, temp_node_record.path_component);
+                    node_record.set_path_offset(temp_node_record.path_offset, temp_node_record.path_orientation);
+                } else {
+                    node_record.set_path_record_offset(0, 0);
+                    node_record.set_path_offset(0, false);
+                }
 
                 record_to_offset.emplace(make_pair(temp_index_i, current_record_index), node_record.record_offset);
             }
