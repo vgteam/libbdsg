@@ -1618,7 +1618,7 @@ tuple<size_t, size_t, size_t, bool> SnarlDistanceIndex::get_longest_path_and_off
                                            std::numeric_limits<size_t>::max(),
                                            false);
                 } else {
-                    return make_tuple(node_record.get_path_record_offset(),
+                    return make_tuple(get_connected_component_number(net),
                                       node_record.get_path_component(),
                                       node_record.get_path_offset(),
                                       node_record.get_path_orientation());
@@ -1634,7 +1634,7 @@ tuple<size_t, size_t, size_t, bool> SnarlDistanceIndex::get_longest_path_and_off
 
 
                 SimpleSnarlRecord snarl_record (net, &snarl_tree_records);
-                return make_tuple(get_record_offset(greatgrandparent_chain),
+                return make_tuple(get_connected_component_number(greatgrandparent_chain),
                                   start_node_record.get_chain_component(get_node_record_offset(start_node), false),
                                   sum({start_node_record.get_prefix_sum(get_node_record_offset(start_node)),
                                        start_node_record.get_node_length(get_node_record_offset(start_node))}) ,
@@ -1650,7 +1650,7 @@ tuple<size_t, size_t, size_t, bool> SnarlDistanceIndex::get_longest_path_and_off
                 //If this is the child of a root-level chain
                 TrivialSnarlRecord trivial_snarl_record(get_record_offset(net), &snarl_tree_records);
                 size_t node_rank = get_node_record_offset(net);
-                return make_tuple(trivial_snarl_record.get_parent_record_offset(),
+                return make_tuple(get_connected_component_number(parent),
                                   trivial_snarl_record.get_chain_component(node_rank, false),
                                   trivial_snarl_record.get_prefix_sum(node_rank),
                                   trivial_snarl_record.get_is_reversed_in_parent(node_rank));

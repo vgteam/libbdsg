@@ -449,7 +449,7 @@ public:
     //This must be given a node (or trivial chain) or snarl as input
     //We find the longest min length paths through each of the top-level connected components 
     //(possibly multiple per connected component)
-    //First size_t is an identifier for the component (offset of the record)
+    //First size_t is an identifier for the component (for now, it's the same as get_connected_component_number)
     //Second size_t is the chain component
     //Third is the offset along the path
     //bool is true if it is reversed along the path
