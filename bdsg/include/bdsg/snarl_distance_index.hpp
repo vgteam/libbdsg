@@ -1278,10 +1278,10 @@ private:
             SnarlRecord::records = records;
 
             size_t extra_size = record_size(type, node_count);
+#ifdef debug_distance_indexing
             if (type == OVERSIZED_SNARL) {
                 cerr << "oversized" << endl;
             }
-#ifdef debug_distance_indexing
             cerr << " Resizing array to add snarl: length " << (*records)->size() << " -> "  << (*records)->size() + extra_size << endl;
 #endif
             (*records)->resize((*records)->size() + extra_size);

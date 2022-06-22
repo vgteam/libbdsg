@@ -3511,7 +3511,9 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
     size_t new_width = std::max(std::max(max_dist_bit_width, max_address_bit_width), (size_t)26); //26 is the size for the simple snarl node count + node lengths
     snarl_tree_records->width(new_width);//TODO: Fix this
 
+#ifdef debug_distance_indexing
     cerr << "Max index size " << maximum_index_size << endl;
+#endif
     snarl_tree_records->reserve(maximum_index_size);
 
     /*Allocate memory for the root and the nodes */
@@ -4019,9 +4021,12 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
     }
     size_t ideal_bit_width = std::max((size_t)log2(max_val)+1, (size_t)26);
     if (ideal_bit_width < snarl_tree_records->width()) {
+#ifdef debug_distance_indexing
         cerr << "Resetting bit width from " << snarl_tree_records->width() << " to " << ideal_bit_width << endl;
+#endif
         //snarl_tree_records->repack(ideal_bit_width, snarl_tree_records->size());
     }
+#ifdef debug_distance_indexing
     tuple<size_t, size_t, size_t> usage =get_usage();
     cerr << "total\t" << snarl_tree_records->size() << endl;
     cerr << "Usage: " << std::get<0>(usage) << " total bytes, " << std::get<1>(usage) << " free bytes " << std::get<2>(usage) << " reclaimable free bytes " << endl;
@@ -4029,7 +4034,6 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
     cerr << "Max value " << max_val << endl;
     cerr << "Predicted size: " << maximum_index_size << " actual size: " <<  snarl_tree_records->size() << endl;
     //assert(maximum_index_size == snarl_tree_records->size());
-#ifdef debug_distance_indexing
     cerr << "Predicted size: " << maximum_index_size << " actual size: " <<  snarl_tree_records->size() << endl;
     //assert(snarl_tree_records->size() <= maximum_index_size); 
 #endif
