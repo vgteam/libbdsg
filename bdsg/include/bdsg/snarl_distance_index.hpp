@@ -431,7 +431,8 @@ public:
      * Returns std::numeric_limits<size_t>::max() if there is no path between the two positions
      */
     //TODO: The positions can't be const?
-    size_t minimum_distance(const handlegraph::nid_t id1, const bool rev1, const size_t offset1, const handlegraph::nid_t id2, const bool rev2, const size_t offset2, bool unoriented_distance = false, const HandleGraph* graph=nullptr) const ;
+    size_t minimum_distance(const handlegraph::nid_t id1, const bool rev1, const size_t offset1, const handlegraph::nid_t id2, 
+                            const bool rev2, const size_t offset2, bool unoriented_distance = false, const HandleGraph* graph=nullptr) const ;
 
     /**
      * Get the distance index values for nodes in a chain
@@ -497,13 +498,14 @@ private:
      *  For all other nodes, we need to store a pointer to the top-level structure (chain or snarl), and the offset and orientation in the path 
      *  These are stored in NODE_PATH and NODE_PATH_OFFSET
      */
-    const static size_t NODE_RECORD_SIZE = 7;
+    const static size_t NODE_RECORD_SIZE = 8;
     const static size_t NODE_ID_OFFSET = 1;
     const static size_t NODE_PARENT_OFFSET = 2;
     const static size_t NODE_LENGTH_OFFSET = 3;
     const static size_t NODE_RANK_OFFSET = 4;
     const static size_t NODE_PATH_OFFSET = 5;
     const static size_t NODE_PATH_OFFSET_OFFSET = 6;
+    const static size_t NODE_PATH_COMPONENT_OFFSET = 7;
  
     /*Chain record
 
@@ -1125,8 +1127,9 @@ private:
         virtual void set_node_id(nid_t value);
         virtual void set_rank_in_parent(size_t value);
         virtual void set_node_length(size_t value);
-        virtual void set_path_record_offset(size_t offset, size_t component) const;
-        virtual void set_path_offset(size_t offset, bool orientation) const;
+        virtual void set_path_record_offset(size_t offset) const;
+        virtual void set_path_offset(size_t offset) const;
+        virtual void set_path_component(size_t component, bool orientation) const;
     };
 
     struct TrivialSnarlRecord : SnarlTreeRecord {

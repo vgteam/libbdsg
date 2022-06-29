@@ -1120,7 +1120,9 @@ pair<net_handle_t, bool> SnarlDistanceIndex::lowest_common_ancestor(const net_ha
     return make_pair(parent2, is_connected);
 }
 
-size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const bool rev1, const size_t offset1, const handlegraph::nid_t id2, const bool rev2, const size_t offset2, bool unoriented_distance, const HandleGraph* graph) const {
+size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const bool rev1, const size_t offset1, 
+                                            const handlegraph::nid_t id2, const bool rev2, const size_t offset2, 
+                                            bool unoriented_distance, const HandleGraph* graph) const {
 
 
 #ifdef debug_distances
@@ -1177,6 +1179,7 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
 
         size_t distance_start = dist_start;
         size_t distance_end = dist_end; 
+
 
 
         dist_start = std::min( sum({distance_start_start, distance_start}), 
@@ -1295,6 +1298,7 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
      * Walk up to the root and check for distances between the positions within each
      * ancestor
      */
+
     while (!is_root(net1)){
         //TODO: Actually checking distance in a chain is between the nodes, not the snarl
         //and neither include the lengths of the nodes
@@ -1316,6 +1320,7 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
                            std::min(sum({distance_start_end , distance_to_start1 , distance_to_end2}),
                            std::min(sum({distance_end_start , distance_to_end1 , distance_to_start2}),
                                     sum({distance_end_end , distance_to_end1 , distance_to_end2})))));
+
 
 #ifdef debug_distances
             cerr << "    Found distances between nodes: " << distance_start_start << " " << distance_start_end << " " << distance_end_start << " " << distance_end_end << endl;
@@ -1342,6 +1347,7 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
                     " " << distance_to_start2 << " " <<  distance_to_end2 << endl;
 #endif
     }
+
 
     //minimum distance currently includes both positions
     return minimum_distance == std::numeric_limits<size_t>::max() ? std::numeric_limits<size_t>::max() : minimum_distance-1;
@@ -2563,16 +2569,16 @@ size_t SnarlDistanceIndex::NodeRecord::get_node_length() const {
 }
 
 size_t SnarlDistanceIndex::NodeRecord::get_path_record_offset() const {
-    return (*records)->at(record_offset + NODE_PATH_OFFSET) >> 4;
+    return (*records)->at(record_offset + NODE_PATH_OFFSET);
 }
 size_t SnarlDistanceIndex::NodeRecord::get_path_component() const {
-    return (*records)->at(record_offset + NODE_PATH_OFFSET) & (1 << 4);
+    return (*records)->at(record_offset + NODE_PATH_COMPONENT_OFFSET) >> 1;
 }
 size_t SnarlDistanceIndex::NodeRecord::get_path_offset() const {
-    return (*records)->at(record_offset + NODE_PATH_OFFSET_OFFSET) >> 1;
+    return (*records)->at(record_offset + NODE_PATH_OFFSET_OFFSET);
 }
 bool SnarlDistanceIndex::NodeRecord::get_path_orientation() const {
-    return (*records)->at(record_offset + NODE_PATH_OFFSET_OFFSET) & 1;
+    return (*records)->at(record_offset + NODE_PATH_COMPONENT_OFFSET) & 1;
 }
 
 
@@ -2719,15 +2725,14 @@ void SnarlDistanceIndex::NodeRecordConstructor::set_rank_in_parent(size_t value)
     (*records)->at(record_offset + NODE_RANK_OFFSET) = value;
 }
 
-void SnarlDistanceIndex::NodeRecordConstructor::set_path_record_offset(size_t offset, size_t component) const {
-    if (component <= (1<<4) ) {
-        size_t val = offset << 4 | component;
-        (*records)->at(record_offset + NODE_PATH_OFFSET) = val;
-    }
+void SnarlDistanceIndex::NodeRecordConstructor::set_path_record_offset(size_t offset) const {
+    (*records)->at(record_offset + NODE_PATH_OFFSET) = offset;
 }
-void SnarlDistanceIndex::NodeRecordConstructor::set_path_offset(size_t offset, bool orientation) const {
-    size_t val = offset << 1 | orientation;
-    (*records)->at(record_offset + NODE_PATH_OFFSET_OFFSET) = val;
+void SnarlDistanceIndex::NodeRecordConstructor::set_path_offset(size_t offset) const {
+    (*records)->at(record_offset + NODE_PATH_OFFSET_OFFSET) = offset;
+}
+void SnarlDistanceIndex::NodeRecordConstructor::set_path_component(size_t component, bool orientation) const {
+    (*records)->at(record_offset + NODE_PATH_COMPONENT_OFFSET) = (component << 1 | orientation);
 }
 
 void SnarlDistanceIndex::TrivialSnarlRecordConstructor::set_node_count(size_t value) const {
@@ -3836,11 +3841,13 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                     //Set the value for the top-level path
                     if (temp_node_record.path_offset != std::numeric_limits<size_t>::max()) {
                         size_t ancestor_offset = record_to_offset[std::make_pair(temp_index_i , temp_node_record.path_ancestor)];
-                        node_record.set_path_record_offset(ancestor_offset, temp_node_record.path_component);
-                        node_record.set_path_offset(temp_node_record.path_offset, temp_node_record.path_orientation);
+                        node_record.set_path_record_offset(ancestor_offset);
+                        node_record.set_path_offset(temp_node_record.path_offset);
+                        node_record.set_path_component(temp_node_record.path_component, temp_node_record.path_orientation);
                     } else {
-                        node_record.set_path_record_offset(0, 0);
-                        node_record.set_path_offset(0, false);
+                        node_record.set_path_record_offset(0);
+                        node_record.set_path_offset(0);
+                        node_record.set_path_component(0, false);
                     }
 
                     record_to_offset.emplace(make_pair(temp_index_i, current_record_index), node_record.record_offset);
@@ -3917,11 +3924,13 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                 //Set the value for the top-level path
                 if (temp_node_record.path_offset != std::numeric_limits<size_t>::max()) {
                     size_t ancestor_offset = record_to_offset[std::make_pair(temp_index_i , temp_node_record.path_ancestor)];
-                    node_record.set_path_record_offset(ancestor_offset, temp_node_record.path_component);
-                    node_record.set_path_offset(temp_node_record.path_offset, temp_node_record.path_orientation);
+                    node_record.set_path_record_offset(ancestor_offset);
+                    node_record.set_path_offset(temp_node_record.path_offset);
+                    node_record.set_path_component(temp_node_record.path_component, temp_node_record.path_orientation);
                 } else {
-                    node_record.set_path_record_offset(0, 0);
-                    node_record.set_path_offset(0, false);
+                    node_record.set_path_record_offset(0);
+                    node_record.set_path_offset(0);
+                    node_record.set_path_component(0, false);
                 }
 
                 record_to_offset.emplace(make_pair(temp_index_i, current_record_index), node_record.record_offset);
