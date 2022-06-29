@@ -1122,7 +1122,8 @@ pair<net_handle_t, bool> SnarlDistanceIndex::lowest_common_ancestor(const net_ha
 
 size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const bool rev1, const size_t offset1, 
                                             const handlegraph::nid_t id2, const bool rev2, const size_t offset2, 
-                                            bool unoriented_distance, const HandleGraph* graph) const {
+                                            bool unoriented_distance, const HandleGraph* graph, 
+                                            pair<vector<tuple<net_handle_t, int32_t, int32_t>>, vector<tuple<net_handle_t, int32_t, int32_t>>>* distance_traceback) const {
 
 
 #ifdef debug_distances
@@ -1140,7 +1141,7 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
     //boundary nodes. I think chains might need to know the lengths of their boundary nodes,
     //or it could find it from the snarl. Really, since the snarl is storing it anyway, I should
     //probaby rearrange things so that either the snarl or the chain can access boundary node lengths
-    auto update_distances = [&](net_handle_t& net, net_handle_t& parent, size_t& dist_start, size_t& dist_end) {
+    auto update_distances = [&](net_handle_t& net, net_handle_t& parent, size_t& dist_start, size_t& dist_end, bool first_node) {
 #ifdef debug_distances
         cerr << "     Updating distance from node " << net_handle_as_string(net) << " at parent " << net_handle_as_string(parent) << endl;
 #endif
@@ -1180,6 +1181,39 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
         size_t distance_start = dist_start;
         size_t distance_end = dist_end; 
 
+        if (distance_traceback != nullptr) {
+            //Add an entry for this node
+            tuple<net_handle_t, int32_t, int32_t>* current_traceback;
+            if (first_node) {
+                distance_traceback->first.emplace_back(net, std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::max());
+                current_traceback = &distance_traceback->first.back();
+            } else {
+                distance_traceback->second.emplace_back(net, std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::max());
+                current_traceback = &distance_traceback->second.back();
+            }
+
+
+            //If we're keeping track of the traceback, then remember the distance to the start/end of the parent
+
+            if (sum({distance_start_start, distance_start}) != std::numeric_limits<size_t>::max() &&
+                sum({distance_start_start, distance_start}) < sum({distance_start_end , distance_end}) ) {
+                //If the distance to the start of the parent comes form the start of the node
+                std::get<1>(*current_traceback) = -distance_start_start; 
+            } else if (sum({distance_start_end , distance_end}) != std::numeric_limits<size_t>::max()) {
+                //If the distance to the start of the parent comes from the end of the node
+                std::get<1>(*current_traceback) = distance_start_end; 
+                
+            }
+
+            if (sum({distance_end_start , distance_start}) != std::numeric_limits<size_t>::max() &&
+                sum({distance_end_start , distance_start}) < sum({distance_end_end , distance_end})) {
+                //If the distance to the end of the parent comes from the distance to the start of the node
+                std::get<2>(*current_traceback) = -distance_end_start;
+            } else if (sum({distance_end_end , distance_end})) {
+                //If the distance to the end of the parent comes from the distance to the end of the node
+                std::get<2>(*current_traceback) = distance_end_end;
+            }
+        }
 
 
         dist_start = std::min( sum({distance_start_start, distance_start}), 
@@ -1266,7 +1300,7 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
 #endif   
         while (canonical(get_parent(net1)) != canonical(common_ancestor)) {
             net_handle_t parent = get_parent(net1);
-            update_distances(net1, parent, distance_to_start1, distance_to_end1);
+            update_distances(net1, parent, distance_to_start1, distance_to_end1, true);
             net1 = parent;
         }
 #ifdef debug_distances
@@ -1277,7 +1311,7 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
         //And the same for position 2
         while (canonical(get_parent(net2)) != canonical(common_ancestor)) {
             net_handle_t parent = get_parent(net2);
-            update_distances(net2, parent, distance_to_start2, distance_to_end2);
+            update_distances(net2, parent, distance_to_start2, distance_to_end2, false);
             net2 = parent;
         }
 #ifdef debug_distances
@@ -1299,6 +1333,9 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
      * ancestor
      */
 
+    //Remember which common ancestor the minimum distance actually comes from
+    //tuple of <the ancestor, distance between the children, connectivity between the two children
+    tuple<net_handle_t, size_t, connectivity_t> common_ancestor_connectivity (get_root(), std::numeric_limits<size_t>::max(), START_END); 
     while (!is_root(net1)){
         //TODO: Actually checking distance in a chain is between the nodes, not the snarl
         //and neither include the lengths of the nodes
@@ -1314,6 +1351,8 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
         size_t distance_end_start = distance_in_parent(common_ancestor, net1, flip(net2), graph);
         size_t distance_end_end = distance_in_parent(common_ancestor, net1, net2, graph);
 
+        size_t old_minimum = minimum_distance;
+
         //And add those to the distances we've found to get the minimum distance between the positions
         minimum_distance = std::min(minimum_distance, 
                            std::min(sum({distance_start_start , distance_to_start1 , distance_to_start2}),
@@ -1321,6 +1360,22 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
                            std::min(sum({distance_end_start , distance_to_end1 , distance_to_start2}),
                                     sum({distance_end_end , distance_to_end1 , distance_to_end2})))));
 
+        if (distance_traceback != nullptr && minimum_distance != std::numeric_limits<size_t>::max()
+            && minimum_distance != old_minimum) {
+            //If we want to do traceback and the distance was updated here
+
+            if (minimum_distance == sum({distance_start_start , distance_to_start1 , distance_to_start2})) {
+                //If the distance was the start of 1 to the start of 2
+                common_ancestor_connectivity = std::make_tuple(common_ancestor, distance_start_start, START_START);
+            } else if (minimum_distance == sum({distance_start_end , distance_to_start1 , distance_to_end2})) {
+                common_ancestor_connectivity = std::make_tuple(common_ancestor, distance_start_end, START_END);
+            } else if (minimum_distance == sum({distance_end_start , distance_to_end1 , distance_to_start2})) {
+                common_ancestor_connectivity = std::make_tuple(common_ancestor, distance_end_start, END_START);
+            } else {
+                assert(minimum_distance == sum({distance_end_end , distance_to_end1 , distance_to_end2}));
+                common_ancestor_connectivity = std::make_tuple(common_ancestor, distance_end_end, END_END);
+            } 
+        }
 
 #ifdef debug_distances
             cerr << "    Found distances between nodes: " << distance_start_start << " " << distance_start_end << " " << distance_end_start << " " << distance_end_end << endl;
@@ -1328,8 +1383,8 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
 #endif
         if (!is_root(common_ancestor)) {
             //Update the distances to reach the ends of the common ancestor
-            update_distances(net1, common_ancestor, distance_to_start1, distance_to_end1);
-            update_distances(net2, common_ancestor, distance_to_start2, distance_to_end2);
+            update_distances(net1, common_ancestor, distance_to_start1, distance_to_end1, true);
+            update_distances(net2, common_ancestor, distance_to_start2, distance_to_end2, false);
 
             //Update which net handles we're looking at
             net1 = common_ancestor;
@@ -1348,6 +1403,60 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
 #endif
     }
 
+    if (distance_traceback != nullptr) {
+        //If we care about the traceback, then traceback and remove values that aren't used
+        if (minimum_distance == std::numeric_limits<size_t>::max()) {
+            //If there was no minimum distance, clear the traceback
+            distance_traceback->first.clear();
+            distance_traceback->second.clear();
+        } else {
+            //Otherwise, do the traceback
+
+            for ( bool first_node : {true, false}) {
+                vector<tuple<net_handle_t, int32_t, int32_t>>& current_vector = first_node ? distance_traceback->first : distance_traceback->second;
+                //Cut back the traceback to the common ancestor where the children were connected
+                while (std::get<0>(current_vector.back()) != std::get<0>(common_ancestor_connectivity)) {
+                    current_vector.pop_back();
+                } 
+
+                /*Now update the common ancestor in the traceback
+                 */
+
+                //Is the path going out the start of this node?
+                bool from_start = (first_node && get_start_endpoint(std::get<2>(common_ancestor_connectivity)) == START) ||
+                                  (!first_node && get_end_endpoint(std::get<2>(common_ancestor_connectivity)) == START);
+                //Is the path going to the start of the other node?
+                bool to_start = (first_node && get_end_endpoint(std::get<2>(common_ancestor_connectivity)) == START) ||
+                                  (!first_node && get_start_endpoint(std::get<2>(common_ancestor_connectivity)) == START);
+                if (to_start) { 
+                    std::get<1>(current_vector.back()) = from_start ? -std::get<1>(common_ancestor_connectivity) : std::get<1>(common_ancestor_connectivity);
+                } else {
+                    std::get<2>(current_vector.back()) = from_start ? -std::get<1>(common_ancestor_connectivity) : std::get<1>(common_ancestor_connectivity);
+                }
+
+                /*
+                 * Walk through the traceback and keep only the relevant value
+                 */
+                for (int i = current_vector.size() - 2 ; i > 0 ; i++) {
+                    if (from_start) {
+                        //If the parent of the current child has distance out the start, clear the distance to this child's parent's end
+                        std::get<2>(current_vector[i]) = std::numeric_limits<int32_t>::max();
+
+                        //If the current child's distance to it's parent's start is negative, then it's distance went out the start so
+                        //we will want it's child distance to the start
+                        from_start = std::get<1>(current_vector[i]) < 0;
+                    } else {
+                        //If the parent of the current child has distance out the end, clear the distance to this child's parent's start
+                        std::get<1>(current_vector[i]) = std::numeric_limits<int32_t>::max();
+
+                        //If the current child's distance to it's parent's end is negative, then it's distance went out the start so
+                        //we will want it's child distance to the start
+                        from_start = std::get<2>(current_vector[i]) < 0;
+                    }
+                }
+            }
+        }
+    }
 
     //minimum distance currently includes both positions
     return minimum_distance == std::numeric_limits<size_t>::max() ? std::numeric_limits<size_t>::max() : minimum_distance-1;
@@ -1355,6 +1464,9 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
 
 
 }
+void SnarlDistanceIndex::for_each_handle_in_shortest_path(const handlegraph::nid_t id1, const bool rev1, const handlegraph::nid_t id2, const bool rev2, 
+                                      const HandleGraph* graph, const std::function<bool(const handlegraph::net_handle_t&, size_t)>& iteratee) const {
+ }
 
 size_t SnarlDistanceIndex::node_length(const net_handle_t& net) const {
     if (is_node(net)) {
