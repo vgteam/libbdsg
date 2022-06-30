@@ -429,9 +429,32 @@ public:
      * Otherwise, distance is calculated from the first position going forward to the second position going forward
      * The distance includes one of the positions; the distance from one position to itself is 0
      * Returns std::numeric_limits<size_t>::max() if there is no path between the two positions
+     *
+     * distance_traceback are for helping to find actual distance path. For each of the nodes, keep a vector of the ancestors of the node
+     * and the distance and direction (as + or - values of the distance) taken in the minimum distance path to get to the start and end of the parent 
+     *
+     * For example, if the first node is traversed forward and only reaches the end node of its parent chain, then the values stored will be <inf, +distance>.
+     * If it were traversed backwards to reach the start node and couldn't reach the end node, then the values stored would be <-distance, inf>
+     * The distance value is the distance to the end of the node to the and of the chain/snarl
+     * The last value of the two nodes should match (in the absolute value at least). It will be the common ancestor node and the distances will be the distance to the 
+     * start/end of the other node with the same meaning for the sign of the distance
+     * The hints will go up to the lowest common ancestor needed for finding the shortest distance, which may or may not be the LCA or the root
+     *
      */
     //TODO: The positions can't be const?
-    size_t minimum_distance(const handlegraph::nid_t id1, const bool rev1, const size_t offset1, const handlegraph::nid_t id2, const bool rev2, const size_t offset2, bool unoriented_distance = false, const HandleGraph* graph=nullptr) const ;
+    size_t minimum_distance(const handlegraph::nid_t id1, const bool rev1, const size_t offset1, const handlegraph::nid_t id2, 
+                            const bool rev2, const size_t offset2, bool unoriented_distance = false, const HandleGraph* graph=nullptr, 
+                            pair<vector<tuple<net_handle_t, int32_t, int32_t>>, vector<tuple<net_handle_t, int32_t, int32_t>>>* distance_traceback=nullptr) const ;
+
+
+    /**
+     * Function to walk through the shortest path between the two nodes+orientations. Orientation is the same as for minimum_distance - 
+     * traverses from the first node going forward to the second node going forward
+     * Calls iteratee on each node of the shortest path between the nodes and the distance to the start of that node
+     */
+    void for_each_handle_in_shortest_path(const handlegraph::nid_t id1, const bool rev1, const handlegraph::nid_t id2, const bool rev2, 
+                                          const HandleGraph* graph, const std::function<bool(const handlegraph::net_handle_t&, size_t)>& iteratee) const;
+
 
     /**
      * Get the distance index values for nodes in a chain
@@ -497,13 +520,14 @@ private:
      *  For all other nodes, we need to store a pointer to the top-level structure (chain or snarl), and the offset and orientation in the path 
      *  These are stored in NODE_PATH and NODE_PATH_OFFSET
      */
-    const static size_t NODE_RECORD_SIZE = 7;
+    const static size_t NODE_RECORD_SIZE = 8;
     const static size_t NODE_ID_OFFSET = 1;
     const static size_t NODE_PARENT_OFFSET = 2;
     const static size_t NODE_LENGTH_OFFSET = 3;
     const static size_t NODE_RANK_OFFSET = 4;
     const static size_t NODE_PATH_OFFSET = 5;
     const static size_t NODE_PATH_OFFSET_OFFSET = 6;
+    const static size_t NODE_PATH_COMPONENT_OFFSET = 7;
  
     /*Chain record
 
@@ -1125,8 +1149,9 @@ private:
         virtual void set_node_id(nid_t value);
         virtual void set_rank_in_parent(size_t value);
         virtual void set_node_length(size_t value);
-        virtual void set_path_record_offset(size_t offset, size_t component) const;
-        virtual void set_path_offset(size_t offset, bool orientation) const;
+        virtual void set_path_record_offset(size_t offset) const;
+        virtual void set_path_offset(size_t offset) const;
+        virtual void set_path_component(size_t component, bool orientation) const;
     };
 
     struct TrivialSnarlRecord : SnarlTreeRecord {
