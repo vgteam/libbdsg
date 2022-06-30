@@ -2377,6 +2377,10 @@ void SnarlDistanceIndex::SnarlRecordConstructor::set_distance(size_t rank1, bool
     assert((get_distance(rank1, right_side1, rank2, right_side2) == std::numeric_limits<size_t>::max() ||
            get_distance(rank1, right_side1, rank2, right_side2) == distance));
 #endif
+    //Don't save internal distances for oversized snarls
+    if (get_record_type() == OVERSIZED_SNARL && !(rank1 == 0 || rank1 == 1 || rank2 == 0 || rank2 == 1)){
+        return;
+    }
 
     //Offset of this particular distance in the distance vector
     size_t distance_vector_offset = get_distance_vector_offset(rank1, right_side1, rank2, right_side2);
@@ -3667,7 +3671,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                                 //Add the snarl to the chain, and get back the record to fill it in
 
                                 record_t record_type = snarl_size_limit == 0 ? SNARL :
-                                    (temp_snarl_record.node_count < snarl_size_limit ? DISTANCED_SNARL : OVERSIZED_SNARL);
+                                    (temp_snarl_record.node_count < snarl_size_limit && !temp_snarl_record.skipped_distances ? DISTANCED_SNARL : OVERSIZED_SNARL);
                                 SnarlRecordConstructor snarl_record_constructor =
                                     chain_record_constructor.add_snarl(temp_snarl_record.node_count, record_type, last_child_offset.first);
 
@@ -3685,7 +3689,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                                     const size_t distance = it.second;
 
                                     if (snarl_size_limit != 0 &&
-                                        (temp_snarl_record.node_count < snarl_size_limit ||
+                                        (record_type != OVERSIZED_SNARL ||
                                          (node_rank1.first == 0 || node_rank1.first == 1 ||
                                           node_rank2.first == 0 || node_rank2.first == 1))) {
                                         //If we are keeping track of distances and either this is a small enough snarl,
