@@ -435,7 +435,9 @@ public:
      *
      * For example, if the first node is traversed forward and only reaches the end node of its parent chain, then the values stored will be <inf, +distance>.
      * If it were traversed backwards to reach the start node and couldn't reach the end node, then the values stored would be <-distance, inf>
-     * The distance value is the distance to the end of the node to the and of the chain/snarl
+     * The distance value is the distance to the end of the node to the and of the chain/snarl, and distances stored are distances within the net_handle associated with it
+     * So the first value in the vector will always be node itself and the offset in the node, and the second value will be the parent chain and the distance from the
+     * ends of the node to the ends of the parent ( or the distance between nodes in the chain)
      * The last value of the two nodes should match (in the absolute value at least). It will be the common ancestor node and the distances will be the distance to the 
      * start/end of the other node with the same meaning for the sign of the distance
      * The hints will go up to the lowest common ancestor needed for finding the shortest distance, which may or may not be the LCA or the root

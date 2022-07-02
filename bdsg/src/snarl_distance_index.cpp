@@ -1124,6 +1124,11 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
                                             const handlegraph::nid_t id2, const bool rev2, const size_t offset2, 
                                             bool unoriented_distance, const HandleGraph* graph, 
                                             pair<vector<tuple<net_handle_t, int32_t, int32_t>>, vector<tuple<net_handle_t, int32_t, int32_t>>>* distance_traceback) const {
+    if (distance_traceback != nullptr) {
+        //Clear the traceback
+        distance_traceback->first.clear();
+        distance_traceback->second.clear();
+    }
 
 
 #ifdef debug_distances
@@ -1185,10 +1190,10 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
             //Add an entry for this node
             tuple<net_handle_t, int32_t, int32_t>* current_traceback;
             if (first_node) {
-                distance_traceback->first.emplace_back(net, std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::max());
+                distance_traceback->first.emplace_back(parent, std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::max());
                 current_traceback = &distance_traceback->first.back();
             } else {
-                distance_traceback->second.emplace_back(net, std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::max());
+                distance_traceback->second.emplace_back(parent, std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::max());
                 current_traceback = &distance_traceback->second.back();
             }
 
@@ -1198,7 +1203,7 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
             if (sum({distance_start_start, distance_start}) != std::numeric_limits<size_t>::max() &&
                 sum({distance_start_start, distance_start}) < sum({distance_start_end , distance_end}) ) {
                 //If the distance to the start of the parent comes form the start of the node
-                std::get<1>(*current_traceback) = -distance_start_start; 
+                std::get<1>(*current_traceback) = distance_start_start == 0 ? std::numeric_limits<int32_t>::min() : -distance_start_start; 
             } else if (sum({distance_start_end , distance_end}) != std::numeric_limits<size_t>::max()) {
                 //If the distance to the start of the parent comes from the end of the node
                 std::get<1>(*current_traceback) = distance_start_end; 
@@ -1208,7 +1213,7 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
             if (sum({distance_end_start , distance_start}) != std::numeric_limits<size_t>::max() &&
                 sum({distance_end_start , distance_start}) < sum({distance_end_end , distance_end})) {
                 //If the distance to the end of the parent comes from the distance to the start of the node
-                std::get<2>(*current_traceback) = -distance_end_start;
+                std::get<2>(*current_traceback) = distance_end_start == 0 ? std::numeric_limits<int32_t>::min() : -distance_end_start;
             } else if (sum({distance_end_end , distance_end})) {
                 //If the distance to the end of the parent comes from the distance to the end of the node
                 std::get<2>(*current_traceback) = distance_end_end;
@@ -1298,6 +1303,14 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
 #ifdef debug_distances
         cerr << "Reaching the children of the lowest common ancestor for first position..." << endl;
 #endif   
+        if (distance_traceback != nullptr) {
+            //Start the traceback with the nodes themselves and their offsets
+            distance_traceback->first.emplace_back(net1, 
+                                                   distance_to_start1 == std::numeric_limits<size_t>::max() ? std::numeric_limits<int32_t>::max() : distance_to_start1, 
+                                                   distance_to_end1 == std::numeric_limits<size_t>::max() ? std::numeric_limits<int32_t>::max() : distance_to_end1);
+            distance_traceback->second.emplace_back(net2, 
+                                                   distance_to_start2 == std::numeric_limits<size_t>::max() ? std::numeric_limits<int32_t>::max() : distance_to_start2, 
+                                                   distance_to_end2 == std::numeric_limits<size_t>::max() ? std::numeric_limits<int32_t>::max() : distance_to_end2);        }
         while (canonical(get_parent(net1)) != canonical(common_ancestor)) {
             net_handle_t parent = get_parent(net1);
             update_distances(net1, parent, distance_to_start1, distance_to_end1, true);
@@ -1393,6 +1406,10 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
         } else {
             //Just update this one to break out of the loop
             net1 = common_ancestor;
+            if (distance_traceback != nullptr) {
+                distance_traceback->first.emplace_back(common_ancestor, std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::max());
+                distance_traceback->second.emplace_back(common_ancestor, std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::max());
+            }
 
         }
 
@@ -1411,6 +1428,14 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
             distance_traceback->second.clear();
         } else {
             //Otherwise, do the traceback
+            cerr << "Traceback to " << net_handle_as_string(std::get<0>(common_ancestor_connectivity)) << endl;
+            for (auto x : distance_traceback->first) {
+                cerr << net_handle_as_string(std::get<0>(x)) << " " << std::get<1>(x) << " " << std::get<2>(x) << endl;
+            }
+            cerr << "SECOND: " << endl;
+            for (auto x : distance_traceback->second) {
+                cerr << net_handle_as_string(std::get<0>(x)) << " " << std::get<1>(x) << " " << std::get<2>(x) << endl;
+            }
 
             for ( bool first_node : {true, false}) {
                 vector<tuple<net_handle_t, int32_t, int32_t>>& current_vector = first_node ? distance_traceback->first : distance_traceback->second;
@@ -1429,15 +1454,21 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
                 bool to_start = (first_node && get_end_endpoint(std::get<2>(common_ancestor_connectivity)) == START) ||
                                   (!first_node && get_start_endpoint(std::get<2>(common_ancestor_connectivity)) == START);
                 if (to_start) { 
-                    std::get<1>(current_vector.back()) = from_start ? -std::get<1>(common_ancestor_connectivity) : std::get<1>(common_ancestor_connectivity);
+                    std::get<1>(current_vector.back()) = from_start ? (std::get<1>(common_ancestor_connectivity) == 0 ? std::numeric_limits<int32_t>::min()
+                                                                                                                      : -std::get<1>(common_ancestor_connectivity))
+                                                                    : std::get<1>(common_ancestor_connectivity);
+                    std::get<2>(current_vector.back()) = std::numeric_limits<int32_t>::max();
                 } else {
-                    std::get<2>(current_vector.back()) = from_start ? -std::get<1>(common_ancestor_connectivity) : std::get<1>(common_ancestor_connectivity);
+                    std::get<1>(current_vector.back()) = std::numeric_limits<int32_t>::max();
+                    std::get<2>(current_vector.back()) = from_start ? (std::get<1>(common_ancestor_connectivity) == 0 ? std::numeric_limits<int32_t>::min()
+                                                                                                                      : -std::get<1>(common_ancestor_connectivity))
+                                                                    : std::get<1>(common_ancestor_connectivity);
                 }
 
                 /*
                  * Walk through the traceback and keep only the relevant value
                  */
-                for (int i = current_vector.size() - 2 ; i > 0 ; i++) {
+                for (int i = current_vector.size() - 2 ; i > 0 ; i--) {
                     if (from_start) {
                         //If the parent of the current child has distance out the start, clear the distance to this child's parent's end
                         std::get<2>(current_vector[i]) = std::numeric_limits<int32_t>::max();
