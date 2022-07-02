@@ -1428,14 +1428,6 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
             distance_traceback->second.clear();
         } else {
             //Otherwise, do the traceback
-            cerr << "Traceback to " << net_handle_as_string(std::get<0>(common_ancestor_connectivity)) << endl;
-            for (auto x : distance_traceback->first) {
-                cerr << net_handle_as_string(std::get<0>(x)) << " " << std::get<1>(x) << " " << std::get<2>(x) << endl;
-            }
-            cerr << "SECOND: " << endl;
-            for (auto x : distance_traceback->second) {
-                cerr << net_handle_as_string(std::get<0>(x)) << " " << std::get<1>(x) << " " << std::get<2>(x) << endl;
-            }
 
             for ( bool first_node : {true, false}) {
                 vector<tuple<net_handle_t, int32_t, int32_t>>& current_vector = first_node ? distance_traceback->first : distance_traceback->second;
