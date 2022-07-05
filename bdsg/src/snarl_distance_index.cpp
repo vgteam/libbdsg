@@ -1279,6 +1279,10 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
 
     size_t minimum_distance = std::numeric_limits<size_t>::max();
 
+    //Remember which common ancestor the minimum distance actually comes from
+    //tuple of <the ancestor, distance between the children, connectivity between the two children
+    tuple<net_handle_t, size_t, connectivity_t> common_ancestor_connectivity (get_root(), std::numeric_limits<size_t>::max(), START_END); 
+
 
     /*
      * Walk up the snarl tree until net1 and net2 are children of the lowest common ancestor
@@ -1291,10 +1295,27 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
             //If the positions are on the same node and are pointing towards each other, then
             //check the distance between them in the node
             minimum_distance = minus(sum({distance_to_end1 , distance_to_start2}), node_length(net1));
+            if (distance_traceback != nullptr) {
+                //If we're recording the traceback, remember the common node as the common ancestor
+                common_ancestor_connectivity = std::make_tuple(net1, minimum_distance, END_START); 
+            }
         }
         if (sum({distance_to_start1 , distance_to_end2}) > node_length(net1) && 
             sum({distance_to_start1 , distance_to_end2}) != std::numeric_limits<size_t>::max()) {
             minimum_distance = std::min(minus(sum({distance_to_start1 , distance_to_end2}), node_length(net1)), minimum_distance);
+            if (distance_traceback != nullptr && minimum_distance < std::get<1>(common_ancestor_connectivity)) {
+                //If we're recording the traceback, remember the common node as the common ancestor
+                common_ancestor_connectivity = std::make_tuple(net1, minimum_distance, START_END); 
+            }
+        }
+        if (distance_traceback != nullptr) {
+            //If we're recording the traceback, add the nodes
+            distance_traceback->first.emplace_back(net1, 
+                                                   distance_to_start1 == std::numeric_limits<size_t>::max() ? std::numeric_limits<int32_t>::max() : distance_to_start1, 
+                                                   distance_to_end1 == std::numeric_limits<size_t>::max() ? std::numeric_limits<int32_t>::max() : distance_to_end1);
+            distance_traceback->second.emplace_back(net2, 
+                                                   distance_to_start2 == std::numeric_limits<size_t>::max() ? std::numeric_limits<int32_t>::max() : distance_to_start2, 
+                                                   distance_to_end2 == std::numeric_limits<size_t>::max() ? std::numeric_limits<int32_t>::max() : distance_to_end2);        
         }
         common_ancestor = get_parent(net1);
     } else {
@@ -1310,7 +1331,8 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
                                                    distance_to_end1 == std::numeric_limits<size_t>::max() ? std::numeric_limits<int32_t>::max() : distance_to_end1);
             distance_traceback->second.emplace_back(net2, 
                                                    distance_to_start2 == std::numeric_limits<size_t>::max() ? std::numeric_limits<int32_t>::max() : distance_to_start2, 
-                                                   distance_to_end2 == std::numeric_limits<size_t>::max() ? std::numeric_limits<int32_t>::max() : distance_to_end2);        }
+                                                   distance_to_end2 == std::numeric_limits<size_t>::max() ? std::numeric_limits<int32_t>::max() : distance_to_end2);        
+        }
         while (canonical(get_parent(net1)) != canonical(common_ancestor)) {
             net_handle_t parent = get_parent(net1);
             update_distances(net1, parent, distance_to_start1, distance_to_end1, true);
@@ -1346,9 +1368,6 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
      * ancestor
      */
 
-    //Remember which common ancestor the minimum distance actually comes from
-    //tuple of <the ancestor, distance between the children, connectivity between the two children
-    tuple<net_handle_t, size_t, connectivity_t> common_ancestor_connectivity (get_root(), std::numeric_limits<size_t>::max(), START_END); 
     while (!is_root(net1)){
         //TODO: Actually checking distance in a chain is between the nodes, not the snarl
         //and neither include the lengths of the nodes
@@ -1428,6 +1447,18 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
             distance_traceback->second.clear();
         } else {
             //Otherwise, do the traceback
+#ifdef debug_distances
+            cerr << "Tracing back to common ancestor " << net_handle_as_string(std::get<0>(common_ancestor_connectivity)) <<  endl;
+            cerr << "Node1: " << endl;
+            for (auto x : distance_traceback->first) {
+                cerr << "\t" << net_handle_as_string(std::get<0>(x)) << " " << std::get<1>(x) << " " << std::get<2>(x) << endl;
+            }
+            cerr << "Node2: " << endl;
+            for (auto x : distance_traceback->second) {
+                cerr << "\t" << net_handle_as_string(std::get<0>(x)) << " " << std::get<1>(x) << " " << std::get<2>(x) << endl;
+            }
+
+#endif
 
             for ( bool first_node : {true, false}) {
                 vector<tuple<net_handle_t, int32_t, int32_t>>& current_vector = first_node ? distance_traceback->first : distance_traceback->second;
@@ -1435,6 +1466,9 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
                 while (std::get<0>(current_vector.back()) != std::get<0>(common_ancestor_connectivity)) {
                     current_vector.pop_back();
                 } 
+#ifdef debug_distances
+                cerr << "At " << (first_node ? "first " : "second ") << "node, stripped back to " << current_vector.size() << " ancestors" << endl;
+#endif
 
                 /*Now update the common ancestor in the traceback
                  */
