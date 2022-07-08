@@ -1600,8 +1600,6 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path(const handlegraph::nid
     net_handle_t& current_parent = std::get<0>(distance_traceback.first[1]);
 
     size_t distance_traversed = 0;
-    iteratee(graph->get_handle(id1, rev1), distance_traversed);
-    distance_traversed += minimum_length(current_node);
 
 
     for (size_t i = 1 ; i < distance_traceback.first.size()-1 ; i++) {
@@ -1728,7 +1726,6 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path(const handlegraph::nid
         current_parent = next_node;
         next_node = std::get<0>(distance_traceback.second[i-1]);
     }
-    iteratee(graph->get_handle(id2, rev2), distance_traversed);
 }
 void SnarlDistanceIndex::for_each_handle_in_shortest_path_in_snarl(const net_handle_t& snarl_handle, net_handle_t start, net_handle_t end,
                                       size_t distance_to_traverse, size_t& distance_traversed, const HandleGraph* graph,
@@ -1808,6 +1805,11 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path_in_chain(const net_han
 
     //Are we going left in the chain?
     bool go_left = (ends_at(start) == END) == is_reversed_in_parent(start);
+    
+    //Start with the first node
+    iteratee(get_handle(start, graph), distance_traversed);
+    distance_traversed += minimum_length(start);
+
     while (start != end) {
 #ifdef debug_distances
         cerr << "at chain child " << net_handle_as_string(start) << (go_left ? " going left" : " going right") << endl;

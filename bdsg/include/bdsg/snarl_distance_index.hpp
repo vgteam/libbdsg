@@ -466,7 +466,6 @@ public:
                                           const std::function<bool(const handlegraph::handle_t, size_t)>& iteratee) const;
     /*Helper function for recursively traversing the shortest path in a chain
      *start and end must be children of the chain
-     *doesn't call iteratee on start or end
     */
     void for_each_handle_in_shortest_path_in_chain(const net_handle_t& chain_handle, net_handle_t start, net_handle_t end,
                                           size_t distance_to_traverse, size_t& distance_traversed, const HandleGraph* graph, 
