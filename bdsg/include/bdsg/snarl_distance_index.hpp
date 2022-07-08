@@ -458,6 +458,7 @@ public:
                                           const HandleGraph* graph, const std::function<bool(const handlegraph::handle_t, size_t)>& iteratee) const;
     /*Helper function for recursively traversing the shortest path in a snarl
      *start and end must be children (or sentinels) of the snarl
+     *The distance found will traverse start going forward and reach end going forward
      *doesn't call iteratee on start or end
     */
     void for_each_handle_in_shortest_path_in_snarl(const net_handle_t& snarl_handle, net_handle_t start, net_handle_t end,
