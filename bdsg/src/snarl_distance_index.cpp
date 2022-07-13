@@ -3975,12 +3975,13 @@ SnarlDistanceIndex::SimpleSnarlRecordConstructor SnarlDistanceIndex::ChainRecord
 
 
 size_t SnarlDistanceIndex::ChainRecordConstructor::add_node(nid_t node_id, size_t node_length, bool is_reversed_in_parent,
-    size_t prefix_sum, size_t forward_loop, size_t reverse_loop, size_t component, size_t previous_child_offset) {
+    size_t prefix_sum, size_t forward_loop, size_t reverse_loop, size_t component, size_t previous_child_offset, bool new_record) {
 #ifdef debug_distance_indexing
     cerr << "Adding new node to chain, with previous child at offset " << previous_child_offset << endl;
 #endif
     if (SnarlDistanceIndex::get_record_type((*records)->at(previous_child_offset)) == DISTANCED_TRIVIAL_SNARL
-            && TrivialSnarlRecord(previous_child_offset, records).get_node_count() == MAX_TRIVIAL_SNARL_NODE_COUNT) {
+            && (TrivialSnarlRecord(previous_child_offset, records).get_node_count() == MAX_TRIVIAL_SNARL_NODE_COUNT 
+                || new_record)) {
         //If the last thing was a trivial snarl and it is full, then finish it off
         (*records)->at(previous_child_offset-1) = TrivialSnarlRecord(previous_child_offset, records).get_record_size();
         size_t current_size = (*records)->size();
@@ -3992,7 +3993,8 @@ size_t SnarlDistanceIndex::ChainRecordConstructor::add_node(nid_t node_id, size_
             || SnarlDistanceIndex::get_record_type((*records)->at(previous_child_offset)) == DISTANCED_SNARL 
             || SnarlDistanceIndex::get_record_type((*records)->at(previous_child_offset)) == OVERSIZED_SNARL 
             || SnarlDistanceIndex::get_record_type((*records)->at(previous_child_offset)) == DISTANCED_SIMPLE_SNARL 
-            || TrivialSnarlRecord(previous_child_offset, records).get_node_count() == MAX_TRIVIAL_SNARL_NODE_COUNT) {
+            || TrivialSnarlRecord(previous_child_offset, records).get_node_count() == MAX_TRIVIAL_SNARL_NODE_COUNT
+            || reverse_loop == 0 || new_record) {
         //If the last thing was a snarl or nothing (previous_child_offset == 0, meaning that this is the 
         //first thing in the chain), then create a new trivial snarl
         size_t start_i = (*records)->size();
@@ -4369,6 +4371,10 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                     size_t chain_node_i = 0; //How far along the chain are we?
                     pair<size_t, bool> last_child_offset = make_pair(0, false);
 
+                    //A trivial snarl might not actually be a trivial snarl if it has loops in it. Keep track of whether the last 
+                    //child node actually had a 0 value forward loop, making the last child a non-trivial snarl
+                    bool last_child_was_nontrivial_snarl = false;
+
                     for (size_t child_record_index_i = 0 ; child_record_index_i < temp_chain_record.children.size() ; child_record_index_i++) {
                         const pair<temp_record_t, size_t>& child_record_index = temp_chain_record.children[child_record_index_i];
                         //Go through each node and snarl in the chain and add them to the index
@@ -4401,11 +4407,15 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                                         temp_node_record.node_id, temp_node_record.node_length, temp_node_record.reversed_in_parent,
                                         temp_chain_record.prefix_sum[chain_node_i], temp_chain_record.forward_loops[chain_node_i],
                                         temp_chain_record.backward_loops[chain_node_i], temp_chain_record.chain_components[chain_node_i],
-                                        last_child_offset.first);
-                                cerr << "Adding node " << temp_node_record.node_id << " at index " << chain_node_i << " with loop values " << temp_chain_record.forward_loops[chain_node_i] << " and " <<  temp_chain_record.backward_loops[chain_node_i] << endl;
+                                        last_child_offset.first, last_child_was_nontrivial_snarl);
 
                                 //Remember this node as the last thing in the chain
                                 last_child_offset = make_pair(new_offset, false);
+                                if (temp_chain_record.forward_loops[chain_node_i] == 0) {
+                                    last_child_was_nontrivial_snarl = true;
+                                } else {
+                                    last_child_was_nontrivial_snarl = false;
+                                }
 
                             }
 
@@ -4567,6 +4577,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
 #endif
                                 last_child_offset = make_pair(snarl_record_constructor.record_offset, true);
                             }
+                            last_child_was_nontrivial_snarl = false;
                         }
                     }
                     //Does the chain loop and is the last node connected to the rest of the chain through the last snarl

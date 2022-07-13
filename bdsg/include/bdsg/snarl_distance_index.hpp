@@ -1622,8 +1622,10 @@ private:
         SnarlRecordConstructor add_snarl(size_t snarl_size, record_t type, size_t previous_child_offset); 
         SimpleSnarlRecordConstructor add_simple_snarl(size_t snarl_size, record_t type, size_t previous_child_offset); 
         //Add a node to the end of a chain and return the offset of the record it got added to
+        //If new_record is true, make a new trivial snarl record for the node
         size_t add_node(nid_t node_id, size_t node_length, bool is_reversed_in_parent,
-                size_t prefix_sum, size_t forward_loop, size_t reverse_loop, size_t component, size_t previous_child_offset);
+                size_t prefix_sum, size_t forward_loop, size_t reverse_loop, size_t component, size_t previous_child_offset, 
+                bool new_record);
 
     };
 
