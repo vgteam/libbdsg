@@ -1677,12 +1677,12 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path(const handlegraph::nid
         }
 
         if (is_chain(current_parent)) {
-            for_each_handle_in_shortest_path_in_chain(current_parent, current_node, boundary, distance_to_traverse, distance_traversed, graph, iteratee);
+            for_each_handle_in_shortest_path_in_chain(current_parent, current_node, boundary, distance_to_traverse, distance_traversed, graph, iteratee, nullptr);
             iteratee(get_handle(boundary, graph), distance_traversed);
             distance_traversed += minimum_length(boundary);
             distance_to_traverse -= minimum_length(boundary);
         } else {
-            for_each_handle_in_shortest_path_in_snarl(current_parent, current_node, boundary, distance_to_traverse, distance_traversed, graph, iteratee);
+            for_each_handle_in_shortest_path_in_snarl(current_parent, current_node, boundary, distance_to_traverse, distance_traversed, graph, iteratee, nullptr);
         }
         current_node = current_parent;
         current_parent = std::get<0>(distance_traceback.first[i+1]);
@@ -1722,9 +1722,9 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path(const handlegraph::nid
     }
 
     if (is_chain(current_parent)) {
-        for_each_handle_in_shortest_path_in_chain(current_parent, current_node, next_node, distance_between, distance_traversed, graph, iteratee);
+        for_each_handle_in_shortest_path_in_chain(current_parent, current_node, next_node, distance_between, distance_traversed, graph, iteratee, nullptr);
     } else {
-        for_each_handle_in_shortest_path_in_snarl(current_parent, current_node, next_node, distance_between, distance_traversed, graph, iteratee);
+        for_each_handle_in_shortest_path_in_snarl(current_parent, current_node, next_node, distance_between, distance_traversed, graph, iteratee, nullptr);
     }
 
     /* Now walk down the snarl tree for the second node, finding the distance_to_traverse from the bound of each parent to its child
@@ -1779,9 +1779,9 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path(const handlegraph::nid
         if (is_chain(current_parent)) {
             iteratee(get_handle(boundary, graph), distance_traversed);
             distance_traversed += minimum_length(boundary);
-            for_each_handle_in_shortest_path_in_chain(current_parent, boundary, next_node, distance_to_traverse, distance_traversed, graph, iteratee);
+            for_each_handle_in_shortest_path_in_chain(current_parent, boundary, next_node, distance_to_traverse, distance_traversed, graph, iteratee, nullptr);
         } else {
-            for_each_handle_in_shortest_path_in_snarl(current_parent, boundary, next_node, distance_to_traverse, distance_traversed, graph, iteratee);
+            for_each_handle_in_shortest_path_in_snarl(current_parent, boundary, next_node, distance_to_traverse, distance_traversed, graph, iteratee, nullptr);
         }
 
     }
@@ -1790,7 +1790,8 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path(const handlegraph::nid
 }
 void SnarlDistanceIndex::for_each_handle_in_shortest_path_in_snarl(const net_handle_t& snarl_handle, net_handle_t start, net_handle_t end,
                                       size_t distance_to_traverse, size_t& distance_traversed, const HandleGraph* graph,
-                                      const std::function<bool(const handlegraph::handle_t, size_t)>& iteratee) const {
+                                      const std::function<bool(const handlegraph::handle_t, size_t)>& iteratee,
+                                      vector<pair<net_handle_t, size_t>>* to_duplicate) const {
 #ifdef debug_distances
     cerr << "Find shortest path in " << net_handle_as_string(snarl_handle) << " from " << net_handle_as_string(start) << " to " << net_handle_as_string(end) << " with distance " << distance_to_traverse << endl;
     cerr << "\tactual distance is " << distance_in_parent(snarl_handle, start, flip(end)) << endl;
@@ -1827,6 +1828,9 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path_in_snarl(const net_han
                     //If this is just a node, run iteratee on it
                     iteratee(get_handle(next_net, graph), distance_traversed);
                     distance_traversed += minimum_length(next_net);
+                    if (to_duplicate != nullptr) {
+                        to_duplicate->emplace_back(flip(next_net), minimum_length(next_net));
+                    }
                     
                 } else if (is_chain(next_net)) {
                     //Recurse on the chain
@@ -1834,12 +1838,18 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path_in_snarl(const net_han
                     net_handle_t chain_end_bound = get_bound(next_net, ends_at(next_net) == END, false);
                     iteratee(get_handle(chain_start_bound, graph), distance_traversed);
                     distance_traversed += minimum_length(chain_start_bound);
+                    if (to_duplicate != nullptr) {
+                        to_duplicate->emplace_back(flip(chain_start_bound), minimum_length(chain_start_bound));
+                    }
                     for_each_handle_in_shortest_path_in_chain(next_net, chain_start_bound, 
                                                               chain_end_bound,
                                                               minimum_length(next_net) - minimum_length(chain_start_bound) - minimum_length(chain_end_bound), 
-                                                              distance_traversed, graph, iteratee);
+                                                              distance_traversed, graph, iteratee, to_duplicate);
                     iteratee(get_handle(chain_end_bound, graph), distance_traversed);
                     distance_traversed += minimum_length(chain_end_bound);
+                    if (to_duplicate != nullptr) {
+                        to_duplicate->emplace_back(flip(chain_end_bound), minimum_length(chain_end_bound));
+                    }
                 }
                 next = next_net;
                 distance_to_traverse -= minimum_length(next_net);
@@ -1853,30 +1863,97 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path_in_snarl(const net_han
 }
 void SnarlDistanceIndex::for_each_handle_in_shortest_path_in_chain(const net_handle_t& chain_handle, net_handle_t start, net_handle_t end,
                                       size_t distance_to_traverse, size_t& distance_traversed, const HandleGraph* graph,
-                                      const std::function<bool(const handlegraph::handle_t, size_t)>& iteratee) const {
+                                      const std::function<bool(const handlegraph::handle_t, size_t)>& iteratee,
+                                      vector<pair<net_handle_t, size_t>>* to_duplicate_recursed) const {
 #ifdef debug_distances
     cerr << "Find shortest path in " << net_handle_as_string(chain_handle) << " from " << net_handle_as_string(start) << " to " << net_handle_as_string(end) << " with distance " << distance_to_traverse << endl;
     cerr << "\tactual distance is " << distance_in_parent(chain_handle, start, flip(end))<< endl;
     assert(distance_in_parent(chain_handle, start, flip(end)) == distance_to_traverse);
+    assert(canonical(chain_handle) == canonical(get_parent(start)));
+    assert(canonical(chain_handle) == canonical(get_parent(end)));
+    /*TODO: I don't think these are necessarily true
     bool go_left_start = (ends_at(start) == END) == is_reversed_in_parent(start);
     bool go_left_end = (ends_at(end) == END) == is_reversed_in_parent(end);
     assert(go_left_start == go_left_end);
-    assert(canonical(chain_handle) == canonical(get_parent(start)));
-    assert(canonical(chain_handle) == canonical(get_parent(end)));
     if (go_left_start) {
         assert(is_ordered_in_chain(end, start));
     } else {
         assert(is_ordered_in_chain(start, end));
     }
+    */
+
 #endif
 
 
     /* Walk through the chain and run iteratee for every node, recurse on every snarl
+     * The shortest path may loop up to twice in the chain - (eg if it goes from node 2 fd to node 1 fd) 
+     * In this case, keep track of everything that will be duplicated, and run through this list backwards,
+     * reversing the orientations of nodes when going in the opposite direction 
+     * There are three cases of the path being reversed:
+     *   1) If the two children are oriented towards each other ( -1-> <-2- ) 
+     *      The traversal goes forward from 1, reaches 2 going forward, reaches a loop, then duplicates everything between 2 and the loop
+     *   2) If the two children are oriented away from each other ( <-2-  -1->  ) 
+     *      The traversal goes forward from 1, finds a loop and duplicates everything until 1, then continues backwards until it reaches 2 
+     *   3) If the first node comes after the second, both oriented in the same direction ( -2->   -1-> ) 
+     *      The traversal must loop twice: traverse forward from 1, loop, duplicate everything from 1 to loop, traverse back to 2, 
+     *      traverse until loop, duplicate everything between 2 and loop
+     *
+     * Since I made this recursive and there can be two to_duplicates, only fill in one of them at a time. Prioritize the to_duplicate
+     * just created, and when to_duplicate gets duplicated, add the forward and reverse to to_duplicate_recursed
     */
     ChainRecord chain_record (chain_handle, &snarl_tree_records);
 
     //Are we going left in the chain?
-    bool go_left = (ends_at(start) == END) == is_reversed_in_parent(start);
+    bool go_left_start = (ends_at(start) == END) == is_reversed_in_parent(start);
+    bool go_left_end = (ends_at(end) == END) == is_reversed_in_parent(end);
+    bool go_left = go_left_start;
+
+    // We need to keep track of if we're looking for a loop immediately or after traversing a specific node, and the start and end
+    // of the portion of the path that needs to be duplicated
+    // If loop_asap is true, then keep adding everything found (flipped) to to_duplicate. At each snarl, only go forwards if it can't loop
+    //   When the loop is found, call iteratee on everything in to_duplicate, in reverse order and continue from
+    //   the first thing in the list
+    // If loop_asap is false and loop_eventually is true (loop_after_this must not be the root), then traverse normally but check each
+    //   child to see if it's loop_after_this. When loop_after_this is found, loop_after this becomes root, loop_asap becomes true, and
+    //   we start looking for a loop
+    //
+    bool loop_asap = false; 
+    bool loop_eventually = false;
+    net_handle_t loop_after_this = get_root();
+    vector<pair<net_handle_t, size_t>> to_duplicate;
+    size_t last_loop = std::numeric_limits<size_t>::max();
+
+    bool ordered = is_ordered_in_chain(start, end); 
+#ifdef debug_distances
+    cerr << "Children are " << (ordered ? " ordered in chain " : " not ordered in chain") << " node 1 is going " 
+         << (go_left_start ? " reverse " : " forward ") << " and node 2 is going " << (go_left_end ? " reverse " : " forward")
+         << " in the chain" << endl;
+#endif
+    if ((ordered && !go_left_start && go_left_end) || 
+        (!ordered && go_left_start && !go_left_end)) {
+#ifdef debug_distances
+        cerr << " Children are oriented towards each other so loop at " << net_handle_as_string(flip(end)) << endl;
+#endif
+        //Case 1 - oriented towards each other- go forwards from 1, pass 2, and then loop
+        loop_eventually = true;
+        loop_after_this = flip(end);
+    } else if ((ordered && go_left_start && !go_left_end) ||
+               (!ordered && !go_left_start && go_left_end)) {
+#ifdef debug_distances
+        cerr << " Children are oriented away from each other so loop at asap" << endl;
+#endif
+        //Case 2 - oriented away from each other - go forwards from 1, try to loop immediately to find 2
+        loop_asap = true;
+    } else if ((ordered && go_left_start && go_left_end) ||
+               (!ordered && !go_left_start && !go_left_end)) {
+        //Case 3 - loop twice - go forwards from 1 and loop immediately, then pass 2 and loop
+#ifdef debug_distances
+        cerr << " Children are oriented backwards so loop at asap and then at " << net_handle_as_string(flip(end)) << endl;
+#endif
+        loop_asap = true;
+        loop_eventually = true;
+        loop_after_this = flip(end);
+    }
     
     while (start != end) {
 #ifdef debug_distances
@@ -1901,21 +1978,126 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path_in_chain(const net_han
             }
 
             if (need_to_flip) {
+                next = flip(next);
 #ifdef debug_distances
                 cerr << "Flipping next node " << net_handle_as_string(next) << endl;
 #endif
-                iteratee(get_handle(flip(next), graph), distance_traversed);
-            } else {
-                iteratee(get_handle(next, graph), distance_traversed);
+            } 
+            iteratee(get_handle(next, graph), distance_traversed);
+            size_t length = minimum_length(next);
+            distance_traversed += length;
+            distance_to_traverse -= length;
+
+            if (loop_asap) {
+                //If we want to loop as soon as possible, remember the distance to loop from this node (in the next snarl)
+                last_loop = go_left ? get_reverse_loop_value(next) : get_forward_loop_value(next);
+#ifdef debug_distances
+                cerr << "We want to loop, the next loop distance after " << net_handle_as_string(next) << " will be " << last_loop << endl;
+#endif
+                if (last_loop == 0) {
+                    //If we want to loop on this node
+#ifdef debug_distances
+                    cerr << "Loop on this node" << endl;
+#endif
+
+                    //Flip the node
+                    next = flip(next);
+
+                    //Before we loop, copy everything we've saved so far to the higher recursion to_duplicate
+                    if (to_duplicate_recursed != nullptr) {
+                        for (auto x : to_duplicate) {
+                            to_duplicate_recursed->emplace_back(x);
+                        }
+                    }
+
+                    //Iteratee() on the flipped node
+                    iteratee(get_handle(next, graph), distance_traversed);
+                    distance_traversed += length;
+                    distance_to_traverse -= length;
+
+                    //Now backtrack to when we started tracking the duplicated part
+                    for (int i = to_duplicate.size() - 1 ; i >= 0 ; i--) {
+                        iteratee(get_handle(to_duplicate[i].first, graph), distance_traversed);
+                        distance_traversed += to_duplicate[i].second;
+                        distance_to_traverse -= to_duplicate[i].second;
+                        if (to_duplicate_recursed != nullptr) {
+                            to_duplicate_recursed->emplace_back(flip(to_duplicate[i].first), to_duplicate[i].second);
+                        }
+                    }
+
+                    //And continue traversing from the first thing in to_duplicate
+                    next = to_duplicate[0].first;
+                    to_duplicate.clear();
+                    loop_asap = false;
+                    go_left = !go_left;
+#ifdef debug_distances
+                    cerr << "WE looped and now the new current node is " << net_handle_as_string(next) << 
+                            " and we're going " << (go_left ? "left " : "right ") << "in the chain" << endl;
+#endif
+                    
+                }
+            } else if (loop_eventually) {
+                to_duplicate.emplace_back(flip(next), length);
+            } else if (to_duplicate_recursed != nullptr) {
+                to_duplicate_recursed->emplace_back(flip(next), length);
             }
-            distance_traversed += minimum_length(next);
-            distance_to_traverse -= minimum_length(next);
-        } else if (minimum_length(next) != 0) {
+        } else {
+            net_handle_t start_in = go_left ? get_bound(next, true, true) : get_bound(next, false, true);
             //If this is a snarl and it must be traversed, then recurse on the snarl
             //If the chain is being traversed backwards, traverse the snarl end->start, otherwise start->end
-            for_each_handle_in_shortest_path_in_snarl(next, go_left ? get_bound(next, true, true) : get_bound(next, false, true),
+            if (loop_asap && last_loop != std::numeric_limits<size_t>::max() &&
+                last_loop == distance_in_parent(next, start_in,start_in, graph, std::numeric_limits<size_t>::max())) {
+#ifdef debug_distances
+                cerr << "This snarl is the best place to loop so loop and then duplicate the last " << to_duplicate.size() << " traversals" << endl;
+#endif
+                //If we're trying to loop and the shortest loop is in this snarl, then traverse the snarl in a loop 
+                // and go through to_duplicate in reverse
+                // If we're also tracking to_duplicate_recursed, then we haven't added anything since we started adding to 
+                // to_duplicate, so first add everything there, then add everything duplicated as well
+                // TODO: I'm pretty sure this is never going to happen though?
+                if (to_duplicate_recursed != nullptr) {
+                    for (auto x : to_duplicate) {
+                        to_duplicate_recursed->emplace_back(x);
+                    }
+                }
+                for_each_handle_in_shortest_path_in_snarl(next, start_in, start_in,
+                                                      minimum_length(next), distance_traversed, graph, iteratee, to_duplicate_recursed);
+                //Now backtrack to when we started tracking the duplicated part
+                for (int i = to_duplicate.size() - 1 ; i >= 0 ; i--) {
+                    iteratee(get_handle(to_duplicate[i].first, graph), distance_traversed);
+                    distance_traversed += to_duplicate[i].second;
+                    distance_to_traverse -= to_duplicate[i].second;
+                    if (to_duplicate_recursed != nullptr) {
+                        to_duplicate_recursed->emplace_back(flip(to_duplicate[i].first), to_duplicate[i].second);
+                    }
+                }
+
+                //And continue traversing from the first thing in to_duplicate
+                next = to_duplicate[0].first;
+                to_duplicate.clear();
+                loop_asap = false;
+                go_left = !go_left;
+#ifdef debug_distances
+                cerr << "Finished looping and duplicating, now continue from " << net_handle_as_string(next) << endl;
+#endif
+            } else if (minimum_length(next) != 0) {
+                //Otherwise traverse across snarl (if there isn't a path straight across)
+#ifdef debug_distances
+                if (loop_asap) {
+                    cerr << "this snarl didn't have the loop distance " << last_loop << " so traverse it forward" << endl;
+                }
+#endif
+                for_each_handle_in_shortest_path_in_snarl(next, start_in,
                                                             go_left ? get_bound(next, false, false) : get_bound(next, true, false),
-                                                      minimum_length(next), distance_traversed, graph, iteratee);
+                                                      minimum_length(next), distance_traversed, graph, iteratee,
+                                                      (!loop_asap && loop_eventually) ? &to_duplicate : to_duplicate_recursed);
+            }
+        }
+        if (!loop_asap && loop_eventually && next == loop_after_this) {
+            //If we want to find a loop after the current node/snarl
+            loop_after_this = get_root();
+            loop_eventually = false;
+            loop_asap = true;
         }
         start = next;
     }
@@ -4220,6 +4402,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                                         temp_chain_record.prefix_sum[chain_node_i], temp_chain_record.forward_loops[chain_node_i],
                                         temp_chain_record.backward_loops[chain_node_i], temp_chain_record.chain_components[chain_node_i],
                                         last_child_offset.first);
+                                cerr << "Adding node " << temp_node_record.node_id << " at index " << chain_node_i << " with loop values " << temp_chain_record.forward_loops[chain_node_i] << " and " <<  temp_chain_record.backward_loops[chain_node_i] << endl;
 
                                 //Remember this node as the last thing in the chain
                                 last_child_offset = make_pair(new_offset, false);
