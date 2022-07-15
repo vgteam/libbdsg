@@ -1,6 +1,6 @@
 //#define debug_distance_indexing
 //#define debug_snarl_traversal
-#define debug_distances
+//#define debug_distances
 
 #include "bdsg/snarl_distance_index.hpp"
 
@@ -1671,14 +1671,13 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path(const handlegraph::nid
         //We don't care about the orientation for the distance anymore so get the actual value
         distance_to_traverse = distance_to_traverse == std::numeric_limits<int32_t>::min() ? 0 : std::abs(distance_to_traverse);
 
-        if (is_chain(current_parent) && canonical(current_node) != canonical(boundary)) {
-            //If this is a chain, then the distance_to_traverse stored in the traceback includes the length of the boundary node
-            distance_to_traverse = distance_to_traverse - node_length(boundary);
-        }
 
         if (is_chain(current_parent)) {
             if (current_node != boundary) {
-                for_each_handle_in_shortest_path_in_chain(current_parent, current_node, boundary, distance_to_traverse, distance_traversed, graph, iteratee, nullptr);
+                //Go from current node to boundary, not including the length of boundary in the distance_to_traverse
+                for_each_handle_in_shortest_path_in_chain(current_parent, current_node, boundary, distance_to_traverse - node_length(boundary), distance_traversed, graph, iteratee, nullptr);
+
+                //Now iteratee() on boundary
                 iteratee(get_handle(boundary, graph), distance_traversed);
                 distance_traversed += minimum_length(boundary);
                 distance_to_traverse -= minimum_length(boundary);
@@ -1759,6 +1758,11 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path(const handlegraph::nid
             next_node = get_parent(next_node);
         }
 
+#ifdef debug_distances
+        cerr << "At traceback for second node: " << net_handle_as_string(std::get<0>(distance_traceback.second[i])) << " " << std::get<1>(distance_traceback.second[i]) << " " << std::get<2>(distance_traceback.second[i]) << endl;
+        cerr << "At next node " << net_handle_as_string(next_node) << " with parent " << net_handle_as_string(current_parent) << endl;
+#endif
+
         //The (signed) distance_to_traverse from the current node to the end of the current parent
         int32_t distance_to_traverse = std::get<2>(distance_traceback.second[i]) == std::numeric_limits<int32_t>::max() 
                             ? std::get<1>(distance_traceback.second[i])
@@ -1783,15 +1787,14 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path(const handlegraph::nid
         //We don't care about the orientation for the distance anymore so get the actual value
         distance_to_traverse = distance_to_traverse == std::numeric_limits<int32_t>::min() ? 0 : std::abs(distance_to_traverse);
 
-        if (is_chain(current_parent) && canonical(next_node) != canonical(boundary)) {
-            //If this is a chain, then the distance_to_traverse stored in the traceback includes the length of the boundary node
-            distance_to_traverse = std::abs(distance_to_traverse) - node_length(boundary);
-        }
 
         if (is_chain(current_parent)) {
+
             if (next_node != boundary) {
                 iteratee(get_handle(boundary, graph), distance_traversed);
                 distance_traversed += minimum_length(boundary);
+                distance_to_traverse -= minimum_length(boundary);
+
                 for_each_handle_in_shortest_path_in_chain(current_parent, boundary, next_node, distance_to_traverse, distance_traversed, graph, iteratee, nullptr);
             }
         } else {
@@ -2128,7 +2131,6 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path_in_chain(const net_han
                     //Skip the first thing in to_duplicate, which might be in to_duplicate twice
                     if (to_duplicate.size() > 1) {
                         for (int i = to_duplicate.size() - 1 ; i >= 1 ; i--) {
-                        cerr << "\titerate on " << net_handle_as_string(to_duplicate[i].first) << endl;
                             iteratee(get_handle(to_duplicate[i].first, graph), distance_traversed);
                             distance_traversed += to_duplicate[i].second;
                             distance_to_traverse -= to_duplicate[i].second;
@@ -2188,7 +2190,6 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path_in_chain(const net_han
                 //Now backtrack to when we started tracking the duplicated part
                 if (to_duplicate.size() > 1) {
                     for (int i = to_duplicate.size() - 1 ; i >= 1 ; i--) {
-                        cerr << "\titerate on " << net_handle_as_string(to_duplicate[i].first) << endl;
                         iteratee(get_handle(to_duplicate[i].first, graph), distance_traversed);
                         distance_traversed += to_duplicate[i].second;
                         distance_to_traverse -= to_duplicate[i].second;
