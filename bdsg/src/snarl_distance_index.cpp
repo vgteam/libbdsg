@@ -1035,7 +1035,6 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
             //If this is an oversized snarl and we're looking for internal distances, then we didn't store the
             //distance and we have to find it using dijkstra's algorithm
             if (graph == nullptr) {
-                assert(false);
                 cerr << "warning: trying to find the distance in an oversized snarl without a graph. Returning inf" << endl;
                 return std::numeric_limits<size_t>::max();
             }
@@ -1827,7 +1826,10 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path_in_snarl(const net_han
 #endif
 
     net_handle_t next = start;
-    while (next != end) {
+
+    //We need to make sure we actually try to find a path when start == end instead of stopping immediately
+    bool started = start != end;
+    while (next != end || !started) {
 #ifdef debug_distances
         if (seen.count(next) > 0) {
             cerr << "WE've already seen " << net_handle_as_string(next) << endl;
@@ -1939,6 +1941,7 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path_in_snarl(const net_han
                 return true;//Return true to continue iterating
             }
         });
+        started = true;
     }
 }
 void SnarlDistanceIndex::for_each_handle_in_shortest_path_in_chain(const net_handle_t& chain_handle, net_handle_t start, net_handle_t end,
