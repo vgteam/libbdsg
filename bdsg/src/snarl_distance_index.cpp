@@ -1493,18 +1493,6 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
             distance_traceback->second.clear();
         } else {
             //Otherwise, do the traceback
-#ifdef debug_distances
-            cerr << "Tracing back to common ancestor " << net_handle_as_string(std::get<0>(common_ancestor_connectivity)) <<  endl;
-            cerr << "Node1: " << endl;
-            for (auto x : distance_traceback->first) {
-                cerr << "\t" << net_handle_as_string(std::get<0>(x)) << " " << std::get<1>(x) << " " << std::get<2>(x) << endl;
-            }
-            cerr << "Node2: " << endl;
-            for (auto x : distance_traceback->second) {
-                cerr << "\t" << net_handle_as_string(std::get<0>(x)) << " " << std::get<1>(x) << " " << std::get<2>(x) << endl;
-            }
-
-#endif
 
             for ( bool first_node : {true, false}) {
                 vector<tuple<net_handle_t, int32_t, int32_t>>& current_vector = first_node ? distance_traceback->first : distance_traceback->second;
@@ -1567,6 +1555,18 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
                     }
                 }
             }
+#ifdef debug_distances
+            cerr << "Traced back to common ancestor " << net_handle_as_string(std::get<0>(common_ancestor_connectivity)) <<  endl;
+            cerr << "Node1: " << endl;
+            for (auto x : distance_traceback->first) {
+                cerr << "\t" << net_handle_as_string(std::get<0>(x)) << " " << std::get<1>(x) << " " << std::get<2>(x) << endl;
+            }
+            cerr << "Node2: " << endl;
+            for (auto x : distance_traceback->second) {
+                cerr << "\t" << net_handle_as_string(std::get<0>(x)) << " " << std::get<1>(x) << " " << std::get<2>(x) << endl;
+            }
+
+#endif
         }
     }
 
@@ -1705,6 +1705,9 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path(const handlegraph::nid
     if (is_trivial_chain(get_parent(next_node))) {
         next_node = get_parent(next_node);
     }
+    if (is_trivial_chain(get_parent(current_node))) {
+        current_node = get_parent(current_node);
+    }
 #ifdef debug_distances
     cerr << "Finding distance between two children " << net_handle_as_string(current_node) << " and " << net_handle_as_string (next_node) << endl;
     cerr << "\tdistance should be " << distance_between << endl;
@@ -1714,12 +1717,19 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path(const handlegraph::nid
     if ((ends_at(current_node) == END && distance_between < 0) 
         || (ends_at(current_node) == START && distance_between > 0)) {
         current_node = flip(current_node);
-    }
+    } 
     distance_between = distance_between == std::numeric_limits<int32_t>::min() ? 0 : std::abs(distance_between);
-    if ((ends_at(next_node) == END && std::get<1>(distance_traceback.first[distance_traceback.first.size()-1]) 
-                                       == std::numeric_limits<int32_t>::max()) 
-        || (ends_at(next_node) == START && std::get<2>(distance_traceback.first[distance_traceback.first.size()-1]) 
-                                              == std::numeric_limits<int32_t>::max())) {
+
+    //And the next node. Based on the last entry in the first node's traceback. The second or third value will 
+    //be inf depending on whether the second node's ancestor is traversed forward or backwards 
+    if ((ends_at(next_node) == END && std::get<1>(distance_traceback.first.back()) == std::numeric_limits<int32_t>::max()) 
+        || (ends_at(next_node) == START && std::get<2>(distance_traceback.first.back()) == std::numeric_limits<int32_t>::max())) {
+#ifdef debug_distances
+        cerr << "Flip next node which is currently: " << net_handle_as_string(next_node) << " because the last traceback for the first node is " 
+             << net_handle_as_string(std::get<0>(distance_traceback.first.back())) << " " 
+             << std::get<1>(distance_traceback.first.back()) << " " << std::get<2>(distance_traceback.first.back()) << endl; 
+#endif
+
         next_node = flip(next_node);
     }
 
@@ -1994,7 +2004,7 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path_in_chain(const net_han
     size_t last_loop = is_node(start) ? (go_left ? get_reverse_loop_value(start) : get_forward_loop_value(start))
                                       : std::numeric_limits<size_t>::max();
 
-    bool ordered = is_ordered_in_chain(start, end); 
+    bool ordered = is_ordered_in_chain(start, end);
 #ifdef debug_distances
     cerr << "Children are " << (ordered ? " ordered in chain " : " not ordered in chain") << " node 1 is going " 
          << (go_left_start ? " reverse " : " forward ") << " and node 2 is going " << (go_left_end ? " reverse " : " forward")
@@ -2025,7 +2035,8 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path_in_chain(const net_han
         loop_asap = true;
 
     } else if ((ordered && go_left_start && go_left_end) ||
-               (!ordered && !go_left_start && !go_left_end)) {
+               (!ordered && !go_left_start && !go_left_end) ||
+               start == end) {
         //Case 3 - loop twice - go forwards from 1 and loop immediately, then pass 2 and loop
 #ifdef debug_distances
         cerr << " Children are oriented backwards so loop at asap and then at " << net_handle_as_string(flip(end)) << endl;
@@ -2034,17 +2045,25 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path_in_chain(const net_han
         loop_eventually = true;
         loop_after_this = flip(end);
     }
+
+    //If the start and end are the same, need to make sure that we actually start traversing
+    bool started = start != end;
     
-    while (start != end) {
+    while (start != end || !started) {
 #ifdef debug_distances
         cerr << "at chain child " << net_handle_as_string(start) << (go_left ? " going left" : " going right") << endl;
         cerr << "\t traversed " << distance_traversed << ", reach end (" << net_handle_as_string(end) << " in " << distance_to_traverse << endl;
+        if (loop_asap) {
+            cerr << "\tTrying to loop" << endl;
+        }
+        assert(start != get_bound(chain_handle, false, false));
+        assert(start != get_bound(chain_handle, true, false));
 #endif
         net_handle_t next = chain_record.get_next_child(start, go_left); 
 #ifdef debug_distances
         cerr << "\treached next node " << net_handle_as_string(next) << endl;
 #endif
-        if (next == end) {
+        if (next == end && started) {
 #ifdef debug_distances
             cerr << "\tthis is the end so we're done" << endl;
 #endif
@@ -2217,6 +2236,7 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path_in_chain(const net_han
             loop_after_this = get_root();
         }
         start = next;
+        started = true;
     }
 }
 
