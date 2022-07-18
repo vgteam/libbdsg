@@ -8,6 +8,7 @@
 #include <handlegraph/algorithms/dijkstra.hpp>
 #include <handlegraph/util.hpp>
 #include <handlegraph/trivially_serializable.hpp>
+#include <handlegraph/algorithms/dijkstra.hpp>
 #include <bdsg/internal/mapped_structs.hpp>
 #include <string>
 #include <arpa/inet.h>

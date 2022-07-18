@@ -1607,7 +1607,6 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path(const handlegraph::nid
         assert(id1 == id2);
         assert(node_id(std::get<0>(distance_traceback.first.back())) == id1);
 #endif
-        iteratee(graph->get_handle(id1, rev1), (size_t)0);
         return;
     }
 #ifdef debug_distances
@@ -1628,9 +1627,6 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path(const handlegraph::nid
     net_handle_t& current_parent = std::get<0>(distance_traceback.first[1]);
 
     size_t distance_traversed = 0;
-
-    iteratee(graph->get_handle(id1, rev1), distance_traversed);
-    distance_traversed += minimum_length(current_node);
 
 
     for (size_t i = 1 ; i < distance_traceback.first.size()-1 ; i++) {
@@ -1801,8 +1797,6 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path(const handlegraph::nid
         }
 
     }
-    iteratee(get_handle(next_node, graph), distance_traversed);
-    distance_traversed += minimum_length(next_node);
 }
 void SnarlDistanceIndex::for_each_handle_in_shortest_path_in_snarl(const net_handle_t& snarl_handle, net_handle_t start, net_handle_t end,
                                       size_t distance_to_traverse, size_t& distance_traversed, const HandleGraph* graph,
@@ -1821,6 +1815,25 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path_in_snarl(const net_han
     */
 
     SnarlRecord snarl_record (snarl_handle, &snarl_tree_records);
+    if (snarl_record.get_record_type() == OVERSIZED_SNARL) {
+        //IF this is an oversized snarl, then we don't have any distance information so use the handlgraph algorithm
+        //for traversing the shortest path
+
+        handlegraph::handle_t start_handle = (is_trivial_chain(start) || is_sentinel(start)) ? get_handle(start, graph) :
+            get_handle((ends_at(start) == END ? get_bound(start, true, false) : get_bound(start, false, false)), graph); 
+        handlegraph::handle_t end_handle = (is_trivial_chain(end) || is_sentinel(end)) ? get_handle(end, graph) :
+            get_handle((ends_at(end) == END ? get_bound(end, true, false) : get_bound(end, false, false)), graph); 
+
+        //Add distance traversed through the snarl to distance_traversed
+        size_t distance_to_add = 0;
+        handlegraph::algorithms::for_each_handle_in_shortest_path(graph, start_handle, end_handle, [&](handlegraph::handle_t next_handle, size_t distance) {
+            distance_to_add += graph->get_length(next_handle);
+            return iteratee(next_handle, distance + distance_traversed);
+        });
+        distance_traversed += distance_to_add;
+        return;
+
+    }
 #ifdef debug_distances
     unordered_set<net_handle_t> seen;
 #endif
