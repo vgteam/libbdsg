@@ -662,8 +662,7 @@ bool SnarlDistanceIndex::follow_net_edges_impl(const net_handle_t& here, const h
                    return iteratee(next_net);
                 } else {
                     //next_node_record is also the start of a chain
-                    bool rev = get_record_offset(node_net_handle) != 
-                               ChainRecord(get_parent(node_net_handle), &snarl_tree_records).get_first_node_offset();
+                    bool rev = node_net_handle != get_bound(get_parent(node_net_handle), false, true);
                     net_handle_t next_net = get_net_handle(get_record_offset(get_parent(node_net_handle)), 
                                                            rev ? END_START : START_END, 
                                                            CHAIN_HANDLE);
@@ -3887,7 +3886,7 @@ size_t SnarlDistanceIndex::ChainRecord::get_distance_taking_chain_loop(size_t ra
      * enter the end node from the right (from the right or from the left and then looping)
      */
      if (get_record_type() == MULTICOMPONENT_CHAIN) {
-         size_t last_component = TrivialSnarlRecord(get_first_node_offset() , records).get_chain_component(0, true);
+        size_t last_component = TrivialSnarlRecord(get_first_node_offset() , records).get_chain_component(0, true);
         bool first_in_first_component = component1 == 0 || component1 == last_component;
         bool second_in_first_component = component2 == 0 || component2 == last_component;
         bool can_loop = get_is_looping_chain_connected_backwards();
