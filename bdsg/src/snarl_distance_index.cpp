@@ -1901,12 +1901,14 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path_in_snarl(const net_han
                 assert(distance_to_traverse == 0);
 #endif
                 next = next_net;
+                started = true;
                 return false;
             } else if (is_sentinel(next_net)) { 
                 //If we've reached a sentinel and are trying to leave the snarl but haven't hit the thing we're looking for yet
 #ifdef debug_distance_paths
                 cerr << "\tTrying to leave the snarl so continue looking" << endl;
 #endif
+               started = true;
                 return true; //Continue
             } else if (sum({distance_in_parent(snarl_handle, next_net, flip(end)), minimum_length(next_net)}) == distance_to_traverse) {
 #ifdef debug_distance_paths
@@ -1952,6 +1954,7 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path_in_snarl(const net_han
                     }
                 }
                 next = next_net;
+                started = true;
 
                 return false;//Return false to stop iterating
             } else if (is_chain(next_net) && sum({distance_in_parent(snarl_handle, flip(next_net), flip(end)), 
@@ -1992,6 +1995,10 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path_in_snarl(const net_han
 
                 //Flip the chain so it's pointing backwards
                 next = flip(next_net);
+#ifdef debug_distance_paths
+                cerr << "back to traversing snarl " << net_handle_as_string(snarl_handle) << " after looping through chain " << net_handle_as_string(next_net) << " now start from " << net_handle_as_string(next) << endl;
+#endif
+                started = false; //Just in case this is the thing we want to reach that we just looped on and now we need to reach it from the other side
 
                 return false;//Return false to stop iterating
             } else {
@@ -2001,7 +2008,6 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path_in_snarl(const net_han
                 return true;//Return true to continue iterating
             }
         });
-        started = true;
     }
 }
 void SnarlDistanceIndex::for_each_handle_in_shortest_path_in_chain(const net_handle_t& chain_handle, net_handle_t start, net_handle_t end,
