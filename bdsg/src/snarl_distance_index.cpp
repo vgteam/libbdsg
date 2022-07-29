@@ -639,6 +639,9 @@ bool SnarlDistanceIndex::follow_net_edges_impl(const net_handle_t& here, const h
             } else {
                 //It is either another chain or a node, but the node needs to pretend to be a chain
                 net_handle_t node_net_handle = get_node_net_handle(graph->get_id(h));
+                if (graph->get_is_reverse(h)) {
+                    node_net_handle = flip(node_net_handle);
+                }
 
                 if (get_record_type(snarl_tree_records->at(get_record_offset(node_net_handle))) == NODE || 
                     get_record_type(snarl_tree_records->at(get_record_offset(node_net_handle))) == DISTANCED_NODE   ) {
@@ -2594,7 +2597,7 @@ tuple<size_t, size_t, size_t, bool> SnarlDistanceIndex::get_longest_path_and_off
 
 
                 SimpleSnarlRecord snarl_record (net, &snarl_tree_records);
-                return make_tuple(get_connected_component_number(greatgrandparent_chain),
+                return make_tuple(get_record_offset(greatgrandparent_chain),
                                   start_node_record.get_chain_component(get_node_record_offset(start_node), false),
                                   sum({start_node_record.get_prefix_sum(get_node_record_offset(start_node)),
                                        start_node_record.get_node_length(get_node_record_offset(start_node))}) ,
@@ -2610,7 +2613,7 @@ tuple<size_t, size_t, size_t, bool> SnarlDistanceIndex::get_longest_path_and_off
                 //If this is the child of a root-level chain
                 TrivialSnarlRecord trivial_snarl_record(get_record_offset(net), &snarl_tree_records);
                 size_t node_rank = get_node_record_offset(net);
-                return make_tuple(get_connected_component_number(parent),
+                return make_tuple(get_record_offset(parent),
                                   trivial_snarl_record.get_chain_component(node_rank, false),
                                   trivial_snarl_record.get_prefix_sum(node_rank),
                                   trivial_snarl_record.get_is_reversed_in_parent(node_rank));
