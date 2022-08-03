@@ -5150,8 +5150,8 @@ void SnarlDistanceIndex::add_minimum_distance_paths(const HandleGraph* graph) {
             if (get_chain_component(chain_end, true) == 0) {
                 //If the chain has just one component (if we can walk all the way from start to end), then just
                 //find the shortest path from start to end
-                for_each_handle_in_shortest_path(node_id(chain_start), ends_at(chain_start) == START, 
-                                                 node_id(chain_end), ends_at(chain_end) == START, graph, 
+                handlegraph::algorithms::for_each_handle_in_shortest_path(graph, graph->get_handle(node_id(chain_start), ends_at(chain_start) == START), 
+                                                 graph->get_handle(node_id(chain_end), ends_at(chain_end) == START), 
                     [&] (const handlegraph::handle_t graph_handle, size_t distance_offset) {
                         net_handle_t node_handle = get_net(graph_handle, graph);
 
