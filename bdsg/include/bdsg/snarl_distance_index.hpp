@@ -490,17 +490,6 @@ public:
     //If get_end is true, then get the larger of the two components
     size_t get_chain_component(const net_handle_t net, bool get_end = false) const;
 
-    //This must be given a node (or trivial chain) or snarl as input
-    //We find the longest min length paths through each of the top-level connected components 
-    //(possibly multiple per connected component)
-    //First size_t is an identifier for the component (for now, it's the same as get_connected_component_number)
-    //Second size_t is the chain component
-    //Third is the offset along the path
-    //bool is true if it is reversed along the path
-    //This is the same as the prefix sum along the top-level chain
-    //Nodes aren't all guaranteed to have an offset, even if they are on a minimum length path
-    //All values are infinity if the values weren't stored
-    tuple<size_t, size_t,size_t, bool> get_longest_path_and_offset(const net_handle_t net) const;
 
     
 //////////////////////////////////////////  The actual distance index
@@ -534,21 +523,12 @@ private:
      * - A node record for nodes in snarls/roots
      *   These will be interspersed between chains more or less based on where they are in the snarl tree
      *   [node tag, node id, pointer to parent, node length, rank in parent]
-     *
-     *  The index also stores the shortest path through each top-level structure (which is usually a chain)
-     *  This is stored for each node, the path shortest path that passes through it and the offset and orientation along the path
-     *  FOr nodes in chains, nothing additional needs to be stored, because the offset is the same as the prefix sum of the node
-     *  For all other nodes, we need to store a pointer to the top-level structure (chain or snarl), and the offset and orientation in the path 
-     *  These are stored in NODE_PATH and NODE_PATH_OFFSET
      */
-    const static size_t NODE_RECORD_SIZE = 8;
+    const static size_t NODE_RECORD_SIZE = 5;
     const static size_t NODE_ID_OFFSET = 1;
     const static size_t NODE_PARENT_OFFSET = 2;
     const static size_t NODE_LENGTH_OFFSET = 3;
     const static size_t NODE_RANK_OFFSET = 4;
-    const static size_t NODE_PATH_OFFSET = 5;
-    const static size_t NODE_PATH_OFFSET_OFFSET = 6;
-    const static size_t NODE_PATH_COMPONENT_OFFSET = 7;
  
     /*Chain record
 
@@ -559,7 +539,7 @@ private:
      *    snarl_record_size is the number of things in the snarl record (so 0 if there is no snarl there)
      *    start/end include the orientations
      */ 
-    const static size_t CHAIN_RECORD_SIZE = 13;
+    const static size_t CHAIN_RECORD_SIZE = 10;
     const static size_t CHAIN_NODE_COUNT_OFFSET = 1;
     const static size_t CHAIN_PARENT_OFFSET = 2;
     const static size_t CHAIN_MIN_LENGTH_OFFSET = 3; //If this is a multicomponent chain, then the actual min length is 0, but this will be the length of the last component since it is the only length that matters when looping around the outside of the chain
@@ -569,12 +549,6 @@ private:
     const static size_t CHAIN_END_NODE_OFFSET = 7; //TODO Don't really need this , could get it from start node or last child
     const static size_t CHAIN_LAST_CHILD_OFFSET = 8; //The offset of the last thing in the chain - node or (if looping chain) snarl
     const static size_t CHAIN_DEPTH_OFFSET = 9;
-    //These values store information about the shortest path through a top-level chain, the same as for a node
-    //It gets stored once per chain for each of its nodes, and the individual values can be found from the nodes'
-    //prefix sum (and if the chain is reversed in the top-level path, then also the chain length)
-    const static size_t CHAIN_PATH_OFFSET = 10;
-    const static size_t CHAIN_PATH_OFFSET_OFFSET = 11;
-    const static size_t CHAIN_PATH_COMPONENT_OFFSET = 12;
 
     /*Trivial snarl record (which occurs within a chain) representing nodes in a chain
      * These contain up to 128 nodes with nothing between them
@@ -1121,14 +1095,6 @@ private:
 
         virtual size_t get_node_length() const;
 
-        /*For the shortest path through the connected component that this node is on, what is the location of the chain record (for now only chains),
-         * and the offset and orientation of this node on the path
-         */
-        virtual size_t get_path_record_offset() const;
-        virtual size_t get_path_component() const;
-        virtual size_t get_path_offset() const;
-        virtual bool get_path_orientation() const;
-
     };
 
     struct NodeRecordConstructor : NodeRecord , SnarlTreeRecordConstructor {
@@ -1174,21 +1140,9 @@ private:
 
         }
 
-        //Constructor for when the record has already been made, just to change some values
-        NodeRecordConstructor (const net_handle_t& net, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* snarl_records){
-            records = snarl_records;
-            record_offset =  get_record_offset(net);
-            SnarlTreeRecordConstructor::record_offset = get_record_offset(net);
-            SnarlTreeRecordConstructor::records = records;
-            NodeRecord::record_offset = get_record_offset(net);
-            NodeRecord::records = records;
-        }
         virtual void set_node_id(nid_t value);
         virtual void set_rank_in_parent(size_t value);
         virtual void set_node_length(size_t value);
-        virtual void set_path_record_offset(size_t offset) const;
-        virtual void set_path_offset(size_t offset) const;
-        virtual void set_path_component(size_t component, bool orientation) const;
     };
 
     struct TrivialSnarlRecord : SnarlTreeRecord {
@@ -1580,13 +1534,6 @@ private:
 
         virtual bool for_each_child(const std::function<bool(const net_handle_t&)>& iteratee) const;
 
-        /*For the shortest path through the connected component that this node is on, what is the location of the chain record (for now only chains),
-         * and the offset and orientation of this node on the path
-         */
-        virtual size_t get_path_record_offset() const;
-        virtual size_t get_path_component() const;
-        virtual size_t get_path_offset() const;
-        virtual bool get_path_orientation() const;
     };
 
     struct ChainRecordConstructor : ChainRecord , SnarlTreeRecordConstructor {
@@ -1623,15 +1570,6 @@ private:
 #endif
         }
 
-        //Get a constructor for a record that already exists, just so we can amend things
-        ChainRecordConstructor(const net_handle_t& net, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records){
-            record_offset = get_record_offset(net);
-            records = records;
-            SnarlTreeRecordConstructor::record_offset = get_record_offset(net);
-            SnarlTreeRecordConstructor::records = records;
-            ChainRecord::record_offset = get_record_offset(net);
-            ChainRecord::records = records;
-        }
 
 
         void set_node_count(size_t node_count);
@@ -1661,10 +1599,6 @@ private:
         size_t add_node(nid_t node_id, size_t node_length, bool is_reversed_in_parent,
                 size_t prefix_sum, size_t forward_loop, size_t reverse_loop, size_t component, size_t previous_child_offset, 
                 bool new_record);
-
-        virtual void set_path_record_offset(size_t offset) const;
-        virtual void set_path_offset(size_t offset) const;
-        virtual void set_path_component(size_t component, bool orientation) const;
 
     };
 
@@ -1808,12 +1742,6 @@ public:
             bool is_tip = false;
             size_t root_snarl_index = std::numeric_limits<size_t>::max();
 
-            //For the shortest path through a top-level structure
-            //TODO: I'm going to take this out of the temporary index and add it after the whole rest of the index is done
-            //pair<temp_record_t, size_t> path_ancestor = make_pair(TEMP_ROOT, std::numeric_limits<size_t>::max());
-            //size_t path_component = std::numeric_limits<size_t>::max();
-            //size_t path_offset = std::numeric_limits<size_t>::max();
-            //bool path_orientation;
 
             const static size_t get_max_record_length() {
                 return NODE_RECORD_SIZE;} 
@@ -1863,10 +1791,6 @@ public:
     //Each temporary index must be a separate connected component
     void get_snarl_tree_records(const vector<const TemporaryDistanceIndex*>& temporary_indexes, const HandleGraph* graph);
 
-    //Assuming the distance index is finished (get_snarl_tree_records has already been run), add the minimum distance
-    //paths. This stores the identity and offset along a minimum distance path for each node (NODE_PATH_*_ in the node record
-    //The minimum distance paths get added for every chain child of the root
-    void add_minimum_distance_paths(const HandleGraph* graph);
     void time_accesses();
 
 };

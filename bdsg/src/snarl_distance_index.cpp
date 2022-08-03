@@ -1588,6 +1588,8 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
 }
 void SnarlDistanceIndex::for_each_handle_in_shortest_path(const handlegraph::nid_t id1, const bool rev1, const handlegraph::nid_t id2, const bool rev2, 
                                       const HandleGraph* graph, const std::function<bool(const handlegraph::handle_t, size_t)>& iteratee) const {
+    cerr << "This isn't working, use handlegraph::algorithms::for_each_handle_in_shortest_path instead until I fix it" << endl;
+    return;
 
     /* First, run minimum distance to get the traceback.
      * The traceback will be a list of ancestors for each node. They will take the format 
@@ -2597,103 +2599,6 @@ size_t SnarlDistanceIndex::get_chain_component(const net_handle_t net, bool get_
     return TrivialSnarlRecord(get_record_offset(net), &snarl_tree_records).get_chain_component(get_node_record_offset(net), get_end);
 }
 
-tuple<size_t, size_t, size_t, bool> SnarlDistanceIndex::get_longest_path_and_offset(const net_handle_t net) const {
-    if (is_node(net)) {
-        net_handle_t parent = get_parent(net);
-        if (is_trivial_chain(parent)) {
-            //If this is the child of a snarl
-            if  (get_record_type(snarl_tree_records->at(get_record_offset(net))) == NODE 
-            || get_record_type(snarl_tree_records->at(get_record_offset(net))) == DISTANCED_NODE){
-                NodeRecord node_record (net, &snarl_tree_records);
-                if (node_record.get_path_record_offset() == std::numeric_limits<size_t>::max() || node_record.get_path_component() != 0) { 
-                    //If the record offset of the top-level chain is 0, then we didn't save values
-                    return std::make_tuple(std::numeric_limits<size_t>::max(),
-                                           std::numeric_limits<size_t>::max(),
-                                           std::numeric_limits<size_t>::max(),
-                                           false);
-                } else {
-                    return make_tuple(node_record.get_path_record_offset(),
-                                      node_record.get_path_component(),
-                                      node_record.get_path_offset(),
-                                      node_record.get_path_orientation());
-                }
-            } else if (!is_looping_chain(get_parent(get_parent(parent))) && is_root(get_parent(get_parent(get_parent(parent)))) && get_node_record_offset(net) == 2 ){
-                //Otherwise, if it's a simple snarl whose parent is a root-chain
-                net_handle_t grandparent_snarl = get_parent(parent);
-                net_handle_t greatgrandparent_chain = get_parent(grandparent_snarl);
-                ChainRecord chain_record(greatgrandparent_chain, &snarl_tree_records);
-
-                net_handle_t start_node = chain_record.get_next_child(grandparent_snarl, true); 
-                TrivialSnarlRecord start_node_record(get_record_offset(start_node), &snarl_tree_records);
-
-
-                SimpleSnarlRecord snarl_record (net, &snarl_tree_records);
-                return make_tuple(get_record_offset(greatgrandparent_chain),
-                                  start_node_record.get_chain_component(get_node_record_offset(start_node), false),
-                                  sum({start_node_record.get_prefix_sum(get_node_record_offset(start_node)),
-                                       start_node_record.get_node_length(get_node_record_offset(start_node))}) ,
-                                  snarl_record.get_node_is_reversed(get_node_record_offset(net)));
-            }
-            return std::make_tuple(std::numeric_limits<size_t>::max(),
-                                   std::numeric_limits<size_t>::max(),
-                                   std::numeric_limits<size_t>::max(),
-                                   false);
-        } else {
-            //Otherwise, it is a node in a chain
-            if (is_root(get_parent(parent)) && !is_looping_chain(parent)){
-                //If this is the child of a root-level chain
-                TrivialSnarlRecord trivial_snarl_record(get_record_offset(net), &snarl_tree_records);
-                size_t node_rank = get_node_record_offset(net);
-                return make_tuple(get_record_offset(parent),
-                                  trivial_snarl_record.get_chain_component(node_rank, false),
-                                  trivial_snarl_record.get_prefix_sum(node_rank),
-                                  trivial_snarl_record.get_is_reversed_in_parent(node_rank));
-            } else if (!is_looping_chain(parent)){
-                //So far we don't do this for looping chains
-                ChainRecord chain_record(get_record_offset(parent), &snarl_tree_records);
-                size_t path_component = chain_record.get_path_component();
-                size_t path_offset = chain_record.get_path_offset();
-                bool is_reversed = chain_record.get_path_orientation();
-                if (get_chain_component(net) != 0) {
-                    //If the chain is a multicomponent chain and this node is in a later component
-                    path_component += get_chain_component(net);
-                    path_offset = get_prefix_sum_value(net);
-                } else {
-                    if (is_reversed) {
-                        //If the chain is reversed in the top-level chain
-                        path_offset += (chain_record.get_min_length() - (get_prefix_sum_value(net) + minimum_length(net)));
-                    } else {
-                        //Otherwise, it is traversed forward and we can just add the prefix sum
-                        path_offset += get_prefix_sum_value(net);
-                    } 
-                }
-                return std::make_tuple(chain_record.get_path_record_offset(),
-                                      path_component,
-                                      path_offset,
-                                      is_reversed != is_reversed_in_parent(net));
-            } else {
-                return std::make_tuple(std::numeric_limits<size_t>::max(),
-                                       std::numeric_limits<size_t>::max(),
-                                       std::numeric_limits<size_t>::max(),
-                                       false);
-            }
-        }
-
-    } else if (is_snarl(net)) {
-        //TODO: I think I do want to add this in at some point
-        return std::make_tuple(std::numeric_limits<size_t>::max(),
-                               std::numeric_limits<size_t>::max(),
-                               std::numeric_limits<size_t>::max(),
-                               false);
-    } else {
-        return std::make_tuple(std::numeric_limits<size_t>::max(),
-                               std::numeric_limits<size_t>::max(),
-                               std::numeric_limits<size_t>::max(),
-                               false);
-    }
-}
-
-
 
 size_t SnarlDistanceIndex::SnarlTreeRecord::get_min_length() const {
     record_t type = get_record_type();
@@ -3583,22 +3488,6 @@ size_t SnarlDistanceIndex::NodeRecord::get_node_length() const {
     //}
 }
 
-size_t SnarlDistanceIndex::NodeRecord::get_path_record_offset() const {
-    size_t val = (*records)->at(record_offset + NODE_PATH_OFFSET);
-    return (val == 0 ? std::numeric_limits<size_t>::max() : val-1);
-}
-size_t SnarlDistanceIndex::NodeRecord::get_path_component() const {
-    return ((*records)->at(record_offset + NODE_PATH_COMPONENT_OFFSET) >> 1);
-}
-size_t SnarlDistanceIndex::NodeRecord::get_path_offset() const {
-    size_t val = (*records)->at(record_offset + NODE_PATH_OFFSET_OFFSET);
-    return (val == 0 ? std::numeric_limits<size_t>::max() : val-1);
-}
-bool SnarlDistanceIndex::NodeRecord::get_path_orientation() const {
-    return ((*records)->at(record_offset + NODE_PATH_COMPONENT_OFFSET) & 1);
-}
-
-
 size_t SnarlDistanceIndex::TrivialSnarlRecord::get_node_count() const {
     return (*records)->at(record_offset+TRIVIAL_SNARL_NODE_COUNT_OFFSET);
 }
@@ -3740,18 +3629,6 @@ void SnarlDistanceIndex::NodeRecordConstructor::set_rank_in_parent(size_t value)
     assert((*records)->at(record_offset + NODE_RANK_OFFSET) == 0);
 #endif
     (*records)->at(record_offset + NODE_RANK_OFFSET) = value;
-}
-
-void SnarlDistanceIndex::NodeRecordConstructor::set_path_record_offset(size_t offset) const {
-    offset = (offset == std::numeric_limits<size_t>::max() ? 0 : offset + 1);
-    (*records)->at(record_offset + NODE_PATH_OFFSET) = offset;
-}
-void SnarlDistanceIndex::NodeRecordConstructor::set_path_offset(size_t offset) const {
-    offset = (offset == std::numeric_limits<size_t>::max() ? 0 : offset + 1);
-    (*records)->at(record_offset + NODE_PATH_OFFSET_OFFSET) = offset;
-}
-void SnarlDistanceIndex::NodeRecordConstructor::set_path_component(size_t component, bool orientation) const {
-    (*records)->at(record_offset + NODE_PATH_COMPONENT_OFFSET) = (component << 1 | orientation);
 }
 
 void SnarlDistanceIndex::TrivialSnarlRecordConstructor::set_node_count(size_t value) const {
@@ -4342,33 +4219,6 @@ size_t SnarlDistanceIndex::ChainRecordConstructor::add_node(nid_t node_id, size_
         return trivial_snarl_record.record_offset;
     }
 }
-void SnarlDistanceIndex::ChainRecordConstructor::set_path_record_offset(size_t offset) const {
-    offset = (offset == std::numeric_limits<size_t>::max() ? 0 : offset + 1);
-    (*records)->at(record_offset + CHAIN_PATH_OFFSET) = offset;
-}
-void SnarlDistanceIndex::ChainRecordConstructor::set_path_offset(size_t offset) const {
-    offset = (offset == std::numeric_limits<size_t>::max() ? 0 : offset + 1);
-    (*records)->at(record_offset + CHAIN_PATH_OFFSET_OFFSET) = offset;
-}
-void SnarlDistanceIndex::ChainRecordConstructor::set_path_component(size_t component, bool orientation) const {
-    (*records)->at(record_offset + CHAIN_PATH_COMPONENT_OFFSET) = (component << 1 | orientation);
-}
-
-size_t SnarlDistanceIndex::ChainRecord::get_path_record_offset() const {
-    size_t val = (*records)->at(record_offset + CHAIN_PATH_OFFSET);
-    return (val == 0 ? std::numeric_limits<size_t>::max() : val-1);
-}
-size_t SnarlDistanceIndex::ChainRecord::get_path_component() const {
-    return ((*records)->at(record_offset + CHAIN_PATH_COMPONENT_OFFSET) >> 1);
-}
-size_t SnarlDistanceIndex::ChainRecord::get_path_offset() const {
-    size_t val = (*records)->at(record_offset + CHAIN_PATH_OFFSET_OFFSET);
-    return (val == 0 ? std::numeric_limits<size_t>::max() : val-1);
-}
-bool SnarlDistanceIndex::ChainRecord::get_path_orientation() const {
-    return ((*records)->at(record_offset + CHAIN_PATH_COMPONENT_OFFSET) & 1);
-}
-
 string SnarlDistanceIndex::net_handle_as_string(const net_handle_t& net) const {
     net_handle_record_t type = get_handle_type(net);
     SnarlTreeRecord record (net, &snarl_tree_records);
@@ -4897,19 +4747,6 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                     node_record.set_rank_in_parent(temp_chain_record.rank_in_parent);
                     node_record.set_parent_record_offset(record_to_offset[make_pair(temp_index_i, temp_chain_record.parent)]);
 
-                    //Set the value for the top-level path
-                    //TODO: I'm going to compute this separately
-                    //if (temp_node_record.path_offset != std::numeric_limits<size_t>::max()) {
-                    //    size_t ancestor_offset = record_to_offset[std::make_pair(temp_index_i , temp_node_record.path_ancestor)];
-                    //    node_record.set_path_record_offset(ancestor_offset);
-                    //    node_record.set_path_offset(temp_node_record.path_offset);
-                    //    node_record.set_path_component(temp_node_record.path_component, temp_node_record.path_orientation);
-                    //} else {
-                    //    node_record.set_path_record_offset(0);
-                    //    node_record.set_path_offset(0);
-                    //    node_record.set_path_component(0, false);
-                    //}
-
                     record_to_offset.emplace(make_pair(temp_index_i, current_record_index), node_record.record_offset);
 
                 }
@@ -4981,18 +4818,6 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                 node_record.set_node_length(temp_node_record.node_length);
                 node_record.set_rank_in_parent(temp_node_record.rank_in_parent);
                 node_record.set_parent_record_offset(record_to_offset[make_pair(temp_index_i, temp_node_record.parent)]);
-                //Set the value for the top-level path
-                //TODO: Compute this separately
-                //if (temp_node_record.path_offset != std::numeric_limits<size_t>::max()) {
-                //    size_t ancestor_offset = record_to_offset[std::make_pair(temp_index_i , temp_node_record.path_ancestor)];
-                //    node_record.set_path_record_offset(ancestor_offset);
-                //    node_record.set_path_offset(temp_node_record.path_offset);
-                //    node_record.set_path_component(temp_node_record.path_component, temp_node_record.path_orientation);
-                //} else {
-                //    node_record.set_path_record_offset(0);
-                //    node_record.set_path_offset(0);
-                //    node_record.set_path_component(0, false);
-                //}
 
                 record_to_offset.emplace(make_pair(temp_index_i, current_record_index), node_record.record_offset);
             }
@@ -5116,136 +4941,6 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
     cerr << "Predicted size: " << maximum_index_size << " actual size: " <<  snarl_tree_records->size() << endl;
 #endif
 
-
-}
-
-void SnarlDistanceIndex::add_minimum_distance_paths(const HandleGraph* graph) {
-    //Get the minimum distance path for each top-level chain and annotate all nodes in the path with
-    //the path's identity (the offset of the chain record), the offset and orientation along the chain,
-    //and the chain component
-    //
-    //If the top-level chain has multiple components, then walk along the chain to find the nodes where the 
-    //component changes and find a path for each one
-    net_handle_t root = get_root();
-
-    /*Go through each child of the root (actual children, each child of a root snarl is a child of the root)
-     * For each chain, traverse the minimum distance path through the chain (possibly split by components)
-     * and annotate all nodes with the minimum distance path information
-     */
-    for_each_child(root, [&](const net_handle_t& root_child){
-        if (is_chain(root_child) && !is_trivial_chain(root_child) && !is_looping_chain(root_child) 
-            && !is_root_snarl(get_parent(root_child))) {
-            cerr << "Traverse root chain " << net_handle_as_string(root_child) << endl;
-
-            //Get a ChainRecordConstructor to this chain without changing anything in snarl_tree_records
-            ChainRecordConstructor chain_record (root_child, &snarl_tree_records);
-            size_t chain_record_offset = get_record_offset(root_child);
-
-            //Start node going into the chain
-            net_handle_t chain_start = get_bound(root_child, false, true);
-            //End node going out of the chain
-            net_handle_t chain_end = get_bound(root_child, true, false);
-            size_t first_node_length = minimum_length(chain_start);
-
-            if (get_chain_component(chain_end, true) == 0) {
-                //If the chain has just one component (if we can walk all the way from start to end), then just
-                //find the shortest path from start to end
-                handlegraph::algorithms::for_each_handle_in_shortest_path(graph, graph->get_handle(node_id(chain_start), ends_at(chain_start) == START), 
-                                                 graph->get_handle(node_id(chain_end), ends_at(chain_end) == START), 
-                    [&] (const handlegraph::handle_t graph_handle, size_t distance_offset) {
-                        net_handle_t node_handle = get_net(graph_handle, graph);
-
-                        //What type of record is the node?
-                        record_t record_type = SnarlTreeRecord(node_handle, &snarl_tree_records).get_record_type();
-                        if (record_type == DISTANCED_NODE){
-                            //If this is the type of node we can store the path in
-                            NodeRecordConstructor node_record (node_handle, &snarl_tree_records);
-                            node_record.set_path_record_offset(chain_record_offset);
-                            node_record.set_path_offset(sum({distance_offset, first_node_length}));
-                            node_record.set_path_component(0, ends_at(node_handle) == START); 
-                        } else if (record_type == DISTANCED_TRIVIAL_SNARL) {
-                            //If this is a node in a chain, then we save the values for the chain
-                            //It only gets saved once, so only for the first node in the chain that's seen along the path,
-                            //which will be the first node in the chain if it's traversed forward, last node if its backwards
-                            //The values for each node in the chain can later be calculated from the chain's values and its length
-                            net_handle_t parent_chain = get_parent(node_handle);
-                            if (node_handle == get_bound(parent_chain, false, true) ||
-                                node_handle == get_bound(parent_chain, true, true)) {
-                                //If the node is going into the chain going forward or backward
-                                ChainRecordConstructor chain_record(parent_chain, &snarl_tree_records);
-                                chain_record.set_path_record_offset(chain_record_offset);
-                                chain_record.set_path_offset(sum({distance_offset, first_node_length}));
-                                chain_record.set_path_component(0, node_handle == get_bound(parent_chain, true, true));
-#ifdef debug_distance_indexing
-                                if (parent_chain == root_child){
-                                    assert(distance_offset = get_prefix_sum_value(node_handle));
-                                }
-#endif
-                            }
-
-                        }
-                        return true;
-                    });
-            } else {
-                //Otherwise, this is a multicomponent chain, and we need to walk through the chain to find the start
-                //and ends of each component, and find the minimum distance path through each one separately
-
-                //Set up the net handles here. Start is the start of the current component, end is the last node
-                //we saw as we walk through the chain
-                size_t current_component = 0;
-                chain_end = chain_start;
-                chain_record.for_each_child([&](const net_handle_t& next_chain_child) {
-                    if (is_node(next_chain_child)) {
-                        if (get_chain_component(next_chain_child) != current_component) {
-                            //If the next thing is in a new component, find the shortest path and reset
-                            for_each_handle_in_shortest_path(node_id(chain_start), ends_at(chain_start) == START, 
-                                                             node_id(chain_end), ends_at(chain_end) == START, graph, 
-                                [&] (const handlegraph::handle_t graph_handle, size_t distance_offset) {
-                                    net_handle_t node_handle = get_net(graph_handle, graph);
-                                    record_t record_type = SnarlTreeRecord(node_handle, &snarl_tree_records).get_record_type();
-                                    if (record_type == DISTANCED_NODE){
-                                        //If this is the type of node we can store the path in
-                                        NodeRecordConstructor node_record (node_handle, &snarl_tree_records);
-                                        node_record.set_path_record_offset(chain_record_offset);
-                                        node_record.set_path_offset(sum({distance_offset, first_node_length}));
-                                        node_record.set_path_component(current_component, ends_at(node_handle) == START); 
-                                    } else if (record_type == DISTANCED_TRIVIAL_SNARL) {
-                                        //If this is a node in a chain, then we save the values for the chain
-                                        //It only gets saved once, so only for the first node in the chain that's seen along the path,
-                                        //which will be the first node in the chain if it's traversed forward, last node if its backwards
-                                        //The values for each node in the chain can later be calculated from the chain's values and its length
-                                        net_handle_t parent_chain = get_parent(node_handle);
-                                        if (node_handle == get_bound(parent_chain, false, true) ||
-                                            node_handle == get_bound(parent_chain, true, true)) {
-                                            //If the node is going into the chain going forward or backward
-                                            ChainRecordConstructor chain_record(parent_chain, &snarl_tree_records);
-                                            chain_record.set_path_record_offset(chain_record_offset);
-                                            chain_record.set_path_offset(sum({distance_offset, first_node_length}));
-                                            chain_record.set_path_component(current_component, node_handle == get_bound(parent_chain, true, true));
-#ifdef debug_distance_indexing
-                                            if (parent_chain == root_child){
-                                                assert(distance_offset = get_prefix_sum_value(node_handle));
-                                            }
-#endif
-                                        }
-
-                                    }
-                                    return true;
-                                });
-                            chain_start = next_chain_child;
-                            chain_end = next_chain_child;
-                            first_node_length = minimum_length(chain_start);
-                            current_component = get_chain_component(next_chain_child);
-                        } else {
-                            chain_end = next_chain_child;
-                        }
-                    }
-                    return true;
-                });
-            }
-        }
-        return true;
-    });
 
 }
 
