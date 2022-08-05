@@ -1134,6 +1134,34 @@ size_t SnarlDistanceIndex::distance_to_parent_bound(net_handle_t& parent, bool t
         } else {
             return std::numeric_limits<size_t>::max();
         }
+    } else if (is_snarl(parent)) {
+        bool left_side = (ends_at(child) == END) == go_left;
+
+        if (is_trivial_chain(child)) {
+            NodeRecord child_record (child, &snarl_tree_records);
+            if (left_side && to_start) {
+                return child_record.get_distance_left_start();
+            } else if (!left_side && to_start) {
+                return child_record.get_distance_right_start();
+            } else if (left_side && !to_start) { 
+                return child_record.get_distance_left_end();
+            } else {
+                return child_record.get_distance_right_end();
+            }
+        } else {
+            ChainRecord child_record (child, &snarl_tree_records);
+            if (left_side && to_start) {
+                return child_record.get_distance_left_start();
+            } else if (!left_side && to_start) {
+                return child_record.get_distance_right_start();
+            } else if (left_side && !to_start) { 
+                return child_record.get_distance_left_end();
+            } else {
+                return child_record.get_distance_right_end();
+            }
+        }
+
+
     }
     net_handle_t parent_bound = get_bound(parent, !to_start, true);
 
