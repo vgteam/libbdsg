@@ -524,11 +524,17 @@ private:
      *   These will be interspersed between chains more or less based on where they are in the snarl tree
      *   [node tag, node id, pointer to parent, node length, rank in parent]
      */
-    const static size_t NODE_RECORD_SIZE = 5;
+    const static size_t NODE_RECORD_SIZE = 9;
     const static size_t NODE_ID_OFFSET = 1;
     const static size_t NODE_PARENT_OFFSET = 2;
     const static size_t NODE_LENGTH_OFFSET = 3;
     const static size_t NODE_RANK_OFFSET = 4;
+    //The distances from the left or right of the node to the left or right of its parent snarl (or 0 if its parent is a root)
+    //As with other distances, store 0 for inf, value +1 for everything else
+    const static size_t NODE_DISTANCE_LEFT_START_OFFSET = 5;
+    const static size_t NODE_DISTANCE_RIGHT_START_OFFSET = 6;
+    const static size_t NODE_DISTANCE_LEFT_END_OFFSET = 7;
+    const static size_t NODE_DISTANCE_RIGHT_END_OFFSET = 8;
  
     /*Chain record
 
@@ -539,7 +545,7 @@ private:
      *    snarl_record_size is the number of things in the snarl record (so 0 if there is no snarl there)
      *    start/end include the orientations
      */ 
-    const static size_t CHAIN_RECORD_SIZE = 10;
+    const static size_t CHAIN_RECORD_SIZE = 14;
     const static size_t CHAIN_NODE_COUNT_OFFSET = 1;
     const static size_t CHAIN_PARENT_OFFSET = 2;
     const static size_t CHAIN_MIN_LENGTH_OFFSET = 3; //If this is a multicomponent chain, then the actual min length is 0, but this will be the length of the last component since it is the only length that matters when looping around the outside of the chain
@@ -549,6 +555,11 @@ private:
     const static size_t CHAIN_END_NODE_OFFSET = 7; //TODO Don't really need this , could get it from start node or last child
     const static size_t CHAIN_LAST_CHILD_OFFSET = 8; //The offset of the last thing in the chain - node or (if looping chain) snarl
     const static size_t CHAIN_DEPTH_OFFSET = 9;
+    //DIstances from the left/right of the chain to the left/right of its parent
+    const static size_t CHAIN_DISTANCE_LEFT_START_OFFSET = 10;
+    const static size_t CHAIN_DISTANCE_RIGHT_START_OFFSET = 11;
+    const static size_t CHAIN_DISTANCE_LEFT_END_OFFSET = 12;
+    const static size_t CHAIN_DISTANCE_RIGHT_END_OFFSET = 13;
 
     /*Trivial snarl record (which occurs within a chain) representing nodes in a chain
      * These contain up to 128 nodes with nothing between them
@@ -583,12 +594,14 @@ private:
      *   inner node side of the start and end
      *   Node count is the number of nodes, not including boundary nodes
      */
-    const static size_t SNARL_RECORD_SIZE = 6;
+    const static size_t SNARL_RECORD_SIZE = 8;
     const static size_t SNARL_NODE_COUNT_OFFSET = 1;
     const static size_t SNARL_PARENT_OFFSET = 2;
     const static size_t SNARL_MIN_LENGTH_OFFSET = 3;
     const static size_t SNARL_MAX_LENGTH_OFFSET = 4;
-    const static size_t SNARL_CHILD_RECORD_OFFSET = 5;
+    const static size_t SNARL_DISTANCE_START_START_OFFSET = 5;
+    const static size_t SNARL_DISTANCE_END_END_OFFSET = 6;
+    const static size_t SNARL_CHILD_RECORD_OFFSET = 7;
 
     /*A simple snarl for bubbles with only nodes with two edges, one to each bound
      * [simple snarl tag, node count+length, parent, [node id, node length]xN
@@ -1095,6 +1108,12 @@ private:
 
         virtual size_t get_node_length() const;
 
+        //Get the distance from left/right of the node to start/end of the parent
+        virtual size_t get_distance_left_start();
+        virtual size_t get_distance_right_start();
+        virtual size_t get_distance_left_end();
+        virtual size_t get_distance_right_end();
+
     };
 
     struct NodeRecordConstructor : NodeRecord , SnarlTreeRecordConstructor {
@@ -1143,6 +1162,12 @@ private:
         virtual void set_node_id(nid_t value);
         virtual void set_rank_in_parent(size_t value);
         virtual void set_node_length(size_t value);
+
+        //Set the distance from left/right of the node to start/end of the parent
+        virtual void set_distance_left_start(size_t distance);
+        virtual void set_distance_right_start(size_t distance);
+        virtual void set_distance_left_end(size_t distance);
+        virtual void set_distance_right_end(size_t distance);
     };
 
     struct TrivialSnarlRecord : SnarlTreeRecord {
@@ -1265,6 +1290,9 @@ private:
         //Ranks identify which node, sides indicate node side: false for left, true for right
         virtual size_t get_distance(size_t rank1, bool right_side1, size_t rank2, bool right_side2) const;
 
+        virtual size_t get_distance_start_start() const;
+        virtual size_t get_distance_end_end() const;
+
         virtual size_t get_node_count() const;
 
         virtual size_t get_child_record_pointer() const;
@@ -1318,17 +1346,19 @@ private:
             SnarlRecord::record_offset = pointer;
         }
 
-        //Set the bit width used for storing distances 
-        void set_distance(size_t rank1, bool right_side1, size_t rank2, bool right_side2, size_t distance);
+        virtual void set_distance(size_t rank1, bool right_side1, size_t rank2, bool right_side2, size_t distance);
+
+        virtual void set_distance_start_start(size_t value);
+        virtual void set_distance_end_end(size_t value) ;
 
         //Node count is the number of nodes in the snarl, not including boundary nodes
-        void set_node_count(size_t node_count);
+        virtual void set_node_count(size_t node_count);
 
-        void set_child_record_pointer(size_t pointer) ;
+        virtual void set_child_record_pointer(size_t pointer) ;
 
         //Add a reference to a child of this snarl. Assumes that the index is completed up
         //to here
-        void add_child(size_t pointer);
+        virtual void add_child(size_t pointer);
     };
 
     struct SimpleSnarlRecord : SnarlTreeRecord {
@@ -1516,6 +1546,12 @@ private:
                                     size_t rank2, bool right_side2, size_t node_length2,
                                     size_t prefix_sum2, size_t forward_loop2, size_t reverse_loop2, size_t component2) const;
 
+        //Get the distance from left/right of the chain to start/end of the parent
+        virtual size_t get_distance_left_start();
+        virtual size_t get_distance_right_start();
+        virtual size_t get_distance_left_end();
+        virtual size_t get_distance_right_end();
+
         ////////////////////////// methods for navigating the snarl tree from this chain
 
         //Get the offset into snarl_tree_records of the first node in the chain
@@ -1577,6 +1613,12 @@ private:
 
         //The offset of the last child, if it is a snarl, and if it can loop 
         void set_last_child_offset(size_t offset, bool is_snarl, bool loopable);
+
+        //Set the distance from left/right of the chain to start/end of the parent
+        virtual void set_distance_left_start(size_t distance);
+        virtual void set_distance_right_start(size_t distance);
+        virtual void set_distance_left_end(size_t distance);
+        virtual void set_distance_right_end(size_t distance);
 
         /* Functions to add children to a chain. Assumes that the chain is well formed up to here
          * These will always be called in order going forward in the chain.
@@ -1689,6 +1731,13 @@ public:
             vector<size_t> forward_loops;
             vector<size_t> backward_loops;
             vector<size_t> chain_components;//Which component does each node belong to, usually all 0s
+
+            //Distances from the left/right of the node to the start/end of the parent snarl
+            size_t distance_left_start = std::numeric_limits<size_t>::max();
+            size_t distance_right_start = std::numeric_limits<size_t>::max();
+            size_t distance_left_end = std::numeric_limits<size_t>::max();
+            size_t distance_right_end = std::numeric_limits<size_t>::max();
+
             size_t rank_in_parent;
             bool reversed_in_parent;
             bool is_trivial;
@@ -1706,7 +1755,7 @@ public:
             bool end_node_rev;
             size_t end_node_length;
             size_t node_count;
-            size_t min_length; //Not including boundary nodes
+            size_t min_length = std::numeric_limits<size_t>::max(); //Not including boundary nodes
             size_t max_length = 0;
             size_t max_distance = 0;
             size_t tree_depth = 0;
@@ -1715,11 +1764,12 @@ public:
             unordered_set<size_t> tippy_child_ranks; //The ranks of children that are tips
             //vector<tuple<pair<size_t, bool>, pair<size_t, bool>, size_t>> distances;
             unordered_map<pair<pair<size_t, bool>, pair<size_t, bool>>, size_t> distances;
+
+            size_t distance_start_start = std::numeric_limits<size_t>::max();
+            size_t distance_end_end = std::numeric_limits<size_t>::max();
+
             size_t rank_in_parent;
             bool reversed_in_parent;
-            //The minimum distances to go into and out of the snarl from the start or end nodes
-            size_t loop_start;
-            size_t loop_end;
             bool is_trivial;
             bool is_simple;
             bool is_tip = false;
@@ -1741,6 +1791,11 @@ public:
             bool reversed_in_parent;
             bool is_tip = false;
             size_t root_snarl_index = std::numeric_limits<size_t>::max();
+            //Distances from the left/right of the node to the start/end of the parent snarl
+            size_t distance_left_start = std::numeric_limits<size_t>::max();
+            size_t distance_right_start = std::numeric_limits<size_t>::max();
+            size_t distance_left_end = std::numeric_limits<size_t>::max();
+            size_t distance_right_end = std::numeric_limits<size_t>::max();
 
 
             const static size_t get_max_record_length() {
