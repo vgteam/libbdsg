@@ -713,7 +713,6 @@ private:
 
 
 ////////////////////////////// How to interpret net_handle_ts
-//TODO: Does this depend on endianness???
 //Last 3 bits are the net_handle_record_t, next 4 are the connectivity_t, next 8 are th enode offset, 
 //last are the offset into snarl_tree_records
 //
