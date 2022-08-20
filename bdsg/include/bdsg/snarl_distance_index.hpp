@@ -1815,7 +1815,7 @@ public:
 
 public:
     ///Add integers, returning max() if any of them are max()
-    static size_t sum(const vector<size_t> vals) {
+    static size_t sum(const vector<size_t>& vals) {
         size_t sum = 0;
         for (const size_t& x : vals) {
             if (x ==  std::numeric_limits<size_t>::max()) {
