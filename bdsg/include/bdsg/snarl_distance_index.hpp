@@ -11,6 +11,7 @@
 #include <handlegraph/algorithms/dijkstra.hpp>
 #include <bdsg/internal/mapped_structs.hpp>
 #include <string>
+#include <numeric>
 #include <arpa/inet.h>
 
 //TODO: get_record_handle_type isn't going to be accurate for simple snarls since they can represent nodes too
@@ -1823,7 +1824,7 @@ public:
         }
     }
     static size_t sum(const vector<size_t>& vals) {
-        return std::reduce(vals.begin(), vals.end(), 0, 
+        return std::accumulate(vals.begin(), vals.end(), 0, 
             [](const size_t& a, const size_t& b) {
                 return sum(a, b);
             });
