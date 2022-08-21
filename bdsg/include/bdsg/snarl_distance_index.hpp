@@ -1815,16 +1815,18 @@ public:
 
 public:
     ///Add integers, returning max() if any of them are max()
-    static size_t sum(const vector<size_t>& vals) {
-        size_t sum = 0;
-        for (const size_t& x : vals) {
-            if (x ==  std::numeric_limits<size_t>::max()) {
-                return std::numeric_limits<size_t>::max();
-            } else {
-                sum += x;
-            }
+    static size_t sum(const size_t& val1, const size_t& val2) {
+        if (val1 == std::numeric_limits<size_t>::max() || val2 == std::numeric_limits<size_t>::max()) {
+            return std::numeric_limits<size_t>::max();
+        } else {
+            return val1 + val2;
         }
-        return sum;
+    }
+    static size_t sum(const vector<size_t>& vals) {
+        return std::reduce(vals.begin(), vals.end(), 0, 
+            [](const size_t& a, const size_t& b) {
+                return sum(a, b);
+            });
     }
     static size_t minus(size_t x, size_t y) {
         if (x == std::numeric_limits<size_t>::max()) {
