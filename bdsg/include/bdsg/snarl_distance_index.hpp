@@ -262,6 +262,13 @@ public:
      */
     size_t get_rank_in_parent(const net_handle_t& net) const;
 
+    /**
+     * How many connected components are in this graph?
+     * This returns the number of topological connected components, not necessarily the 
+     * number of nodes in the top-level snarl 
+     */
+    size_t connected_component_count() const;
+
 protected:
     /**
      * Internal implementation for for_each_child.
@@ -686,7 +693,7 @@ public:
         return static_cast<net_handle_record_t>(record_type);
     }
 
-    const static handlegraph::net_handle_t get_net_handle(size_t pointer, connectivity_t connectivity, net_handle_record_t type, size_t node_offset=0) {
+    const static handlegraph::net_handle_t get_net_handle_from_values(size_t pointer, connectivity_t connectivity, net_handle_record_t type, size_t node_offset=0) {
         if (pointer > ((size_t)1 << (64-BITS_FOR_TRIVIAL_NODE_OFFSET-3-4))-1) {
             throw runtime_error("error: don't have space in net handle for record offset");
         }
@@ -698,12 +705,12 @@ public:
         net_handle_record_t type = SnarlTreeRecord(pointer, &snarl_tree_records).get_record_handle_type(); 
         size_t node_record_offset = SnarlTreeRecord(pointer, &snarl_tree_records).get_record_type() == SIMPLE_SNARL || 
                                     SnarlTreeRecord(pointer, &snarl_tree_records).get_record_type() == SIMPLE_SNARL ? 1 : 0;
-        return get_net_handle(pointer, connectivity, type, node_record_offset); 
+        return get_net_handle_from_values(pointer, connectivity, type, node_record_offset); 
     
     }
     handlegraph::net_handle_t get_net_handle(size_t pointer) const  {
         net_handle_record_t type = SnarlTreeRecord(pointer, &snarl_tree_records).get_record_handle_type(); 
-        return get_net_handle(pointer, START_END, type); 
+        return get_net_handle_from_values(pointer, START_END, type); 
     
     }
 
