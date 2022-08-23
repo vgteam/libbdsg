@@ -1126,8 +1126,20 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
     }
 }
 
-size_t SnarlDistanceIndex::distance_to_parent_bound(net_handle_t& parent, bool to_start, net_handle_t& child, bool go_left) const {
-    if (is_trivial_chain(parent)) {
+size_t SnarlDistanceIndex::distance_to_parent_bound(net_handle_t& parent, bool to_start, net_handle_t& child, bool go_left,
+    tuple<net_handle_record_t, net_handle_record_t, net_handle_record_t, net_handle_record_t> parent_and_child_types) const {
+
+
+    //Get the record and handle types of the parent and child
+    bool has_handle_types = (parent_and_child_types != make_tuple(ROOT_HANDLE, ROOT_HANDLE, ROOT_HANDLE, ROOT_HANDLE));
+    bool parent_is_chain = std::get<1>(parent_and_child_types) == CHAIN_HANDLE;
+    bool parent_is_trivial_chain = has_handle_types ? (std::get<0>(parent_and_child_types) == NODE_HANDLE && std::get<1>(parent_and_child_types) == CHAIN_HANDLE)
+                                                    : is_trivial_chain(parent);
+    bool child_is_trivial_chain = has_handle_types ? (std::get<2>(parent_and_child_types) == NODE_HANDLE && std::get<3>(parent_and_child_types) == CHAIN_HANDLE)
+                                                    : is_trivial_chain(child);
+    bool parent_is_snarl = has_handle_types ? std::get<1>(parent_and_child_types) == SNARL_HANDLE
+                                            : is_snarl(parent);
+    if (parent_is_trivial_chain) {
         //If this is a node pretending to be a chain in a snarl
         if ((ends_at(child) == START && to_start != go_left) ||
             (ends_at(child) == END && to_start == go_left)) {
@@ -1137,10 +1149,10 @@ size_t SnarlDistanceIndex::distance_to_parent_bound(net_handle_t& parent, bool t
         } else {
             return std::numeric_limits<size_t>::max();
         }
-    } else if (is_snarl(parent)) {
+    } else if (parent_is_snarl) {
         bool left_side = (ends_at(child) == END) == go_left;
 
-        if (is_trivial_chain(child)) {
+        if (child_is_trivial_chain) {
             NodeRecord child_record (child, &snarl_tree_records);
             if (left_side && to_start) {
                 return child_record.get_distance_left_start();
@@ -1181,9 +1193,9 @@ size_t SnarlDistanceIndex::distance_to_parent_bound(net_handle_t& parent, bool t
         return 0;
     }
     //The node length of the boundary node, only set for chains 
-    size_t bound_length = !is_chain(parent) ? 0 : minimum_length(parent_bound);
+    size_t bound_length = !parent_is_chain ? 0 : minimum_length(parent_bound);
 
-    if (is_chain(parent) && !to_start){
+    if (parent_is_chain && !to_start){
         if (is_looping_chain(parent)){
             //If this is a looping chain and we want the end 
             bound_length = 0;

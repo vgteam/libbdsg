@@ -124,6 +124,79 @@ public:
     std::string get_prefix() const;
 
 
+////////////////////////////////////  How we define different properties of the distance index
+
+    public:
+
+    /*
+     *
+     * The "tags" for defining what kind of record we're looking at will be a record_t and a 
+     * bit vector indicating connectivity. The bit vector will be the last 6 bits of the tag
+     * 
+     * Each bit represents one type of connectivity:
+     * start-start, start-end, start-tip, end-end, end-tip, tip-tip
+     * 
+     * The remainder of the tag will be the record_t of the record
+     * NODE, SNARL, and CHAIN indicate that they don't store distances.
+     * SIMPLE_SNARL is a snarl with all children connecting only to the boundary nodes
+     * OVERSIZED_SNARL only stores distances to the boundaries
+     * ROOT_SNARL represents a connected component of the root. It has no start or end node so 
+     *    its children actually belong to the root
+     * MULTICOMPONENT_CHAIN can represent a chain with snarls that are not start-end connected
+     *     The chain is split up into components between these snarls, each node is tagged with
+     *     which component it belongs to
+     */
+    //TODO: Make simple snarls work
+    //TODO: Maybe also add a tag for trivial snarls/chains
+    //TODO: Unary snarls? Looping chains?
+    enum record_t {ROOT=1, 
+                   NODE, DISTANCED_NODE, 
+                   TRIVIAL_SNARL, DISTANCED_TRIVIAL_SNARL,
+                   SIMPLE_SNARL, DISTANCED_SIMPLE_SNARL,
+                   SNARL, DISTANCED_SNARL,  OVERSIZED_SNARL, 
+                   ROOT_SNARL, DISTANCED_ROOT_SNARL,
+                   CHAIN, DISTANCED_CHAIN, MULTICOMPONENT_CHAIN,
+                   CHILDREN};
+
+    enum connectivity_t { START_START=1, START_END, START_TIP, 
+                            END_START, END_END, END_TIP, 
+                            TIP_START, TIP_END, TIP_TIP};
+    //Type of a net_handle_t. This is to allow a node record to be seen as a chain from the 
+    //perspective of a handle
+    enum net_handle_record_t {ROOT_HANDLE=0, NODE_HANDLE, SNARL_HANDLE, CHAIN_HANDLE, SENTINEL_HANDLE};
+    const static net_handle_record_t get_record_handle_type(record_t type) {
+        //TODO: I"m not sure if a root snarl should be a root or a snarl
+        if (type == ROOT || type == ROOT_SNARL || type == DISTANCED_ROOT_SNARL) {
+            return ROOT_HANDLE;
+        } else if (type == NODE || type == DISTANCED_NODE || type == TRIVIAL_SNARL || type == DISTANCED_TRIVIAL_SNARL) {
+            return NODE_HANDLE;
+        } else if (type == SNARL || type == DISTANCED_SNARL || type ==  SIMPLE_SNARL ||type ==  OVERSIZED_SNARL 
+                 || type == SIMPLE_SNARL || type == DISTANCED_SIMPLE_SNARL){
+            //TODO: Simple snarls can be snarls or nodes
+            return SNARL_HANDLE;
+        } else if (type == CHAIN || type == DISTANCED_CHAIN || type == MULTICOMPONENT_CHAIN) {
+            return CHAIN_HANDLE;
+        } else {
+            throw runtime_error("error: trying to get the handle type of a list of children");
+        }
+    }
+private:
+    /*Give each of the enum types a name for debugging */
+    vector<std::string> record_t_as_string = {"ROOT", "NODE", "DISTANCED_NODE", 
+                     "TRIVIAL_SNARL", "DISTANCED_TRIVIAL_SNARL",
+                     "SNARL", "DISTANCED_SNARL", "SIMPLE_SNARL", "OVERSIZED_SNARL", 
+                     "ROOT_SNARL", "DISTANCED_ROOT_SNARL",
+                     "CHAIN", "DISTANCED_CHAIN", "MULTICOMPONENT_CHAIN",
+                     "CHILDREN"};
+    vector<std::string> connectivity_t_as_string = { "START_START", "START_END", "START_TIP", 
+                            "END_START", "END_END", "END_TIP", 
+                            "TIP_START", "TIP_END", "TIP_TIP"};
+    vector<std::string> net_handle_record_t_string = {"ROOT_HANDLE", "NODE_HANDLE", "SNARL_HANDLE", 
+                                                "CHAIN_HANDLE", "SENTINEL_HANDLE"};
+
+
+
+
 public:
 
 
@@ -325,7 +398,14 @@ public:
      */
     size_t distance_in_parent(const net_handle_t& parent, const net_handle_t& child1, const net_handle_t& child2, const HandleGraph* graph=nullptr, size_t distance_limit = std::numeric_limits<size_t>::max()) const;
 
-    size_t distance_to_parent_bound(net_handle_t& parent, bool to_start, net_handle_t& child, bool go_left) const;
+    /**
+     * Get the distance from the child to the start or end bound of the parent
+     * parent_and_child_types are hints to figure out the type of snarl/chain records the parent and child are
+     * tuple of parent record type, parent handle type, child record type, child handle type
+     * This is really just used to see if the parent and child are trivial chains, so it might not be exactly what the actual record is
+     */
+    size_t distance_to_parent_bound(net_handle_t& parent, bool to_start, net_handle_t& child, bool go_left,
+                                    tuple<net_handle_record_t, net_handle_record_t, net_handle_record_t, net_handle_record_t> parent_and_child_types = make_tuple(ROOT_HANDLE, ROOT_HANDLE, ROOT_HANDLE, ROOT_HANDLE)) const;
 
     
     //Return true if child1 comes before child2 in the chain. 
@@ -638,78 +718,6 @@ public:
 
     void set_snarl_size_limit (size_t size) {snarl_size_limit=size;}
 
-
-
-
-////////////////////////////////////  How we define different properties of the distance index
-
-    public:
-
-    /*
-     *
-     * The "tags" for defining what kind of record we're looking at will be a record_t and a 
-     * bit vector indicating connectivity. The bit vector will be the last 6 bits of the tag
-     * 
-     * Each bit represents one type of connectivity:
-     * start-start, start-end, start-tip, end-end, end-tip, tip-tip
-     * 
-     * The remainder of the tag will be the record_t of the record
-     * NODE, SNARL, and CHAIN indicate that they don't store distances.
-     * SIMPLE_SNARL is a snarl with all children connecting only to the boundary nodes
-     * OVERSIZED_SNARL only stores distances to the boundaries
-     * ROOT_SNARL represents a connected component of the root. It has no start or end node so 
-     *    its children actually belong to the root
-     * MULTICOMPONENT_CHAIN can represent a chain with snarls that are not start-end connected
-     *     The chain is split up into components between these snarls, each node is tagged with
-     *     which component it belongs to
-     */
-    //TODO: Make simple snarls work
-    //TODO: Maybe also add a tag for trivial snarls/chains
-    //TODO: Unary snarls? Looping chains?
-    enum record_t {ROOT=1, 
-                   NODE, DISTANCED_NODE, 
-                   TRIVIAL_SNARL, DISTANCED_TRIVIAL_SNARL,
-                   SIMPLE_SNARL, DISTANCED_SIMPLE_SNARL,
-                   SNARL, DISTANCED_SNARL,  OVERSIZED_SNARL, 
-                   ROOT_SNARL, DISTANCED_ROOT_SNARL,
-                   CHAIN, DISTANCED_CHAIN, MULTICOMPONENT_CHAIN,
-                   CHILDREN};
-
-    enum connectivity_t { START_START=1, START_END, START_TIP, 
-                            END_START, END_END, END_TIP, 
-                            TIP_START, TIP_END, TIP_TIP};
-    //Type of a net_handle_t. This is to allow a node record to be seen as a chain from the 
-    //perspective of a handle
-    enum net_handle_record_t {ROOT_HANDLE=0, NODE_HANDLE, SNARL_HANDLE, CHAIN_HANDLE, SENTINEL_HANDLE};
-    const static net_handle_record_t get_record_handle_type(record_t type) {
-        //TODO: I"m not sure if a root snarl should be a root or a snarl
-        if (type == ROOT || type == ROOT_SNARL || type == DISTANCED_ROOT_SNARL) {
-            return ROOT_HANDLE;
-        } else if (type == NODE || type == DISTANCED_NODE || type == TRIVIAL_SNARL || type == DISTANCED_TRIVIAL_SNARL) {
-            return NODE_HANDLE;
-        } else if (type == SNARL || type == DISTANCED_SNARL || type ==  SIMPLE_SNARL ||type ==  OVERSIZED_SNARL 
-                 || type == SIMPLE_SNARL || type == DISTANCED_SIMPLE_SNARL){
-            //TODO: Simple snarls can be snarls or nodes
-            return SNARL_HANDLE;
-        } else if (type == CHAIN || type == DISTANCED_CHAIN || type == MULTICOMPONENT_CHAIN) {
-            return CHAIN_HANDLE;
-        } else {
-            throw runtime_error("error: trying to get the handle type of a list of children");
-        }
-    }
-private:
-    /*Give each of the enum types a name for debugging */
-    vector<std::string> record_t_as_string = {"ROOT", "NODE", "DISTANCED_NODE", 
-                     "TRIVIAL_SNARL", "DISTANCED_TRIVIAL_SNARL",
-                     "SNARL", "DISTANCED_SNARL", "SIMPLE_SNARL", "OVERSIZED_SNARL", 
-                     "ROOT_SNARL", "DISTANCED_ROOT_SNARL",
-                     "CHAIN", "DISTANCED_CHAIN", "MULTICOMPONENT_CHAIN",
-                     "CHILDREN"};
-    vector<std::string> connectivity_t_as_string = { "START_START", "START_END", "START_TIP", 
-                            "END_START", "END_END", "END_TIP", 
-                            "TIP_START", "TIP_END", "TIP_TIP"};
-    vector<std::string> net_handle_record_t_string = {"ROOT_HANDLE", "NODE_HANDLE", "SNARL_HANDLE", 
-                                                "CHAIN_HANDLE", "SENTINEL_HANDLE"};
 
 
 
