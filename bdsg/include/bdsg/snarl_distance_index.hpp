@@ -13,6 +13,38 @@
 #include <string>
 #include <numeric>
 #include <arpa/inet.h>
+ /**
+  * This defines the distance index, which also serves as a snarl tree that implements libhandlegraph's 
+  * SnarlDecomposition interface
+  *
+  * The distance index is used to find the minimum distance between two positions on the graph
+  * The structure of the distance index is based on the snarl tree. 
+  * Variation graphs can be decomposed into nested substructures called "snarls" and "chains, and the 
+  * decomposition is described by the snarl tree
+  * The distance index provides an interface to traverse the snarl tree and to find minimum distances
+  * between two sibling nodes in the snarl tree (eg between two chains that are children of the same snarl)
+  * The distance index can also be built without distances and used just to traverse the snarl tree
+  *
+  * A chain is comprised of at least one node and may also contain snarls. 
+  * Each snarl is comprised of child chains and is bounded by two boundary nodes. 
+  * The boundary nodes are not part of the snarl, but are represented in the snarl as sentinels
+  * Trivial snarls (with only one edge between the boundary nodes) are not represented, but a snarl may 
+  * have no nodes if it has other edges
+  *
+  * The root of a snarl tree is contains child chains. The children of the root are not necessarily connected
+  * components in the graph- there may be connectivity between chains that are children of the root
+  * The depth of the root is 0, the depth of its child chains is 1, the depth of the nodes and snarls that are 
+  * children of those chains is also 1, and the chains that are children of those snarls have depth 2
+  *
+  * All structures in the snarl tree have two sides that can define the orientation of a traversal 
+  * A forward traversal of a node is always based on the node's orientation 
+  * A forward traversal of a snarl or chain goes from its start boundary node to its end boundary node
+  * Nodes and snarls can also be oriented backwards relative to the orientation of the parent chain- 
+  * if a traversal of a chain going start to end traverses a child end to start. Then the child would 
+  * be considered to be reversed in its parent
+  *
+  */
+
 
 //TODO: get_record_handle_type isn't going to be accurate for simple snarls since they can represent nodes too
 
@@ -194,6 +226,171 @@ private:
     vector<std::string> net_handle_record_t_string = {"ROOT_HANDLE", "NODE_HANDLE", "SNARL_HANDLE", 
                                                 "CHAIN_HANDLE", "SENTINEL_HANDLE"};
 
+
+
+/////////////////////////////  functions for distance calculations using net_handle_t's 
+
+public:
+
+
+    /**
+     * Get the minimum distance between two positions in the graph
+     * If unoriented_distance is true, then ignore the orientations of the positions
+     * Otherwise, distance is calculated from the first position going forward to the second position going forward
+     * The distance includes one of the positions; the distance from one position to itself is 0
+     * Returns std::numeric_limits<size_t>::max() if there is no path between the two positions
+     *
+     * distance_traceback are for helping to find actual distance path. For each of the nodes, keep a vector of the ancestors of the node
+     * and the distance and direction (as + or - values of the distance) taken in the minimum distance path to get to the start and end of the parent 
+     *
+     * For example, if the first node is traversed forward and only reaches the end node of its parent chain, then the values stored will be <inf, +distance>.
+     * If it were traversed backwards to reach the start node and couldn't reach the end node, then the values stored would be <-distance, inf>
+     * The distance value is the distance to the end of the node to the and of the chain/snarl, and distances stored are distances within the net_handle associated with it
+     * So the first value in the vector will always be node itself and the offset in the node, and the second value will be the parent chain and the distance from the
+     * ends of the node to the ends of the parent ( or the distance between nodes in the chain)
+     * The last value of the two nodes should match (in the absolute value at least). It will be the common ancestor node and the distances will be the distance to the 
+     * start/end of the other node with the same meaning for the sign of the distance
+     * The hints will go up to the lowest common ancestor needed for finding the shortest distance, which may or may not be the LCA or the root
+     *
+     */
+    //TODO: The positions can't be const?
+    size_t minimum_distance(const handlegraph::nid_t id1, const bool rev1, const size_t offset1, const handlegraph::nid_t id2, 
+                            const bool rev2, const size_t offset2, bool unoriented_distance = false, const HandleGraph* graph=nullptr, 
+                            pair<vector<tuple<net_handle_t, int32_t, int32_t>>, vector<tuple<net_handle_t, int32_t, int32_t>>>* distance_traceback=nullptr) const ;
+
+    /**
+     * Find the distance between the two child node sides in the parent, facing each other, not 
+     * including the lengths of the nodes
+     * This only takes into account the endpoint of the net_handle_t traversal, it does not care if the traversal
+     * was possible. Doesn't allow you to find the distance from a traversal ending/starting in a tip
+     * requires that the children are children of the parent
+     * For chains, the distance to/from a snarl is really the distance from the outer node of the snarl
+     * Returns std::numeric_limits<size_t>::max() if there is not path between them in the parent 
+     * or if they are not children of the parent
+     *
+     * Distance limit is the distance after which we give up if we're doing a traversal
+     */
+    size_t distance_in_parent(const net_handle_t& parent, const net_handle_t& child1, const net_handle_t& child2, const HandleGraph* graph=nullptr, size_t distance_limit = std::numeric_limits<size_t>::max()) const;
+
+    /**
+     * Get the distance from the child to the start or end bound of the parent
+     * parent_and_child_types are hints to figure out the type of snarl/chain records the parent and child are
+     * tuple of parent record type, parent handle type, child record type, child handle type
+     * This is really just used to see if the parent and child are trivial chains, so it might not be exactly what the actual record is
+     */
+    size_t distance_to_parent_bound(net_handle_t& parent, bool to_start, net_handle_t& child, bool go_left,
+                                    tuple<net_handle_record_t, net_handle_record_t, net_handle_record_t, net_handle_record_t> parent_and_child_types = make_tuple(ROOT_HANDLE, ROOT_HANDLE, ROOT_HANDLE, ROOT_HANDLE)) const;
+
+    
+    //Return true if child1 comes before child2 in the chain. 
+    bool is_ordered_in_chain(const net_handle_t& child1, const net_handle_t& child2) const;
+    //Return the offset of the child in the chain
+    //TODO: I don't like exposing this because it doesn't really 
+    //mean anything but I need it
+    size_t get_record_offset_in_chain(const net_handle_t& child) const;
+
+    bool is_externally_start_end_connected(const net_handle_t net) const {return is_externally_start_end_connected(snarl_tree_records->at(get_record_offset(net)));}
+    bool is_externally_start_start_connected(const net_handle_t net) const {return is_externally_start_start_connected(snarl_tree_records->at(get_record_offset(net)));}
+    bool is_externally_end_end_connected(const net_handle_t net) const {return is_externally_end_end_connected(snarl_tree_records->at(get_record_offset(net)));}
+
+    /** 
+     * For two net handles, get a net handle lowest common ancestor
+     * If the lowest common ancestor is the root, then the two handles may be in 
+     * different connected components. In this case, return false
+     */
+    pair<net_handle_t, bool> lowest_common_ancestor(const net_handle_t& net1, const net_handle_t& net2) const;
+
+
+    /**
+     * Return the length of the net, which must represent a node (or sentinel of a snarl)
+     */
+    size_t node_length(const net_handle_t& net) const ;
+
+
+    /**
+     * This is also the length of a net, but it can also be a snarl or chain. 
+     * The length of a chain includes the boundary nodes, a snarl does not
+     * A looping chain only includes the start/end node once
+     */
+    size_t minimum_length(const net_handle_t& net) const;
+    size_t maximum_length(const net_handle_t& net) const;
+
+    /**
+    The length of a chain. If it is a multicomponent chain, then the length of 
+     the last component, which is used for calculating distance, instead of inf 
+    */
+    size_t chain_minimum_length(const net_handle_t& net) const;
+
+    /**
+     * What is the node id of the node represented by this net handle
+     * net must be a node or a sentinel
+     */
+    nid_t node_id(const net_handle_t& net) const ;
+
+    /**
+     * Does the graph have this node?
+     */
+    bool has_node(const nid_t id) const;
+
+    /**
+     * Only really relevant for nodes in chains, is the node
+     * traversed backwards relative to the orientation of the chain
+     */
+
+    bool is_reversed_in_parent(const net_handle_t& net) const;
+
+    /**
+     * Get a net handle from a node
+     */
+    net_handle_t get_node_net_handle(const nid_t id) const;
+
+    /**
+     * How deep is the snarl tree? The root is 0, top-level chain is 1, etc
+     * Only counts chains
+     */
+    size_t get_max_tree_depth() const;
+
+    /**
+     * What is the depth of this net handle. Nodes and snarls get the depth of their parent, the epth of the root is 0
+     */
+    size_t get_depth(const net_handle_t& net) const;
+
+
+    /**
+     * Given a handle, return a unique identifier for the connected component that it's on
+     * Connected components are based on the connectivity of the graph, so there may be fewer
+     * connected components than there are root-level structures. For example, if two root-level
+     * chains are connected to each other in the root, then they will be considered one connected
+     * component but two separate root-level chains
+     */
+    size_t get_connected_component_number(const net_handle_t& net) const;
+
+    /**
+     * Given the connected component number (from get_connected_component_number), get the
+     * root-level handle pointing to it.
+     * If the connected component is a root-level snarl, then this may return a "root" handle,
+     * but it will actually point to the snarl
+     */
+    net_handle_t get_handle_from_connected_component(size_t num) const;
+
+
+    bool has_connectivity(const net_handle_t& net, endpoint_t start, endpoint_t end) const ;
+    //TODO: bool has_external_connectivity(const net_handle_t& net, endpoint_t start, endpoint_t end) const {return has_external_connectivity((*records)->at(get_record_offset(net)));} 
+    bool has_external_connectivity(const net_handle_t& net, endpoint_t start, endpoint_t end) const ; 
+
+
+    /**
+     * Get the distance index values for nodes in a chain
+     * These will all fail if the parent of net is not a chain
+     */
+    size_t get_prefix_sum_value(const net_handle_t net) const;
+    size_t get_forward_loop_value(const net_handle_t net) const;
+    size_t get_reverse_loop_value(const net_handle_t net) const;
+    //If get_end is true, then get the second component of the last node in a looping chain
+    //If the chain loops, then the first and last node are the same
+    //If it is also a multicomponent, chain, then it is in two different components
+    //If get_end is true, then get the larger of the two components
+    size_t get_chain_component(const net_handle_t net, bool get_end = false) const;
 
 
 
@@ -381,155 +578,10 @@ public:
      * and end.
      */
     net_handle_t get_parent_traversal(const net_handle_t& traversal_start, const net_handle_t& traversal_end) const;
-///////////////////////////// More public functions for distance calculations using net_handle_t's 
-
-public:
-    /**
-     * Find the distance between the two child node sides in the parent, facing each other, not 
-     * including the lengths of the nodes
-     * This only takes into account the endpoint of the net_handle_t traversal, it does not care if the traversal
-     * was possible. Doesn't allow you to find the distance from a traversal ending/starting in a tip
-     * requires that the children are children of the parent
-     * For chains, the distance to/from a snarl is really the distance from the outer node of the snarl
-     * Returns std::numeric_limits<size_t>::max() if there is not path between them in the parent 
-     * or if they are not children of the parent
-     *
-     * Distance limit is the distance after which we give up if we're doing a traversal
-     */
-    size_t distance_in_parent(const net_handle_t& parent, const net_handle_t& child1, const net_handle_t& child2, const HandleGraph* graph=nullptr, size_t distance_limit = std::numeric_limits<size_t>::max()) const;
-
-    /**
-     * Get the distance from the child to the start or end bound of the parent
-     * parent_and_child_types are hints to figure out the type of snarl/chain records the parent and child are
-     * tuple of parent record type, parent handle type, child record type, child handle type
-     * This is really just used to see if the parent and child are trivial chains, so it might not be exactly what the actual record is
-     */
-    size_t distance_to_parent_bound(net_handle_t& parent, bool to_start, net_handle_t& child, bool go_left,
-                                    tuple<net_handle_record_t, net_handle_record_t, net_handle_record_t, net_handle_record_t> parent_and_child_types = make_tuple(ROOT_HANDLE, ROOT_HANDLE, ROOT_HANDLE, ROOT_HANDLE)) const;
-
-    
-    //Return true if child1 comes before child2 in the chain. 
-    bool is_ordered_in_chain(const net_handle_t& child1, const net_handle_t& child2) const;
-    //Return the offset of the child in the chain
-    //TODO: I don't like exposing this because it doesn't really 
-    //mean anything but I need it
-    size_t get_record_offset_in_chain(const net_handle_t& child) const;
-
-    bool is_externally_start_end_connected(const net_handle_t net) const {return is_externally_start_end_connected(snarl_tree_records->at(get_record_offset(net)));}
-    bool is_externally_start_start_connected(const net_handle_t net) const {return is_externally_start_start_connected(snarl_tree_records->at(get_record_offset(net)));}
-    bool is_externally_end_end_connected(const net_handle_t net) const {return is_externally_end_end_connected(snarl_tree_records->at(get_record_offset(net)));}
-
-    /** 
-     * For two net handles, get a net handle lowest common ancestor
-     * If the lowest common ancestor is the root, then the two handles may be in 
-     * different connected components. In this case, return false
-     */
-    pair<net_handle_t, bool> lowest_common_ancestor(const net_handle_t& net1, const net_handle_t& net2) const;
 
 
-    /**
-     * Return the length of the net, which must represent a node (or sentinel of a snarl)
-     */
-    size_t node_length(const net_handle_t& net) const ;
-
-
-    /**
-     * This is also the length of a net, but it can also be a snarl or chain. 
-     * The length of a chain includes the boundary nodes, a snarl does not
-     * A looping chain only includes the start/end node once
-     */
-    size_t minimum_length(const net_handle_t& net) const;
-    size_t maximum_length(const net_handle_t& net) const;
-
-    /**
-    The length of a chain. If it is a multicomponent chain, then the length of 
-     the last component, which is used for calculating distance, instead of inf 
-    */
-    size_t chain_minimum_length(const net_handle_t& net) const;
-
-    /**
-     * What is the node id of the node represented by this net handle
-     * net must be a node or a sentinel
-     */
-    nid_t node_id(const net_handle_t& net) const ;
-
-    /**
-     * Does the graph have this node?
-     */
-    bool has_node(const nid_t id) const;
-
-    /**
-     * Only really relevant for nodes in chains, is the node
-     * traversed backwards relative to the orientation of the chain
-     */
-
-    bool is_reversed_in_parent(const net_handle_t& net) const;
-
-    /**
-     * Get a net handle from a node
-     */
-    net_handle_t get_node_net_handle(const nid_t id) const;
-
-    /**
-     * How deep is the snarl tree? The root is 0, top-level chain is 1, etc
-     * Only counts chains
-     */
-    size_t get_max_tree_depth() const;
-
-    /**
-     * What is the depth of this net handle. Nodes and snarls get the depth of their parent, the epth of the root is 0
-     */
-    size_t get_depth(const net_handle_t& net) const;
-
-
-    /**
-     * Given a handle, return a unique identifier for the connected component that it's on
-     * Connected components are based on the connectivity of the graph, so there may be fewer
-     * connected components than there are root-level structures. For example, if two root-level
-     * chains are connected to each other in the root, then they will be considered one connected
-     * component but two separate root-level chains
-     */
-    size_t get_connected_component_number(const net_handle_t& net) const;
-
-    /**
-     * Given the connected component number (from get_connected_component_number), get the
-     * root-level handle pointing to it.
-     * If the connected component is a root-level snarl, then this may return a "root" handle,
-     * but it will actually point to the snarl
-     */
-    net_handle_t get_handle_from_connected_component(size_t num) const;
-
-
-    bool has_connectivity(const net_handle_t& net, endpoint_t start, endpoint_t end) const ;
-    //TODO: bool has_external_connectivity(const net_handle_t& net, endpoint_t start, endpoint_t end) const {return has_external_connectivity((*records)->at(get_record_offset(net)));} 
-    bool has_external_connectivity(const net_handle_t& net, endpoint_t start, endpoint_t end) const ; 
-
-
-    /**
-     * Get the minimum distance between two positions in the graph
-     * If unoriented_distance is true, then ignore the orientations of the positions
-     * Otherwise, distance is calculated from the first position going forward to the second position going forward
-     * The distance includes one of the positions; the distance from one position to itself is 0
-     * Returns std::numeric_limits<size_t>::max() if there is no path between the two positions
-     *
-     * distance_traceback are for helping to find actual distance path. For each of the nodes, keep a vector of the ancestors of the node
-     * and the distance and direction (as + or - values of the distance) taken in the minimum distance path to get to the start and end of the parent 
-     *
-     * For example, if the first node is traversed forward and only reaches the end node of its parent chain, then the values stored will be <inf, +distance>.
-     * If it were traversed backwards to reach the start node and couldn't reach the end node, then the values stored would be <-distance, inf>
-     * The distance value is the distance to the end of the node to the and of the chain/snarl, and distances stored are distances within the net_handle associated with it
-     * So the first value in the vector will always be node itself and the offset in the node, and the second value will be the parent chain and the distance from the
-     * ends of the node to the ends of the parent ( or the distance between nodes in the chain)
-     * The last value of the two nodes should match (in the absolute value at least). It will be the common ancestor node and the distances will be the distance to the 
-     * start/end of the other node with the same meaning for the sign of the distance
-     * The hints will go up to the lowest common ancestor needed for finding the shortest distance, which may or may not be the LCA or the root
-     *
-     */
-    //TODO: The positions can't be const?
-    size_t minimum_distance(const handlegraph::nid_t id1, const bool rev1, const size_t offset1, const handlegraph::nid_t id2, 
-                            const bool rev2, const size_t offset2, bool unoriented_distance = false, const HandleGraph* graph=nullptr, 
-                            pair<vector<tuple<net_handle_t, int32_t, int32_t>>, vector<tuple<net_handle_t, int32_t, int32_t>>>* distance_traceback=nullptr) const ;
-
+//TODO: This isn't working yet
+private:
 
     /**
      * Function to walk through the shortest path between the two nodes+orientations. Orientation is the same as for minimum_distance - 
@@ -558,18 +610,6 @@ public:
                                           vector<pair<net_handle_t, size_t>>* to_duplicate) const;
 
 
-    /**
-     * Get the distance index values for nodes in a chain
-     * These will all fail if the parent of net is not a chain
-     */
-    size_t get_prefix_sum_value(const net_handle_t net) const;
-    size_t get_forward_loop_value(const net_handle_t net) const;
-    size_t get_reverse_loop_value(const net_handle_t net) const;
-    //If get_end is true, then get the second component of the last node in a looping chain
-    //If the chain loops, then the first and last node are the same
-    //If it is also a multicomponent, chain, then it is in two different components
-    //If get_end is true, then get the larger of the two components
-    size_t get_chain_component(const net_handle_t net, bool get_end = false) const;
 
 
     
