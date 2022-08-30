@@ -4753,7 +4753,11 @@ string SnarlDistanceIndex::net_handle_as_string(const net_handle_t& net) const {
     net_handle_record_t record_type = record.get_record_handle_type();
     string result;
     if (type == ROOT_HANDLE) {
-        return "root"; 
+        if (record.get_record_type() == ROOT_SNARL || record.get_record_type() == DISTANCED_ROOT_SNARL) {
+            return "root snarl";
+        } else {
+            return "root"; 
+        }
     } else if (type == NODE_HANDLE) {
         if (ends_at(net) == starts_at(net)) {
             return "node" + std::to_string( node_id(net)) + (ends_at(net) == START ? "rev" : "fd") + " that is the end node of a looping chain";
