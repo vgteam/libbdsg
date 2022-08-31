@@ -123,8 +123,10 @@ bool SnarlDistanceIndex::is_root(const net_handle_t& net) const {
 
 bool SnarlDistanceIndex::is_root_snarl(const net_handle_t& net) const {
 #ifdef debug_distances
-    assert(SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == ROOT_SNARL ||
-           SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == DISTANCED_ROOT_SNARL);
+    if (get_handle_type(net) == ROOT_HANDLE && get_record_offset(net) != 0) {
+        assert(SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == ROOT_SNARL ||
+               SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == DISTANCED_ROOT_SNARL);
+    }
 #endif
 
     return get_handle_type(net) == ROOT_HANDLE && get_record_offset(net) != 0;
@@ -271,9 +273,25 @@ handle_t SnarlDistanceIndex::get_handle(const net_handle_t& net, const handlegra
 }
 
 net_handle_t SnarlDistanceIndex::get_parent(const net_handle_t& child) const {
+
+    connectivity_t child_connectivity = get_connectivity(child);
+
     //If the child is the sentinel of a snarl, just return the snarl
     if (get_handle_type(child) == SENTINEL_HANDLE) {
-        return get_net_handle_from_values(get_record_offset(child), START_END, SNARL_HANDLE, get_node_record_offset(child)); 
+        connectivity_t parent_connectivity = START_END;
+        if (child_connectivity == START_END || child_connectivity == END_START) {
+            //If the child sentinel is pointing through the snarl, then the snarl should point
+            //in the same direction
+            parent_connectivity = child_connectivity;
+        } else if (child_connectivity == START_START) {
+            //If the sentinel is the start node pointing out, then the parent should point out the start
+            parent_connectivity = END_START;
+        } else if (child_connectivity == END_END) {
+            //If the sentinel is the end node pointing out, then the parent should point out the end
+            parent_connectivity = START_END;
+        }
+        return get_net_handle_from_values(get_record_offset(child), parent_connectivity, 
+                                          SNARL_HANDLE, get_node_record_offset(child)); 
     } else if (get_handle_type(child) == ROOT_HANDLE) {
         throw runtime_error("error: trying to find the parent of the root");
     } else if (get_record_type(snarl_tree_records->at(get_record_offset(child))) == SIMPLE_SNARL ||
@@ -281,7 +299,8 @@ net_handle_t SnarlDistanceIndex::get_parent(const net_handle_t& child) const {
         //If this is a simple snarl and a node or chain, then the parent offset doesn't change
         if (get_handle_type(child) == NODE_HANDLE) {
             //If this is a node, then return it as a chain
-            return get_net_handle_from_values(get_record_offset(child), START_END, CHAIN_HANDLE, get_node_record_offset(child));
+            return get_net_handle_from_values(get_record_offset(child), child_connectivity, 
+                                              CHAIN_HANDLE, get_node_record_offset(child));
         } else if (get_handle_type(child) == CHAIN_HANDLE) {
             //If this is a chain, then return the same thing as a snarl
             return get_net_handle_from_values(get_record_offset(child), START_END, SNARL_HANDLE, 1);
@@ -290,22 +309,28 @@ net_handle_t SnarlDistanceIndex::get_parent(const net_handle_t& child) const {
 
     //Otherwise, we need to move up one level in the snarl tree
 
-    //Get the pointer to the parent, and keep the connectivity of the current handle
+    //Get the pointer to the parent to find its type
     size_t parent_pointer = SnarlTreeRecord(child, &snarl_tree_records).get_parent_record_offset();
-    connectivity_t child_connectivity = get_connectivity(child);
-
-    //TODO: I"m going into the parent record here, which could be avoided if things knew what their parents were, but I think if you're doing this you'd later go into the parent anyway so it's probably fine
     net_handle_record_t parent_type = SnarlTreeRecord(parent_pointer, &snarl_tree_records).get_record_handle_type();
+
+    
+    //The connectivity of the parent defaults to start-end
     connectivity_t parent_connectivity = START_END;
-    if ((child_connectivity == START_END || child_connectivity == END_START) 
-        && (parent_type == CHAIN_HANDLE)) {
-        //TODO: This also needs to take into account the orientation of the child, which I might be able to get around?
-        parent_connectivity = child_connectivity;
+    //If the parent is going to be a chain, then it has the connectivity of the child, flipped if the child is 
+    //reversed in the parent
+    if ((get_handle_type(child) == NODE_HANDLE || get_handle_type(child) == SNARL_HANDLE) 
+            && (child_connectivity == START_END || child_connectivity == END_START)) {
+        if (is_reversed_in_parent(child)) {
+            parent_connectivity = child_connectivity == START_END ? END_START : START_END;
+
+        } else {
+            parent_connectivity = child_connectivity;
+        }
     }
     if (get_handle_type(child) == NODE_HANDLE && parent_type != CHAIN_HANDLE) {
         //If this is a node and it's parent is not a chain, we want to pretend that its 
         //parent is a chain
-        return get_net_handle_from_values(get_record_offset(child), parent_connectivity, CHAIN_HANDLE, get_node_record_offset(child));
+        return get_net_handle_from_values(get_record_offset(child), child_connectivity, CHAIN_HANDLE, get_node_record_offset(child));
     } 
 
     return get_net_handle(parent_pointer, parent_connectivity);
@@ -1128,16 +1153,22 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
 
 size_t SnarlDistanceIndex::distance_to_parent_bound(net_handle_t& parent, bool to_start, net_handle_t& child, bool go_left,
     tuple<net_handle_record_t, net_handle_record_t, net_handle_record_t, net_handle_record_t> parent_and_child_types) const {
+    /* parent_and_child_types is a tuple of parent handle type, parent record type, child handle type, child record type
+      * This is really just used to see if the parent and child are trivial chains, so it might not be exactly what 
+      * the actual record is
+      * */
+
 
 
     //Get the record and handle types of the parent and child
     bool has_handle_types = (parent_and_child_types != make_tuple(ROOT_HANDLE, ROOT_HANDLE, ROOT_HANDLE, ROOT_HANDLE));
-    bool parent_is_chain = std::get<1>(parent_and_child_types) == CHAIN_HANDLE;
+    bool parent_is_chain = has_handle_types ? std::get<0>(parent_and_child_types) == CHAIN_HANDLE 
+                                            : is_chain(parent);
     bool parent_is_trivial_chain = has_handle_types ? (std::get<0>(parent_and_child_types) == NODE_HANDLE && std::get<1>(parent_and_child_types) == CHAIN_HANDLE)
                                                     : is_trivial_chain(parent);
     bool child_is_trivial_chain = has_handle_types ? (std::get<2>(parent_and_child_types) == NODE_HANDLE && std::get<3>(parent_and_child_types) == CHAIN_HANDLE)
                                                     : is_trivial_chain(child);
-    bool parent_is_snarl = has_handle_types ? std::get<1>(parent_and_child_types) == SNARL_HANDLE
+    bool parent_is_snarl = has_handle_types ? std::get<0>(parent_and_child_types) == SNARL_HANDLE
                                             : is_snarl(parent);
     if (parent_is_trivial_chain) {
         //If this is a node pretending to be a chain in a snarl
@@ -1148,6 +1179,22 @@ size_t SnarlDistanceIndex::distance_to_parent_bound(net_handle_t& parent, bool t
             return 0;
         } else {
             return std::numeric_limits<size_t>::max();
+        }
+    } else if (is_simple_snarl(parent)) {
+        bool left_side = (ends_at(child) == END) == go_left;
+        if (to_start) {
+            if (left_side != is_reversed_in_parent(child)) {
+                return 0;
+            } else {
+                return std::numeric_limits<size_t>::max();
+            }
+        } else {
+            //to end of snarl
+            if (left_side == is_reversed_in_parent(child)) {
+                return 0;
+            } else {
+                return std::numeric_limits<size_t>::max();
+            }
         }
     } else if (parent_is_snarl) {
         bool left_side = (ends_at(child) == END) == go_left;
@@ -1234,7 +1281,7 @@ pair<net_handle_t, bool> SnarlDistanceIndex::lowest_common_ancestor(const net_ha
             is_connected = false;
         }
     }
-    return make_pair(parent2, is_connected);
+    return make_pair(canonical(parent2), is_connected);
 }
 
 size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const bool rev1, const size_t offset1, 
@@ -1393,7 +1440,7 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
     }
 
     //The lowest common ancestor of the two positions
-    net_handle_t common_ancestor = std::move(lowest_ancestor.first);
+    net_handle_t common_ancestor = canonical(std::move(lowest_ancestor.first));
 
 #ifdef debug_distances
         cerr << "Found the lowest common ancestor " << net_handle_as_string(common_ancestor) << endl;
@@ -1462,7 +1509,7 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
                                                    distance_to_start2 == std::numeric_limits<size_t>::max() ? std::numeric_limits<int32_t>::max() : distance_to_start2, 
                                                    distance_to_end2 == std::numeric_limits<size_t>::max() ? std::numeric_limits<int32_t>::max() : distance_to_end2);        
         }
-        common_ancestor = get_parent(net1);
+        common_ancestor = canonical(get_parent(net1));
     } else {
 
         //Get the distance from position 1 up to the ends of a child of the common ancestor
@@ -1479,7 +1526,7 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
                                                    distance_to_end2 == std::numeric_limits<size_t>::max() ? std::numeric_limits<int32_t>::max() : distance_to_end2);        
         }
         while (canonical(get_parent(net1)) != canonical(common_ancestor)) {
-            net_handle_t parent = get_parent(net1);
+            net_handle_t parent = canonical(get_parent(net1));
             update_distances(net1, parent, distance_to_start1, distance_to_end1, true);
             net1 = parent;
         }
@@ -1490,7 +1537,7 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
 #endif   
         //And the same for position 2
         while (canonical(get_parent(net2)) != canonical(common_ancestor)) {
-            net_handle_t parent = get_parent(net2);
+            net_handle_t parent = canonical(get_parent(net2));
             update_distances(net2, parent, distance_to_start2, distance_to_end2, false);
             net2 = parent;
         }
@@ -1566,7 +1613,7 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
             //Update which net handles we're looking at
             net1 = common_ancestor;
             net2 = common_ancestor;
-            common_ancestor = get_parent(common_ancestor);
+            common_ancestor = canonical(get_parent(common_ancestor));
         } else {
             //Just update this one to break out of the loop
             net1 = common_ancestor;
