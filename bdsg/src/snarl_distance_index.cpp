@@ -454,6 +454,10 @@ net_handle_t SnarlDistanceIndex::canonical(const net_handle_t& net) const {
     return get_net_handle_from_values(get_record_offset(net), connectivity, get_handle_type(net), get_node_record_offset(net));
 }
 
+net_handle_t SnarlDistanceIndex::start_end_traversal_of(const net_handle_t& net) const {
+    return get_net_handle_from_values(get_record_offset(net), START_END, get_handle_type(net), get_node_record_offset(net));
+}
+
 SnarlDecomposition::endpoint_t SnarlDistanceIndex::starts_at(const net_handle_t& traversal) const {
     return get_start_endpoint(get_connectivity(traversal));
 
@@ -884,6 +888,11 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
     assert(canonical(parent) == canonical(get_parent(child2)));
 #endif
 
+    //Get the orientation of the children. This only cares about the end endpoint, and assumes that things that end
+    //in tips are start-end, meaning that they don't end at the start
+    bool child_ends_at_start1 = ends_at(child1) == START;
+    bool child_ends_at_start2 = ends_at(child2) == START;
+
     if (is_root(parent)) {
         //If the parent is the root, then the children must be in the same root snarl for them to be
         //connected
@@ -903,12 +912,12 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
 #endif
             if (get_record_offset(child1) == get_record_offset(child2)) {
                 //If they are the same child of the root but not in a snarl, then check the external connectivity
-                if (ends_at(child1) == START && ends_at(child2) == START) {
+                if (child_ends_at_start1 && child_ends_at_start2) {
                     return has_external_connectivity(child1, START, START) ? 0 : std::numeric_limits<size_t>::max();
-                } else if (ends_at(child1) == END && ends_at(child2) == END) {
+                } else if (!child_ends_at_start1 && !child_ends_at_start2) {
                     return has_external_connectivity(child1, END, END) ? 0 : std::numeric_limits<size_t>::max();
-                } else if ((ends_at(child1) == START && ends_at(child2) == END) ||
-                            (ends_at(child1) == END && ends_at(child2) == START)) {
+                } else if ((child_ends_at_start1 && !child_ends_at_start2) ||
+                            (!child_ends_at_start1 && child_ends_at_start2)) {
                     if (has_external_connectivity(child1, START, END)) {
                         //If we can take an edge around the snarl
                         return 0;
@@ -926,8 +935,8 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
             //They are in the same root snarl, so find the distance between them
             SnarlRecord snarl_record(parent_record_offset1, &snarl_tree_records);
 
-            return snarl_record.get_distance(get_rank_in_parent(child1), ends_at(child1) == END, 
-                                             get_rank_in_parent(child2), ends_at(child2) == END);
+            return snarl_record.get_distance(get_rank_in_parent(child1), !child_ends_at_start1, 
+                                             get_rank_in_parent(child2), !child_ends_at_start2);
         }
 
 
@@ -969,11 +978,12 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
             size_t& reverse_loop = i == 0 ? reverse_loop1 : reverse_loop2;
             size_t& component    = i == 0 ? component1    : component2;
             size_t& end_component    = i == 0 ? end_component1    : end_component2;
+            bool& child_ends_at_start = i == 0 ? child_ends_at_start1 : child_ends_at_start2;
 
             if (is_node(child)) {
 
                 bool go_left = is_reversed_in_parent(child);
-                if (ends_at(child) == START){
+                if (child_ends_at_start){
                     go_left = !go_left;
                 }
                 rank_in_chain=get_rank_in_parent(child);
@@ -987,7 +997,7 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
             } else {
                 //If this is a snarl, then find the appropriate boundary node and fill it in
                 assert(is_snarl(child));
-                if (ends_at(child) == START) {
+                if (child_ends_at_start) {
                     //If we're going backwards in the chain, then we want the start node
                     //And turn it into a node, since it will be a sentinel
                     net_handle_t start_bound = get_node_from_sentinel(get_bound(child, false, false));
@@ -1048,14 +1058,14 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
             rev1 = false;
         } else {
             rank1 = get_rank_in_parent(child1);
-            rev1 = ends_at(child1) == END;
+            rev1 = !child_ends_at_start1;
         }
         if (is_sentinel(child2)) {
             rank2 = starts_at(child2) == START ? 0 : 1;
             rev2 = false;
         } else {
             rank2 = get_rank_in_parent(child2);
-            rev2 = ends_at(child2) == END;
+            rev2 = !child_ends_at_start2;
         }
         if ((is_sentinel(child1) && starts_at(child1) == ends_at(child1)) ||
             (is_sentinel(child2) && starts_at(child2) == ends_at(child2)) ) {
@@ -1080,8 +1090,8 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
                 cerr << "warning: trying to find the distance in an oversized snarl without a graph. Returning inf" << endl;
                 return std::numeric_limits<size_t>::max();
             }
-            handle_t handle1 = is_node(child1) ? get_handle(child1, graph) : get_handle(get_bound(child1, ends_at(child1) == END, false), graph); 
-            handle_t handle2 = is_node(child2) ? get_handle(child2, graph) : get_handle(get_bound(child2, ends_at(child2) == END, false), graph);
+            handle_t handle1 = is_node(child1) ? get_handle(child1, graph) : get_handle(get_bound(child1, !child_ends_at_start1, false), graph); 
+            handle_t handle2 = is_node(child2) ? get_handle(child2, graph) : get_handle(get_bound(child2, !child_ends_at_start2, false), graph);
             handle2 = graph->flip(handle2);
 
             size_t distance = std::numeric_limits<size_t>::max();
@@ -1170,10 +1180,14 @@ size_t SnarlDistanceIndex::distance_to_parent_bound(net_handle_t& parent, bool t
                                                     : is_trivial_chain(child);
     bool parent_is_snarl = has_handle_types ? std::get<0>(parent_and_child_types) == SNARL_HANDLE
                                             : is_snarl(parent);
+
+    //Get the orientation of the child. This only cares about the end endpoint, and assumes that things that end
+    //in tips are start-end, meaning that they don't end at the start
+    bool child_ends_at_start = ends_at(child) == START;
     if (parent_is_trivial_chain) {
         //If this is a node pretending to be a chain in a snarl
-        if ((ends_at(child) == START && to_start != go_left) ||
-            (ends_at(child) == END && to_start == go_left)) {
+        if ((child_ends_at_start && to_start != go_left) ||
+            (!child_ends_at_start && to_start == go_left)) {
             //If the child is traversed backwards and we're going start to right or end to left
             //Or the child is traversed forwards and we're going start to left or end to right
             return 0;
@@ -1181,7 +1195,7 @@ size_t SnarlDistanceIndex::distance_to_parent_bound(net_handle_t& parent, bool t
             return std::numeric_limits<size_t>::max();
         }
     } else if (is_simple_snarl(parent)) {
-        bool left_side = (ends_at(child) == END) == go_left;
+        bool left_side = child_ends_at_start != go_left;
         if (to_start) {
             if (left_side != is_reversed_in_parent(child)) {
                 return 0;
@@ -1197,7 +1211,7 @@ size_t SnarlDistanceIndex::distance_to_parent_bound(net_handle_t& parent, bool t
             }
         }
     } else if (parent_is_snarl) {
-        bool left_side = (ends_at(child) == END) == go_left;
+        bool left_side = child_ends_at_start != go_left;
 
         if (child_is_trivial_chain) {
             NodeRecord child_record (child, &snarl_tree_records);
@@ -1228,7 +1242,7 @@ size_t SnarlDistanceIndex::distance_to_parent_bound(net_handle_t& parent, bool t
     net_handle_t parent_bound = get_bound(parent, !to_start, true);
 
     //If we are looking at the left side of the child
-    bool left_of_child = ends_at(child) == START ? !go_left : go_left;
+    bool left_of_child = child_ends_at_start ? !go_left : go_left;
     if ((left_of_child && to_start && parent_bound == child) || 
         //If we want the start to the left of the child and the child is the same as the bound 
         (left_of_child && !to_start && parent_bound == child) ||
@@ -1812,7 +1826,7 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path(const handlegraph::nid
         }
 
         //Make sure the current node is oriented correctly
-        if ((ends_at(current_node) == END && distance_to_traverse < 0) 
+        if ((ends_at(current_node) != START && distance_to_traverse < 0) 
             || (ends_at(current_node) == START && distance_to_traverse >= 0)) {
             current_node = flip(current_node);
         }
@@ -1861,7 +1875,7 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path(const handlegraph::nid
 #endif
 
     //Make sure the current node is oriented correctly
-    if ((ends_at(current_node) == END && distance_between < 0) 
+    if ((ends_at(current_node) != START && distance_between < 0) 
         || (ends_at(current_node) == START && distance_between > 0)) {
         current_node = flip(current_node);
     } 
@@ -1869,7 +1883,7 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path(const handlegraph::nid
 
     //And the next node. Based on the last entry in the first node's traceback. The second or third value will 
     //be inf depending on whether the second node's ancestor is traversed forward or backwards 
-    if ((ends_at(next_node) == END && std::get<1>(distance_traceback.first.back()) == std::numeric_limits<int32_t>::max()) 
+    if ((ends_at(next_node) != START && std::get<1>(distance_traceback.first.back()) == std::numeric_limits<int32_t>::max()) 
         || (ends_at(next_node) == START && std::get<2>(distance_traceback.first.back()) == std::numeric_limits<int32_t>::max())) {
 #ifdef debug_distance_paths
         cerr << "Flip next node which is currently: " << net_handle_as_string(next_node) << " because the last traceback for the first node is " 
@@ -1928,7 +1942,7 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path(const handlegraph::nid
 
         //Make sure the current node is oriented correctly
         if ((ends_at(next_node) == START && distance_to_traverse < 0) 
-            || (ends_at(next_node) == END && distance_to_traverse >= 0)) {
+            || (ends_at(next_node) != START && distance_to_traverse >= 0)) {
             next_node = flip(next_node);
         } 
 
@@ -1978,10 +1992,10 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path_in_snarl(const net_han
 
         //Get the start going out of the child chain (or just the node)
         handlegraph::handle_t start_handle = (is_trivial_chain(start) || is_sentinel(start)) ? get_handle(start, graph) :
-            get_handle((ends_at(start) == END ? get_bound(start, true, false) : get_bound(start, false, false)), graph); 
+            get_handle((ends_at(start) != START ? get_bound(start, true, false) : get_bound(start, false, false)), graph); 
         //Get the end going into the child chain (or just the node)
         handlegraph::handle_t end_handle = (is_trivial_chain(end) || is_sentinel(end)) ? get_handle(end, graph) :
-            get_handle((ends_at(end) == END ?  get_bound(end, false, true) : get_bound(end, true, true) ), graph); 
+            get_handle((ends_at(end) != START ?  get_bound(end, false, true) : get_bound(end, true, true) ), graph); 
 #ifdef debug_distance_paths
         cerr << "Traversing oversized snarl from " << graph->get_id(start_handle) << (graph->get_is_reverse(start_handle) ? "rev" : "fd")
              << " to " << graph->get_id(end_handle) << (graph->get_is_reverse(end_handle) ? "rev" : "fd") << endl;
@@ -2073,7 +2087,7 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path_in_snarl(const net_han
 #endif
                     //Recurse on the chain
                     net_handle_t chain_start_bound = get_bound(next_net, ends_at(next_net) == START, true);
-                    net_handle_t chain_end_bound = get_bound(next_net, ends_at(next_net) == END, false);
+                    net_handle_t chain_end_bound = get_bound(next_net, ends_at(next_net) != START, false);
 
                     //iteratee on the start bound
                     iteratee(get_handle(chain_start_bound, graph), distance_traversed);
@@ -2213,8 +2227,8 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path_in_chain(const net_han
     ChainRecord chain_record (chain_handle, &snarl_tree_records);
 
     //Are we going left in the chain?
-    bool go_left_start = (ends_at(start) == END) == is_reversed_in_parent(start);
-    bool go_left_end = (ends_at(end) == END) == is_reversed_in_parent(end);
+    bool go_left_start = (ends_at(start) != START) == is_reversed_in_parent(start);
+    bool go_left_end = (ends_at(end) != START) == is_reversed_in_parent(end);
     bool go_left = go_left_start;
 
     // We need to keep track of if we're looking for a loop immediately or after traversing a specific node, and the start and end

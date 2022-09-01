@@ -519,6 +519,13 @@ public:
      */
     net_handle_t canonical(const net_handle_t& net) const;
 
+    /*
+     * The same as canonical, but it doesn't check if the traversal is possible,
+     * so it just makes a start-end traversal of the net.
+     * Faster than canonical because it doesn't check the index for anything 
+     */
+    net_handle_t start_end_traversal_of(const net_handle_t& net) const;
+
     /**
      * Return the kind of location at which the given traversal starts.
      */
