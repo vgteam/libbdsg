@@ -2598,12 +2598,12 @@ bool SnarlDistanceIndex::is_reversed_in_parent(const net_handle_t& net) const {
         return record.get_is_reversed_in_parent();
     }
 }
-net_handle_t SnarlDistanceIndex::get_node_net_handle(const nid_t id) const {
+net_handle_t SnarlDistanceIndex::get_node_net_handle(const nid_t id, bool rev) const {
     RootRecord root_record (get_root(), &snarl_tree_records);
     size_t node_pointer_offset = get_node_pointer_offset(id, root_record.get_min_node_id(), root_record.get_connected_component_count());
     size_t record_offset = snarl_tree_records->at(node_pointer_offset);
     size_t node_record_offset = snarl_tree_records->at(node_pointer_offset+1);
-    return get_net_handle_from_values(record_offset, START_END, NODE_HANDLE, node_record_offset); 
+    return get_net_handle_from_values(record_offset, rev ? END_START : START_END, NODE_HANDLE, node_record_offset); 
 }
 
 size_t SnarlDistanceIndex::get_max_tree_depth() const {

@@ -342,7 +342,7 @@ public:
     /**
      * Get a net handle from a node
      */
-    net_handle_t get_node_net_handle(const nid_t id) const;
+    net_handle_t get_node_net_handle(const nid_t id, bool rev = false) const;
 
     /**
      * How deep is the snarl tree? The root is 0, top-level chain is 1, etc
