@@ -561,6 +561,8 @@ protected:
 
     /**
      * Internal implementation for follow_net_edges.
+     * if go_left is true, then go out  from the start of the traversal of here, otherwise go out from
+     * the end of the traversal 
      */
     bool follow_net_edges_impl(const net_handle_t& here, const handlegraph::HandleGraph* graph, bool go_left, const std::function<bool(const net_handle_t&)>& iteratee) const;
 

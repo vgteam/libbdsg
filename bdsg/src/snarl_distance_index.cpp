@@ -572,7 +572,7 @@ bool SnarlDistanceIndex::follow_net_edges_impl(const net_handle_t& here, const h
 #endif
         //TODO: Double check that this is the right way to handle this
         //If this is a root-level chain or node
-        if ((ends_at(here) == END && !go_left) || (ends_at(here) == START && go_left)) {
+        if ((go_left && starts_at(here) == END) || (!go_left && ends_at(here) == END)) {
             //Follow edges leaving the root structure at the end
             if (this_record.is_externally_start_end_connected()) {
                 //Follow edge from end to start
@@ -624,9 +624,11 @@ bool SnarlDistanceIndex::follow_net_edges_impl(const net_handle_t& here, const h
         if (get_handle_type(here) == SENTINEL_HANDLE) {
             if ((get_connectivity(here) == START_END && !go_left) ||
                 (get_connectivity(here) == START_START && go_left)) {
+                //If it's going into the snarl from the start node
                 graph_handle = graph->get_handle(parent_record.get_start_id(), parent_record.get_start_orientation());
             } else if ((get_connectivity(here) == END_START && !go_left) ||
                        (get_connectivity(here) == END_END && go_left)) {
+                //If it's going into the snarl from the end node
                 graph_handle = graph->get_handle(parent_record.get_end_id(), !parent_record.get_end_orientation());
             } else {
                 //This is facing out, so don't do anything 
@@ -634,18 +636,11 @@ bool SnarlDistanceIndex::follow_net_edges_impl(const net_handle_t& here, const h
             }
         } else if (get_handle_type(here) == NODE_HANDLE ||is_trivial_chain(here)) {
             nid_t id = node_id(here);
-            graph_handle = graph->get_handle(id, ends_at(here) == END ? go_left : !go_left);
+            graph_handle = graph->get_handle(id, go_left ? starts_at(here) == START : ends_at(here) == START);
         } else {
-            //TODO: This might not be the best way to handle orientation because it's a bit inconsistent with tips
-            //Might be better to just use go_left and pretend the traversal is forward, but that might be 
-            //unintuitive if you have a sentinel of a snarl that you think should be going in or out of the snarl
-            //
-            //If the traversal explicitly goes out the start, then we assume that it is oriented backwards
-            //and go the opposite direction of go_left. Otherwise, assume that it is oriented forwards
-            if (ends_at(here) == START) {
-                go_left = !go_left;
-            } 
-            graph_handle = get_handle(get_bound(here, !go_left, false), graph);
+            //Get the bound of the snarl or chain. If the traversal ends (or, if go_left is true, starts) at the
+            //start, then go left from here, otherwise go right (forwards)
+            graph_handle = get_handle(get_bound(here, go_left ? starts_at(here) != START : ends_at(here) != START, false), graph);
         }
 #ifdef debug_snarl_traversal
         cerr << "        traversing graph from actual node " << graph->get_id(graph_handle) << (graph->get_is_reverse(graph_handle) ? "rev" : "fd") << endl;
@@ -726,15 +721,13 @@ bool SnarlDistanceIndex::follow_net_edges_impl(const net_handle_t& here, const h
         }
         //If this is a snarl or node, then it is the component of a (possibly pretend) chain
         ChainRecord parent_chain(this_record.get_parent_record_offset(), &snarl_tree_records);
-        if (ends_at(here) == START) {
-            go_left = !go_left;
-        }
+        bool go_left_in_chain = go_left ? starts_at(here) == START : ends_at(here) == START;
         bool is_rev = is_node(here) ? TrivialSnarlRecord(get_record_offset(here), &snarl_tree_records).get_is_reversed_in_parent(get_node_record_offset(here))
                                     : false;
         if (is_rev) {
-            go_left = !go_left;
+            go_left_in_chain = !go_left_in_chain;
         }
-        net_handle_t next_net = parent_chain.get_next_child(here, go_left);
+        net_handle_t next_net = parent_chain.get_next_child(here, go_left_in_chain);
         if (next_net == here ) {
             //If this is the end of the chain
             return true;
@@ -951,7 +944,6 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
         assert(is_node(child2) || is_snarl(child2));
 #endif
 
-        //TODO: This is awful
         //These are the values needed for calculating the distance in the chain
         //They are:
         //rank in chain, go_left, node_length, prefix_sum, forward_loop, reverse_loop, component
