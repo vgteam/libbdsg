@@ -1029,6 +1029,7 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
                 }
             }
         }
+
         if (is_node(child1) != is_node(child2) && rank_in_chain1 == rank_in_chain2 &&
                go_left1 != go_left2) {
             //If one child is a node and the other is a snarl, and the node is the boundary of the snarl
@@ -1454,7 +1455,7 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
     }
 
     //The lowest common ancestor of the two positions
-    net_handle_t common_ancestor = canonical(std::move(lowest_ancestor.first));
+    net_handle_t common_ancestor = start_end_traversal_of(lowest_ancestor.first);
 
 #ifdef debug_distances
         cerr << "Found the lowest common ancestor " << net_handle_as_string(common_ancestor) << endl;
@@ -1495,7 +1496,7 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
      * Keep track of the distances to the ends of the net handles as we go
      */
  
-    if (canonical(net1) == canonical(net2)){
+    if (start_end_traversal_of(net1) == start_end_traversal_of(net2)){
         if (sum({distance_to_end1 , distance_to_start2}) > node_length(net1) && 
             sum({distance_to_end1 , distance_to_start2}) != std::numeric_limits<size_t>::max()) {
             //If the positions are on the same node and are pointing towards each other, then
@@ -1523,7 +1524,7 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
                                                    distance_to_start2 == std::numeric_limits<size_t>::max() ? std::numeric_limits<int32_t>::max() : distance_to_start2, 
                                                    distance_to_end2 == std::numeric_limits<size_t>::max() ? std::numeric_limits<int32_t>::max() : distance_to_end2);        
         }
-        common_ancestor = canonical(get_parent(net1));
+        common_ancestor = start_end_traversal_of(get_parent(net1));
     } else {
 
         //Get the distance from position 1 up to the ends of a child of the common ancestor
@@ -1539,8 +1540,8 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
                                                    distance_to_start2 == std::numeric_limits<size_t>::max() ? std::numeric_limits<int32_t>::max() : distance_to_start2, 
                                                    distance_to_end2 == std::numeric_limits<size_t>::max() ? std::numeric_limits<int32_t>::max() : distance_to_end2);        
         }
-        while (canonical(get_parent(net1)) != canonical(common_ancestor)) {
-            net_handle_t parent = canonical(get_parent(net1));
+        while (start_end_traversal_of(get_parent(net1)) != common_ancestor && !is_root(get_parent(net1))) {
+            net_handle_t parent = start_end_traversal_of(get_parent(net1));
             update_distances(net1, parent, distance_to_start1, distance_to_end1, true);
             net1 = parent;
         }
@@ -1550,8 +1551,8 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
         cerr << "Reaching the children of the lowest common ancestor for position 2..." << endl;
 #endif   
         //And the same for position 2
-        while (canonical(get_parent(net2)) != canonical(common_ancestor)) {
-            net_handle_t parent = canonical(get_parent(net2));
+        while (start_end_traversal_of(get_parent(net2)) != start_end_traversal_of(common_ancestor) && !is_root(get_parent(net2))) {
+            net_handle_t parent = start_end_traversal_of(get_parent(net2));
             update_distances(net2, parent, distance_to_start2, distance_to_end2, false);
             net2 = parent;
         }
@@ -1627,7 +1628,7 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
             //Update which net handles we're looking at
             net1 = common_ancestor;
             net2 = common_ancestor;
-            common_ancestor = canonical(get_parent(common_ancestor));
+            common_ancestor = start_end_traversal_of(get_parent(common_ancestor));
         } else {
             //Just update this one to break out of the loop
             net1 = common_ancestor;
@@ -4354,7 +4355,7 @@ size_t SnarlDistanceIndex::ChainRecord::get_distance_taking_chain_loop(size_t ra
         //then the chain must be connected for the path to be valid
         bool end_at_right_of_first = component2 == 0 && !left_side2;
         bool start_at_left_of_last = component1 == last_component && left_side1; 
-        if (end_at_right_of_first || start_at_left_of_last) {
+        if ((end_at_right_of_first || start_at_left_of_last)) {
             return std::numeric_limits<size_t>::max();
         }
     }
