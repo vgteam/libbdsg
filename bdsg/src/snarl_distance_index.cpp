@@ -1154,7 +1154,7 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
     }
 }
 
-size_t SnarlDistanceIndex::distance_to_parent_bound(net_handle_t& parent, bool to_start, net_handle_t& child, bool go_left,
+size_t SnarlDistanceIndex::distance_to_parent_bound(const net_handle_t& parent, bool to_start, net_handle_t child,
     tuple<net_handle_record_t, net_handle_record_t, net_handle_record_t, net_handle_record_t> parent_and_child_types) const {
     /* parent_and_child_types is a tuple of parent handle type, parent record type, child handle type, child record type
       * This is really just used to see if the parent and child are trivial chains, so it might not be exactly what 
@@ -1178,86 +1178,91 @@ size_t SnarlDistanceIndex::distance_to_parent_bound(net_handle_t& parent, bool t
     //in tips are start-end, meaning that they don't end at the start
     bool child_ends_at_start = ends_at(child) == START;
     if (parent_is_trivial_chain) {
-        //If this is a node pretending to be a chain in a snarl
-        if ((child_ends_at_start && to_start != go_left) ||
-            (!child_ends_at_start && to_start == go_left)) {
-            //If the child is traversed backwards and we're going start to right or end to left
-            //Or the child is traversed forwards and we're going start to left or end to right
+        //If this is a node pretending to be a chain and the parent is the trivial chain, 
+        //then the child is always oriented forwards in the parent (because it is the parent) and the distance is 0 or inf
+        if ((child_ends_at_start && to_start) ||
+            (!child_ends_at_start && !to_start)) {
+            //If the child is traversed backwards and we're going to the start
+            //Or the child is traversed forwards and we're going to the end
             return 0;
         } else {
             return std::numeric_limits<size_t>::max();
-        }
-    } else if (is_simple_snarl(parent)) {
-        bool left_side = child_ends_at_start != go_left;
-        if (to_start) {
-            if (left_side != is_reversed_in_parent(child)) {
-                return 0;
-            } else {
-                return std::numeric_limits<size_t>::max();
-            }
-        } else {
-            //to end of snarl
-            if (left_side == is_reversed_in_parent(child)) {
-                return 0;
-            } else {
-                return std::numeric_limits<size_t>::max();
-            }
-        }
+        } 
     } else if (parent_is_snarl) {
-        bool left_side = child_ends_at_start != go_left;
-
-        if (child_is_trivial_chain) {
-            NodeRecord child_record (child, &snarl_tree_records);
-            if (left_side && to_start) {
-                return child_record.get_distance_left_start();
-            } else if (!left_side && to_start) {
-                return child_record.get_distance_right_start();
-            } else if (left_side && !to_start) { 
-                return child_record.get_distance_left_end();
+        if (is_simple_snarl(parent)) {
+            if (to_start) {
+                if (child_ends_at_start != is_reversed_in_parent(child)) {
+                    //If the child is going backwards, and it isn't reversed in the parent,
+                    //or if the child is going forwards and it is reversed in the parent,
+                    //then the distances to the start will be 0
+                    return 0;
+                } else {
+                    return std::numeric_limits<size_t>::max();
+                }
             } else {
-                return child_record.get_distance_right_end();
+                //to end of snarl
+                if (child_ends_at_start == is_reversed_in_parent(child)) {
+                    //If the child is going backwards and it is reversed in the parent
+                    //or the child is going forwards and it isn't reversed in the parent
+                    return 0;
+                } else {
+                    return std::numeric_limits<size_t>::max();
+                }
             }
         } else {
-            ChainRecord child_record (child, &snarl_tree_records);
-            if (left_side && to_start) {
-                return child_record.get_distance_left_start();
-            } else if (!left_side && to_start) {
-                return child_record.get_distance_right_start();
-            } else if (left_side && !to_start) { 
-                return child_record.get_distance_left_end();
+            //Otherwise, the parent is a normal snarl and the child nodes/chains know the distance
+            //to the ends of the snarl
+    
+            if (child_is_trivial_chain) {
+                NodeRecord child_record (child, &snarl_tree_records);
+                if (child_ends_at_start && to_start) {
+                    return child_record.get_distance_left_start();
+                } else if (!child_ends_at_start && to_start) {
+                    return child_record.get_distance_right_start();
+                } else if (child_ends_at_start && !to_start) { 
+                    return child_record.get_distance_left_end();
+                } else {
+                    return child_record.get_distance_right_end();
+                }
             } else {
-                return child_record.get_distance_right_end();
+                ChainRecord child_record (child, &snarl_tree_records);
+                if (child_ends_at_start && to_start) {
+                    return child_record.get_distance_left_start();
+                } else if (!child_ends_at_start && to_start) {
+                    return child_record.get_distance_right_start();
+                } else if (child_ends_at_start && !to_start) { 
+                    return child_record.get_distance_left_end();
+                } else {
+                    return child_record.get_distance_right_end();
+                }
             }
         }
 
 
-    }
-    net_handle_t parent_bound = get_bound(parent, !to_start, true);
+    } else {
+        //Otherwise, the parent is a chain so get the bound and use distance_in_parent
 
-    //If we are looking at the left side of the child
-    bool left_of_child = child_ends_at_start ? !go_left : go_left;
-    if ((left_of_child && to_start && parent_bound == child) || 
-        //If we want the start to the left of the child and the child is the same as the bound 
-        (left_of_child && !to_start && parent_bound == child) ||
-        //If we want the end to the left of the child and the child opposite of the bound
-        (!left_of_child && to_start && parent_bound == flip(child)) ||
-        //If we want the start to the right of the child and the child opposite of the bound
-        (!left_of_child && !to_start && parent_bound == flip(child))) {
-        //If we want the end to the right of the child and they are the same
-        return 0;
-    }
-    //The node length of the boundary node, only set for chains 
-    size_t bound_length = !parent_is_chain ? 0 : minimum_length(parent_bound);
 
-    if (parent_is_chain && !to_start){
-        if (is_looping_chain(parent)){
-            //If this is a looping chain and we want the end 
-            bound_length = 0;
+        //The parent bound we want, facing in
+        net_handle_t parent_bound = get_bound(parent, !to_start, true);
+
+        if (parent_bound == flip(child)) {
+            //If the child is the bound we want and pointing into it (out of the chain)
+            return 0;
         }
+        //The node length of the boundary node, only set for chains 
+        size_t bound_length = !parent_is_chain ? 0 : minimum_length(parent_bound);
+
+        if (parent_is_chain && !to_start){
+            if (is_looping_chain(parent)){
+                //If this is a looping chain and we want the end 
+                bound_length = 0;
+            }
+        }
+        
+        return sum(bound_length, 
+                    distance_in_parent(parent, parent_bound, child));
     }
-    
-    return sum({bound_length, 
-                distance_in_parent(parent, parent_bound, go_left ? flip(child) : child)});
 
 }
 

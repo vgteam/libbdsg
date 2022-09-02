@@ -278,7 +278,7 @@ public:
      * tuple of parent record type, parent handle type, child record type, child handle type
      * This is really just used to see if the parent and child are trivial chains, so it might not be exactly what the actual record is
      */
-    size_t distance_to_parent_bound(net_handle_t& parent, bool to_start, net_handle_t& child, bool go_left,
+    size_t distance_to_parent_bound(const net_handle_t& parent, bool to_start, net_handle_t child,
                                     tuple<net_handle_record_t, net_handle_record_t, net_handle_record_t, net_handle_record_t> parent_and_child_types = make_tuple(ROOT_HANDLE, ROOT_HANDLE, ROOT_HANDLE, ROOT_HANDLE)) const;
 
     
