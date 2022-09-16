@@ -1266,6 +1266,42 @@ size_t SnarlDistanceIndex::distance_to_parent_bound(const net_handle_t& parent, 
 
 }
 
+tuple<nid_t, bool, bool> SnarlDistanceIndex::into_which_snarl(const nid_t& id, const bool& reverse) const {
+    net_handle_t node = get_node_net_handle(id, reverse);
+    net_handle_t parent = get_parent(node);
+    if (is_trivial_chain(parent) && is_root(parent)) {
+        //If the parent is a trivial chain, then it is a node child of a snarl
+        return {0, false, false};
+    } else {
+        //Otherwise, the parent is an actual chain and this is the boundary node of a (possibly trivial) snarl
+
+        //If the node is traversed forwards in the parent and we are going backwards (or the opposite),
+        //then we are going backwards in the chain
+        bool go_left_in_chain = is_reversed_in_parent(node) != reverse;
+        ChainRecord chain_record (parent, &snarl_tree_records);
+        net_handle_t next_child = chain_record.get_next_child(node, go_left_in_chain);
+        if (is_snarl(next_child)) {
+            //If the node points into a snarl
+            net_handle_t start = get_node_from_sentinel(get_bound(next_child, false, true));
+            return {node_id(start), ends_at(start) == START, false}; 
+        } else if (next_child == node) {
+            //If the node points out of the chain
+            return {0, false, false};
+        } else {
+            //If the node points to another node (trivial snarl)
+            //Assume that the trivial snarl is oriented forwards in the chain, so the start node
+            //is whichever comes first in the chain
+            if (go_left_in_chain) {
+                //If we went left in the chain, then the start node of the snarl is the next node
+                return {node_id(next_child), is_reversed_in_parent(next_child), true};
+            } else {
+                //If we went right in the chain, then the original node is the start node
+                return {id, reverse, true};
+            }
+        }
+    }
+}
+
 
 
 

@@ -281,6 +281,13 @@ public:
     size_t distance_to_parent_bound(const net_handle_t& parent, bool to_start, net_handle_t child,
                                     tuple<net_handle_record_t, net_handle_record_t, net_handle_record_t, net_handle_record_t> parent_and_child_types = make_tuple(ROOT_HANDLE, ROOT_HANDLE, ROOT_HANDLE, ROOT_HANDLE)) const;
 
+    /**
+     * If this node id and orientation is pointing into a snarl, then return the start
+     * node id and orientation pointing into the snarl, and if the snarl is trivial
+     * Returns <0, false, false> if it doesn't point into a snarl
+     */
+    tuple<nid_t, bool, bool> into_which_snarl(const nid_t& id, const bool& reverse) const;
+
     
     //Return true if child1 comes before child2 in the chain. 
     bool is_ordered_in_chain(const net_handle_t& child1, const net_handle_t& child2) const;
