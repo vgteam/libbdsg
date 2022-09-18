@@ -1770,6 +1770,254 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
 
 
 }
+size_t SnarlDistanceIndex::maximum_distance(const handlegraph::nid_t id1, const bool rev1, const size_t offset1, 
+                                            const handlegraph::nid_t id2, const bool rev2, const size_t offset2, 
+                                            bool unoriented_distance, const HandleGraph* graph) const {
+    RootRecord root_record (get_root(), &snarl_tree_records);
+    size_t max_node_id = root_record.get_min_node_id() + root_record.get_node_count();
+    if (id1 < root_record.get_min_node_id() || id2 < root_record.get_min_node_id() ||
+        id1 > max_node_id || id2 > max_node_id) {
+        throw runtime_error("error: Looking for the maximum distance of a node that does not exist");
+    }
+
+
+#ifdef debug_distances
+        cerr << endl;
+        cerr << "Find the maximum distance between " << id1 << " " <<rev1 <<" " << offset1 << " and " << id2 << " " << rev2 << " " << offset2 << endl;
+#endif
+
+
+    /*Helper function to walk up the snarl tree
+     * Given a net handle, its parent,  and the distances to the start and end of the handle, 
+     * update the distances to reach the ends of the parent and update the handle and its parent
+     * If the parent is a chain, then the new distances include the boundary nodes of the chain.
+     * If it is a snarl, it does not*/
+    //TODO: This should really be an actual function and it doesn't consider the lengths of the 
+    //boundary nodes. I think chains might need to know the lengths of their boundary nodes,
+    //or it could find it from the snarl. Really, since the snarl is storing it anyway, I should
+    //probaby rearrange things so that either the snarl or the chain can access boundary node lengths
+    auto update_distances = [&](net_handle_t& net, net_handle_t& parent, size_t& dist_start, size_t& dist_end, bool first_node) {
+#ifdef debug_distances
+        cerr << "     Updating distance from node " << net_handle_as_string(net) << " at parent " << net_handle_as_string(parent) << endl;
+#endif
+
+        if (is_trivial_chain(parent)) {
+            //Don't update distances for the trivial chain
+            return;
+        } else if (is_simple_snarl(parent)) {
+            //If it's a simple snarl just check if they should be reversed
+            if (is_reversed_in_parent (net)) {
+                size_t tmp = dist_start;
+                dist_start = dist_end;
+                dist_end = tmp;
+            } 
+
+            return;
+        }
+
+
+        net_handle_t start_bound = get_bound(parent, false, true);
+        net_handle_t end_bound = get_bound(parent, true, true);
+
+        //The lengths of the start and end nodes of net
+        //This is only needed if net is a snarl, since the boundary nodes are not technically part of the snarl
+        size_t start_length = is_chain(parent) ? node_length(start_bound) : 0;
+        size_t end_length = is_chain(parent) ? node_length(end_bound) : 0;
+
+        //Get the distances from the bounds of the parent to the node we're looking at
+        size_t distance_start_start = start_bound == net ? 0 
+                : sum({start_length, distance_in_parent(parent, start_bound, flip(net), graph)});
+        size_t distance_start_end = start_bound == flip(net) ? 0 
+                : sum({start_length, distance_in_parent(parent, start_bound, net, graph)});
+        size_t distance_end_start = end_bound == net ? 0 
+                : sum({end_length, distance_in_parent(parent, end_bound, flip(net), graph)});
+        size_t distance_end_end = end_bound == flip(net) ? 0 
+                : sum({end_length, distance_in_parent(parent, end_bound, net, graph)});
+
+        size_t distance_start = dist_start;
+        size_t distance_end = dist_end; 
+
+        dist_start = maximum( sum({distance_start_start, distance_start}), 
+                              sum({distance_start_end , distance_end}));
+        dist_end = maximum(sum({distance_end_start , distance_start}), 
+                           sum({distance_end_end , distance_end}));
+#ifdef debug_distances
+        cerr << "        ...new distances to start and end: " << dist_start << " " << dist_end << endl;
+#endif
+        return;
+    };
+
+    /*
+     * Get net handles for the two nodes and the distances from each position to the ends of the handles
+     * TODO: net2 is pointing in the opposite direction of the position. The final 
+     * distance will be between the two nets pointing towards each other
+     */
+    net_handle_t net1 = get_node_net_handle(id1);
+    net_handle_t net2 = get_node_net_handle(id2);
+    pair<net_handle_t, bool> lowest_ancestor = lowest_common_ancestor(net1, net2);
+    if (!lowest_ancestor.second) {
+        //If these are not in the same connected component
+#ifdef debug_distances
+        cerr << "These are in different connected components" << endl;
+#endif
+        return std::numeric_limits<size_t>::max();
+    }
+
+    //The lowest common ancestor of the two positions
+    net_handle_t common_ancestor = start_end_traversal_of(lowest_ancestor.first);
+
+#ifdef debug_distances
+        cerr << "Found the lowest common ancestor " << net_handle_as_string(common_ancestor) << endl;
+#endif
+    //These are the distances to the ends of the node, including the position
+    size_t distance_to_start1 = rev1 ? node_length(net1) - offset1 : offset1 + 1;
+    size_t distance_to_end1 = rev1 ? offset1 + 1 : node_length(net1) - offset1;
+    size_t distance_to_start2 = rev2 ? node_length(net2) - offset2 : offset2 + 1;
+    size_t distance_to_end2 = rev2 ? offset2 + 1 : node_length(net2) - offset2;
+
+    if (!unoriented_distance) {
+        //If we care about the oriented distance, one of the distances will be infinite
+        if (rev1) {
+            distance_to_end1 = std::numeric_limits<size_t>::max();
+        } else {
+            distance_to_start1 = std::numeric_limits<size_t>::max();
+        }
+        if (rev2) {
+            distance_to_start2 = std::numeric_limits<size_t>::max();
+        } else {
+            distance_to_end2 = std::numeric_limits<size_t>::max();
+        }
+    }
+
+#ifdef debug_distances
+        cerr << "Starting with distances " << distance_to_start1 << " " << distance_to_end1 << " and " << distance_to_start2 << " " << distance_to_end2 << endl;
+#endif
+
+    size_t maximum_distance = std::numeric_limits<size_t>::max();
+
+    //Remember which common ancestor the maximum distance actually comes from
+    //tuple of <the ancestor, distance between the children, connectivity between the two children
+    tuple<net_handle_t, size_t, connectivity_t> common_ancestor_connectivity (get_root(), std::numeric_limits<size_t>::max(), START_END); 
+
+
+    /*
+     * Walk up the snarl tree until net1 and net2 are children of the lowest common ancestor
+     * Keep track of the distances to the ends of the net handles as we go
+     */
+ 
+    if (start_end_traversal_of(net1) == start_end_traversal_of(net2)){
+        if (sum({distance_to_end1 , distance_to_start2}) > node_length(net1) && 
+            sum({distance_to_end1 , distance_to_start2}) != std::numeric_limits<size_t>::max()) {
+            //If the positions are on the same node and are pointing towards each other, then
+            //check the distance between them in the node
+            maximum_distance = minus(sum({distance_to_end1 , distance_to_start2}), node_length(net1));
+        }
+        if (sum({distance_to_start1 , distance_to_end2}) > node_length(net1) && 
+            sum({distance_to_start1 , distance_to_end2}) != std::numeric_limits<size_t>::max()) {
+            size_t new_max = minus(sum({distance_to_start1 , distance_to_end2}), node_length(net1));
+            if (new_max != std::numeric_limits<size_t>::max()) {
+                maximum_distance = maximum_distance == std::numeric_limits<size_t>::max() ? new_max 
+                                 : std::max(new_max, maximum_distance);
+            }
+        }
+        common_ancestor = start_end_traversal_of(get_parent(net1));
+    } else {
+
+        //Get the distance from position 1 up to the ends of a child of the common ancestor
+#ifdef debug_distances
+        cerr << "Reaching the children of the lowest common ancestor for first position..." << endl;
+#endif   
+        while (start_end_traversal_of(get_parent(net1)) != common_ancestor && !is_root(get_parent(net1))) {
+            net_handle_t parent = start_end_traversal_of(get_parent(net1));
+            update_distances(net1, parent, distance_to_start1, distance_to_end1, true);
+            net1 = parent;
+        }
+#ifdef debug_distances
+        cerr << "Reached node " << net_handle_as_string(net1) << " for position 1" << endl;
+        cerr << "   with distances to ends " << distance_to_start1 << " and " << distance_to_end1 << endl;
+        cerr << "Reaching the children of the lowest common ancestor for position 2..." << endl;
+#endif   
+        //And the same for position 2
+        while (start_end_traversal_of(get_parent(net2)) != start_end_traversal_of(common_ancestor) && !is_root(get_parent(net2))) {
+            net_handle_t parent = start_end_traversal_of(get_parent(net2));
+            update_distances(net2, parent, distance_to_start2, distance_to_end2, false);
+            net2 = parent;
+        }
+#ifdef debug_distances
+        cerr << "Reached node " << net_handle_as_string(net2) << " for position 2" << endl;
+        cerr << "   with distances to ends " << distance_to_start2 << " and " << distance_to_end2 << endl;
+#endif
+    }
+    //TODO: I'm taking this out because it should really be start-end connected, but this
+    //won't do this if that traversal isn't possible. Really it should just be setting the 
+    //connectivity instead
+    //net1 = canonical(net1);
+    //net2 = canonical(net2);
+
+
+    /* 
+     * common_ancestor is now the lowest common ancestor of both net handles, and 
+     * net1 and net2 are both children of common_ancestor
+     * Walk up to the root and check for distances between the positions within each
+     * ancestor
+     */
+
+    while (!is_root(net1)){
+        //TODO: Actually checking distance in a chain is between the nodes, not the snarl
+        //and neither include the lengths of the nodes
+#ifdef debug_distances
+            cerr << "At common ancestor " << net_handle_as_string(common_ancestor) <<  endl;
+            cerr << "  with distances for child 1 (" << net_handle_as_string(net1) << "): " << distance_to_start1 << " "  << distance_to_end1 << endl;
+            cerr << "                     child 2 (" << net_handle_as_string(net2) << "): " << distance_to_start2 << " " <<  distance_to_end2 << endl;
+#endif
+
+        //Find the maximum distance between the two children (net1 and net2)
+        size_t distance_start_start = distance_in_parent(common_ancestor, flip(net1), flip(net2), graph);
+        size_t distance_start_end = distance_in_parent(common_ancestor, flip(net1), net2, graph);
+        size_t distance_end_start = distance_in_parent(common_ancestor, net1, flip(net2), graph);
+        size_t distance_end_end = distance_in_parent(common_ancestor, net1, net2, graph);
+
+        size_t old_maximum = maximum_distance;
+
+        //And add those to the distances we've found to get the maximum distance between the positions
+        maximum_distance = maximum(maximum_distance, 
+                           maximum(sum({distance_start_start , distance_to_start1 , distance_to_start2}),
+                           maximum(sum({distance_start_end , distance_to_start1 , distance_to_end2}),
+                           maximum(sum({distance_end_start , distance_to_end1 , distance_to_start2}),
+                                    sum({distance_end_end , distance_to_end1 , distance_to_end2})))));
+
+
+#ifdef debug_distances
+            cerr << "    Found distances between nodes: " << distance_start_start << " " << distance_start_end << " " << distance_end_start << " " << distance_end_end << endl;
+            cerr << "  best distance is " << maximum_distance << endl;
+#endif
+        if (!is_root(common_ancestor)) {
+            //Update the distances to reach the ends of the common ancestor
+            update_distances(net1, common_ancestor, distance_to_start1, distance_to_end1, true);
+            update_distances(net2, common_ancestor, distance_to_start2, distance_to_end2, false);
+
+            //Update which net handles we're looking at
+            net1 = common_ancestor;
+            net2 = common_ancestor;
+            common_ancestor = start_end_traversal_of(get_parent(common_ancestor));
+        } else {
+            //Just update this one to break out of the loop
+            net1 = common_ancestor;
+
+        }
+
+#ifdef debug_distances
+            cerr << "  new common ancestor " << net_handle_as_string(common_ancestor) <<  endl;
+            cerr << "  new distances are " << distance_to_start1 << " "  << distance_to_end1 << 
+                    " " << distance_to_start2 << " " <<  distance_to_end2 << endl;
+#endif
+    }
+
+
+    //maximum distance currently includes both positions
+    return maximum_distance == std::numeric_limits<size_t>::max() ? std::numeric_limits<size_t>::max() : maximum_distance-1;
+
+}
 void SnarlDistanceIndex::for_each_handle_in_shortest_path(const handlegraph::nid_t id1, const bool rev1, const handlegraph::nid_t id2, const bool rev2, 
                                       const HandleGraph* graph, const std::function<bool(const handlegraph::handle_t, size_t)>& iteratee) const {
     cerr << "This isn't working, use handlegraph::algorithms::for_each_handle_in_shortest_path instead until I fix it" << endl;

@@ -259,6 +259,12 @@ public:
                             pair<vector<tuple<net_handle_t, int32_t, int32_t>>, vector<tuple<net_handle_t, int32_t, int32_t>>>* distance_traceback=nullptr) const ;
 
     /**
+     * Find an approximation of the maximum distance between two positions. 
+     * This isn't a true maximum- the only guarantee is that it's greater than or equal to the minimum distance
+     */
+    size_t maximum_distance(const handlegraph::nid_t id1, const bool rev1, const size_t offset1, const handlegraph::nid_t id2, 
+                            const bool rev2, const size_t offset2, bool unoriented_distance = false, const HandleGraph* graph=nullptr) const ;
+    /**
      * Find the distance between the two child node sides in the parent, facing each other, not 
      * including the lengths of the nodes
      * This only takes into account the endpoint of the net_handle_t traversal, it does not care if the traversal
@@ -1572,10 +1578,19 @@ public:
             return x - y;
         }
     }
+    //The maximum that isn't infinite
+    static size_t maximum(size_t x, size_t y) {
+        if (x == std::numeric_limits<size_t>::max()) {
+            return y;
+        } else if (y == std::numeric_limits<size_t>::max()) {
+            return x;
+        } else {
+            return std::max(x, y);
+        }
+    }
     //How many bits are needed to represent this value (with some wiggle room)
     static size_t bit_width(size_t value) {
         return log2(value+1) + 3;
-
     }
 public:
     //Given an arbitrary number of temporary indexes, produce the final one
