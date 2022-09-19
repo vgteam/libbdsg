@@ -5365,20 +5365,11 @@ void SnarlDistanceIndex::print_snarl_stats() const {
             cout << record.get_start_id() << "\t" 
                  << record.get_end_id() << "\t" 
                  << child_count << "\t" 
-                 << get_depth(snarl_child); 
+                 << get_depth(snarl_child) << endl; 
             return true;
         }, 
         [&](const net_handle_t& chain_child) {
-            //Iteratee of a chain child
-            if (is_trivial_chain(chain_child)) {
-                //If this is a trivial chain, don't do anything
-                return true;
-            }
-            ChainRecord record(chain_child, &snarl_tree_records);
-            cout << record.get_start_id() << "\t" 
-                 << record.get_end_id() << "\t" 
-                 << record.get_node_count() << "\t" 
-                 << record.get_depth() << endl; 
+            //Iteratee of a chain child -do nothing
             return true;
         }, 
         [&](const net_handle_t& node_child) {
@@ -5463,6 +5454,7 @@ void SnarlDistanceIndex::write_snarls_to_json() const {
                 return true;
             }
             json_t* out_json = json_object();
+            json_object_set_new(out_json, "type", json_string("chain"));
 
             //Make a new json object for this chain
             ChainRecord record(chain_child, &snarl_tree_records);
