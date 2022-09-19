@@ -13,6 +13,7 @@
 #include <string>
 #include <numeric>
 #include <arpa/inet.h>
+#include <jansson.h>
  /**
   * This defines the distance index, which also serves as a snarl tree that implements libhandlegraph's 
   * SnarlDecomposition interface
@@ -277,6 +278,12 @@ public:
      * Distance limit is the distance after which we give up if we're doing a traversal
      */
     size_t distance_in_parent(const net_handle_t& parent, const net_handle_t& child1, const net_handle_t& child2, const HandleGraph* graph=nullptr, size_t distance_limit = std::numeric_limits<size_t>::max()) const;
+
+    /**
+     * Find the maximum distance between two children in the parent. 
+     * This is the same as distance_in_parent for everything except children of chains
+     */
+    size_t max_distance_in_parent(const net_handle_t& parent, const net_handle_t& child1, const net_handle_t& child2, const HandleGraph* graph=nullptr, size_t distance_limit = std::numeric_limits<size_t>::max()) const;
 
     /**
      * Get the distance from the child to the start or end bound of the parent
@@ -716,13 +723,14 @@ private:
      */
     const static size_t BITS_FOR_TRIVIAL_NODE_OFFSET = 8;
     const static size_t MAX_TRIVIAL_SNARL_NODE_COUNT =  (1 << BITS_FOR_TRIVIAL_NODE_OFFSET) -1;
-    const static size_t TRIVIAL_SNARL_RECORD_SIZE = 7;
+    const static size_t TRIVIAL_SNARL_RECORD_SIZE = 8;
     const static size_t TRIVIAL_SNARL_PARENT_OFFSET = 1;
     const static size_t TRIVIAL_SNARL_NODE_COUNT_OFFSET = 2;
     const static size_t TRIVIAL_SNARL_PREFIX_SUM_OFFSET = 3;
-    const static size_t TRIVIAL_SNARL_FORWARD_LOOP_OFFSET = 4;
-    const static size_t TRIVIAL_SNARL_REVERSE_LOOP_OFFSET = 5;
-    const static size_t TRIVIAL_SNARL_COMPONENT_OFFSET = 6;
+    const static size_t TRIVIAL_SNARL_MAX_PREFIX_SUM_OFFSET = 4;
+    const static size_t TRIVIAL_SNARL_FORWARD_LOOP_OFFSET = 5;
+    const static size_t TRIVIAL_SNARL_REVERSE_LOOP_OFFSET = 6;
+    const static size_t TRIVIAL_SNARL_COMPONENT_OFFSET = 7;
    
     /*Snarl record (which occurs within a chain)
      * 
@@ -1121,6 +1129,7 @@ private:
         //Node ranks are from get_node_record_offset(net_handle_T)
         tuple<size_t, size_t, size_t, size_t> get_chain_values(size_t node_rank) const;
         size_t get_prefix_sum(size_t node_rank) const;
+        size_t get_max_prefix_sum(size_t node_rank) const;
         size_t get_forward_loop(size_t node_rank) const ;
         size_t get_reverse_loop(size_t node_rank) const;
         size_t get_chain_component(size_t node_rank, bool get_end=false) const;
@@ -1145,6 +1154,7 @@ private:
         using SnarlTreeRecordConstructor::records;
 
         void set_prefix_sum(size_t value) const;
+        void set_max_prefix_sum(size_t value) const;
         void set_forward_loop(size_t value) const;
         void set_reverse_loop(size_t value) const;
         void set_chain_component(size_t value) const;
@@ -1379,8 +1389,8 @@ private:
         //Add a node to the end of a chain and return the offset of the record it got added to
         //If new_record is true, make a new trivial snarl record for the node
         size_t add_node(nid_t node_id, size_t node_length, bool is_reversed_in_parent,
-                size_t prefix_sum, size_t forward_loop, size_t reverse_loop, size_t component, size_t previous_child_offset, 
-                bool new_record);
+                size_t prefix_sum, size_t forward_loop, size_t reverse_loop, size_t component, 
+                size_t max_prefix_sum, size_t previous_child_offset, bool new_record);
 
     };
 
@@ -1406,6 +1416,19 @@ public:
     //Return a string of what the handle is
     std::string net_handle_as_string(const net_handle_t& net) const;
 
+    //Traverse the decomposition and run snarl/chain/node iteratee for ever snarl/chain/node
+    //No guarantees are made about the order of the traversal
+    //Each iteratee returns false to stop iterating and true to continue
+    //Returns false if it was stopped early, true if it finished
+    bool traverse_decomposition(const std::function<bool(const net_handle_t&)>& snarl_iteratee,
+                                const std::function<bool(const net_handle_t&)>& chain_iteratee,
+                                const std::function<bool(const net_handle_t&)>& node_iteratee) const;
+    bool traverse_decomposition_helper(const net_handle_t& net,
+                                const std::function<bool(const net_handle_t&)>& snarl_iteratee,
+                                const std::function<bool(const net_handle_t&)>& chain_iteratee,
+                                const std::function<bool(const net_handle_t&)>& node_iteratee) const;
+        
+
     //Print the entire index to cout
     //Prints each snarl, chain, and node in the index, top down, one per line as a csv: 
     // self, parent, # children, depth
@@ -1414,10 +1437,17 @@ public:
     //and all its descendants
     void print_descendants_of(const net_handle_t net) const;
 
+    //Print stats about every snarl to stdout
+    //tab separated file of:
+    //start_id  end_id  node count  depth
+    void print_snarl_stats() const;
+
+    //Write a json file of every snarl, chain, and node to stderr
+    void write_snarls_to_json() const;
+
     //Validate the distance index. Without debug turned on, this will only
     //assert a bunch of stuff and try to write the thing that fails to cerr
     //With debug turned on, write the whole index the same as print_self
-
     void validate_index() const;
     void validate_descendants_of(const net_handle_t net) const;
     void validate_ancestors_of(const net_handle_t net) const;
@@ -1468,6 +1498,7 @@ public:
             vector<pair<temp_record_t, size_t>> children; //All children, both nodes and snarls, in order
             //Distances for the chain, one entry per node
             vector<size_t> prefix_sum;
+            vector<size_t> max_prefix_sum;
             vector<size_t> forward_loops;
             vector<size_t> backward_loops;
             vector<size_t> chain_components;//Which component does each node belong to, usually all 0s

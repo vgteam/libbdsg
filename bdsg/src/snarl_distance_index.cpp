@@ -1153,6 +1153,142 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
         throw runtime_error("error: Trying to find distance in the wrong type of handle");
     }
 }
+size_t SnarlDistanceIndex::max_distance_in_parent(const net_handle_t& parent, 
+        const net_handle_t& child1, const net_handle_t& child2, const HandleGraph* graph, size_t distance_limit) const {
+
+#ifdef debug_distances
+    cerr << "\t\tFind maximum distance between " << net_handle_as_string(child1) 
+         << " and " << net_handle_as_string(child2) 
+         << "\tin parent " << net_handle_as_string(parent) << endl;
+    assert(canonical(parent) == canonical(get_parent(child1)));
+    assert(canonical(parent) == canonical(get_parent(child2)));
+#endif
+
+    if (is_chain(parent)) {
+
+        //Get the orientation of the children. This only cares about the end endpoint, and assumes that things that end
+        //in tips are start-end, meaning that they don't end at the start
+        bool child_ends_at_start1 = ends_at(child1) == START;
+        bool child_ends_at_start2 = ends_at(child2) == START;
+
+        if (get_record_handle_type(get_record_type(snarl_tree_records->at(get_record_offset(parent)))) == NODE_HANDLE ||
+            get_record_handle_type(get_record_type(snarl_tree_records->at(get_record_offset(parent)))) == SNARL_HANDLE) {
+            return std::numeric_limits<size_t>::max();
+        }
+        ChainRecord chain_record(parent, &snarl_tree_records);
+#ifdef debug_distances
+        assert(is_node(child1) || is_snarl(child1));
+        assert(is_node(child2) || is_snarl(child2));
+#endif
+
+        //These are the values needed for calculating the distance in the chain
+        //They are:
+        //rank in chain, go_left, node_length, prefix_sum, forward_loop, reverse_loop, component
+        size_t rank_in_chain1; size_t rank_in_chain2;
+        bool go_left1; bool go_left2;
+        size_t node_length1; size_t node_length2;
+        size_t prefix_sum1; size_t prefix_sum2;
+        size_t forward_loop1 ; size_t forward_loop2;
+        size_t reverse_loop1 ; size_t reverse_loop2;
+        size_t component1; size_t component2;
+        size_t end_component1; size_t end_component2;
+
+        //The node lengths of snarl boundaries, to be added to the total distance
+        size_t node_lengths_to_add = 0;
+
+        //Get all the relevant chain values
+        for (size_t i = 0 ; i <=1 ; i ++ ) {
+            const net_handle_t& child = i == 0 ? child1 : child2;
+            size_t& rank_in_chain= i == 0 ? rank_in_chain1: rank_in_chain2;
+            bool& go_left_in_chain = i == 0 ? go_left1  : go_left2;
+            size_t& node_length  = i == 0 ? node_length1  : node_length2;
+            size_t& prefix_sum   = i == 0 ? prefix_sum1   : prefix_sum2;
+            size_t& forward_loop = i == 0 ? forward_loop1 : forward_loop2;
+            size_t& reverse_loop = i == 0 ? reverse_loop1 : reverse_loop2;
+            size_t& component    = i == 0 ? component1    : component2;
+            size_t& end_component    = i == 0 ? end_component1    : end_component2;
+            bool& child_ends_at_start = i == 0 ? child_ends_at_start1 : child_ends_at_start2;
+
+            if (is_node(child)) {
+
+                bool go_left = is_reversed_in_parent(child);
+                if (child_ends_at_start){
+                    go_left = !go_left;
+                }
+                rank_in_chain=get_rank_in_parent(child);
+                go_left_in_chain = go_left;
+                node_length = minimum_length(child);
+                std::tie(prefix_sum, forward_loop, reverse_loop, component) = 
+                    TrivialSnarlRecord(get_record_offset(child), &snarl_tree_records).get_chain_values(get_node_record_offset(child));
+                prefix_sum = TrivialSnarlRecord(get_record_offset(child), &snarl_tree_records).get_max_prefix_sum(get_node_record_offset(child));
+                end_component = TrivialSnarlRecord(get_record_offset(child), &snarl_tree_records).get_chain_component(get_node_record_offset(child), true);
+
+                
+            } else {
+                //If this is a snarl, then find the appropriate boundary node and fill it in
+                assert(is_snarl(child));
+                if (child_ends_at_start) {
+                    //If we're going backwards in the chain, then we want the start node
+                    //And turn it into a node, since it will be a sentinel
+                    net_handle_t start_bound = get_node_from_sentinel(get_bound(child, false, false));
+
+                    size_t start_length = minimum_length(start_bound);
+
+                        //set values for first
+                    rank_in_chain=get_record_offset(start_bound) + get_node_record_offset(start_bound);
+                    go_left_in_chain = true;
+                    node_length = start_length;
+                    std::tie(prefix_sum, forward_loop, reverse_loop, component) = 
+                        TrivialSnarlRecord (get_record_offset(start_bound), &snarl_tree_records).get_chain_values(get_node_record_offset(start_bound));
+
+                    prefix_sum = TrivialSnarlRecord (get_record_offset(start_bound), &snarl_tree_records).get_max_prefix_sum(get_node_record_offset(start_bound));
+                    node_lengths_to_add += start_length;
+                } else {
+                    //Do the same thing for the snarl end node if we're going forwards
+                    net_handle_t end_bound = get_node_from_sentinel(get_bound(child, true, false));
+                    size_t end_length = minimum_length(end_bound);
+                    size_t end_rank = get_record_offset(end_bound) + get_node_record_offset(end_bound);
+
+                    //set values for first
+                    rank_in_chain=end_rank;
+                    go_left_in_chain = false;
+                    node_length = end_length;
+                    std::tie(prefix_sum, forward_loop, reverse_loop, component) =
+                            TrivialSnarlRecord (get_record_offset(end_bound), &snarl_tree_records).get_chain_values(get_node_record_offset(end_bound));
+
+                    prefix_sum = TrivialSnarlRecord (get_record_offset(end_bound), &snarl_tree_records).get_max_prefix_sum(get_node_record_offset(end_bound));
+
+                    node_lengths_to_add += end_length;
+                }
+            }
+        }
+
+        if (is_node(child1) != is_node(child2) && rank_in_chain1 == rank_in_chain2 &&
+               go_left1 != go_left2) {
+            //If one child is a node and the other is a snarl, and the node is the boundary of the snarl
+            //pointing into the snarl, then the distance is 0
+            return 0;
+        } else if (!is_node(child1) && !is_node(child2) && rank_in_chain1 == rank_in_chain2 &&
+                go_left1 != go_left2) {
+                //If the snarls are adjacent (and not the same snarl)
+            return node_length2;//return the node length
+        }
+
+        return sum({chain_record.get_distance(rank_in_chain1, go_left1,
+                                              node_length1, prefix_sum1,
+                                              forward_loop1, reverse_loop1,
+                                              component1, component1, 
+                                              rank_in_chain2, go_left2,
+                                              node_length2, prefix_sum2,
+                                              forward_loop2, reverse_loop2,
+                                              component2, component2),
+                    node_lengths_to_add});
+
+    } else {
+        //If the parent isn't a chain, then just return the minimum
+        return distance_in_parent(parent, child1, child2, graph, distance_limit);
+    }
+}
 
 size_t SnarlDistanceIndex::distance_to_parent_bound(const net_handle_t& parent, bool to_start, net_handle_t child,
     tuple<net_handle_record_t, net_handle_record_t, net_handle_record_t, net_handle_record_t> parent_and_child_types) const {
@@ -1826,13 +1962,13 @@ size_t SnarlDistanceIndex::maximum_distance(const handlegraph::nid_t id1, const 
 
         //Get the distances from the bounds of the parent to the node we're looking at
         size_t distance_start_start = start_bound == net ? 0 
-                : sum({start_length, distance_in_parent(parent, start_bound, flip(net), graph)});
+                : sum({start_length, max_distance_in_parent(parent, start_bound, flip(net), graph)});
         size_t distance_start_end = start_bound == flip(net) ? 0 
-                : sum({start_length, distance_in_parent(parent, start_bound, net, graph)});
+                : sum({start_length, max_distance_in_parent(parent, start_bound, net, graph)});
         size_t distance_end_start = end_bound == net ? 0 
-                : sum({end_length, distance_in_parent(parent, end_bound, flip(net), graph)});
+                : sum({end_length, max_distance_in_parent(parent, end_bound, flip(net), graph)});
         size_t distance_end_end = end_bound == flip(net) ? 0 
-                : sum({end_length, distance_in_parent(parent, end_bound, net, graph)});
+                : sum({end_length, max_distance_in_parent(parent, end_bound, net, graph)});
 
         size_t distance_start = dist_start;
         size_t distance_end = dist_end; 
@@ -1972,10 +2108,10 @@ size_t SnarlDistanceIndex::maximum_distance(const handlegraph::nid_t id1, const 
 #endif
 
         //Find the maximum distance between the two children (net1 and net2)
-        size_t distance_start_start = distance_in_parent(common_ancestor, flip(net1), flip(net2), graph);
-        size_t distance_start_end = distance_in_parent(common_ancestor, flip(net1), net2, graph);
-        size_t distance_end_start = distance_in_parent(common_ancestor, net1, flip(net2), graph);
-        size_t distance_end_end = distance_in_parent(common_ancestor, net1, net2, graph);
+        size_t distance_start_start = max_distance_in_parent(common_ancestor, flip(net1), flip(net2), graph);
+        size_t distance_start_end = max_distance_in_parent(common_ancestor, flip(net1), net2, graph);
+        size_t distance_end_start = max_distance_in_parent(common_ancestor, net1, flip(net2), graph);
+        size_t distance_end_end = max_distance_in_parent(common_ancestor, net1, net2, graph);
 
         size_t old_maximum = maximum_distance;
 
@@ -4179,6 +4315,7 @@ SnarlDistanceIndex::TrivialSnarlRecord::TrivialSnarlRecord (size_t offset, const
 size_t SnarlDistanceIndex::TrivialSnarlRecord::get_node_count() const {
     return (*records)->at(record_offset+TRIVIAL_SNARL_NODE_COUNT_OFFSET);
 }
+
 tuple<size_t, size_t, size_t, size_t> SnarlDistanceIndex::TrivialSnarlRecord::get_chain_values(size_t node_rank) const {
 #ifdef debug_distances
     assert(get_record_type() == TRIVIAL_SNARL || get_record_type() == DISTANCED_TRIVIAL_SNARL);
@@ -4226,6 +4363,22 @@ tuple<size_t, size_t, size_t, size_t> SnarlDistanceIndex::TrivialSnarlRecord::ge
     return make_tuple(prefix_sum, forward_loop, reverse_loop, component);
 
 }
+size_t SnarlDistanceIndex::TrivialSnarlRecord::get_max_prefix_sum(size_t node_rank) const {
+#ifdef debug_distances
+    assert(get_record_type() == TRIVIAL_SNARL || get_record_type() == DISTANCED_TRIVIAL_SNARL);
+#endif
+    size_t prefix_sum = (*records)->at(record_offset+TRIVIAL_SNARL_MAX_PREFIX_SUM_OFFSET);
+
+    //Get the right prefix sum value
+    prefix_sum = prefix_sum == 0 ? std::numeric_limits<size_t>::max() : prefix_sum - 1;
+    if (node_rank != 0) {
+        prefix_sum =  sum(prefix_sum,  
+               (*records)->at(record_offset+TRIVIAL_SNARL_RECORD_SIZE+ (node_rank*2)-1));
+    } 
+
+    return prefix_sum;
+
+}
 size_t SnarlDistanceIndex::TrivialSnarlRecord::get_prefix_sum(size_t node_rank) const {
 #ifdef debug_distances
     assert(get_record_type() == TRIVIAL_SNARL || get_record_type() == DISTANCED_TRIVIAL_SNARL);
@@ -4233,8 +4386,8 @@ size_t SnarlDistanceIndex::TrivialSnarlRecord::get_prefix_sum(size_t node_rank) 
     size_t prefix_sum = (*records)->at(record_offset+TRIVIAL_SNARL_PREFIX_SUM_OFFSET);  
     prefix_sum = prefix_sum == 0 ? std::numeric_limits<size_t>::max() : prefix_sum - 1;
     if (node_rank != 0) {
-        return sum({prefix_sum,  
-               (*records)->at(record_offset+TRIVIAL_SNARL_RECORD_SIZE+ (node_rank*2)-1)});
+        return sum(prefix_sum,  
+               (*records)->at(record_offset+TRIVIAL_SNARL_RECORD_SIZE+ (node_rank*2)-1));
     } else {
         return prefix_sum;
     }
@@ -4404,6 +4557,14 @@ void SnarlDistanceIndex::TrivialSnarlRecordConstructor::set_prefix_sum(size_t va
 #endif
     value = value == std::numeric_limits<size_t>::max() ? 0 : value +1;
     (*records)->at(record_offset + TRIVIAL_SNARL_PREFIX_SUM_OFFSET) = value;
+}
+void SnarlDistanceIndex::TrivialSnarlRecordConstructor::set_max_prefix_sum(size_t value) const {
+#ifdef debug_distance_indexing
+    cerr <<record_offset + TRIVIAL_SNARL_MAX_PREFIX_SUM_OFFSET << " set node prefix sum " << value << endl;
+    assert((*records)->at(record_offset + TRIVIAL_SNARL_MAX_PREFIX_SUM_OFFSET) == 0);
+#endif
+    value = value == std::numeric_limits<size_t>::max() ? 0 : value +1;
+    (*records)->at(record_offset + TRIVIAL_SNARL_MAX_PREFIX_SUM_OFFSET) = value;
 }
 void SnarlDistanceIndex::TrivialSnarlRecordConstructor::set_forward_loop(size_t value) const { 
 #ifdef debug_distance_indexing
@@ -4992,7 +5153,7 @@ SnarlDistanceIndex::SimpleSnarlRecordConstructor SnarlDistanceIndex::ChainRecord
 
 
 size_t SnarlDistanceIndex::ChainRecordConstructor::add_node(nid_t node_id, size_t node_length, bool is_reversed_in_parent,
-    size_t prefix_sum, size_t forward_loop, size_t reverse_loop, size_t component, size_t previous_child_offset, bool new_record) {
+    size_t prefix_sum, size_t forward_loop, size_t reverse_loop, size_t component, size_t max_prefix_sum, size_t previous_child_offset, bool new_record) {
 #ifdef debug_distance_indexing
     cerr << "Adding new node to chain, with previous child at offset " << previous_child_offset << endl;
 #endif
@@ -5035,6 +5196,7 @@ size_t SnarlDistanceIndex::ChainRecordConstructor::add_node(nid_t node_id, size_
         trivial_snarl_record.set_parent_record_offset(record_offset);
         trivial_snarl_record.set_node_count(1);
         trivial_snarl_record.set_prefix_sum(prefix_sum);
+        trivial_snarl_record.set_max_prefix_sum(max_prefix_sum);;
         trivial_snarl_record.set_forward_loop(forward_loop);
         trivial_snarl_record.set_reverse_loop(reverse_loop);
         trivial_snarl_record.set_chain_component(component);
@@ -5143,6 +5305,45 @@ string SnarlDistanceIndex::net_handle_as_string(const net_handle_t& net) const {
     return result;
 }
 
+bool SnarlDistanceIndex::traverse_decomposition(const std::function<bool(const net_handle_t&)>& snarl_iteratee,
+                                                const std::function<bool(const net_handle_t&)>& chain_iteratee,
+                                                const std::function<bool(const net_handle_t&)>& node_iteratee) const {
+    net_handle_t root = get_root();
+    return for_each_child(root, [&] (const net_handle_t& child) {
+        return traverse_decomposition_helper(child, snarl_iteratee, chain_iteratee, node_iteratee);
+    });
+
+}
+bool SnarlDistanceIndex::traverse_decomposition_helper(const net_handle_t& net,
+                                                const std::function<bool(const net_handle_t&)>& snarl_iteratee,
+                                                const std::function<bool(const net_handle_t&)>& chain_iteratee,
+                                                const std::function<bool(const net_handle_t&)>& node_iteratee) const {
+    if (is_node(net)) {
+        //If this is a node, then run iteratee and we're done
+        return node_iteratee(net);
+    } else if (is_snarl(net)) {
+        //IF this is a snarl, run iteratee and if it returns false, return false to stop iterating
+        bool result = snarl_iteratee(net);
+        if (!result){
+            return false;
+        }
+    } else if (is_chain(net)) {
+        //IF this is a chain, run iteratee and if it returns false, return false to stop iterating
+        bool result = chain_iteratee(net);
+        if (!result){
+            return false;
+        }
+    } else {
+        throw runtime_error("error: traversing the wrong kind of net_handle_t in traverse_decomposition");
+    }
+    //If this was a snarl or chain, recurse
+    return for_each_child(net, [&] (const net_handle_t& child) {
+        return traverse_decomposition_helper(child, snarl_iteratee, chain_iteratee, node_iteratee);
+    });
+
+}
+
+
 
 //Print entire index to cout as csv:
 //self, parent, # children, depth
@@ -5193,6 +5394,222 @@ void SnarlDistanceIndex::print_descendants_of(const net_handle_t net) const {
         });
         }
     }
+}
+
+void SnarlDistanceIndex::print_snarl_stats() const {
+    cout << "#start_id\tend_id\tsnarl_size\tsnarl_depth" << endl;
+    traverse_decomposition(
+        [&](const net_handle_t& snarl_child) {
+            //Iteratee for a snarl child
+            SnarlTreeRecord record(snarl_child, &snarl_tree_records);
+
+            //Get the number of children depending on the type of record
+            size_t child_count;
+            if (record.get_record_type() == SNARL ||
+                        record.get_record_type() == DISTANCED_SNARL||
+                        record.get_record_type() == OVERSIZED_SNARL  
+                        ){
+ 
+                child_count = SnarlRecord(snarl_child, &snarl_tree_records).get_node_count();
+            } else if (record.get_record_type() == SIMPLE_SNARL ||
+                        record.get_record_type() == DISTANCED_SIMPLE_SNARL) {
+                child_count = SimpleSnarlRecord(snarl_child, &snarl_tree_records).get_node_count();
+            } else {
+                throw runtime_error("error: getting the snarl child count of the wrong type of record");
+            }
+            //Print the stats
+            cout << record.get_start_id() << "\t" 
+                 << record.get_end_id() << "\t" 
+                 << child_count << "\t" 
+                 << get_depth(snarl_child); 
+            return true;
+        }, 
+        [&](const net_handle_t& chain_child) {
+            //Iteratee of a chain child
+            if (is_trivial_chain(chain_child)) {
+                //If this is a trivial chain, don't do anything
+                return true;
+            }
+            ChainRecord record(chain_child, &snarl_tree_records);
+            cout << record.get_start_id() << "\t" 
+                 << record.get_end_id() << "\t" 
+                 << record.get_node_count() << "\t" 
+                 << record.get_depth() << endl; 
+            return true;
+        }, 
+        [&](const net_handle_t& node_child) {
+            //Iteratee of a node child - do nothing
+            return true;
+        });
+}
+
+void SnarlDistanceIndex::write_snarls_to_json() const {
+    traverse_decomposition(
+        [&](const net_handle_t& snarl_child) {
+            //Iteratee for a snarl child
+
+            //Make a new json object for this snarl
+            json_t* out_json = json_object();
+            json_object_set_new(out_json, "type", json_string("snarl")); 
+            SnarlTreeRecord record(snarl_child, &snarl_tree_records);
+
+            //Get the start node pointing in
+            net_handle_t start_bound = get_node_from_sentinel(get_bound(snarl_child, false, true));
+            json_t* start_json = json_object();
+            json_object_set_new(start_json, "node_id", json_integer(node_id(start_bound)));
+            json_object_set_new(start_json, "is_rev", json_boolean(ends_at(start_bound) == START));
+            //Set the start node
+            json_object_set_new(out_json, "start_node", start_json);
+
+            //Get the end node pointing in
+            net_handle_t end_bound = get_node_from_sentinel(get_bound(snarl_child, true, true));
+            json_t* end_json = json_object();
+            json_object_set_new(end_json, "node_id", json_integer(node_id(end_bound)));
+            json_object_set_new(end_json, "is_rev", json_boolean(ends_at(end_bound) == START));
+            //Set the end node
+            json_object_set_new(out_json, "end_node", end_json);
+
+            //Set the parent
+            net_handle_t parent = get_parent(snarl_child);
+                json_t* parent_json = json_object();
+            if (is_root(parent)) {
+                json_object_set_new(parent_json, "type", json_string("root"));
+            } else {
+                json_object_set_new(parent_json, "type", json_string("chain"));
+                net_handle_t parent_start = get_bound(parent, false, true);
+                json_object_set_new(parent_json, "start_id", json_integer(node_id(parent_start)));
+                net_handle_t parent_end = get_bound(parent, true, false);
+                json_object_set_new(parent_json, "end_id", json_integer(node_id(parent_end)));
+            }
+            json_object_set_new(out_json, "parent", parent_json);
+
+            //Get the number of children depending on the type of record
+            if (record.get_record_type() == SNARL ||
+                        record.get_record_type() == DISTANCED_SNARL||
+                        record.get_record_type() == OVERSIZED_SNARL  
+                        ){
+                size_t child_count = SnarlRecord(snarl_child, &snarl_tree_records).get_node_count();
+                json_object_set_new(out_json, "child_count", json_integer(child_count)); 
+            } else if (record.get_record_type() == SIMPLE_SNARL ||
+                        record.get_record_type() == DISTANCED_SIMPLE_SNARL) {
+                size_t child_count = SimpleSnarlRecord(snarl_child, &snarl_tree_records).get_node_count();
+                json_object_set_new(out_json, "child_count", json_integer(child_count)); 
+            } else {
+                throw runtime_error("error: getting the snarl child count of the wrong type of record");
+            }
+
+            //Set the min and max length, if applicable
+            if (record.get_record_type() == DISTANCED_SNARL ||
+                        record.get_record_type() == DISTANCED_SIMPLE_SNARL){
+                json_object_set_new(out_json, "minimum_length", json_integer(minimum_length(snarl_child))); 
+                json_object_set_new(out_json, "maximum_length", json_integer(maximum_length(snarl_child))); 
+            }
+
+            //Set the depth
+            json_object_set_new(out_json, "depth", json_integer(get_depth(snarl_child)));
+
+            cout << json_dumps(out_json, JSON_ENCODE_ANY) << endl;
+
+            return true;
+        }, 
+        [&](const net_handle_t& chain_child) {
+            //Iteratee of a chain child
+            if (is_trivial_chain(chain_child)) {
+                //If this is a trivial chain, do nothing, handle it as a node
+                return true;
+            }
+            json_t* out_json = json_object();
+
+            //Make a new json object for this chain
+            ChainRecord record(chain_child, &snarl_tree_records);
+
+            //Get the start node pointing in
+            net_handle_t start_bound = get_bound(chain_child, false, true);
+            json_t* start_json = json_object();
+            json_object_set_new(start_json, "node_id", json_integer(node_id(start_bound)));
+            json_object_set_new(start_json, "is_rev", json_boolean(ends_at(start_bound) == START));
+            //Set the start node
+            json_object_set_new(out_json, "start_node", start_json);
+
+            //Get the end node pointing in
+            net_handle_t end_bound = get_bound(chain_child, true, true);
+            json_t* end_json = json_object();
+            json_object_set_new(end_json, "node_id", json_integer(node_id(end_bound)));
+            json_object_set_new(end_json, "is_rev", json_boolean(ends_at(end_bound) == START));
+            //Set the end node
+            json_object_set_new(out_json, "end_node", end_json);
+
+            //Set the parent
+            net_handle_t parent = get_parent(chain_child);
+                json_t* parent_json = json_object();
+            if (is_root(parent)) {
+                json_object_set_new(parent_json, "type", json_string("root"));
+            } else {
+                json_object_set_new(parent_json, "type", json_string("snarl"));
+                net_handle_t parent_start = get_bound(parent, false, true);
+                json_object_set_new(parent_json, "start_id", json_integer(node_id(parent_start)));
+                net_handle_t parent_end = get_bound(parent, true, false);
+                json_object_set_new(parent_json, "end_id", json_integer(node_id(parent_end)));
+            }
+            json_object_set_new(out_json, "parent", parent_json);
+
+            //Get the number of children depending on the type of record
+            json_object_set_new(out_json, "child_count", json_integer(record.get_node_count())); 
+
+            //Set the min and max length, if applicable
+            if (record.get_record_type() == DISTANCED_CHAIN) {
+                json_object_set_new(out_json, "minimum_length", json_integer(minimum_length(chain_child))); 
+                json_object_set_new(out_json, "maximum_length", json_integer(maximum_length(chain_child))); 
+            }
+
+            //Set the depth
+            json_object_set_new(out_json, "depth", json_integer(get_depth(chain_child)));
+
+            cout << json_dumps(out_json, JSON_ENCODE_ANY) << endl;
+            return true;
+        }, 
+        [&](const net_handle_t& node_child) {
+            //Iteratee of a node child
+            json_t* out_json = json_object();
+
+            net_handle_t parent = get_parent(node_child);
+            if (is_trivial_chain(parent)) {
+                json_object_set_new(out_json, "type", json_string("trivial_chain"));
+                json_object_set_new(out_json, "node_id", json_integer(node_id(node_child)));
+                net_handle_t grandparent_snarl = get_parent(parent);
+
+                json_t* parent_json = json_object();
+                if (is_root(parent)) {
+                    json_object_set_new(parent_json, "type", json_string("root"));
+                } else {
+                    json_object_set_new(parent_json, "type", json_string("snarl"));
+                    net_handle_t parent_start = get_bound(grandparent_snarl, false, true);
+                    json_object_set_new(parent_json, "start_id", json_integer(node_id(parent_start)));
+                    net_handle_t parent_end = get_bound(grandparent_snarl, true, false);
+                    json_object_set_new(parent_json, "end_id", json_integer(node_id(parent_end)));
+                }
+                json_object_set_new(out_json, "parent", parent_json);
+            } else {
+                //Otherwise this is just a node
+                json_object_set_new(out_json, "type", json_string("node"));
+                json_object_set_new(out_json, "node_id", json_integer(node_id(node_child)));
+
+                json_t* parent_json = json_object();
+                if (is_root(parent)) {
+                    json_object_set_new(parent_json, "type", json_string("root"));
+                } else {
+                    json_object_set_new(parent_json, "type", json_string("chain"));
+                    net_handle_t parent_start = get_bound(parent, false, true);
+                    json_object_set_new(parent_json, "start_id", json_integer(node_id(parent_start)));
+                    net_handle_t parent_end = get_bound(parent, true, false);
+                    json_object_set_new(parent_json, "end_id", json_integer(node_id(parent_end)));
+                }
+                json_object_set_new(out_json, "parent", parent_json);
+            }
+            json_object_set_new(out_json, "length", json_integer(minimum_length(node_child)));
+            cout << json_dumps(out_json, JSON_ENCODE_ANY) << endl;
+            return true;
+        });
 }
 
 void SnarlDistanceIndex::validate_index() const {
@@ -5431,6 +5848,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                                         temp_node_record.node_id, temp_node_record.node_length, temp_node_record.reversed_in_parent,
                                         temp_chain_record.prefix_sum[chain_node_i], temp_chain_record.forward_loops[chain_node_i],
                                         temp_chain_record.backward_loops[chain_node_i], temp_chain_record.chain_components[chain_node_i],
+                                        temp_chain_record.max_prefix_sum[chain_node_i],
                                         last_child_offset.first, last_child_was_nontrivial_snarl);
 
                                 //Remember this node as the last thing in the chain
