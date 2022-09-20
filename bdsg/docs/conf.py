@@ -57,7 +57,7 @@ release = u''
 
 # -- Breathe Configuration ---------------------------------------------------
 
-breathe_projects = { "bdsg": "../build/doxygen/xml" }
+breathe_projects = { "bdsg": "../../build/doxygen/xml" }
 breathe_default_project = "bdsg"
 
 # -- General configuration ---------------------------------------------------

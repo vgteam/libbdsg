@@ -72,7 +72,7 @@ The documentation for `libbdsg` is built using Sphinx, and will invoke the CMake
 # Install Sphinx
 virtualenv --python python3 venv
 . venv/bin/activate
-pip3 install -r docs/requirements.txt
+pip3 install -r bdsg/docs/requirements.txt
 
 # Build the documentation
 make docs
