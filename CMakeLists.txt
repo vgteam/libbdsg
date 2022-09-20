@@ -2,6 +2,8 @@
 cmake_minimum_required(VERSION 3.10)
 # We can't use CMake 3.11 until we no longer have to run on Ubuntu 18.04.
 
+include(FindPkgConfig)
+
 # Make MACOSX_RPATH on explicitly, so non-installed libraries use @rpath in install name
 set(CMAKE_MACOSX_RPATH ON)
 
@@ -129,6 +131,8 @@ target_include_directories(sparsepp INTERFACE "${bdsg_DIR}/deps/sparsepp/")
 # mio (header only)
 add_subdirectory("${bdsg_DIR}/deps/mio")
 
+pkg_search_module(jansson REQUIRED jansson)
+
 if (BUILD_PYTHON_BINDINGS)
     # Binder (because some generated bindings depend on headers packaged with Binder)
     ExternalProject_Add(binder
@@ -232,6 +236,7 @@ add_library(bdsg_objs OBJECT
 
 set(bdsg_INCLUDES
   "${bdsg_DIR}/include"
+  ${JANSSON_INCLUDE_DIRS}
 )
 # Note that binder_INCLUDE will be empty if Binder isn't in use.
 
