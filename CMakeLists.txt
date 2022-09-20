@@ -243,7 +243,8 @@ set(bdsg_TARGET_DEPS
   handlegraph_shared
   bbhash
   sparsepp
-  mio::mio)
+  mio::mio
+  jansson)
 
 set(bdsg_LIBS
   ${bdsg_TARGET_DEPS}
