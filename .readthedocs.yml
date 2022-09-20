@@ -9,13 +9,13 @@ build:
   apt_packages:
     - libjansson-dev
 
-# Build documentation in the bdsg/docs/ directory with Sphinx
-sphinx:
-  configuration: bdsg/docs/conf.py
-
-# Optionally set the version of Python and requirements required to build your docs
-python:
-  version: 3.7
-  install:
-    - requirements: bdsg/docs/requirements.txt
-
+## Build documentation in the bdsg/docs/ directory with Sphinx
+#sphinx:
+#  configuration: bdsg/docs/conf.py
+#
+## Optionally set the version of Python and requirements required to build your docs
+#python:
+#  version: 3.7
+#  install:
+#    - requirements: bdsg/docs/requirements.txt
+#
