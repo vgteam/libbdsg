@@ -69,7 +69,7 @@ $(OBJ_DIR)/%.d: ;
 # Use static pattern rules so the dependency files will not be ignored if the output exists
 # See <https://stackoverflow.com/a/34983297>
 $(OBJS): $(OBJ_DIR)/%.o : $(SRC_DIR)/%.cpp $(OBJ_DIR)/%.d
-	$(CXX) $(LDFLAGS) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(LDFLAGS) $(shell pkg-config --cflags --libs jansson) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 	@touch $@
 
 
@@ -79,7 +79,7 @@ $(LIB_DIR)/libbdsg.a: $(OBJS)
 
 $(BIN_DIR)/test_libbdsg: $(LIB_DIR)/libbdsg.a $(SRC_DIR)/test_libbdsg.cpp
 	mkdir -p $(BIN_DIR)
-	$(CXX) $(LDFLAGS) $(CPPFLAGS) $(CXXFLAGS) -L $(LIB_DIR) $(SRC_DIR)/test_libbdsg.cpp -o $(BIN_DIR)/test_libbdsg $(LIB_FLAGS)
+	$(CXX) $(LDFLAGS) $(shell pkg-config --cflags --libs jansson) $(CPPFLAGS) $(CXXFLAGS) -L $(LIB_DIR) $(SRC_DIR)/test_libbdsg.cpp -o $(BIN_DIR)/test_libbdsg $(LIB_FLAGS)
 	chmod +x $(BIN_DIR)/test_libbdsg
 
 install: $(LIB_DIR)/libbdsg.a
