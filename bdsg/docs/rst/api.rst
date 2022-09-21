@@ -37,6 +37,7 @@ The module contains definitions for different types of handles. THese are refere
    :show-inheritance:
    :members:
    :inherited-members:
+
 ----------------
 Graph Interfaces
 ----------------
@@ -174,7 +175,21 @@ ODGI
 .. autoclass:: bdsg.bdsg.ODGI
    :show-inheritance:
    :members:
-   
+
+----------------------------------
+SnarlDecomposition Implementations
+----------------------------------
+
+There is one implementation for a snarl decomposition
+
+~~~~~~~~~~~~~~~~~~
+SnarlDistanceIndex
+~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: bdsg.bdsg.SnarlDistanceIndex
+   :show-inheritance:
+   :members:
+
 --------------
 Graph Overlays
 --------------
@@ -236,21 +251,3 @@ Here is an example of how to use these typed collections:
     
 .. autoclass:: vector_unsigned_long
     :members:
-
-==================================
-SnarlDecomposition Implementations
-==================================
-
-There is one implementation for a snarl decomposition
-
-~~~~~~~~~~~~~~~~~~
-SnarlDistanceIndex
-~~~~~~~~~~~~~~~~~~
-
-.. autoclass:: bdsg.bdsg.SnarlDistanceIndex
-   :show-inheritance:
-   :members:
-
-
-
-                       

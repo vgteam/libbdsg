@@ -108,8 +108,6 @@ A "snarl decomposition" describes the decomposition of the graph into nested sub
 .. doxygenclass:: handlegraph::SnarlDecomposition
    :members:
 
-
-
 ====================================
 libbdsg Handle Graph Implementations
 ====================================
@@ -141,6 +139,19 @@ ODGI
 ~~~~
    
 .. doxygenclass:: bdsg::ODGI
+   :members:
+
+-----------------------------------
+Snarl Decomposition Implementations
+-----------------------------------
+
+There is one implementation for a snarl decomposition
+
+~~~~~~~~~~~~~~~~~~
+SnarlDistanceIndex
+~~~~~~~~~~~~~~~~~~
+
+.. doxygenclass:: bdsg::SnarlDistanceIndex
    :members:
    
 --------------
@@ -194,19 +205,5 @@ All these overlay helpers are really instantiations of a couple of templates:
 .. doxygenclass:: bdsg::PairOverlayHelper
    :members:
    :undoc-members:
-
------------------------------------
-Snarl Decomposition Implementations
------------------------------------
-
-There is one implementation for a snarl decomposition
-
-~~~~~~~~~~~~~~~~~~
-SnarlDistanceIndex
-~~~~~~~~~~~~~~~~~~
-
-.. doxygenclass:: bdsg::SnarlDistanceIndex
-   :members:
-
 
 
