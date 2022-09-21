@@ -8,12 +8,10 @@
 #include <handlegraph/algorithms/dijkstra.hpp>
 #include <handlegraph/util.hpp>
 #include <handlegraph/trivially_serializable.hpp>
-#include <handlegraph/algorithms/dijkstra.hpp>
 #include <bdsg/internal/mapped_structs.hpp>
 #include <string>
 #include <numeric>
 #include <arpa/inet.h>
-#include <jansson.h>
  /**
   * This defines the distance index, which also serves as a snarl tree that implements libhandlegraph's 
   * SnarlDecomposition interface

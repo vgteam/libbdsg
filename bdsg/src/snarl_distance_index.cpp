@@ -4,6 +4,7 @@
 //#define debug_distance_paths
 
 #include "bdsg/snarl_distance_index.hpp"
+#include <jansson.h>
 
 using namespace std;
 using namespace handlegraph;
@@ -114,7 +115,7 @@ size_t SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::get_max
 
 net_handle_t SnarlDistanceIndex::get_root() const {
     // The root is the first thing in the index, the traversal is tip to tip
-    return get_net_handle_from_values(0, START_END, ROOT_HANDLE);
+    return get_net_handle_from_values(0, TIP_TIP, ROOT_HANDLE);
 }
 
 bool SnarlDistanceIndex::is_root(const net_handle_t& net) const {
