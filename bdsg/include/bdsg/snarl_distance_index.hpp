@@ -882,7 +882,7 @@ private:
  * Each net_handle_t has a pointer to the start of a record in snarl_tree_records. 
  * SnarlTreeRecord keeps the pointer and interprets the values stored in the record .
  *
- * SnarlTreeRecordConstructor does the same thing but for writing values to the index.
+ * SnarlTreeRecordWriter does the same thing but for writing values to the index.
  *
  */
     struct SnarlTreeRecord {
@@ -959,16 +959,16 @@ private:
 
     //Record interpreter that has a non-const reference to snarl_tree_records, so it can
     //also add things
-    struct SnarlTreeRecordConstructor {
+    struct SnarlTreeRecordWriter {
 
         //and does basically the same thing but doesn't inherit from it
         size_t record_offset;
         bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records;
 
         //Constructors assuming that this record already exists
-        SnarlTreeRecordConstructor() {};
-        SnarlTreeRecordConstructor (size_t pointer, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records);
-        SnarlTreeRecordConstructor (const net_handle_t& net, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records);
+        SnarlTreeRecordWriter() {};
+        SnarlTreeRecordWriter (size_t pointer, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records);
+        SnarlTreeRecordWriter (const net_handle_t& net, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records);
         //What type of snarl tree node is this?
         //This will be the first value of any record
         record_t get_record_type() const;
@@ -1008,13 +1008,13 @@ private:
 
     };
 
-    struct RootRecordConstructor : RootRecord, SnarlTreeRecordConstructor {
-        using SnarlTreeRecordConstructor::record_offset;
-        using SnarlTreeRecordConstructor::records;
-        using SnarlTreeRecordConstructor::get_record_type;
+    struct RootRecordWriter : RootRecord, SnarlTreeRecordWriter {
+        using SnarlTreeRecordWriter::record_offset;
+        using SnarlTreeRecordWriter::records;
+        using SnarlTreeRecordWriter::get_record_type;
 
         //Constructor meant for creating a new record, at the end of snarl_tree_records
-        RootRecordConstructor (size_t pointer, size_t connected_component_count, size_t node_count, size_t max_tree_depth, 
+        RootRecordWriter (size_t pointer, size_t connected_component_count, size_t node_count, size_t max_tree_depth, 
                     handlegraph::nid_t min_node_id, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records);
 
         void set_connected_component_count(size_t connected_component_count);
@@ -1041,15 +1041,15 @@ private:
 
     };
 
-    struct NodeRecordConstructor : NodeRecord , SnarlTreeRecordConstructor {
-        using SnarlTreeRecordConstructor::get_record_type;
-        using SnarlTreeRecordConstructor::record_offset;
-        using SnarlTreeRecordConstructor::records;
+    struct NodeRecordWriter : NodeRecord , SnarlTreeRecordWriter {
+        using SnarlTreeRecordWriter::get_record_type;
+        using SnarlTreeRecordWriter::record_offset;
+        using SnarlTreeRecordWriter::records;
 
 
         //Constructor meant for creating a new record, at the end of snarl_tree_records
         //The memory for all nodes has already been allocated by the root
-        NodeRecordConstructor (size_t pointer, size_t node_offset, record_t type, 
+        NodeRecordWriter (size_t pointer, size_t node_offset, record_t type, 
             bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* snarl_records, nid_t node_id);
 
         void set_node_id(nid_t value);
@@ -1093,10 +1093,10 @@ private:
     //we don't initially know how many nodes it contains
     //
    
-    struct TrivialSnarlRecordConstructor : TrivialSnarlRecord, SnarlTreeRecordConstructor {
-        using SnarlTreeRecordConstructor::get_record_type;
-        using SnarlTreeRecordConstructor::record_offset;
-        using SnarlTreeRecordConstructor::records;
+    struct TrivialSnarlRecordWriter : TrivialSnarlRecord, SnarlTreeRecordWriter {
+        using SnarlTreeRecordWriter::get_record_type;
+        using SnarlTreeRecordWriter::record_offset;
+        using SnarlTreeRecordWriter::records;
 
         void set_prefix_sum(size_t value) const;
         void set_max_prefix_sum(size_t value) const;
@@ -1109,7 +1109,7 @@ private:
         //Constructor meant for creating a new record, at the end of snarl_tree_records
         //New record is true if this is the first time we're making this trivial snarl, false if we
         //just need the constructor to add a new node
-        TrivialSnarlRecordConstructor (size_t pointer, record_t type, 
+        TrivialSnarlRecordWriter (size_t pointer, record_t type, 
             bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* snarl_records, bool new_record);
     };
 
@@ -1148,16 +1148,16 @@ private:
 
     };
 
-    struct SnarlRecordConstructor : SnarlRecord , SnarlTreeRecordConstructor {
-        using SnarlTreeRecordConstructor::records;
-        using SnarlTreeRecordConstructor::record_offset;
-        using SnarlTreeRecordConstructor::get_record_type;
+    struct SnarlRecordWriter : SnarlRecord , SnarlTreeRecordWriter {
+        using SnarlTreeRecordWriter::records;
+        using SnarlTreeRecordWriter::record_offset;
+        using SnarlTreeRecordWriter::get_record_type;
 
 
-        SnarlRecordConstructor();
+        SnarlRecordWriter();
 
-        SnarlRecordConstructor (size_t node_count, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, record_t type);
-        SnarlRecordConstructor(bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, size_t pointer);
+        SnarlRecordWriter (size_t node_count, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, record_t type);
+        SnarlRecordWriter(bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, size_t pointer);
 
         void set_distance(size_t rank1, bool right_side1, size_t rank2, bool right_side2, size_t distance);
 
@@ -1203,16 +1203,16 @@ private:
         bool for_each_child(const std::function<bool(const net_handle_t&)>& iteratee) const;
 
     };
-    struct SimpleSnarlRecordConstructor : SimpleSnarlRecord , SnarlTreeRecordConstructor {
-        using SnarlTreeRecordConstructor::records;
-        using SnarlTreeRecordConstructor::record_offset;
-        using SnarlTreeRecordConstructor::get_record_type;
+    struct SimpleSnarlRecordWriter : SimpleSnarlRecord , SnarlTreeRecordWriter {
+        using SnarlTreeRecordWriter::records;
+        using SnarlTreeRecordWriter::record_offset;
+        using SnarlTreeRecordWriter::get_record_type;
 
 
-        SimpleSnarlRecordConstructor();
+        SimpleSnarlRecordWriter();
 
-        SimpleSnarlRecordConstructor (size_t node_count, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, record_t type);
-        SimpleSnarlRecordConstructor(bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, size_t pointer);
+        SimpleSnarlRecordWriter (size_t node_count, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, record_t type);
+        SimpleSnarlRecordWriter(bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, size_t pointer);
 
 
         //Node count is the number of nodes in the snarl, not including boundary nodes
@@ -1286,17 +1286,17 @@ private:
 
     };
 
-    struct ChainRecordConstructor : ChainRecord , SnarlTreeRecordConstructor {
+    struct ChainRecordWriter : ChainRecord , SnarlTreeRecordWriter {
         //Constructor for a chain record.
         //Since the size of the vector will be unknown (since we don't know how big the snarls are),
         //Add nodes and snarls as they come up. Assumes that the memory has already been reserved but
         //not allocated yet.
-        using SnarlTreeRecordConstructor::records;
-        using SnarlTreeRecordConstructor::record_offset;
-        using SnarlTreeRecordConstructor::get_record_type;
+        using SnarlTreeRecordWriter::records;
+        using SnarlTreeRecordWriter::record_offset;
+        using SnarlTreeRecordWriter::get_record_type;
 
-        ChainRecordConstructor() {}
-        ChainRecordConstructor (size_t pointer, record_t type, size_t node_count, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records);
+        ChainRecordWriter() {}
+        ChainRecordWriter (size_t pointer, record_t type, size_t node_count, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records);
 
 
 
@@ -1316,7 +1316,7 @@ private:
          * These will always be called in order going forward in the chain.
          * The chain is actually composed of snarl records and trivial snarl records, but we 
          * add things by node and snarl.
-         * We need to keep a SnarlTreeRecordConstructor to the last thing that we added (snarl or trivial snarl),
+         * We need to keep a SnarlTreeRecordWriter to the last thing that we added (snarl or trivial snarl),
          * so that when we add nodes we either add them to the end of the last trivial snarl or 
          * (if we have too many nodes in the last trivial snarl or if the last thing on the chain is a snarl) 
          * create a new trivial snarl .
@@ -1325,9 +1325,9 @@ private:
          *
          */
 
-        //Add a snarl to the end of the chain and return a SnarlRecordConstructor pointing to it
-        SnarlRecordConstructor add_snarl(size_t snarl_size, record_t type, size_t previous_child_offset); 
-        SimpleSnarlRecordConstructor add_simple_snarl(size_t snarl_size, record_t type, size_t previous_child_offset); 
+        //Add a snarl to the end of the chain and return a SnarlRecordWriter pointing to it
+        SnarlRecordWriter add_snarl(size_t snarl_size, record_t type, size_t previous_child_offset); 
+        SimpleSnarlRecordWriter add_simple_snarl(size_t snarl_size, record_t type, size_t previous_child_offset); 
         //Add a node to the end of a chain and return the offset of the record it got added to
         //If new_record is true, make a new trivial snarl record for the node
         size_t add_node(nid_t node_id, size_t node_length, bool is_reversed_in_parent,
