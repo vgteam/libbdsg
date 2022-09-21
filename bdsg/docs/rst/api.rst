@@ -33,6 +33,10 @@ The module contains definitions for different types of handles. THese are refere
    :members:
    :inherited-members:
    
+.. autoclass:: bdsg.handlegraph.net_handle_t
+   :show-inheritance:
+   :members:
+   :inherited-members:
 ----------------
 Graph Interfaces
 ----------------
@@ -117,7 +121,18 @@ Orthogonal to the mutability and paths hierarchy, there is a :class:`bdsg.handle
    :show-inheritance:
    :members:
    :inherited-members:
-   
+ 
+~~~~~~~~~~~~~~~~~~
+SnarlDecomposition
+~~~~~~~~~~~~~~~~~~
+
+A "snarl decomposition" describes the decomposition of the graph into nested substructures known as snarls and chains. The :class:`bdsg.handlegraph.SnarlDecomposition` interface defines methods for traversing the snarl decomposition of a graph using :class:`bdsg.handelgraph.net_handle_t`.
+
+.. autoclass:: bdsg.handlegraph.SnarlDecomposition
+   :show-inheritance:
+   :members:
+   :inherited-members:
+     
 ====================================
 libbdsg Handle Graph Implementations
 ====================================
@@ -222,4 +237,20 @@ Here is an example of how to use these typed collections:
 .. autoclass:: vector_unsigned_long
     :members:
 
+==================================
+SnarlDecomposition Implementations
+==================================
 
+There is one implementation for a snarl decomposition
+
+~~~~~~~~~~~~~~~~~~
+SnarlDistanceIndex
+~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: bdsg.bdsg.SnarlDistanceIndex
+   :show-inheritance:
+   :members:
+
+
+
+                       

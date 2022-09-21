@@ -123,13 +123,36 @@ namespace bdsg {
 using namespace sdsl;
 using namespace std;
 using namespace handlegraph;
+
 /**
- * The distance index. Stores minimum distances among nodes in each 
- * snarl's netgraph and each chain.
- * Also used to store the snarl tree
- */
-
-
+  * This defines the distance index, which also serves as a snarl tree that implements libhandlegraph's 
+  * SnarlDecomposition interface
+  *
+  * The distance index is used to find the minimum distance between two positions on the graph
+  * The structure of the distance index is based on the snarl tree. 
+  * Variation graphs can be decomposed into nested substructures called "snarls" and "chains, and the 
+  * decomposition is described by the snarl tree
+  * The distance index provides an interface to traverse the snarl tree and to find minimum distances
+  * between two sibling nodes in the snarl tree (eg between two chains that are children of the same snarl)
+  * The distance index can also be built without distances and used just to traverse the snarl tree
+  *
+  * A chain is comprised of at least one node and may also contain snarls. 
+  * Each snarl is comprised of child chains and is bounded by two boundary nodes. 
+  * The boundary nodes are not part of the snarl, but are represented in the snarl as sentinels
+  * Trivial snarls (with only one edge between the boundary nodes) are not represented, but a snarl may 
+  * have no nodes if it has other edges
+  *
+  * The root of a snarl tree is contains child chains. The children of the root are not necessarily connected
+  * components in the graph- there may be connectivity between chains that are children of the root
+  *
+  * All structures in the snarl tree have two sides that can define the orientation of a traversal 
+  * A forward traversal of a node is always based on the node's orientation 
+  * A forward traversal of a snarl or chain goes from its start boundary node to its end boundary node
+  * Nodes and snarls can also be oriented backwards relative to the orientation of the parent chain- 
+  * if a traversal of a chain going start to end traverses a child end to start. Then the child would 
+  * be considered to be reversed in its parent
+  *
+  */
 class SnarlDistanceIndex : public SnarlDecomposition, public TriviallySerializable {
 
 public:
@@ -309,7 +332,10 @@ public:
     size_t get_max_tree_depth() const;
 
     /**
-     * What is the depth of this net handle. Nodes and snarls get the depth of their parent, the epth of the root is 0
+     * What is the depth of this net handle? Nodes and snarls get the depth of their parent
+     * The depth of the root is 0, the depth of its child chains is 1, the depth of the nodes and snarls that are 
+     * children of those chains is also 1, and the chains that are children of those snarls have depth 2
+
      */
     size_t get_depth(const net_handle_t& net) const;
 
