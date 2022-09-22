@@ -597,14 +597,14 @@ public:
     
     }
     handlegraph::net_handle_t get_net_handle(size_t pointer, connectivity_t connectivity) const  {
-        net_handle_record_t type = SnarlTreeRecord(pointer, &snarl_tree_records).get_record_handle_type(); 
-        size_t node_record_offset = SnarlTreeRecord(pointer, &snarl_tree_records).get_record_type() == SIMPLE_SNARL || 
-                                    SnarlTreeRecord(pointer, &snarl_tree_records).get_record_type() == SIMPLE_SNARL ? 1 : 0;
+        net_handle_record_t type = SnarlTreeRecord::get_record_handle_type(pointer, &snarl_tree_records); 
+        size_t node_record_offset = SnarlTreeRecord::get_record_type(pointer, &snarl_tree_records) == SIMPLE_SNARL || 
+                                    SnarlTreeRecord::get_record_type(pointer, &snarl_tree_records) == SIMPLE_SNARL ? 1 : 0;
         return get_net_handle_from_values(pointer, connectivity, type, node_record_offset); 
     
     }
     handlegraph::net_handle_t get_net_handle(size_t pointer) const  {
-        net_handle_record_t type = SnarlTreeRecord(pointer, &snarl_tree_records).get_record_handle_type(); 
+        net_handle_record_t type = SnarlTreeRecord::get_record_handle_type(pointer, &snarl_tree_records); 
         return get_net_handle_from_values(pointer, START_END, type); 
     
     }
@@ -857,20 +857,20 @@ private:
      */
     /////////// Methods for interpreting the tags for each snarl tree record
 
-    const static record_t get_record_type(const size_t tag) {return static_cast<record_t>(tag >> 9);}
+    const static record_t get_record_type(const size_t& tag) {return static_cast<record_t>(tag >> 9);}
 
-    const static bool is_start_start_connected(const size_t tag) {return tag & 32;}
-    const static bool is_start_end_connected(const size_t tag)   {return tag & 16;}
-    const static bool is_start_tip_connected(const size_t tag)   {return tag & 8;}
-    const static bool is_end_end_connected(const size_t tag)     {return tag & 4;}
-    const static bool is_end_tip_connected(const size_t tag)     {return tag & 2;}
-    const static bool is_tip_tip_connected(const size_t tag)     {return tag & 1;}
+    const static bool is_start_start_connected(const size_t& tag) {return tag & 32;}
+    const static bool is_start_end_connected(const size_t& tag)   {return tag & 16;}
+    const static bool is_start_tip_connected(const size_t& tag)   {return tag & 8;}
+    const static bool is_end_end_connected(const size_t& tag)     {return tag & 4;}
+    const static bool is_end_tip_connected(const size_t& tag)     {return tag & 2;}
+    const static bool is_tip_tip_connected(const size_t& tag)     {return tag & 1;}
 
     //And the external connectivity. This is only relevant for root-level structures
     //since it would otherwise be captured by the containing snarl
-    const static bool is_externally_start_end_connected(const size_t tag) {return tag & 64;}
-    const static bool is_externally_start_start_connected(const size_t tag) {return tag & 128;}
-    const static bool is_externally_end_end_connected(const size_t tag) {return tag & 256;}
+    const static bool is_externally_start_end_connected(const size_t& tag) {return tag & 64;}
+    const static bool is_externally_start_start_connected(const size_t& tag) {return tag & 128;}
+    const static bool is_externally_end_end_connected(const size_t& tag) {return tag & 256;}
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -887,359 +887,419 @@ private:
  */
     struct SnarlTreeRecord {
 
-
-        //The offset of the start of this record in snarl_tree_records
-        size_t record_offset;
-        const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records;
-
         //Constructors assuming that this record already exists
         SnarlTreeRecord(){};
-        SnarlTreeRecord (size_t pointer, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records);
-        SnarlTreeRecord (const net_handle_t& net, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records);
-
-        size_t get_offset() { return record_offset; }
 
         //What type of snarl tree node is this?
         //This will be the first value of any record
-        record_t get_record_type() const {return SnarlDistanceIndex::get_record_type((*records)->at(record_offset));}
+        static inline record_t get_record_type(const size_t& record_offset, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records);
 
         //The name is a bit misleading, it is the handle type that the record thinks it is, 
         //not necessarily the record type of the net_handle_t that was used to produce itused to produce it
-        net_handle_record_t get_record_handle_type() const {
-            return SnarlDistanceIndex::get_record_handle_type(get_record_type());
-        }
+        static inline net_handle_record_t get_record_handle_type(const size_t& record_offset, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records);
 
 
         //Get the internal connectivity of the structure
-        bool is_start_start_connected() const {return SnarlDistanceIndex::is_start_start_connected((*records)->at(record_offset));}
-        bool is_start_end_connected() const {return SnarlDistanceIndex::is_start_end_connected((*records)->at(record_offset));}
-        bool is_start_tip_connected() const {return SnarlDistanceIndex::is_start_tip_connected((*records)->at(record_offset));}
-        bool is_end_end_connected() const {return SnarlDistanceIndex::is_end_end_connected((*records)->at(record_offset));}
-        bool is_end_tip_connected() const {return SnarlDistanceIndex::is_end_tip_connected((*records)->at(record_offset));}
-        bool is_tip_tip_connected() const {return SnarlDistanceIndex::is_tip_tip_connected((*records)->at(record_offset));}
+        static inline bool is_start_start_connected(const size_t& record_offset, 
+                               const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records) ;
+        static inline bool is_start_end_connected(const size_t& record_offset, 
+                               const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records) ;
+        static inline bool is_start_tip_connected(const size_t& record_offset, 
+                               const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records) ;
+        static inline bool is_end_end_connected(const size_t& record_offset, 
+                               const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records) ;
+        static inline bool is_end_tip_connected(const size_t& record_offset, 
+                               const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records) ;
+        static inline bool is_tip_tip_connected(const size_t& record_offset, 
+                               const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records) ;
 
         //And the external connectivity. This is only relevant for root-level structures
         //since it would otherwise be captured by the containing snarl
-        bool is_externally_start_end_connected() const {return SnarlDistanceIndex::is_externally_start_end_connected((*records)->at(record_offset));}
-        bool is_externally_start_start_connected() const {return SnarlDistanceIndex::is_externally_start_start_connected((*records)->at(record_offset));}
-        bool is_externally_end_end_connected() const {return SnarlDistanceIndex::is_externally_end_end_connected((*records)->at(record_offset));}
+        static inline bool is_externally_start_end_connected(const size_t& record_offset, 
+                               const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records) ;
+        static inline bool is_externally_start_start_connected(const size_t& record_offset, 
+                               const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records) ;
+        static inline bool is_externally_end_end_connected(const size_t& record_offset, 
+                               const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records) ;
 
-        bool has_connectivity(connectivity_t connectivity) const;
-        bool has_connectivity(endpoint_t start, endpoint_t end);
+        static inline bool has_connectivity(const size_t& record_offset, 
+                               const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,
+                               connectivity_t connectivity) ;
+        static inline bool has_connectivity(const size_t& record_offset, 
+                               const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,
+                               endpoint_t start, endpoint_t end) ;
 
         //Get and set a pointer to this node's parent, including its orientation
-        size_t get_parent_record_offset() const;
+        static inline size_t get_parent_record_offset(const size_t& record_offset, 
+                               const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records) ;
 
         //Get and set the minimum length (distance from start to end, including boundaries for 
         // chains but not snarls, just node length for nodes)
-        size_t get_min_length() const;
+        static inline size_t get_min_length(const size_t& record_offset, 
+                               const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records) ;
         
         //Get and set this node's maximum length.
         //This isn't actually a maximum, it's the maximum among minimum distance paths 
         //through each node in the snarl/chain
-        size_t get_max_length() const;
+        static inline size_t get_max_length(const size_t& record_offset, 
+                               const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records) ;
 
         //Get and set this structure's rank in its parent.
         //For children of snarls, this means the actual rank.
         //For children of chains, it points to the node in the chain
-        size_t get_rank_in_parent() const;
+        static inline size_t get_rank_in_parent(const size_t& record_offset, 
+                               const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records) ;
 
         //Is this node reversed in its parent
-        bool get_is_reversed_in_parent() const;
+        static inline bool get_is_reversed_in_parent(const size_t& record_offset, 
+                               const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records) ;
 
         //Get the node id of the start/end of this structure (start node of a snarl/chain)
-        handlegraph::nid_t get_start_id() const; 
+        static inline handlegraph::nid_t get_start_id(const size_t& record_offset, 
+                               const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records) ; 
         //True if the node is traversed backwards to enter the structure
-        bool get_start_orientation() const;
-        handlegraph::nid_t get_end_id() const;
+        static inline bool get_start_orientation(const size_t& record_offset, 
+                               const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records) ;
+        static inline handlegraph::nid_t get_end_id(const size_t& record_offset, 
+                               const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records)  ;
         //Return true if the end node is traversed backwards to leave the snarl
-        handlegraph::nid_t get_end_orientation() const;
+        static inline handlegraph::nid_t get_end_orientation(const size_t& record_offset, 
+                               const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records) ;
 
-    };
+        //Functions for writing a record
+        static inline void set_start_start_connected(const size_t& record_offset, 
+                               bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records);
+        static inline void set_start_end_connected(const size_t& record_offset, 
+                               bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records);
+        static inline void set_start_tip_connected(const size_t& record_offset, 
+                               bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records);
+        static inline void set_end_end_connected(const size_t& record_offset, 
+                               bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records);
+        static inline void set_end_tip_connected(const size_t& record_offset, 
+                               bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records);
+        static inline void set_tip_tip_connected(const size_t& record_offset, 
+                               bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records);
+        static inline void set_externally_start_end_connected(const size_t& record_offset, 
+                               bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records);
+        static inline void set_externally_start_start_connected(const size_t& record_offset, 
+                               bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records);
+        static inline void set_externally_end_end_connected(const size_t& record_offset, 
+                               bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records);
+        static inline void set_record_type(const size_t& record_offset, 
+                               bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, record_t type);
+        static inline void set_min_length(const size_t& record_offset, 
+                               bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,size_t length);
+        static inline void set_max_length(const size_t& record_offset, 
+                               bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,size_t length);
+        static inline void set_rank_in_parent(const size_t& record_offset, 
+                               bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,size_t rank);
+        static inline void set_is_reversed_in_parent(const size_t& record_offset, 
+                               bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,bool rev);
+        static inline void set_parent_record_offset(const size_t& record_offset, 
+                               bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,size_t pointer);
 
-    //Record interpreter that has a non-const reference to snarl_tree_records, so it can
-    //also add things
-    struct SnarlTreeRecordWriter {
-
-        //and does basically the same thing but doesn't inherit from it
-        size_t record_offset;
-        bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records;
-
-        //Constructors assuming that this record already exists
-        SnarlTreeRecordWriter() {};
-        SnarlTreeRecordWriter (size_t pointer, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records);
-        SnarlTreeRecordWriter (const net_handle_t& net, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records);
-        //What type of snarl tree node is this?
-        //This will be the first value of any record
-        record_t get_record_type() const;
-        void set_start_start_connected();
-        void set_start_end_connected();
-        void set_start_tip_connected();
-        void set_end_end_connected();
-        void set_end_tip_connected();
-        void set_tip_tip_connected();
-        void set_externally_start_end_connected();
-        void set_externally_start_start_connected() const;
-        void set_externally_end_end_connected() const;
-        void set_record_type(record_t type);
-        void set_min_length(size_t length);
-        void set_max_length(size_t length);
-        void set_rank_in_parent(size_t rank);
-        void set_is_reversed_in_parent(bool rev);
-        void set_parent_record_offset(size_t pointer);
         //Rev is true if the node is traversed backwards to enter the snarl
-        void set_start_node(handlegraph::nid_t id, bool rev); 
+        static inline void set_start_node(const size_t& record_offset, 
+                               bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,handlegraph::nid_t id, bool rev); 
+
         //Rev is true if the node is traversed backwards to leave the snarl
-        void set_end_node(handlegraph::nid_t id, bool rev) const;
+        static inline void set_end_node(const size_t& record_offset, 
+                               bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,handlegraph::nid_t id, bool rev);
     };
 
     struct RootRecord : SnarlTreeRecord {
 
         RootRecord (){};
-        RootRecord (size_t pointer, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records);
-        RootRecord (net_handle_t net, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records);
 
-        size_t get_connected_component_count() const {return (*records)->at(record_offset+COMPONENT_COUNT_OFFSET);}
-        size_t get_node_count() const {return (*records)->at(record_offset+NODE_COUNT_OFFSET);}
-        size_t get_max_tree_depth() const {return (*records)->at(record_offset+MAX_TREE_DEPTH_OFFSET);}
-        size_t get_min_node_id() const {return (*records)->at(record_offset+MIN_NODE_ID_OFFSET);}
-        SnarlTreeRecord get_component_record(size_t component_number) const {return SnarlTreeRecord((*records)->at(record_offset+2+component_number), records);}
-        bool for_each_child(const std::function<bool(const handlegraph::net_handle_t&)>& iteratee) const;
 
-    };
+        static inline size_t get_connected_component_count(const size_t& record_offset, 
+                               const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records) ;
+        static inline size_t get_node_count(const size_t& record_offset, 
+                               const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records) ;
+        static inline size_t get_max_tree_depth(const size_t& record_offset, 
+                               const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records) ;
+        static inline size_t get_min_node_id(const size_t& record_offset, 
+                               const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records) ;
+        static inline SnarlTreeRecord get_component_record(const size_t& record_offset, 
+                               const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, 
+                               size_t component_number) ;
+        static inline bool for_each_child(const size_t& record_offset, 
+                               const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,
+                               const std::function<bool(const handlegraph::net_handle_t&)>& iteratee) ;
 
-    struct RootRecordWriter : RootRecord, SnarlTreeRecordWriter {
-        using SnarlTreeRecordWriter::record_offset;
-        using SnarlTreeRecordWriter::records;
-        using SnarlTreeRecordWriter::get_record_type;
+        //Methods for writing the record
 
-        //Constructor meant for creating a new record, at the end of snarl_tree_records
-        RootRecordWriter (size_t pointer, size_t connected_component_count, size_t node_count, size_t max_tree_depth, 
+        //Creating a new record, at the end of snarl_tree_records (which is at pointer)
+        //Fills in the given values
+        static inline void write_root_record(size_t pointer, size_t connected_component_count, size_t node_count, size_t max_tree_depth, 
                     handlegraph::nid_t min_node_id, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records);
-
-        void set_connected_component_count(size_t connected_component_count);
-        void set_node_count(size_t node_count);
-        void set_max_tree_depth(size_t tree_depth);
-        void set_min_node_id(handlegraph::nid_t node_id);
-        void add_component(size_t index, size_t offset);
+        static inline void set_connected_component_count(const size_t& record_offset, 
+                               bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,
+                               size_t connected_component_count);
+        static inline void set_node_count(const size_t& record_offset, 
+                               bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,size_t node_count);
+        static inline void set_max_tree_depth(const size_t& record_offset, 
+                               bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,size_t tree_depth);
+        static inline void set_min_node_id(const size_t& record_offset, 
+                               bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,
+                               handlegraph::nid_t node_id);
+        static inline void add_component(const size_t& record_offset, 
+                               bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,
+                               size_t index, size_t offset);
     };
     struct NodeRecord : SnarlTreeRecord {
 
         NodeRecord() {};
-        NodeRecord (size_t pointer, size_t node_offset, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records);
-        NodeRecord (net_handle_t net, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records);
 
-        handlegraph::nid_t get_node_id() const;
 
-        size_t get_node_length() const;
+        static inline handlegraph::nid_t get_node_id(const size_t& record_offset, 
+                           const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records) ;
+
+        static inline size_t get_node_length(const size_t& record_offset, 
+                           const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records) ;
 
         //Get the distance from left/right of the node to start/end of the parent
-        size_t get_distance_left_start();
-        size_t get_distance_right_start();
-        size_t get_distance_left_end();
-        size_t get_distance_right_end();
-
-    };
-
-    struct NodeRecordWriter : NodeRecord , SnarlTreeRecordWriter {
-        using SnarlTreeRecordWriter::get_record_type;
-        using SnarlTreeRecordWriter::record_offset;
-        using SnarlTreeRecordWriter::records;
+        static inline size_t get_distance_left_start(const size_t& record_offset, 
+                           const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records);
+        static inline size_t get_distance_right_start(const size_t& record_offset, 
+                           const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records);
+        static inline size_t get_distance_left_end(const size_t& record_offset, 
+                           const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records);
+        static inline size_t get_distance_right_end(const size_t& record_offset, 
+                           const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records);
 
 
-        //Constructor meant for creating a new record, at the end of snarl_tree_records
-        //The memory for all nodes has already been allocated by the root
-        NodeRecordWriter (size_t pointer, size_t node_offset, record_t type, 
+        //Write a new node record at the end of snarl_records, returns the offset of the new record
+        static inline size_t write_node_record(record_t type, 
             bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* snarl_records, nid_t node_id);
 
-        void set_node_id(nid_t value);
-        void set_rank_in_parent(size_t value);
-        void set_node_length(size_t value);
+        static inline void set_node_id(const size_t& record_offset, 
+                           bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, nid_t value);
+        static inline void set_rank_in_parent(const size_t& record_offset, 
+                           bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,size_t value);
+        static inline void set_node_length(const size_t& record_offset, 
+                           bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,size_t value);
 
         //Set the distance from left/right of the node to start/end of the parent
-        void set_distance_left_start(size_t distance);
-        void set_distance_right_start(size_t distance);
-        void set_distance_left_end(size_t distance);
-        void set_distance_right_end(size_t distance);
+        static inline void set_distance_left_start(const size_t& record_offset, 
+                           bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, size_t distance);
+        static inline void set_distance_right_start(const size_t& record_offset, 
+                           bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, size_t distance);
+        static inline void set_distance_left_end(const size_t& record_offset, 
+                           bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, size_t distance);
+        static inline void set_distance_right_end(const size_t& record_offset, 
+                           bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, size_t distance);
     };
 
     struct TrivialSnarlRecord : SnarlTreeRecord {
 
         TrivialSnarlRecord() {};
 
-        size_t get_node_count() const;
+
+        static inline size_t get_node_count(const size_t& record_offset, 
+                           const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records) ;
         //Returns the prefix sum, forward loop, reverse loop, and component.
         //The component will be 0 for the first/last node of a looping chain
 
         //Node ranks are from get_node_record_offset(net_handle_T)
-        tuple<size_t, size_t, size_t, size_t> get_chain_values(size_t node_rank) const;
-        size_t get_prefix_sum(size_t node_rank) const;
-        size_t get_max_prefix_sum(size_t node_rank) const;
-        size_t get_forward_loop(size_t node_rank) const ;
-        size_t get_reverse_loop(size_t node_rank) const;
-        size_t get_chain_component(size_t node_rank, bool get_end=false) const;
-        nid_t get_node_id(size_t node_rank) const; 
-        size_t get_node_length(size_t node_rank) const; 
-        size_t get_rank_in_parent(size_t node_rank) const; 
-        bool get_is_reversed_in_parent(size_t node_rank) const; //is the node_rank-th node reversed
+        static inline tuple<size_t, size_t, size_t, size_t> get_chain_values(const size_t& record_offset, 
+                           const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,
+                           size_t node_rank) ;
+        static inline size_t get_prefix_sum(const size_t& record_offset, 
+                           const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,
+                           size_t node_rank) ;
+        static inline size_t get_max_prefix_sum(const size_t& record_offset, 
+                           const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,
+                           size_t node_rank) ;
+        static inline size_t get_forward_loop(const size_t& record_offset, 
+                           const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,
+                           size_t node_rank)  ;
+        static inline size_t get_reverse_loop(const size_t& record_offset, 
+                           const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,
+                           size_t node_rank) ;
+        static inline size_t get_chain_component(const size_t& record_offset, 
+                           const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,
+                           size_t node_rank, bool get_end=false) ;
+        static inline nid_t get_node_id(const size_t& record_offset, 
+                           const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,
+                           size_t node_rank) ; 
+        static inline size_t get_node_length(const size_t& record_offset, 
+                           const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,
+                           size_t node_rank) ; 
+        static inline size_t get_rank_in_parent(const size_t& record_offset, 
+                           const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,
+                           size_t node_rank) ; 
+        static inline bool get_is_reversed_in_parent(const size_t& record_offset, 
+                           const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,
+                           size_t node_rank) ; //is the node_rank-th node reversed
 
-        size_t get_record_size() { 
-            return TRIVIAL_SNARL_RECORD_SIZE + (get_node_count() * 2);
-        }
-        TrivialSnarlRecord (size_t offset, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records);
-    };
+        static inline size_t get_record_size(const size_t& record_offset, 
+                           const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records) ;
 
-    //For constructing a trivial snarl, we only build the snarl itself, and 
-    //we don't initially know how many nodes it contains
-    //
-   
-    struct TrivialSnarlRecordWriter : TrivialSnarlRecord, SnarlTreeRecordWriter {
-        using SnarlTreeRecordWriter::get_record_type;
-        using SnarlTreeRecordWriter::record_offset;
-        using SnarlTreeRecordWriter::records;
-
-        void set_prefix_sum(size_t value) const;
-        void set_max_prefix_sum(size_t value) const;
-        void set_forward_loop(size_t value) const;
-        void set_reverse_loop(size_t value) const;
-        void set_chain_component(size_t value) const;
-        void set_node_count(size_t value) const;
-
-
-        //Constructor meant for creating a new record, at the end of snarl_tree_records
-        //New record is true if this is the first time we're making this trivial snarl, false if we
-        //just need the constructor to add a new node
-        TrivialSnarlRecordWriter (size_t pointer, record_t type, 
-            bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* snarl_records, bool new_record);
+        //Write new record at the end of snarl_records, return the offset of the new record
+        static inline size_t write_trivial_snarl_record(record_t type, 
+            bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records);
+        static inline void set_prefix_sum(const size_t& record_offset, 
+                           bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,
+                           size_t value) ;
+        static inline void set_max_prefix_sum(const size_t& record_offset, 
+                           bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,
+                           size_t value) ;
+        static inline void set_forward_loop(const size_t& record_offset, 
+                           bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,
+                           size_t value) ;
+        static inline void set_reverse_loop(const size_t& record_offset, 
+                           bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,
+                           size_t value) ;
+        static inline void set_chain_component(const size_t& record_offset, 
+                           bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,
+                           size_t value) ;
+        static inline void set_node_count(const size_t& record_offset, 
+                           bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,
+                           size_t value) ;
     };
 
     struct SnarlRecord : SnarlTreeRecord {
 
 
         SnarlRecord() {};
-        SnarlRecord (size_t pointer, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records);
-
-        SnarlRecord (net_handle_t net, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records);
 
         //How big is the entire snarl record?
-        static size_t distance_vector_size(record_t type, size_t node_count);
-        static size_t record_size (record_t type, size_t node_count) ;
-        size_t record_size() ;
+        static inline size_t distance_vector_size(record_t type, size_t node_count);
+        static inline size_t record_size (record_t type, size_t node_count) ;
+
+        static inline size_t record_size(const size_t& record_offset, 
+                           const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records) ;
 
         //Get the index into the distance vector for the calculating distance between the given node sides
-        static size_t get_distance_vector_offset(size_t rank1, bool right_side1, size_t rank2, 
+        static inline size_t get_distance_vector_offset(size_t rank1, bool right_side1, size_t rank2, 
                 bool right_side2, size_t node_count, record_t type); 
 
-        size_t get_distance_vector_offset(size_t rank1, bool right_side1, 
-                size_t rank2, bool right_side2) const;
+        //Get the index into the distance vector for this one specifically
+        static inline size_t get_distance_vector_offset(const size_t& record_offset, 
+                   const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,
+                   size_t rank1, bool right_side1, size_t rank2, bool right_side2) ;
+
+        static inline size_t get_distance_start_start(const size_t& record_offset, 
+                   const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records) ;
+        static inline size_t get_distance_end_end(const size_t& record_offset, 
+                   const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records) ;
 
         //Get and set the distances between two node sides in the graph
         //Ranks identify which node, sides indicate node side: false for left, true for right
-        size_t get_distance(size_t rank1, bool right_side1, size_t rank2, bool right_side2) const;
-
-        size_t get_distance_start_start() const;
-        size_t get_distance_end_end() const;
-
-        size_t get_node_count() const;
-
-        size_t get_child_record_pointer() const;
-
-        bool for_each_child(const std::function<bool(const net_handle_t&)>& iteratee) const;
-
-    };
-
-    struct SnarlRecordWriter : SnarlRecord , SnarlTreeRecordWriter {
-        using SnarlTreeRecordWriter::records;
-        using SnarlTreeRecordWriter::record_offset;
-        using SnarlTreeRecordWriter::get_record_type;
+        static inline size_t get_distance(const size_t& record_offset, 
+                   const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,
+                   size_t rank1, bool right_side1, size_t rank2, bool right_side2) ;
 
 
-        SnarlRecordWriter();
+        static inline size_t get_node_count(const size_t& record_offset, 
+                   const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records) ;
 
-        SnarlRecordWriter (size_t node_count, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, record_t type);
-        SnarlRecordWriter(bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, size_t pointer);
+        static inline size_t get_child_record_pointer(const size_t& record_offset, 
+                   const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records) ;
 
-        void set_distance(size_t rank1, bool right_side1, size_t rank2, bool right_side2, size_t distance);
+        static inline bool for_each_child(const size_t& record_offset, 
+                   const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,
+                   const std::function<bool(const net_handle_t&)>& iteratee) ;
 
-        void set_distance_start_start(size_t value);
-        void set_distance_end_end(size_t value) ;
+
+
+        ///Write a new SnarlRecord at the end of records. Return the offset of the new record
+        static inline size_t write_snarl_record (size_t node_count, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, record_t type);
+
+        static inline void set_distance(const size_t& record_offset, 
+                   bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,
+                   size_t rank1, bool right_side1, size_t rank2, bool right_side2, size_t distance);
+
+        static inline void set_distance_start_start(const size_t& record_offset, 
+                   bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,
+                   size_t value);
+        static inline void set_distance_end_end(const size_t& record_offset, 
+                   bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,
+                   size_t value) ;
 
         //Node count is the number of nodes in the snarl, not including boundary nodes
-        void set_node_count(size_t node_count);
+        static inline void set_node_count(const size_t& record_offset, 
+                   bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,
+                   size_t node_count);
 
-        void set_child_record_pointer(size_t pointer) ;
+        static inline void set_child_record_pointer(const size_t& record_offset, 
+                   bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,
+                   size_t pointer) ;
 
         //Add a reference to a child of this snarl. Assumes that the index is completed up
         //to here
-        void add_child(size_t pointer);
+        static inline void add_child(const size_t& record_offset, 
+                   bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,
+                   size_t pointer);
     };
 
     struct SimpleSnarlRecord : SnarlTreeRecord {
 
-        //The node offset is set if we're considering this to be a node, not a snarl
-        //If we're looking it as a snarl, then it's inf
-        //Node rank must be >=2 because 0 and 1 are the start and end node
-        size_t node_rank;
-
         SimpleSnarlRecord() {};
-        SimpleSnarlRecord (size_t pointer, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records, size_t node = std::numeric_limits<size_t>::max());
 
-        SimpleSnarlRecord (net_handle_t net, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records);
 
         //How big is the entire snarl record?
-        const static size_t record_size(size_t node_count) {return SIMPLE_SNARL_RECORD_SIZE + (node_count*2);}
-        size_t record_size() ;
+        const static inline size_t record_size(size_t node_count) {return SIMPLE_SNARL_RECORD_SIZE + (node_count*2);}
+        static inline size_t record_size(const size_t& record_offset, 
+                   const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records) ;
+
+        static inline size_t get_node_count(const size_t& record_offset, 
+                   const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records) ;
 
         //Get and set the distances between two node sides in the graph
         //Ranks identify which node, sides indicate node side: false for left, true for right
-        size_t get_distance(size_t rank1, bool right_side1, size_t rank2, bool right_side2) const;
-
-        size_t get_node_count() const;
-
-        nid_t get_node_id(size_t rank = std::numeric_limits<size_t>::max()) const;
-        size_t get_node_length(size_t rank = std::numeric_limits<size_t>::max()) const;
-        bool get_node_is_reversed(size_t rank = std::numeric_limits<size_t>::max()) const;
-
-        bool for_each_child(const std::function<bool(const net_handle_t&)>& iteratee) const;
-
-    };
-    struct SimpleSnarlRecordWriter : SimpleSnarlRecord , SnarlTreeRecordWriter {
-        using SnarlTreeRecordWriter::records;
-        using SnarlTreeRecordWriter::record_offset;
-        using SnarlTreeRecordWriter::get_record_type;
+        static inline size_t get_distance(const size_t& record_offset, 
+                   const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,
+                   size_t rank1, bool right_side1, size_t rank2, bool right_side2) ;
 
 
-        SimpleSnarlRecordWriter();
+        static inline nid_t get_node_id(const size_t& record_offset, 
+                   const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, size_t rank) ;
 
-        SimpleSnarlRecordWriter (size_t node_count, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, record_t type);
-        SimpleSnarlRecordWriter(bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, size_t pointer);
+        static inline size_t get_node_length(const size_t& record_offset, 
+                   const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, size_t rank) ;
 
+        static inline bool get_node_is_reversed(const size_t& record_offset, 
+                   const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, size_t rank) ;
+
+        static inline bool for_each_child(const size_t& record_offset, 
+                   const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,
+                   const std::function<bool(const net_handle_t&)>& iteratee) ;
+
+
+        //Write a simple snarl record at the end of records, returns the offset of the record
+        static inline size_t write_simple_snarl_record (size_t node_count, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, record_t type);
 
         //Node count is the number of nodes in the snarl, not including boundary nodes
-        void set_node_count(size_t node_count);
+        static inline void set_node_count(const size_t& record_offset, 
+                   bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,size_t node_count);
 
         //Add a reference to a child of this snarl. Assumes that the index is completed up
         //to here
-        void add_child(size_t rank, nid_t node_id, size_t node_length, bool is_reversed);
+        static inline void add_child(const size_t& record_offset, 
+                   bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,
+                   size_t rank, nid_t node_id, size_t node_length, bool is_reversed);
     };
 
     struct ChainRecord : SnarlTreeRecord {
 
         ChainRecord() {};
-        ChainRecord (size_t pointer, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records);
-        ChainRecord (net_handle_t net, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records);
-        ChainRecord (net_handle_t net, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records, size_t tag);
 
-        size_t get_node_count() const;
+        static inline size_t get_node_count(const size_t& record_offset, 
+                   const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records) ;
 
         ///Returns (offset, is_snarl, node_offset).
         //node_offset is 0 if it is a snarl
-        tuple<size_t, bool, size_t> get_last_child_offset() const;
+        static inline tuple<size_t, bool, size_t> get_last_child_offset(const size_t& record_offset, 
+                   const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records) ;
 
         ///Returns true if it is a looping chain and the last node is connected to the rest of the chain by going backwards
-        bool get_is_looping_chain_connected_backwards() const;
+        static inline bool get_is_looping_chain_connected_backwards(const size_t& record_offset, 
+                   const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records) ;
 
-        size_t get_depth() const;
+        static inline size_t get_depth(const size_t& record_offset, 
+                   const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records) ;
 
         //Get the distance between the given node sides (relative to the orientation of the chain).
         //The ranks are the offsets of the nodes in the chain (points to the record tag).
@@ -1248,28 +1308,37 @@ private:
         //is_looping_chain indicates whether this chain loops 
         //and last_chain_component is the component of the last thing in the chain.
         //component is the default component of the chain and end_component is the component if it is a looping chain and we want the second component of the first/last node.
-        size_t get_distance(size_t rank1, bool right_side1, size_t node_length1, 
-                                    size_t prefix_sum1, size_t forward_loop1, size_t reverse_loop1, size_t component1, size_t end_component1,
-                                    size_t rank2, bool right_side2, size_t node_length2,
-                                    size_t prefix_sum2, size_t forward_loop2, size_t reverse_loop2, size_t component2, size_t end_component2) const;
+        static inline size_t get_distance(const size_t& record_offset, 
+                               const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,
+                               size_t rank1, bool right_side1, size_t node_length1, 
+                               size_t prefix_sum1, size_t forward_loop1, size_t reverse_loop1, size_t component1, size_t end_component1,
+                               size_t rank2, bool right_side2, size_t node_length2,
+                               size_t prefix_sum2, size_t forward_loop2, size_t reverse_loop2, size_t component2, size_t end_component2) ;
 
         ///For a chain that loops (when the start and end node are the same), find the 
         //distance walking around the back of the loop
-        size_t get_distance_taking_chain_loop(size_t rank1, bool right_side1, size_t node_length1, 
-                                    size_t prefix_sum1, size_t forward_loop1, size_t reverse_loop1, size_t component1,
-                                    size_t rank2, bool right_side2, size_t node_length2,
-                                    size_t prefix_sum2, size_t forward_loop2, size_t reverse_loop2, size_t component2) const;
+        static inline size_t get_distance_taking_chain_loop(const size_t& record_offset, 
+                               const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,
+                               size_t rank1, bool right_side1, size_t node_length1, 
+                               size_t prefix_sum1, size_t forward_loop1, size_t reverse_loop1, size_t component1,
+                               size_t rank2, bool right_side2, size_t node_length2,
+                               size_t prefix_sum2, size_t forward_loop2, size_t reverse_loop2, size_t component2) ;
 
         //Get the distance from left/right of the chain to start/end of the parent
-        size_t get_distance_left_start();
-        size_t get_distance_right_start();
-        size_t get_distance_left_end();
-        size_t get_distance_right_end();
+        static inline size_t get_distance_left_start(const size_t& record_offset, 
+                               const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records);
+        static inline size_t get_distance_right_start(const size_t& record_offset, 
+                               const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records);
+        static inline size_t get_distance_left_end(const size_t& record_offset, 
+                               const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records);
+        static inline size_t get_distance_right_end(const size_t& record_offset, 
+                               const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records);
 
         ////////////////////////// methods for navigating the snarl tree from this chain
 
         //Get the offset into snarl_tree_records of the first node in the chain
-        size_t get_first_node_offset() const; 
+        static inline size_t get_first_node_offset(const size_t& record_offset, 
+                               const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records) ; 
 
         //Given a net_Handle_t to a child node, return the next child.
         //go_left is true if we are traversing the chain right to left.
@@ -1280,37 +1349,37 @@ private:
         //This means that you only see the boundary node as the start or the end.
         //
         //The next handle will be pointing in the direction that we just moved.
-        net_handle_t get_next_child(const net_handle_t& net_handle, bool go_left) const;
+        static inline net_handle_t get_next_child(const size_t& record_offset, 
+                               const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,
+                               const net_handle_t& net_handle, bool go_left) ;
 
-        bool for_each_child(const std::function<bool(const net_handle_t&)>& iteratee) const;
-
-    };
-
-    struct ChainRecordWriter : ChainRecord , SnarlTreeRecordWriter {
-        //Constructor for a chain record.
-        //Since the size of the vector will be unknown (since we don't know how big the snarls are),
-        //Add nodes and snarls as they come up. Assumes that the memory has already been reserved but
-        //not allocated yet.
-        using SnarlTreeRecordWriter::records;
-        using SnarlTreeRecordWriter::record_offset;
-        using SnarlTreeRecordWriter::get_record_type;
-
-        ChainRecordWriter() {}
-        ChainRecordWriter (size_t pointer, record_t type, size_t node_count, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records);
+        static inline bool for_each_child(const size_t& record_offset, 
+                               const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records,
+                               const std::function<bool(const net_handle_t&)>& iteratee) ;
 
 
 
-        void set_node_count(size_t node_count);
-        void set_depth(size_t depth);
+        //write a chain record at the end of records. Returns the offset of the record 
+        static inline size_t write_chain_record (record_t type, size_t node_count, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records);
+        static inline void set_node_count(const size_t& record_offset, 
+                            bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, size_t node_count);
+        static inline void set_depth(const size_t& record_offset, 
+                            bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, size_t depth);
 
         //The offset of the last child, if it is a snarl, and if it can loop 
-        void set_last_child_offset(size_t offset, bool is_snarl, bool loopable);
+        static inline void set_last_child_offset(const size_t& record_offset, 
+                            bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, 
+                            size_t offset, bool is_snarl, bool loopable);
 
         //Set the distance from left/right of the chain to start/end of the parent
-        void set_distance_left_start(size_t distance);
-        void set_distance_right_start(size_t distance);
-        void set_distance_left_end(size_t distance);
-        void set_distance_right_end(size_t distance);
+        static inline void set_distance_left_start(const size_t& record_offset, 
+                            bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, size_t distance);
+        static inline void set_distance_right_start(const size_t& record_offset, 
+                            bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, size_t distance);
+        static inline void set_distance_left_end(const size_t& record_offset, 
+                            bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, size_t distance);
+        static inline void set_distance_right_end(const size_t& record_offset, 
+                            bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, size_t distance);
 
         /* Functions to add children to a chain. Assumes that the chain is well formed up to here.
          * These will always be called in order going forward in the chain.
@@ -1325,32 +1394,24 @@ private:
          *
          */
 
-        //Add a snarl to the end of the chain and return a SnarlRecordWriter pointing to it
-        SnarlRecordWriter add_snarl(size_t snarl_size, record_t type, size_t previous_child_offset); 
-        SimpleSnarlRecordWriter add_simple_snarl(size_t snarl_size, record_t type, size_t previous_child_offset); 
+        //Add a snarl to the end of the chain and return the offset of the new snarl record
+        static inline size_t add_snarl(const size_t& parent_record_offset, 
+                            bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, 
+                            size_t snarl_size, record_t type, size_t previous_child_offset); 
+
+        //Add a snarl to the end of the chain and return the offset of the new snarl record
+        static inline size_t add_simple_snarl(const size_t& parent_record_offset, 
+                            bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, 
+                            size_t snarl_size, record_t type, size_t previous_child_offset); 
+
         //Add a node to the end of a chain and return the offset of the record it got added to
         //If new_record is true, make a new trivial snarl record for the node
-        size_t add_node(nid_t node_id, size_t node_length, bool is_reversed_in_parent,
-                size_t prefix_sum, size_t forward_loop, size_t reverse_loop, size_t component, 
-                size_t max_prefix_sum, size_t previous_child_offset, bool new_record);
-
+        static inline size_t add_node(const size_t& parent_record_offset, 
+                        bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, 
+                        nid_t node_id, size_t node_length, bool is_reversed_in_parent,
+                        size_t prefix_sum, size_t forward_loop, size_t reverse_loop, size_t component, 
+                        size_t max_prefix_sum, size_t previous_child_offset, bool new_record);
     };
-
-
-private:
-    ////////////////////// More methods for dealing with net_handle_ts
-    SnarlTreeRecord get_snarl_tree_record(const handlegraph::net_handle_t& net_handle) const {
-        return SnarlTreeRecord(get_record_offset(net_handle), &snarl_tree_records);
-    }
-    SnarlTreeRecord get_node_record(const handlegraph::net_handle_t& net_handle) const {
-        return NodeRecord(get_record_offset(net_handle), get_node_record_offset(net_handle), &snarl_tree_records); 
-    }
-    SnarlTreeRecord get_snarl_record(const handlegraph::net_handle_t& net_handle) const {
-        return SnarlRecord(get_record_offset(net_handle), &snarl_tree_records); 
-    }
-    SnarlTreeRecord get_chain_record(const handlegraph::net_handle_t& net_handle) const {
-        return ChainRecord(get_record_offset(net_handle), &snarl_tree_records); 
-    }
 
 public:
 
