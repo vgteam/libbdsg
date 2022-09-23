@@ -325,7 +325,7 @@ net_handle_t SnarlDistanceIndex::get_parent(const net_handle_t& child) const {
         } else {
             parent_connectivity = child_connectivity;
         }
-    } else if (parent_type == ROOT_HANDLE){
+    } else if (parent_type == ROOT_HANDLE) {
         parent_connectivity = TIP_TIP;
     }
     if (get_handle_type(child) == NODE_HANDLE && parent_type != CHAIN_HANDLE) {
