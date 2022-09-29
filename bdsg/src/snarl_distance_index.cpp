@@ -1390,7 +1390,8 @@ size_t SnarlDistanceIndex::distance_to_parent_bound(const net_handle_t& parent, 
 tuple<nid_t, bool, bool> SnarlDistanceIndex::into_which_snarl(const nid_t& id, const bool& reverse) const {
     net_handle_t node = get_node_net_handle(id, reverse);
     net_handle_t parent = get_parent(node);
-    if (is_trivial_chain(parent) && is_root(parent)) {
+
+    if (is_trivial_chain(parent) || is_root(parent)) {
         //If the parent is a trivial chain, then it is a node child of a snarl
         return {0, false, false};
     } else {
@@ -4826,6 +4827,9 @@ net_handle_t SnarlDistanceIndex::ChainRecord::get_next_child(const net_handle_t&
     //If we are inside a trivial snarl and we aren't at the ends, then we just walk through the trivial snarl
     if (get_handle_type(net_handle) == NODE_HANDLE) {
         //If this is a node in a trivial snarl
+#ifdef debug_snarl_traversal
+        cerr << "GEt next in chain after " << TrivialSnarlRecord(get_record_offset(net_handle), records).get_node_id(get_node_record_offset(net_handle)) << endl;
+#endif
         if (go_left && get_node_record_offset(net_handle) != 0) {
             //If we are going left and this is not the first node in the trivial snarl,
             //then keep everything the same but decrement the node record offset by one
