@@ -5,6 +5,7 @@
 
 #include "bdsg/snarl_distance_index.hpp"
 #include <jansson.h>
+#include <arpa/inet.h>
 
 using namespace std;
 using namespace handlegraph;
