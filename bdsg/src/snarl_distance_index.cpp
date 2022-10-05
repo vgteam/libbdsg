@@ -832,12 +832,12 @@ void SnarlDistanceIndex::deserialize(int fd) {
 void SnarlDistanceIndex::serialize_members(std::ostream& out) const {
     //This gets called by Serializable::serialize(ostream), which writes the prefix
     //so don't write the prefix here
-    snarl_tree_records.save(out);
+    snarl_tree_records.save_after_prefix(out, get_prefix());
 }
 void SnarlDistanceIndex::deserialize_members(std::istream& in){
     //This gets called by Serializable::deserialize(istream), which has already
     //read the prefix, so don't expect the prefix
-    snarl_tree_records.load(in, get_prefix());
+    snarl_tree_records.load_after_prefix(in, get_prefix());
 }
 
 uint32_t SnarlDistanceIndex::get_magic_number()const {
