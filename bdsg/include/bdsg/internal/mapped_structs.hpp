@@ -2147,6 +2147,11 @@ void UniqueMappedPointer<T>::load_after_prefix(std::istream& in, const std::stri
     // Drop any existing chain.
     reset();
     
+    if (!in) {
+        // Notice if something goes wrong
+        throw std::runtime_error("Stream is in a bad state and cannot be used for input!");
+    }
+    
     const size_t MAX_CHUNK_SIZE = 4096;
     
     // Fill up this buffer with chunks of a certian size
@@ -2162,10 +2167,17 @@ void UniqueMappedPointer<T>::load_after_prefix(std::istream& in, const std::stri
             // for EOF.
             buffer.resize(MAX_CHUNK_SIZE);
             // Grab a chunk
-            in.read(&buffer.at(0), MAX_CHUNK_SIZE);
             if (!in) {
+                // Notice if something goes wrong
+                throw std::runtime_error("Error reading chunk from stream!");
+            }
+            in.read(&buffer.at(0), MAX_CHUNK_SIZE);
+            if (in.eof()) {
                 // Didn't read all the characters, so shrink down (maybe to 0)
                 buffer.resize(in.gcount());
+            } else if (!in) {
+                // Input error other than EOF
+                throw std::runtime_error("Error reading chunk from stream!");
             }
         }
         // Copy the buffer over to the caller.
@@ -2223,6 +2235,11 @@ void UniqueMappedPointer<T>::save(const std::function<void(const void*, size_t)>
 
 template<typename T>
 void UniqueMappedPointer<T>::save_after_prefix(std::ostream& out, const std::string& prefix) const {
+    if (!out) {
+        // Notice if something goes wrong
+        throw std::runtime_error("Stream is in a bad state and cannot be used for output!");
+    }
+    
     // We need to drop as many characters from the chain as are in the prefix.
     size_t dropped = 0;
      
@@ -2237,7 +2254,11 @@ void UniqueMappedPointer<T>::save_after_prefix(std::ostream& out, const std::str
         dropped += to_drop;
         
         // And save it to the stream.
-        out.write(start_char, length); 
+        out.write(start_char, length);
+        if (!out) {
+            // Notice if something goes wrong
+            throw std::runtime_error("Error writing chunk to stream!");
+        }
     });
 }
 
