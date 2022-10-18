@@ -2160,8 +2160,12 @@ void UniqueMappedPointer<T>::load_after_prefix(std::istream& in, const std::stri
     // Make the chain through the Manager
     chain = Manager::create_chain([&]() {
         if (buffer.empty() && !prefix.empty()) {
-            // Inject the prefix on the first call
+            // Inject the prefix on the first call.
+            // (Or on any call after hitting EOF and returning "", so don't keep calling us)
             buffer = prefix;
+        } else if (in.eof()) {
+            // Show an empty buffer for EOF
+            buffer.clear();
         } else {
             // Other calls read data, until the last call shows an empty buffer
             // for EOF.
@@ -2169,14 +2173,14 @@ void UniqueMappedPointer<T>::load_after_prefix(std::istream& in, const std::stri
             // Grab a chunk
             if (!in) {
                 // Notice if something goes wrong
-                throw std::runtime_error("Error reading chunk from stream!");
+                throw std::runtime_error("Error before reading chunk from stream!");
             }
             in.read(&buffer.at(0), MAX_CHUNK_SIZE);
             if (in.eof()) {
                 // Didn't read all the characters, so shrink down (maybe to 0)
                 buffer.resize(in.gcount());
             } else if (!in) {
-                // Input error other than EOF
+                // Input error not co-occuirring with EOF
                 throw std::runtime_error("Error reading chunk from stream!");
             }
         }
