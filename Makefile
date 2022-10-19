@@ -9,7 +9,7 @@ INSTALL_PREFIX?=/usr/local
 INSTALL_LIB_DIR=$(INSTALL_PREFIX)/lib
 INSTALL_INC_DIR=$(INSTALL_PREFIX)/include
 
-LIB_FLAGS:=-lbdsg -lsdsl -lhandlegraph -lomp
+LIB_FLAGS:=-lbdsg -lsdsl -lhandlegraph
 
 OBJS = $(OBJ_DIR)/eades_algorithm.o 
 OBJS += $(OBJ_DIR)/hash_graph.o 
@@ -32,6 +32,7 @@ CXXFLAGS :=-MMD -MP -O3 -Werror=return-type -std=c++14 -ggdb -g -I$(INC_DIR) $(C
 
 ifeq ($(shell uname -s),Darwin)
 	CXXFLAGS := $(CXXFLAGS) -Xpreprocessor -fopenmp
+	LIB_FLAGS := $(LIB_FLAGS) -lomp
 else
 	CXXFLAGS := $(CXXFLAGS) -fopenmp
 endif
@@ -49,7 +50,7 @@ docs:
 .pre-build:
 	@if [ ! -d $(LIB_DIR) ]; then mkdir -p $(LIB_DIR); fi
 	@if [ ! -d $(OBJ_DIR) ]; then mkdir -p $(OBJ_DIR); fi
-	@if [ ! -d $(BIN_DIR) ]; then mkdir -p $(BIN_DIR); fiq
+	@if [ ! -d $(BIN_DIR) ]; then mkdir -p $(BIN_DIR); fi
 
 # run .pre-build before we make anything at all.
 -include .pre-build
