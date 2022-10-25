@@ -4843,6 +4843,13 @@ net_handle_t SnarlDistanceIndex::ChainRecord::get_next_child(const net_handle_t&
                 connectivity = endpoints_to_connectivity(get_end_endpoint(connectivity), 
                                                                 get_start_endpoint(connectivity));
             }
+            if (TrivialSnarlRecord(get_record_offset(net_handle), records).get_is_reversed_in_parent(get_node_record_offset(net_handle)) !=
+                TrivialSnarlRecord(get_record_offset(net_handle), records).get_is_reversed_in_parent(get_node_record_offset(net_handle)-1)) {
+                //If this node is facing the opposite direction of the next nod in the chain
+                connectivity = endpoints_to_connectivity(get_end_endpoint(connectivity), 
+                                                                get_start_endpoint(connectivity));
+
+            }
             return get_net_handle_from_values(get_record_offset(net_handle), connectivity, 
                                   get_handle_type(net_handle), get_node_record_offset(net_handle)-1);
 
@@ -4852,7 +4859,15 @@ net_handle_t SnarlDistanceIndex::ChainRecord::get_next_child(const net_handle_t&
             //If we are going right and this is not the last node in the trivial snarl
             //then keep everything the same but increment the node record offset by one
             //to move one node right in the trivial snarl
-            return get_net_handle_from_values(get_record_offset(net_handle), get_connectivity(net_handle), 
+            connectivity_t connectivity = get_connectivity(net_handle);
+            if (TrivialSnarlRecord(get_record_offset(net_handle), records).get_is_reversed_in_parent(get_node_record_offset(net_handle)) !=
+                TrivialSnarlRecord(get_record_offset(net_handle), records).get_is_reversed_in_parent(get_node_record_offset(net_handle)+1)) {
+                //If this node is facing the opposite direction of the next nod in the chain
+                connectivity = endpoints_to_connectivity(get_end_endpoint(connectivity), 
+                                                                get_start_endpoint(connectivity));
+
+            }
+            return get_net_handle_from_values(get_record_offset(net_handle), connectivity, 
                                       get_handle_type(net_handle), get_node_record_offset(net_handle)+1);
         }
         //Otherwise, if we are going left from the first node or right from the last node, we pretend this is a 
