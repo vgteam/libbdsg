@@ -252,6 +252,7 @@ add_library(bdsg_objs OBJECT
   ${bdsg_DIR}/src/odgi.cpp
   ${bdsg_DIR}/src/packed_graph.cpp
   ${bdsg_DIR}/src/packed_path_position_overlay.cpp
+  ${bdsg_DIR}/src/packed_reference_path_overlay.cpp
   ${bdsg_DIR}/src/packed_subgraph_overlay.cpp
   ${bdsg_DIR}/src/path_position_overlays.cpp
   ${bdsg_DIR}/src/path_subgraph_overlay.cpp
