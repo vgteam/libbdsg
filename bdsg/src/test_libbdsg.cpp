@@ -28,6 +28,7 @@
 #include "bdsg/internal/mapped_structs.hpp"
 #include "bdsg/overlays/path_position_overlays.hpp"
 #include "bdsg/overlays/packed_path_position_overlay.hpp"
+#include "bdsg/overlays/packed_reference_path_overlay.hpp"
 #include "bdsg/overlays/vectorizable_overlays.hpp"
 #include "bdsg/overlays/packed_subgraph_overlay.hpp"
 
@@ -3793,6 +3794,84 @@ void test_path_position_overlays() {
     cerr << "PathPositionOverlay tests successful!" << endl;
 }
 
+void test_packed_reference_path_overlay() {
+    
+    vector<MutablePathDeletableHandleGraph*> implementations;
+
+    HashGraph hg;
+    implementations.push_back(&hg);
+
+    PackedGraph pg;
+    implementations.push_back(&pg);
+    
+    ODGI og;
+    implementations.push_back(&og);
+    
+    MappedPackedGraph mpg;
+    implementations.push_back(&mpg);
+    
+    for (MutablePathDeletableHandleGraph* implementation : implementations) {
+        
+        MutablePathDeletableHandleGraph& graph = *implementation;
+        
+        handle_t h1 = graph.create_handle("AAA");
+        handle_t h2 = graph.create_handle("A");
+        handle_t h3 = graph.create_handle("T");
+        handle_t h4 = graph.create_handle("AAAAA");
+        
+        graph.create_edge(h1, h2);
+        graph.create_edge(h1, h3);
+        graph.create_edge(h2, h4);
+        graph.create_edge(h3, h4);
+        
+        path_handle_t p1 = graph.create_path_handle("p1");
+        step_handle_t s1 = graph.append_step(p1, h1);
+        step_handle_t s2 = graph.append_step(p1, h2);
+        step_handle_t s3 = graph.append_step(p1, h4);
+        
+        path_handle_t p2 = graph.create_path_handle("p2");
+        step_handle_t s2_1 = graph.append_step(p2, graph.flip(h4));
+        step_handle_t s2_2 = graph.append_step(p2, graph.flip(h3));
+        step_handle_t s2_3 = graph.append_step(p2, graph.flip(h1));
+        
+        PackedReferencePathOverlay overlay(&graph);
+            
+        assert(overlay.get_path_length(p1) == 9);
+        
+        assert(overlay.get_position_of_step(s1) == 0);
+        assert(overlay.get_position_of_step(s2) == 3);
+        assert(overlay.get_position_of_step(s3) == 4);
+        
+        assert(overlay.get_step_at_position(p1, 0) == s1);
+        assert(overlay.get_step_at_position(p1, 1) == s1);
+        assert(overlay.get_step_at_position(p1, 2) == s1);
+        assert(overlay.get_step_at_position(p1, 3) == s2);
+        assert(overlay.get_step_at_position(p1, 4) == s3);
+        assert(overlay.get_step_at_position(p1, 5) == s3);
+        assert(overlay.get_step_at_position(p1, 6) == s3);
+        assert(overlay.get_step_at_position(p1, 7) == s3);
+        assert(overlay.get_step_at_position(p1, 8) == s3);
+        assert(overlay.get_step_at_position(p1, 9) == overlay.path_end(p1));
+        
+        assert(overlay.steps_of_handle(h1, true) == (std::vector<step_handle_t> {s1}));
+        assert(overlay.steps_of_handle(h1, false) == (std::vector<step_handle_t> {s1, s2_3}));
+        assert(overlay.steps_of_handle(graph.flip(h1), true) == (std::vector<step_handle_t> {s2_3}));
+        
+        assert(overlay.steps_of_handle(h2, true) == (std::vector<step_handle_t> {s2}));
+        assert(overlay.steps_of_handle(h2, false) == (std::vector<step_handle_t> {s2}));
+        assert(overlay.steps_of_handle(graph.flip(h2), true) == (std::vector<step_handle_t> {}));
+        
+        assert(overlay.steps_of_handle(h3, true) == (std::vector<step_handle_t> {}));
+        assert(overlay.steps_of_handle(h3, false) == (std::vector<step_handle_t> {s2_2}));
+        assert(overlay.steps_of_handle(graph.flip(h3), true) == (std::vector<step_handle_t> {s2_2}));
+        
+        assert(overlay.steps_of_handle(h4, true) == (std::vector<step_handle_t> {s3}));
+        assert(overlay.steps_of_handle(h4, false) == (std::vector<step_handle_t> {s3, s2_1}));
+        assert(overlay.steps_of_handle(graph.flip(h4), true) == (std::vector<step_handle_t> {s2_1}));
+    }
+    cerr << "PackedReferencePathOverlay tests successful!" << endl;
+}
+
 void test_vectorizable_overlays() {
     
     vector<MutablePathDeletableHandleGraph*> implementations;
@@ -4264,6 +4343,7 @@ int main(void) {
     test_serializable_handle_graphs();
     test_packed_graph();
     test_path_position_overlays();
+    test_packed_reference_path_overlay();
     test_vectorizable_overlays();
     test_packed_subgraph_overlay();
     test_multithreaded_overlay_construction();
