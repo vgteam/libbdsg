@@ -32,6 +32,11 @@ bool PackedReferencePathOverlay::for_each_step_on_handle_impl(const handle_t& ha
     // like path_range to find the right index.
     // TODO: Change to one big MPHF over the graph's nodes or something??? This will be slow!
     for (size_t index_num = 0; index_num < this->indexes.size(); index_num++) {
+    
+#ifdef debug
+        std::cerr << "Check for node " << node_id << " in index " << index_num << std::endl;
+#endif
+    
         // Look at the index data for this collection of paths
         auto& index = this->indexes[index_num];
         auto& visit_index = this->visit_indexes[index_num];
@@ -41,6 +46,10 @@ bool PackedReferencePathOverlay::for_each_step_on_handle_impl(const handle_t& ha
         
         // See where the node would be if it was anywhere
         size_t hash = node_hash.lookup(node_id);
+        
+#ifdef debug
+        std::cerr << "Hashes to slot " << hash << "/" << visit_index.visit_ranks_start.size() << std::endl;
+#endif
         
         // The MPHF can't actually tell if a thing is actually in it. So we
         // need to deal with garbage or indexes of other handles.
@@ -52,6 +61,11 @@ bool PackedReferencePathOverlay::for_each_step_on_handle_impl(const handle_t& ha
         // Get the range of visit ranks we are supposed to be looking at.
         size_t range_start = visit_index.visit_ranks_start.get(hash);
         size_t range_end = range_start + visit_index.visit_ranks_length.get(hash);
+        
+#ifdef debug
+        std::cerr << "Corresponds to rank range " << range_start << "-" << range_end << std::endl;
+#endif
+        
         for (size_t i = range_start; i < range_end; i++) {
             // Get the rank of this visit to what ought to be this node, out of all steps in the index
             size_t rank = visit_index.visit_ranks.get(i);
@@ -61,6 +75,10 @@ bool PackedReferencePathOverlay::for_each_step_on_handle_impl(const handle_t& ha
             as_integers(step)[0] = index.steps_0.get(rank);
             as_integers(step)[1] = index.steps_1.get(rank);
             
+#ifdef debug
+            std::cerr << "Found step of path " << this->get_path_name(this->get_path_handle_of_step(step)) << " on node " << this->get_id(this->get_handle_of_step(step)) << " orientation " << this->get_is_reverse(this->get_handle_of_step(step)) << std::endl;
+#endif
+            
             if (i == range_start) {
                 // For the first step on each handle, make sure we actually
                 // found visits to the node we hashed.
@@ -69,6 +87,9 @@ bool PackedReferencePathOverlay::for_each_step_on_handle_impl(const handle_t& ha
                     // We had a hash collision, which means the node we
                     // actually wanted isn't visited by anything in this index.
                     // Skip to the next.
+#ifdef debug
+                    std::cerr << "Wrong node; node not in index." << std::endl;
+#endif
                     break;
                 }
             }
@@ -76,6 +97,9 @@ bool PackedReferencePathOverlay::for_each_step_on_handle_impl(const handle_t& ha
             // Show this step on the node to the iteratee
             if (!iteratee(step)) {
                 // The iteratee wants us to stop.
+#ifdef debug
+                std::cerr << "Iteratee stopped." << std::endl;
+#endif
                 return false;
             }
         }
@@ -111,8 +135,6 @@ void PackedReferencePathOverlay::set_index_count(size_t count) {
 }
 
 void PackedReferencePathOverlay::index_paths(size_t index_num, const std::vector<path_handle_t>::const_iterator& begin_path, const std::vector<path_handle_t>::const_iterator& end_path, size_t cumul_path_size, void** user_data_base) {
-    // Compute all the indexes for path positions
-    PackedPositionOverlay::index_paths(index_num, begin_path, end_path, cumul_path_size, user_data_base);
     
     // Compose all the user datas into one
     std::unordered_multimap<nid_t, size_t> all_visit_ranks;
@@ -123,7 +145,7 @@ void PackedReferencePathOverlay::index_paths(size_t index_num, const std::vector
     size_t unique_keys = 0;
     void** user_data_it = user_data_base;
     for (auto it = begin_path; it != end_path; ++it) {
-        std::unordered_multimap<nid_t, size_t>* user_data = (std::unordered_multimap<nid_t, size_t>*) *user_data_it;
+        std::unordered_multimap<nid_t, size_t>*& user_data = (std::unordered_multimap<nid_t, size_t>*&) *user_data_it;
         ++user_data_it;
         // Copy all the items by hand
         // TODO: When we get C++17, do something with nodes
@@ -140,6 +162,8 @@ void PackedReferencePathOverlay::index_paths(size_t index_num, const std::vector
         rank_offset += user_data->size();
         // Consume the user data
         delete user_data;
+        // Null it out so the base class can have its null
+        user_data = nullptr;
     }
     
     // Grab the additional index we are building into
@@ -185,6 +209,9 @@ void PackedReferencePathOverlay::index_paths(size_t index_num, const std::vector
         // Finish the last range.
         visit_index.visit_ranks_length.set(prev_hash, visit_number - start_visit_number);
     }
+    
+    // Compute all the indexes for path positions
+    PackedPositionOverlay::index_paths(index_num, begin_path, end_path, cumul_path_size, user_data_base);
 }
 
 }

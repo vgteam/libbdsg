@@ -3853,21 +3853,55 @@ void test_packed_reference_path_overlay() {
         assert(overlay.get_step_at_position(p1, 8) == s3);
         assert(overlay.get_step_at_position(p1, 9) == overlay.path_end(p1));
         
-        assert(overlay.steps_of_handle(h1, true) == (std::vector<step_handle_t> {s1}));
-        assert(overlay.steps_of_handle(h1, false) == (std::vector<step_handle_t> {s1, s2_3}));
-        assert(overlay.steps_of_handle(graph.flip(h1), true) == (std::vector<step_handle_t> {s2_3}));
+        bool found1 = false;
+        bool found2 = false;
+        overlay.for_each_step_on_handle(h1, [&](const step_handle_t& s) {
+            if (s == s1) {
+                found1 = true;
+            } else if (s == s2_3) {
+                found2 = true;
+            } else {
+                assert(false);
+            }
+        });
+        assert(found1);
+        assert(found2);
+        found1 = false;
+        found2 = false;
         
-        assert(overlay.steps_of_handle(h2, true) == (std::vector<step_handle_t> {s2}));
-        assert(overlay.steps_of_handle(h2, false) == (std::vector<step_handle_t> {s2}));
-        assert(overlay.steps_of_handle(graph.flip(h2), true) == (std::vector<step_handle_t> {}));
+        overlay.for_each_step_on_handle(h2, [&](const step_handle_t& s) {
+            if (s == s2) {
+                found1 = true;
+            } else {
+                assert(false);
+            }
+        });
+        assert(found1);
+        found1 = false;
         
-        assert(overlay.steps_of_handle(h3, true) == (std::vector<step_handle_t> {}));
-        assert(overlay.steps_of_handle(h3, false) == (std::vector<step_handle_t> {s2_2}));
-        assert(overlay.steps_of_handle(graph.flip(h3), true) == (std::vector<step_handle_t> {s2_2}));
+        overlay.for_each_step_on_handle(h3, [&](const step_handle_t& s) {
+            if (s == s2_2) {
+                found1 = true;
+            } else {
+                assert(false);
+            }
+        });
+        assert(found1);
+        found1 = false;
         
-        assert(overlay.steps_of_handle(h4, true) == (std::vector<step_handle_t> {s3}));
-        assert(overlay.steps_of_handle(h4, false) == (std::vector<step_handle_t> {s3, s2_1}));
-        assert(overlay.steps_of_handle(graph.flip(h4), true) == (std::vector<step_handle_t> {s2_1}));
+        overlay.for_each_step_on_handle(h4, [&](const step_handle_t& s) {
+            if (s == s3) {
+                found1 = true;
+            } else if (s == s2_1) {
+                found2 = true;
+            } else {
+                assert(false);
+            }
+        });
+        assert(found1);
+        assert(found2);
+        found1 = false;
+        found2 = false;
     }
     cerr << "PackedReferencePathOverlay tests successful!" << endl;
 }
