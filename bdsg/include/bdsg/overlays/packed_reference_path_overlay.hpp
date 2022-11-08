@@ -68,16 +68,16 @@ protected:
     /// To facillitate parallel construction, we keep the index info for each
     /// path (or collection of tiny paths) in a separate object.
     struct PathVisitIndex {
-        /// A perfect minimal hash function for the handles on the path(s)
+        /// A perfect minimal hash function for the visited nodes on the path(s)
         /// We keep this in a vector so that we can be copyable, which the Python bindings want.
         /// TODO: replace with std::optional when we upgrade to C++17.
-        std::vector<boomphf::mphf<handle_t, HandleHash>> handle_hash;
+        std::vector<boomphf::mphf<nid_t, boomphf::SingleHashFunctor<nid_t>>> node_hash;
         
         /// Stores indexes in step_positions (i.e. ranks) at which visits to each handle
         /// occur, grouped contiguously by handle
         PackedVector<> visit_ranks;
     
-        /// Stores first index in visit_ranks for each handle in the order provided by handle_hash
+        /// Stores first index in visit_ranks for each handle in the order provided by node_hash
         PackedVector<> visit_ranks_start;
 
         /// Stores number of indexes in visit_ranks for each handle in the same order as visit_ranks_start
