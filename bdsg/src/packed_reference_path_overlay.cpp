@@ -5,8 +5,6 @@
 
 #include <omp.h> // BINDER_IGNORE because Binder can't find this
 
-#include <unordered_multimap>
-
 //#define debug
 
 namespace bdsg {
@@ -20,6 +18,22 @@ PackedReferencePathOverlay::PackedReferencePathOverlay(const PathHandleGraph* gr
 
     // Now do the index build
     index_path_positions();
+}
+
+bool PackedReferencePathOverlay::for_each_step_on_handle_impl(const handle_t& handle,
+                                                              const function<bool(const step_handle_t&)>& iteratee) const {
+
+    for (size_t index_num = 0; index_num < this->indexes.size(); index_num++) {
+        auto& index = this->indexes[i];
+        auto& visit_index = this->visit_indexes[i];
+        
+        // De-const the MPHF because its lookup should really be const and isn't.
+        boomphf::mphf<handle_t, HandleHash>& handle_hash = const_cast<boomphf::mphf<handle_t, HandleHash>&>(const_step_hash);
+        
+        // Check if the handle is in the MPHF
+        
+    }
+
 }
 
 size_t PackedReferencePathOverlay::scan_path(const path_handle_t& path_handle, void*& user_data) {
@@ -99,7 +113,7 @@ void PackedReferencePathOverlay::index_paths(size_t index_num, const std::vector
     size_t prev_hash = unique_keys;
     for (auto& kv : all_visit_ranks) {
         size_t cur_hash = visit_index.handle_hash.back().lookup(kv.first);
-        if (cur_hash != prev_hash)
+        if (cur_hash != prev_hash) {
             if (prev_hash != unique_keys) {
                 // We have a legit previous visit rank list to finish
                 visit_index.visit_ranks_length.set(prev_hash, visit_number - start_visit_number);

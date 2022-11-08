@@ -40,8 +40,9 @@ protected:
     // PathHandleGraph interface
     
     /// Calls the given function for each step of the given handle on a path.
-    bool for_each_step_on_handle_impl(const handle_t& handle,
-                                      const function<bool(const step_handle_t&)>& iteratee) const;
+    /// We treat steps as "on" handles in either orientation. 
+    virtual bool for_each_step_on_handle_impl(const handle_t& handle,
+                                              const function<bool(const step_handle_t&)>& iteratee) const;
 
 
     // Construction hooks
@@ -130,7 +131,7 @@ public:
         
     private:
         
-        iterator(const typename Container::iterator& wrapped, const typename Container::iterator& end) : wrapped(wrapped), end(end) {
+        iterator(const typename Container::const_iterator& wrapped, const typename Container::const_iterator& end) : wrapped(wrapped), end(end) {
             // Nothing to do
         }
         
