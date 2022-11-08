@@ -53,7 +53,7 @@ protected:
     virtual void set_index_count(size_t count);
 
     /// Into index i, index the given range of paths, with the given total size in steps. Consumes and destroys any per-path user data.
-    virtual void index_paths(size_t i, const std::vector<path_handle_t>::const_iterator& begin_path, const std::vector<path_handle_t>::const_iterator& end_path, size_t cumul_path_size, void** user_data_base);
+    virtual void index_paths(size_t index_num, const std::vector<path_handle_t>::const_iterator& begin_path, const std::vector<path_handle_t>::const_iterator& end_path, size_t cumul_path_size, void** user_data_base);
 
     // Construction utilities
     
@@ -89,5 +89,70 @@ protected:
 };
 
 }
+
+/*
+ * A wrapper for constructing the perfect minimal hash function that sequentially
+ * returns all unique keys in a key-value multi-container.
+ */
+template<typename Container>
+struct UniqueKeyRange {
+public:
+    /// Set up for iteration over all paths in the given graph
+    UniqueKeyRange(const Container& container) : container(container) {
+        // Nothing to do!
+    }
+    UniqueKeyRange() = delete;
+    ~UniqueKeyRange() = default;
+    
+    struct iterator {
+    public:
+        iterator(const iterator& other) = default;
+        iterator() = delete;
+        ~iterator() = default;
+        iterator& operator=(const iterator& other) = default;
+        iterator& operator++() {
+            typename Container::key_type same_key = **this;
+            do {
+                // Scan past the current key
+                ++wrapped;
+            } while (wrapped != end && **this == same_key);
+            return *this;
+        }
+        typename Container::key_type operator*() const {
+            return wrapped->first;
+        }
+        bool operator==(const iterator& other) const {
+            return wrapped == other.wrapped && end == other.end;
+        }
+        bool operator!=(const iterator& other) const {
+            return !(*this == other);
+        }
+        
+    private:
+        
+        iterator(const typename Container::iterator& wrapped, const typename Container::iterator& end) : wrapped(wrapped), end(end) {
+            // Nothing to do
+        }
+        
+        typename Container::const_iterator wrapped;
+        typename Container::const_iterator end;
+        
+        friend class UniqueKeyRange;
+    };
+    
+    /// C++ style range begin
+    iterator begin() const {
+        return iterator(container.begin(), container.end());
+    }
+    
+    /// C++ style range end
+    iterator end() const {
+        return iterator(container.end(), container.end());
+    }
+    
+private:
+    /// The container we will iterate on
+    const Container& container;
+};
 
 #endif

@@ -277,9 +277,8 @@ void PackedPositionOverlay::index_path_positions() {
     #pragma omp parallel for
     for (size_t i = 0; i < path_set_steps.size(); i++) {
         // For each set of paths to index together
-        const decltype(path_handles)& const_path_handles = path_handles;
-        std::vector<path_handle_t>::const_iterator begin_path = const_path_handles.begin() + bounds[i];
-        std::vector<path_handle_t>::const_iterator end_path = const_path_handles.begin() + bounds[i + 1];
+        std::vector<path_handle_t>::const_iterator begin_path = path_handles.cbegin() + bounds[i];
+        std::vector<path_handle_t>::const_iterator end_path = path_handles.cbegin() + bounds[i + 1];
         // And the number of steps on its paths
         const size_t& cumul_path_size = path_set_steps[i];
         // And the oser data for the first path. All of them must be stored contiguously.
@@ -300,9 +299,9 @@ void PackedPositionOverlay::set_index_count(size_t count) {
     indexes.resize(count);
 }
 
-void PackedPositionOverlay::index_paths(size_t i, const std::vector<path_handle_t>::const_iterator& begin_path, const std::vector<path_handle_t>::const_iterator& end_path, size_t cumul_path_size, void** user_data_base) {
+void PackedPositionOverlay::index_paths(size_t index_num, const std::vector<path_handle_t>::const_iterator& begin_path, const std::vector<path_handle_t>::const_iterator& end_path, size_t cumul_path_size, void** user_data_base) {
     // Grab the index we are building into
-    auto& index = indexes[i];
+    auto& index = indexes[index_num];
 
     // resize the vectors to the number of step handles
     index.steps_0.resize(cumul_path_size);
@@ -312,7 +311,7 @@ void PackedPositionOverlay::index_paths(size_t i, const std::vector<path_handle_
     
 #ifdef debug
     #pragma omp critical (cerr)
-    std::cerr << "T" << omp_get_thread_num() << ": Sized index " << i << " for " << cumul_path_size << " steps" << std::endl;
+    std::cerr << "T" << omp_get_thread_num() << ": Sized index " << index_num << " for " << cumul_path_size << " steps" << std::endl;
 #endif
     
     // Make a perfect minimal hash over the step handles on the selected paths
@@ -334,7 +333,7 @@ void PackedPositionOverlay::index_paths(size_t i, const std::vector<path_handle_
         PathRange range;
         
         // Populate the index and start info
-        range.index_number = i;
+        range.index_number = index_num;
         range.start = step_overall;
         // And walk a base position cursor along the path
         size_t position = 0;

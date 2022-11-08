@@ -241,7 +241,7 @@ protected:
     virtual void set_index_count(size_t count);
 
     /// Into index i, index the given range of paths, with the given total size in steps. Consumes and destroys any per-path user data.
-    virtual void index_paths(size_t i, const std::vector<path_handle_t>::const_iterator& begin_path, const std::vector<path_handle_t>::const_iterator& end_path, size_t cumul_path_size, void** user_data_base);
+    virtual void index_paths(size_t index_num, const std::vector<path_handle_t>::const_iterator& begin_path, const std::vector<path_handle_t>::const_iterator& end_path, size_t cumul_path_size, void** user_data_base);
     
     /// The graph we're overlaying
     const PathHandleGraph* graph = nullptr;
