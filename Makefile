@@ -49,7 +49,7 @@ docs:
 .pre-build:
 	@if [ ! -d $(LIB_DIR) ]; then mkdir -p $(LIB_DIR); fi
 	@if [ ! -d $(OBJ_DIR) ]; then mkdir -p $(OBJ_DIR); fi
-	@if [ ! -d $(BIN_DIR) ]; then mkdir -p $(BIN_DIR); fi
+	@if [ ! -d $(BIN_DIR) ]; then mkdir -p $(BIN_DIR); fiq
 
 # run .pre-build before we make anything at all.
 -include .pre-build
