@@ -9,7 +9,7 @@ INSTALL_PREFIX?=/usr/local
 INSTALL_LIB_DIR=$(INSTALL_PREFIX)/lib
 INSTALL_INC_DIR=$(INSTALL_PREFIX)/include
 
-LIB_FLAGS:=-lbdsg -lsdsl -lhandlegraph
+LIB_FLAGS:=-lbdsg -lsdsl -lhandlegraph -lomp
 
 OBJS = $(OBJ_DIR)/eades_algorithm.o 
 OBJS += $(OBJ_DIR)/hash_graph.o 
@@ -32,7 +32,6 @@ CXXFLAGS :=-MMD -MP -O3 -Werror=return-type -std=c++14 -ggdb -g -I$(INC_DIR) $(C
 
 ifeq ($(shell uname -s),Darwin)
 	CXXFLAGS := $(CXXFLAGS) -Xpreprocessor -fopenmp
-	LIB_FLAGS := $(LIB_FLAGS) -lomp
 else
 	CXXFLAGS := $(CXXFLAGS) -fopenmp
 endif
