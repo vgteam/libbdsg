@@ -31,6 +31,6 @@ jobs:
           cd build
           cmake .. -DRUN_DOXYGEN=ON -DPYTHON_EXECUTABLE="$(which python3)"
           echo "Build with $(nproc) threads"
-          make -j$(nproc)
+          make -j$(nproc) VERBOSE=1
           ../bin/test_libbdsg
         shell: bash
