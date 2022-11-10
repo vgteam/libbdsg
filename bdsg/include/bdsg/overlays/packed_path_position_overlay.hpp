@@ -185,7 +185,7 @@ public:
     /// Returns a handle to the path that an step is on
     path_handle_t get_path_handle_of_step(const step_handle_t& step_handle) const;
     
-private:
+protected:
     /// Execute a function on each path in the graph
     bool for_each_path_handle_impl(const std::function<bool(const path_handle_t&)>& iteratee) const;
     
@@ -234,11 +234,20 @@ protected:
     /// Construct the index over path positions
     void index_path_positions();
     
+    /// Get the length in steps of the given path. Also do any scanning necessary for the path to generate per-path user data.
+    virtual size_t scan_path(const path_handle_t& path_handle, void*& user_data);
+
+    /// Set the number of distinct indexes we will use.
+    virtual void set_index_count(size_t count);
+
+    /// Into index i, index the given range of paths, with the given total size in steps. Consumes and destroys any per-path user data.
+    virtual void index_paths(size_t index_num, const std::vector<path_handle_t>::const_iterator& begin_path, const std::vector<path_handle_t>::const_iterator& end_path, size_t cumul_path_size, void** user_data_base);
+    
     /// The graph we're overlaying
     const PathHandleGraph* graph = nullptr;
     
     /// The number of steps we target when coalescing small paths into larger indexes.
-    const size_t steps_per_index;
+    size_t steps_per_index;
     
     /// To facillitate parallel construction, we keep the index info for each
     /// path (or collection of tiny paths) in a separate object.
