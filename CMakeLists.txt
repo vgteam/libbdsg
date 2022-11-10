@@ -43,7 +43,6 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   
   # adapted from https://stackoverflow.com/questions/46414660/macos-cmake-and-openmp
   # find_package(OpenMP) does not work reliably on macOS, so we do its work ourselves
-  # First compose all the flags for plausible include directories that exist
   set (HOMEBREW_PREFIX "$ENV{HOMEBREW_PREFIX}")
   if ("${HOMEBREW_PREFIX}" STREQUAL "")
     # We sometimes (like on Github Actions) have Homebrew but no HOMEBREW_PREFIX environment variable.
@@ -54,36 +53,33 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   if ("${HOMEBREW_PREFIX}" STREQUAL "")
     # Default to somewhere.
     set (HOMEBREW_PREFIX "/opt/homebrew")
+  else()
+    message("Homebrew appears to be installed in ${HOMEBREW_PREFIX}")
   endif()
-  message("Looking for Homebrew in ${HOMEBREW_PREFIX}")
-  set (OMP_INCLUDE_FLAGS "")
-  if (EXISTS "${HOMEBREW_PREFIX}" AND EXISTS "${HOMEBREW_PREFIX}/opt/libomp/include")
-    set (OMP_INCLUDE_FLAGS "${OMP_INCLUDE_FLAGS} -I${HOMEBREW_PREFIX}/opt/libomp/include")
+  
+  find_path(OMP_INCLUDE_PATH omp.h
+            PATHS "${HOMEBREW_PREFIX}/opt/libomp/include" "${HOMEBREW_PREFIX}/include" /opt/local/include/libomp /usr/local/include
+            REQUIRED)
+  if ("${OMP_INCLUDE_PATH}" STREQUAL "")
+    # REQUIRED is a new CMake feature
+    message(FATAL_ERROR "Could not find omp.h")
+  else()
+    message("Found libomp headers in ${OMP_INCLUDE_PATH}")
   endif()
-  if (EXISTS "${HOMEBREW_PREFIX}" AND EXISTS "${HOMEBREW_PREFIX}/include")
-    set (OMP_INCLUDE_FLAGS "${OMP_INCLUDE_FLAGS} -I${HOMEBREW_PREFIX}/include")
+            
+  find_path(OMP_LIB_PATH libomp.dylib
+            PATHS "${HOMEBREW_PREFIX}/opt/libomp/lib" "${HOMEBREW_PREFIX}/lib" /opt/local/lib /usr/local/lib
+            REQUIRED)
+  if ("${OMP_LIB_PATH}" STREQUAL "")
+    # REQUIRED is a new CMake feature
+    message(FATAL_ERROR "Could not find libomp.dylib")
+  else()
+    message("Found libomp libraries in ${OMP_LIB_PATH}")
   endif()
-  if (EXISTS /opt/local/include/libomp)
-    set (OMP_INCLUDE_FLAGS "${OMP_INCLUDE_FLAGS} -I/opt/local/include/libomp")
-  endif()
-  if (EXISTS /usr/local/include)
-    set (OMP_INCLUDE_FLAGS "${OMP_INCLUDE_FLAGS} -I/usr/local/include")
-  endif()
-  # And plausible lib directories
-  set (OMP_LIB_FLAGS "")
-  if (EXISTS "${HOMEBREW_PREFIX}" AND EXISTS "${HOMEBREW_PREFIX}/opt/libomp/lib")
-    set (OMP_LIB_FLAGS "${OMP_LIB_FLAGS} -L${HOMEBREW_PREFIX}/opt/libomp/lib")
-  endif()
-  if (EXISTS "${HOMEBREW_PREFIX}" AND EXISTS "${HOMEBREW_PREFIX}/lib")
-    set (OMP_LIB_FLAGS "${OMP_LIB_FLAGS} -L${HOMEBREW_PREFIX}/lib")
-  endif()
-  if (EXISTS /opt/local/lib/libomp)
-    set (OMP_LIB_FLAGS "${OMP_LIB_FLAGS} -L/opt/local/lib/libomp")
-  endif()
-  if (EXISTS /usr/local/lib)
-    set (OMP_LIB_FLAGS "${OMP_LIB_FLAGS} -L/usr/local/lib")
-  endif()
-  message("Looking for libomp with ${OMP_INCLUDE_FLAGS} and ${OMP_LIB_FLAGS}")
+  
+  set (OMP_INCLUDE_FLAGS "-I${OMP_INCLUDE_PATH}")
+  set (OMP_LIB_FLAGS "-L${OMP_LIB_PATH}")
+  
   set (OpenMP_C "${CMAKE_C_COMPILER}")
   set (OpenMP_C_FLAGS " -Xpreprocessor -fopenmp ${OMP_INCLUDE_FLAGS} ${OMP_LIB_FLAGS}")
   set (OpenMP_C_LIB_NAMES "libomp" "libgomp" "libiomp5")
