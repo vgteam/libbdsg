@@ -46,8 +46,16 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   # First compose all the flags for plausible include directories that exist
   set (HOMEBREW_PREFIX "$ENV{HOMEBREW_PREFIX}")
   if ("${HOMEBREW_PREFIX}" STREQUAL "")
+    # We sometimes (like on Github Actions) have Homebrew but no HOMEBREW_PREFIX environment variable.
+    # Ask Homebrew if it exists and where it is.
+    # Returns an empty string if this command can't run.
+    execute_process(COMMAND brew --prefix OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE HOMEBREW_PREFIX)
+  endif()
+  if ("${HOMEBREW_PREFIX}" STREQUAL "")
+    # Default to somewhere.
     set (HOMEBREW_PREFIX "/opt/homebrew")
   endif()
+  message("Looking for Homebrew in ${HOMEBREW_PREFIX}")
   set (OMP_INCLUDE_FLAGS "")
   if (EXISTS "${HOMEBREW_PREFIX}" AND EXISTS "${HOMEBREW_PREFIX}/opt/libomp/include")
     set (OMP_INCLUDE_FLAGS "${OMP_INCLUDE_FLAGS} -I${HOMEBREW_PREFIX}/opt/libomp/include")
@@ -75,6 +83,7 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   if (EXISTS /usr/local/lib)
     set (OMP_LIB_FLAGS "${OMP_LIB_FLAGS} -L/usr/local/lib")
   endif()
+  message("Looking for libomp with ${OMP_INCLUDE_FLAGS} and ${OMP_LIB_FLAGS}")
   set (OpenMP_C "${CMAKE_C_COMPILER}")
   set (OpenMP_C_FLAGS " -Xpreprocessor -fopenmp ${OMP_INCLUDE_FLAGS} ${OMP_LIB_FLAGS}")
   set (OpenMP_C_LIB_NAMES "libomp" "libgomp" "libiomp5")
