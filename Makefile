@@ -20,6 +20,7 @@ OBJS += $(OBJ_DIR)/odgi.o
 OBJS += $(OBJ_DIR)/packed_graph.o 
 OBJS += $(OBJ_DIR)/path_position_overlays.o 
 OBJS += $(OBJ_DIR)/packed_path_position_overlay.o
+OBJS += $(OBJ_DIR)/packed_reference_path_overlay.o
 OBJS += $(OBJ_DIR)/path_subgraph_overlay.o
 OBJS += $(OBJ_DIR)/subgraph_overlay.o
 OBJS += $(OBJ_DIR)/vectorizable_overlays.o 

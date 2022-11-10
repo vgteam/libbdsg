@@ -13,6 +13,7 @@
 
 #include "bdsg/overlays/vectorizable_overlays.hpp"
 #include "bdsg/overlays/packed_path_position_overlay.hpp"
+#include "bdsg/overlays/packed_reference_path_overlay.hpp"
 
 namespace bdsg {
     
@@ -25,6 +26,12 @@ template<typename T1, typename U1, typename V1, typename T2, typename U2, typena
 
 /// Helper to ensure that a PathHandleGraph has the PathPositionHandleGraph interface
 typedef OverlayHelper<PathPositionHandleGraph, PackedPositionOverlay, PathHandleGraph> PathPositionOverlayHelper;
+
+/// Helper to ensure that a PathHandleGraph has the PathPositionHandleGraph
+/// interface, but optimized for using the paths as reference coordinates, with
+/// acceleration for some queries that might be slow in, for example, a
+/// GBWTGraph.
+typedef OverlayHelper<PathPositionHandleGraph, PackedReferencePathOverlay, PathHandleGraph> ReferencePathOverlayHelper;
 
 /// Helper to ensure that a HandleGraph has the RankedHandleGraph interface.
 // TODO: If we write a dedicated, less powerful RankedOverlay, use that here instead.
