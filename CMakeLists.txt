@@ -97,9 +97,9 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
   set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS} -lomp")
   
-  # Mac needs libdl and libomp when linking the library and a hint on where to look for them
+  # Mac needs libdl and libomp and jansson when linking the library and a hint on where to look for them
   # Mac doesn't have $ORIGIN for RPaths. We might not be able to produce a working Mac wheel for Python bindings.
-  set(PLATFORM_EXTRA_LIB_FLAGS -ldl -lomp -L/opt/local/lib/libomp -L/usr/local/lib)
+  set(PLATFORM_EXTRA_LIB_FLAGS -ldl -lomp -L/opt/local/lib/libomp -L/usr/local/opt/jansson/lib -L/usr/local/lib)
   
   # Mac needs install names set after installation
   SET(CMAKE_INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
@@ -274,6 +274,7 @@ add_library(bdsg_objs OBJECT
 
 set(bdsg_INCLUDES
   "${bdsg_DIR}/include"
+  "/usr/local/opt/jansson/include"
   ${JANSSON_INCLUDE_DIRS}
 )
 # Note that binder_INCLUDE will be empty if Binder isn't in use.
