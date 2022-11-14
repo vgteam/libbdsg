@@ -3834,74 +3834,98 @@ void test_packed_reference_path_overlay() {
         step_handle_t s2_2 = graph.append_step(p2, graph.flip(h3));
         step_handle_t s2_3 = graph.append_step(p2, graph.flip(h1));
         
-        PackedReferencePathOverlay overlay(&graph);
+        {
+        
+            PackedReferencePathOverlay overlay(&graph);
+                
+            assert(overlay.get_path_length(p1) == 9);
             
-        assert(overlay.get_path_length(p1) == 9);
+            assert(overlay.get_position_of_step(s1) == 0);
+            assert(overlay.get_position_of_step(s2) == 3);
+            assert(overlay.get_position_of_step(s3) == 4);
+            
+            assert(overlay.get_step_at_position(p1, 0) == s1);
+            assert(overlay.get_step_at_position(p1, 1) == s1);
+            assert(overlay.get_step_at_position(p1, 2) == s1);
+            assert(overlay.get_step_at_position(p1, 3) == s2);
+            assert(overlay.get_step_at_position(p1, 4) == s3);
+            assert(overlay.get_step_at_position(p1, 5) == s3);
+            assert(overlay.get_step_at_position(p1, 6) == s3);
+            assert(overlay.get_step_at_position(p1, 7) == s3);
+            assert(overlay.get_step_at_position(p1, 8) == s3);
+            assert(overlay.get_step_at_position(p1, 9) == overlay.path_end(p1));
+            
+            bool found1 = false;
+            bool found2 = false;
+            overlay.for_each_step_on_handle(h1, [&](const step_handle_t& s) {
+                if (s == s1) {
+                    found1 = true;
+                } else if (s == s2_3) {
+                    found2 = true;
+                } else {
+                    assert(false);
+                }
+            });
+            assert(found1);
+            assert(found2);
+            found1 = false;
+            found2 = false;
+            
+            overlay.for_each_step_on_handle(h2, [&](const step_handle_t& s) {
+                if (s == s2) {
+                    found1 = true;
+                } else {
+                    assert(false);
+                }
+            });
+            assert(found1);
+            found1 = false;
+            
+            overlay.for_each_step_on_handle(h3, [&](const step_handle_t& s) {
+                if (s == s2_2) {
+                    found1 = true;
+                } else {
+                    assert(false);
+                }
+            });
+            assert(found1);
+            found1 = false;
+            
+            overlay.for_each_step_on_handle(h4, [&](const step_handle_t& s) {
+                if (s == s3) {
+                    found1 = true;
+                } else if (s == s2_1) {
+                    found2 = true;
+                } else {
+                    assert(false);
+                }
+            });
+            assert(found1);
+            assert(found2);
+            found1 = false;
+            found2 = false;
+        }
         
-        assert(overlay.get_position_of_step(s1) == 0);
-        assert(overlay.get_position_of_step(s2) == 3);
-        assert(overlay.get_position_of_step(s3) == 4);
+        {
         
-        assert(overlay.get_step_at_position(p1, 0) == s1);
-        assert(overlay.get_step_at_position(p1, 1) == s1);
-        assert(overlay.get_step_at_position(p1, 2) == s1);
-        assert(overlay.get_step_at_position(p1, 3) == s2);
-        assert(overlay.get_step_at_position(p1, 4) == s3);
-        assert(overlay.get_step_at_position(p1, 5) == s3);
-        assert(overlay.get_step_at_position(p1, 6) == s3);
-        assert(overlay.get_step_at_position(p1, 7) == s3);
-        assert(overlay.get_step_at_position(p1, 8) == s3);
-        assert(overlay.get_step_at_position(p1, 9) == overlay.path_end(p1));
-        
-        bool found1 = false;
-        bool found2 = false;
-        overlay.for_each_step_on_handle(h1, [&](const step_handle_t& s) {
-            if (s == s1) {
-                found1 = true;
-            } else if (s == s2_3) {
-                found2 = true;
-            } else {
-                assert(false);
+            // Make sure we can handle a lot of paths
+            for (size_t i = 0; i < 100; i++) {
+                path_handle_t pn = graph.create_path_handle("pn" + std::to_string(i));
+                graph.append_step(pn, h1);
+                graph.append_step(pn, h2);
+                graph.append_step(pn, h4);
             }
-        });
-        assert(found1);
-        assert(found2);
-        found1 = false;
-        found2 = false;
-        
-        overlay.for_each_step_on_handle(h2, [&](const step_handle_t& s) {
-            if (s == s2) {
-                found1 = true;
-            } else {
-                assert(false);
-            }
-        });
-        assert(found1);
-        found1 = false;
-        
-        overlay.for_each_step_on_handle(h3, [&](const step_handle_t& s) {
-            if (s == s2_2) {
-                found1 = true;
-            } else {
-                assert(false);
-            }
-        });
-        assert(found1);
-        found1 = false;
-        
-        overlay.for_each_step_on_handle(h4, [&](const step_handle_t& s) {
-            if (s == s3) {
-                found1 = true;
-            } else if (s == s2_1) {
-                found2 = true;
-            } else {
-                assert(false);
-            }
-        });
-        assert(found1);
-        assert(found2);
-        found1 = false;
-        found2 = false;
+            
+            // Split the paths up agross many indexes for testing
+            PackedReferencePathOverlay overlay(&graph, 10);
+            
+            std::unordered_set<std::string> seen_paths;
+            overlay.for_each_step_on_handle(h1, [&](const step_handle_t& s) {
+                seen_paths.insert(overlay.get_path_name(overlay.get_path_handle_of_step(s)));
+            });
+            // Should have the 2 original paths and the 100 new ones.
+            assert(seen_paths.size() == 102);
+        }
     }
     cerr << "PackedReferencePathOverlay tests successful!" << endl;
 }

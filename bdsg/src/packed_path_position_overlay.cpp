@@ -223,15 +223,21 @@ void PackedPositionOverlay::index_path_positions() {
     // Then get the lengths of all the paths
     std::vector<size_t> path_lengths(path_handles.size(), 0);
     // And any per-path scan data that we might need later
-    std::vector<void*> path_user_data(path_handles.size(), 0);
+    std::vector<void*> path_user_data(path_handles.size(), nullptr);
     #pragma omp parallel for
     for (size_t i = 0; i < path_handles.size(); i++) {
         // Step counting requires a scan in some graph implementations, so do it in parallel.
 #ifdef debug
         #pragma omp critical (cerr)
-        std::cerr << "Getting length of path " << get_path_name(path_handles[i]) << std::endl;
+        std::cerr << "T" << omp_get_thread_num() << ": Getting length of path " << get_path_name(path_handles[i]) << std::endl;
 #endif
         path_lengths[i] = this->scan_path(path_handles[i], path_user_data[i]);
+        
+#ifdef debug
+        #pragma omp critical (cerr)
+        std::cerr << "T" << omp_get_thread_num() << ": For path " << i << " = " << get_path_name(path_handles[i]) << " length is " << path_lengths[i] << " and user data is " << path_user_data[i] << " at " << &path_user_data[i] << std::endl;
+#endif
+        
     }
     
     // Then find the collections of paths to index together.
@@ -241,7 +247,7 @@ void PackedPositionOverlay::index_path_positions() {
     
 #ifdef debug
     #pragma omp critical (cerr)
-    std::cerr << "Starting a new index " << (bounds.size() - 1) << " with path " << get_path_name(path_handles[bounds.back()] << std::endl;
+    std::cerr << "Starting a new index " << (bounds.size() - 1) << " with path " << get_path_name(path_handles[bounds.back()]) << std::endl;
 #endif
     
     // And this will be the cumulative path length of all the paths in each collection.
@@ -281,8 +287,8 @@ void PackedPositionOverlay::index_path_positions() {
         std::vector<path_handle_t>::const_iterator end_path = path_handles.cbegin() + bounds[i + 1];
         // And the number of steps on its paths
         const size_t& cumul_path_size = path_set_steps[i];
-        // And the oser data for the first path. All of them must be stored contiguously.
-        void** user_data_base = &path_user_data[i];
+        // And the user data for the first path. All of them must be stored contiguously.
+        void** user_data_base = &path_user_data[bounds[i]];
         
         // Compute the index for this collection of paths.
         this->index_paths(i, begin_path, end_path, cumul_path_size, user_data_base);
