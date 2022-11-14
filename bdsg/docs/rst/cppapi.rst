@@ -24,6 +24,8 @@ The namespace contains definitions for different types of handles. THese are ref
 
 .. doxygenstruct:: handlegraph::step_handle_t
 
+.. doxygenstruct:: handlegraph::net_handle_t
+
 ----------------
 Graph Interfaces
 ----------------
@@ -97,6 +99,15 @@ Orthogonal to the mutability and paths hierarchy, there is a :cpp:class:`handleg
 .. doxygenclass:: handlegraph::SerializableHandleGraph
    :members:
 
+~~~~~~~~~~~~~~~~~~~~~~~
+SnarlDecomposition
+~~~~~~~~~~~~~~~~~~~~~~~
+
+A "snarl decomposition" describes the decomposition of the graph into nested substructures known as snarls and chains. The :cpp:class:`handlegraph::SnarlDecomposition` interface defines methods for traversing the snarl decomposition of a graph using :cpp:class:`handlegraph::net_handle_t`.
+
+.. doxygenclass:: handlegraph::SnarlDecomposition
+   :members:
+
 ====================================
 libbdsg Handle Graph Implementations
 ====================================
@@ -128,6 +139,19 @@ ODGI
 ~~~~
    
 .. doxygenclass:: bdsg::ODGI
+   :members:
+
+-----------------------------------
+Snarl Decomposition Implementations
+-----------------------------------
+
+There is one implementation for a snarl decomposition
+
+~~~~~~~~~~~~~~~~~~
+SnarlDistanceIndex
+~~~~~~~~~~~~~~~~~~
+
+.. doxygenclass:: bdsg::SnarlDistanceIndex
    :members:
    
 --------------
@@ -181,9 +205,5 @@ All these overlay helpers are really instantiations of a couple of templates:
 .. doxygenclass:: bdsg::PairOverlayHelper
    :members:
    :undoc-members:
-
-
-
-
 
 

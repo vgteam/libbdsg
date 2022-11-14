@@ -72,7 +72,7 @@ The documentation for `libbdsg` is built using Sphinx, and will invoke the CMake
 # Install Sphinx
 virtualenv --python python3 venv
 . venv/bin/activate
-pip3 install -r docs/requirements.txt
+pip3 install -r bdsg/docs/requirements.txt
 
 # Build the documentation
 make docs
@@ -91,6 +91,7 @@ The documentation can then be found at `docs/_build/html/index.html`.
 - [`sparsepp`](https://github.com/greg7mdp/sparsepp)
 - [`DYNAMIC`](https://github.com/xxsds/DYNAMIC)
 - [`BBHash/alltypes`](https://github.com/rizkg/BBHash/tree/alltypes) 
+- [`jansson`](https://github.com/akheron/jansson)
 
 The build process with `make` assumes that these libraries and their headers have been installed in a place on the system where the compiler can find them (e.g. in `CPLUS_INCLUDE_PATH`).
 

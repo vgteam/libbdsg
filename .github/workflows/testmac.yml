@@ -26,7 +26,7 @@ jobs:
       - name: Run build and test
         run: |
           set -e
-          brew install libomp doxygen
+          brew install libomp doxygen jansson
           mkdir -p build
           cd build
           cmake .. -DRUN_DOXYGEN=ON -DPYTHON_EXECUTABLE="$(which python3)"

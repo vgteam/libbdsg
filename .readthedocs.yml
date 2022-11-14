@@ -14,3 +14,11 @@ python:
   version: 3.7
   install:
     - requirements: bdsg/docs/requirements.txt
+
+build:
+  apt_packages:
+    - libjansson-dev
+
+submodules:
+  include: all
+  recursive: true

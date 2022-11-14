@@ -2,6 +2,8 @@
 cmake_minimum_required(VERSION 3.10)
 # We can't use CMake 3.11 until we no longer have to run on Ubuntu 18.04.
 
+include(FindPkgConfig)
+
 # Make MACOSX_RPATH on explicitly, so non-installed libraries use @rpath in install name
 set(CMAKE_MACOSX_RPATH ON)
 
@@ -35,6 +37,7 @@ endif ()
 set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 
+# Find OMP system depenency and configure for OS
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
   # assumes clang build
@@ -80,6 +83,19 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   set (OMP_INCLUDE_FLAGS "-I${OMP_INCLUDE_PATH}")
   set (OMP_LIB_FLAGS "-L${OMP_LIB_PATH}")
   
+  # We also need manual libdl for some reason, so find it properly
+  find_path(DL_LIB_PATH libdl.dylib
+            PATHS "${HOMEBREW_PREFIX}/lib" /opt/local/lib /usr/local/lib /usr/lib /lib
+            REQUIRED)
+  if ("${DL_LIB_PATH}" STREQUAL "")
+    # REQUIRED is a new CMake feature
+    message(FATAL_ERROR "Could not find libdl.dylib")
+  else()
+    message("Found libdl libraries in ${DL_LIB_PATH}")
+  endif()
+  
+  set (DL_LIB_FLAGS "-L${DL_LIB_PATH}")
+  
   set (OpenMP_C "${CMAKE_C_COMPILER}")
   set (OpenMP_C_FLAGS " -Xpreprocessor -fopenmp ${OMP_INCLUDE_FLAGS} ${OMP_LIB_FLAGS}")
   set (OpenMP_C_LIB_NAMES "libomp" "libgomp" "libiomp5")
@@ -97,7 +113,7 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   
   # Mac needs libdl and libomp when linking the library and a hint on where to look for them
   # Mac doesn't have $ORIGIN for RPaths. We might not be able to produce a working Mac wheel for Python bindings.
-  set(PLATFORM_EXTRA_LIB_FLAGS -ldl -lomp -L/opt/local/lib/libomp -L/usr/local/lib)
+  set(PLATFORM_EXTRA_LIB_FLAGS -ldl -lomp ${DL_LIB_FLAGS} ${OMP_LIB_FLAGS})
   
   # Mac needs install names set after installation
   SET(CMAKE_INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
@@ -116,6 +132,9 @@ elseif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   set(PLATFORM_EXTRA_LIB_FLAGS -ldl -Wl,-rpath='$ORIGIN')
   
 endif()
+
+# Find other system dependencies
+pkg_check_modules(Jansson REQUIRED IMPORTED_TARGET jansson)
 
 # Find our bdsg package directory where input sources and dependencies are
 set(bdsg_DIR "${CMAKE_CURRENT_SOURCE_DIR}/bdsg")
@@ -268,6 +287,7 @@ add_library(bdsg_objs OBJECT
   ${bdsg_DIR}/src/snarl_distance_index.cpp
   )
 
+# Add includes for ourselves
 set(bdsg_INCLUDES
   "${bdsg_DIR}/include"
 )
@@ -281,7 +301,8 @@ set(bdsg_TARGET_DEPS
   handlegraph_shared
   bbhash
   sparsepp
-  mio::mio)
+  mio::mio
+  PkgConfig::Jansson)
 
 set(bdsg_LIBS
   ${bdsg_TARGET_DEPS}
