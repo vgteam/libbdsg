@@ -143,13 +143,18 @@ void PackedReferencePathOverlay::index_paths(size_t index_num, const std::vector
     size_t rank_offset = 0;
     // We also need the number of unique handle keys
     size_t unique_keys = 0;
-    void** user_data_it = user_data_base;
+    std::unordered_multimap<nid_t, size_t>** user_data_it = (std::unordered_multimap<nid_t, size_t>**) user_data_base;
     for (auto it = begin_path; it != end_path; ++it) {
-        std::unordered_multimap<nid_t, size_t>*& user_data = (std::unordered_multimap<nid_t, size_t>*&) *user_data_it;
-        ++user_data_it;
+    
+#ifdef debug
+        #pragma omp critical (cerr)
+        std::cerr << "T" << omp_get_thread_num() << ": For path " << get_path_name(*it) << " we see user data " << *user_data_it << " at " << user_data_it << std::endl;
+#endif
+        
         // Copy all the items by hand
         // TODO: When we get C++17, do something with nodes
-        for (const std::pair<nid_t, size_t>& item : *user_data) {
+        assert(*user_data_it != nullptr); 
+        for (const std::pair<nid_t, size_t>& item : **user_data_it) {
             auto found = all_visit_ranks.find(item.first);
             if (found == all_visit_ranks.end()) {
                 // This is a new unique key
@@ -159,11 +164,12 @@ void PackedReferencePathOverlay::index_paths(size_t index_num, const std::vector
             all_visit_ranks.emplace_hint(found, item.first, item.second + rank_offset);
         }
         // Record the ranks used
-        rank_offset += user_data->size();
+        rank_offset += (*user_data_it)->size();
         // Consume the user data
-        delete user_data;
+        delete *user_data_it;
         // Null it out so the base class can have its null
-        user_data = nullptr;
+        *user_data_it = nullptr;
+        ++user_data_it;
     }
     
     // Grab the additional index we are building into
