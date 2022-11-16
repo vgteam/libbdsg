@@ -35,6 +35,9 @@ public:
     // finding visits on nodes is slow. We override the reverse lookups to go
     // fron graph nodes to paths.
 
+    /// overload this to use the cache 
+    virtual path_handle_t get_path_handle_of_step(const step_handle_t& step_handle) const;
+
 protected:
     
     // PathHandleGraph interface
@@ -87,6 +90,13 @@ protected:
     /// This holds the indexes, each of which belongs to a path or collection
     /// of short paths. Order is the same as "indexes" in the base class.
     vector<PathVisitIndex> visit_indexes;
+
+    /// Speed up get_path_handle_of_step() by caching the path of every step (!)
+    /// There's already a step hash in the parent position overlay but it's
+    /// indexed by path handle, which defeats the purpose here. todo: certainly
+    /// room for improvement with a big refactor
+    unique_ptr<boomphf::mphf<step_handle_t, StepHash>> step_to_rank;
+    PackedVector<> step_rank_to_path;
 };
 
 }

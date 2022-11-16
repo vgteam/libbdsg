@@ -18,6 +18,29 @@ PackedReferencePathOverlay::PackedReferencePathOverlay(const PathHandleGraph* gr
 
     // Now do the index build
     index_path_positions();
+
+    // Now make the step_handle -> path_handle index:    
+    // rank our steps with a bbhash
+    size_t step_count = 0;
+    vector<path_handle_t> ref_path_handles;
+    for_each_path_handle([&](const path_handle_t& path_handle) {
+            ref_path_handles.push_back(path_handle);
+            step_count += graph->get_step_count(path_handle);
+        });
+    step_to_rank.reset(new boomphf::mphf<step_handle_t, StepHash>(step_count,
+                                                                  BBHashHelper(graph, ref_path_handles.begin(), ref_path_handles.end()),
+                                                                  get_thread_count(), 2.0, false, false));
+    // map the step rank back to the path with a packed vector
+    step_rank_to_path.resize(step_count);
+    for (const path_handle_t& ref_path : ref_path_handles) {
+        for_each_step_in_path(ref_path, [&](const step_handle_t& step_handle) {
+                step_rank_to_path.set(step_to_rank->lookup(step_handle), handlegraph::as_integer(ref_path));
+            });
+    }
+}
+
+path_handle_t PackedReferencePathOverlay::get_path_handle_of_step(const step_handle_t& step_handle) const {
+    return handlegraph::as_path_handle(step_rank_to_path.get(step_to_rank->lookup(step_handle)));
 }
 
 bool PackedReferencePathOverlay::for_each_step_on_handle_impl(const handle_t& handle,
@@ -27,7 +50,6 @@ bool PackedReferencePathOverlay::for_each_step_on_handle_impl(const handle_t& ha
     // We want to see paths that visit the node in the other orientation, since
     // we're still on them in an orientation.
     nid_t node_id = this->get_id(handle);
-    
     // Now we are going to poll all the indexes because we don't have anything
     // like path_range to find the right index.
     // TODO: Change to one big MPHF over the graph's nodes or something??? This will be slow!
