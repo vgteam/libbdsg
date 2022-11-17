@@ -85,18 +85,21 @@ protected:
 
         /// Stores number of indexes in visit_ranks for each handle in the same order as visit_ranks_start
         PackedVector<> visit_ranks_length;
+
+        /// Hash steps for the step to path cache
+        std::vector<boomphf::mphf<step_handle_t, StepHash>> step_hash;
+        
+        /// Step to path cache to speed up get_path_handle_of_step()
+        PackedVector<> step_to_path;
+
+        /// Since we're binning the hashes, we need this to verify collisions in bbhash.
+        PackedVector<> step_to_step1;
+        PackedVector<> step_to_step2;
     };
-    
+
     /// This holds the indexes, each of which belongs to a path or collection
     /// of short paths. Order is the same as "indexes" in the base class.
-    vector<PathVisitIndex> visit_indexes;
-
-    /// Speed up get_path_handle_of_step() by caching the path of every step (!)
-    /// There's already a step hash in the parent position overlay but it's
-    /// indexed by path handle, which defeats the purpose here. todo: certainly
-    /// room for improvement with a big refactor
-    unique_ptr<boomphf::mphf<step_handle_t, StepHash>> step_to_rank;
-    PackedVector<> step_rank_to_path;
+    vector<PathVisitIndex> visit_indexes;    
 };
 
 }
