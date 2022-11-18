@@ -18,13 +18,19 @@ PackedReferencePathOverlay::PackedReferencePathOverlay(const PathHandleGraph* gr
 
     // Now do the index build
     index_path_positions();
+
+    // initialize the index cache
+    this->last_step_to_path_idx.resize(get_thread_count(), 0);
 }
 
 path_handle_t PackedReferencePathOverlay::get_path_handle_of_step(const step_handle_t& step_handle) const {
-
     // this index-scanning logic mimics that in for_each_step_on_handle_impl below
     // (tradeoff of parallel construction vs faster lookup)
-    for (size_t index_num = 0; index_num < this->visit_indexes.size(); index_num++) {        
+
+    // we start at the last successful bin
+    size_t& idx_hint = this->last_step_to_path_idx[omp_get_thread_num()];
+    for (size_t i = 0; i < this->visit_indexes.size(); ++i) {
+        size_t index_num = (idx_hint + i) % this->visit_indexes.size();
         auto& visit_index = this->visit_indexes[index_num];
         boomphf::mphf<step_handle_t, StepHash>& step_hash = const_cast<boomphf::mphf<step_handle_t, StepHash>&>(visit_index.step_hash.back());
         size_t hash = step_hash.lookup(step_handle);
@@ -38,6 +44,7 @@ path_handle_t PackedReferencePathOverlay::get_path_handle_of_step(const step_han
             continue;
         }
         // it's really in the bbash!
+        idx_hint = index_num;
         return as_path_handle(visit_index.step_to_path.get(hash));
     }
     // should never happen, but we fall back on the backing graph
@@ -243,8 +250,9 @@ void PackedReferencePathOverlay::index_paths(size_t index_num, const std::vector
         visit_index.visit_ranks_length.set(prev_hash, visit_number - start_visit_number);
     }
     
-    // Now make the step_handle -> path_handle index:
-    visit_index.step_hash.emplace_back(step_count, BBHashHelper(graph, begin_path, end_path), get_thread_count(), 2.0, false, false);
+    // Now make the step_handle -> path_handle index
+    // (use bigger gamma instead of 2 to speed up our cache a bit at the cost increased size)
+    visit_index.step_hash.emplace_back(step_count, BBHashHelper(graph, begin_path, end_path), get_thread_count(), 10.0, false, false);
     visit_index.step_to_path.resize(step_count);
     visit_index.step_to_step1.resize(step_count);
     visit_index.step_to_step2.resize(step_count);    

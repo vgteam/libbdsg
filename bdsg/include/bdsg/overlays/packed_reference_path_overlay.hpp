@@ -95,11 +95,16 @@ protected:
         /// Since we're binning the hashes, we need this to verify collisions in bbhash.
         PackedVector<> step_to_step1;
         PackedVector<> step_to_step2;
+
     };
 
     /// This holds the indexes, each of which belongs to a path or collection
     /// of short paths. Order is the same as "indexes" in the base class.
-    vector<PathVisitIndex> visit_indexes;    
+    vector<PathVisitIndex> visit_indexes;
+
+    /// Last visit_index accessed, one per thread
+    /// (works around some simple worst-case scenarios like repeatedly scanning to the end)
+    mutable std::vector<size_t> last_step_to_path_idx;
 };
 
 }
