@@ -19,28 +19,36 @@ PackedReferencePathOverlay::PackedReferencePathOverlay(const PathHandleGraph* gr
     // Now do the index build
     index_path_positions();
 
-    // Now make the step_handle -> path_handle index:    
-    // rank our steps with a bbhash
-    size_t step_count = 0;
-    vector<path_handle_t> ref_path_handles;
-    for_each_path_handle([&](const path_handle_t& path_handle) {
-            ref_path_handles.push_back(path_handle);
-            step_count += graph->get_step_count(path_handle);
-        });
-    step_to_rank.reset(new boomphf::mphf<step_handle_t, StepHash>(step_count,
-                                                                  BBHashHelper(graph, ref_path_handles.begin(), ref_path_handles.end()),
-                                                                  get_thread_count(), 2.0, false, false));
-    // map the step rank back to the path with a packed vector
-    step_rank_to_path.resize(step_count);
-    for (const path_handle_t& ref_path : ref_path_handles) {
-        for_each_step_in_path(ref_path, [&](const step_handle_t& step_handle) {
-                step_rank_to_path.set(step_to_rank->lookup(step_handle), handlegraph::as_integer(ref_path));
-            });
-    }
+    // initialize the index cache
+    this->last_step_to_path_idx.resize(get_thread_count(), 0);
 }
 
 path_handle_t PackedReferencePathOverlay::get_path_handle_of_step(const step_handle_t& step_handle) const {
-    return handlegraph::as_path_handle(step_rank_to_path.get(step_to_rank->lookup(step_handle)));
+    // this index-scanning logic mimics that in for_each_step_on_handle_impl below
+    // (tradeoff of parallel construction vs faster lookup)
+
+    // we start at the last successful bin
+    size_t& idx_hint = this->last_step_to_path_idx[omp_get_thread_num()];
+    for (size_t i = 0; i < this->visit_indexes.size(); ++i) {
+        size_t index_num = (idx_hint + i) % this->visit_indexes.size();
+        auto& visit_index = this->visit_indexes[index_num];
+        boomphf::mphf<step_handle_t, StepHash>& step_hash = const_cast<boomphf::mphf<step_handle_t, StepHash>&>(visit_index.step_hash.back());
+        size_t hash = step_hash.lookup(step_handle);
+        // need to make sure our step is really in the bbhash
+        if (hash >= visit_index.step_to_path.size()) {
+            continue;
+        }
+        const int64_t* step_integers = as_integers(step_handle);
+        if (step_integers[0] != visit_index.step_to_step1.get(hash) ||
+            step_integers[1] != visit_index.step_to_step2.get(hash)) {
+            continue;
+        }
+        // it's really in the bbash!
+        idx_hint = index_num;
+        return as_path_handle(visit_index.step_to_path.get(hash));
+    }
+    // should never happen, but we fall back on the backing graph
+    return this->graph->get_path_handle_of_step(step_handle);
 }
 
 bool PackedReferencePathOverlay::for_each_step_on_handle_impl(const handle_t& handle,
@@ -166,6 +174,8 @@ void PackedReferencePathOverlay::index_paths(size_t index_num, const std::vector
     // We also need the number of unique handle keys
     size_t unique_keys = 0;
     std::unordered_multimap<nid_t, size_t>** user_data_it = (std::unordered_multimap<nid_t, size_t>**) user_data_base;
+    // We keep track of the steps for the step->path cache below
+    size_t step_count = 0;
     for (auto it = begin_path; it != end_path; ++it) {
     
 #ifdef debug
@@ -192,6 +202,8 @@ void PackedReferencePathOverlay::index_paths(size_t index_num, const std::vector
         // Null it out so the base class can have its null
         *user_data_it = nullptr;
         ++user_data_it;
+
+        step_count += get_step_count(*it);
     }
     
     // Grab the additional index we are building into
@@ -238,8 +250,24 @@ void PackedReferencePathOverlay::index_paths(size_t index_num, const std::vector
         visit_index.visit_ranks_length.set(prev_hash, visit_number - start_visit_number);
     }
     
+    // Now make the step_handle -> path_handle index
+    // (use bigger gamma instead of 2 to speed up our cache a bit at the cost increased size)
+    visit_index.step_hash.emplace_back(step_count, BBHashHelper(graph, begin_path, end_path), get_thread_count(), 10.0, false, false);
+    visit_index.step_to_path.resize(step_count);
+    visit_index.step_to_step1.resize(step_count);
+    visit_index.step_to_step2.resize(step_count);    
+    for (auto it = begin_path; it != end_path; ++it) {
+        for_each_step_in_path(*it, [&](const step_handle_t& step_handle) {
+                size_t hash_value = visit_index.step_hash.back().lookup(step_handle);
+                visit_index.step_to_path.set(hash_value, as_integer(*it));
+                visit_index.step_to_step1.set(hash_value, as_integers(step_handle)[0]);
+                visit_index.step_to_step2.set(hash_value, as_integers(step_handle)[1]);
+          });
+    }
+
     // Compute all the indexes for path positions
     PackedPositionOverlay::index_paths(index_num, begin_path, end_path, cumul_path_size, user_data_base);
+
 }
 
 }
