@@ -9,7 +9,7 @@ Paths, or walks traversing a series of nodes, represent sequences of interest.
 ## Basic HandleGraph types
 
 To interact with these graphs in precise, programmatic ways, we need to be able to identify their basic elements.
-This is the core motivation behind the [_HandleGraph_](https://github.com/vgteam/libhandlegraph) abstraction used in odgi and other dynamic graph implementations in [libbdsg](https://github.com/vgteam/libbdsg).
+This is the core motivation behind the [_HandleGraph_](https://github.com/vgteam/libhandlegraph) abstraction used in odgi in the dynamic graph implementations in [libbdsg](https://github.com/vgteam/libbdsg).
 Because DNA sequence graphs have two strands, we need a more precise way of addressing elements in the graph than nodes, which implicitly represent both strands.
 The _handle_, which is the core concept in the Handle Graph abstraction, allows us to refer to one strand of a single node, which is the smallest addressable unit in a variation graph.
 Nodes have numeric identifiers (or _ID_s), and associated sequences.

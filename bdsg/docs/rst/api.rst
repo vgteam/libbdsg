@@ -150,7 +150,7 @@ The :mod:`bdsg.bdsg` module provides useful implementations of the Handle Graph 
 Full Graph Implementations
 --------------------------
 
-There are three full graph implementations in the module: :class:`bdsg.bdsg.PackedGraph`, :class:`bdsg.bdsg.HashGraph`, and :class:`bdsg.bdsg.ODGI`.
+There are two full graph implementations in the module: :class:`bdsg.bdsg.PackedGraph` and :class:`bdsg.bdsg.HashGraph`. Previously, a third implementation, ODGI, was provided, but that implementation is now part of its own `odgi project <https://github.com/pangenome/odgi#odgi>`_.
 
 ~~~~~~~~~~~
 PackedGraph
@@ -168,14 +168,6 @@ HashGraph
    :show-inheritance:
    :members:
    
-~~~~
-ODGI
-~~~~
-   
-.. autoclass:: bdsg.bdsg.ODGI
-   :show-inheritance:
-   :members:
-
 ----------------------------------
 SnarlDecomposition Implementations
 ----------------------------------

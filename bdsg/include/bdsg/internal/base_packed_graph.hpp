@@ -41,7 +41,7 @@ using namespace handlegraph;
  * This implementation is a good choice when working with very large graphs,
  * where the final memory usage of the constructed graph must be minimized. It
  * is not a good choice when large fractions of the graph will need to be
- * deleted and replaced; ODGI or HashGraph may be better for such workloads.
+ * deleted and replaced; HashGraph may be better for such workloads.
  *
  * BasePackedGraph is templated out so it can exist in mapped memory, and
  * therefore doesn't actually inherit from any HandleGraph interfaces, which

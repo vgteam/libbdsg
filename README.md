@@ -6,11 +6,12 @@ Optimized **b**i**d**irected **s**equence **g**raph implementations for graph ge
 
 ## About
 
-The main purpose of `libbdsg` is to provide high performance implementations of sequence graphs for graph-based pangenomics applications. The repository contains three graph implementations with different performance tradeoffs:
+The main purpose of `libbdsg` is to provide high performance implementations of sequence graphs for graph-based pangenomics applications. The repository contains two graph implementations with different performance tradeoffs:
 
 - HashGraph: prioritizes speed
-- ODGI: balances speed and low memory usage
 - PackedGraph: prioritizes low memory usage
+
+Previously, a third implementation, ODGI, was provided, but that implementation is now part of its own [odgi project](https://github.com/pangenome/odgi#odgi).
 
 All of these graph objects implement a common interface defined by [`libhandlegraph`](https://github.com/vgteam/libhandlegraph), so they can be used interchangeably and swapped easily.
 

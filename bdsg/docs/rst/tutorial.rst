@@ -30,12 +30,12 @@ Reference materials for these methods can be found at the :ref:`api`, as well as
 
 Making a Graph
 ===============
-First, we must create the graph, then make each node and keep track of their handles. We're going to be using the **Optimized Dynamic Graph Implementation**, :class:`bdsg.bdsg.ODGI`, which is a good all-around graph that implements :class:`bdsg.handlegraph.MutablePathDeletableHandleGraph`.
+First, we must create the graph, then make each node and keep track of their handles. We're going to be using the **HashGraph**, :class:`bdsg.bdsg.HashGraph`, which is a good all-around graph that implements :class:`bdsg.handlegraph.MutablePathDeletableHandleGraph`.
 
 .. testcode::
 
-    from bdsg.bdsg import ODGI
-    gr = ODGI()
+    from bdsg.bdsg import HashGraph
+    gr = HashGraph()
     seq = ["CGA", "TTGG", "CCGT", "C", "GT", "GATAA", "CGG", "ACA", "GCCG", "ATATAAC"]
     n = []
     for s in seq:
@@ -84,40 +84,6 @@ Which will output the following:
     n0: CGA
     n1: TTGG
     n2: CCGT
-
-Since we are using :class:`bdsg.bdsg.ODGI`, a text representation of the data can be generated using :func:`bdsg.bdsg.ODGI.to_gfa`. Use "-" as the destination filename to send the result to standard output, or provide no filename to get a string returned.
-
-.. testcode::
-
-    print(gr.to_gfa())
-        
-.. testoutput::
-    :hide:
-    :options: +NORMALIZE_WHITESPACE
-        
-    H    VN:Z:1.0
-    S    1    CGA
-    L    1    +    2    +    0M
-    S    2    TTGG
-    L    2    +    3    +    0M
-    S    3    CCGT
-    L    3    +    5    +    0M
-    L    3    +    4    +    0M
-    S    4    C
-    L    4    +    6    +    0M
-    S    5    GT
-    S    6    GATAA
-    L    6    +    9    +    0M
-    L    6    +    7    +    0M
-    S    7    CGG
-    L    7    +    9    +    0M
-    L    7    +    8    +    0M
-    S    8    ACA
-    L    8    +    10    +    0M
-    S    9    GCCG
-    L    9    +    6    +    0M
-    L    9    +    10    +    0M
-    S    10    ATATAAC
 
 Creating a Path
 ===============
@@ -186,7 +152,7 @@ Which will output the following:
 Saving and Loading Graphs
 *************************
 
-Graphs that implement :class:`bdsg.handlegraph.SerializableHandleGraph`, such as :class:`bdsg.bdsg.ODGI`, can be saved and loaded through the :func:`bdsg.handlegraph.SerializableHandleGraph.serialize` and :func:`bdsg.handlegraph.SerializableHandleGraph.deserialize` methods. 
+Graphs that implement :class:`bdsg.handlegraph.SerializableHandleGraph`, such as :class:`bdsg.bdsg.HashGraph`, can be saved and loaded through the :func:`bdsg.handlegraph.SerializableHandleGraph.serialize` and :func:`bdsg.handlegraph.SerializableHandleGraph.deserialize` methods. 
 
 Graph File Example
 ==================
@@ -195,15 +161,15 @@ If you wish to save the graph from the above session, that can be done with:
 
 .. testcode::
 
-    gr.serialize("example_graph.odgi")
+    gr.serialize("example_graph.hg")
 
 This can be loaded into a new python session by using:
 
 .. testcode::
         
-    from bdsg.bdsg import ODGI
-    gr = ODGI()
-    gr.deserialize("example_graph.odgi")
+    from bdsg.bdsg import HashGraph
+    gr = HashGraph()
+    gr.deserialize("example_graph.hg")
 
 Loading in Pre-Existing Data
 ============================
@@ -251,9 +217,9 @@ To check a file, you can use ``vg stats --format``, like so:
 
     vg stats --format graph.vg
     
-If you see one of ``format: HashGraph``, ``format: PackedGraph``, or ``format: ODGI``, you can probably (but not always; see the note on encapsulation_) load the graph with :class:`bdsg.bdsg.HashGraph`, :class:`bdsg.bdsg.PackedGraph`, or :class:`bdsg.bdsg.ODGI`, respectively.
+If you see one of ``format: HashGraph`` or ``format: PackedGraph``, you can probably (but not always; see the note on encapsulation_) load the graph with :class:`bdsg.bdsg.HashGraph` or :class:`bdsg.bdsg.PackedGraph`, respectively.
 
-However, in some circumstances, you will need to convert the graph to one of those formats. Some graphs (most notably, graphs from ``vg construct``) will report ``format: VG-Protobuf``, and ``.xg`` files will report ``format: XG``. These graphs will need to be converted to HashGraph, PackedGraph, or ODGI format, and then loaded with the appropriate class. For example, you can do this:
+However, in some circumstances, you will need to convert the graph to one of those formats. Some graphs (most notably, graphs from ``vg construct``) will report ``format: VG-Protobuf``, and ``.xg`` files will report ``format: XG``. These graphs will need to be converted to HashGraph or PackedGraph format, and then loaded with the appropriate class. For example, you can do this:
 
 .. code-block:: bash
 
@@ -267,14 +233,14 @@ The resulting PackedGraph file can be loaded with :func:`bdsg.bdsg.PackedGraph.d
     graph = PackedGraph()
     graph.deserialize("graph.pg")
 
-To use :class:`bdsg.bdsg.HashGraph` instead, substitute ``--hash-out`` for ``--packed-out``. For :class:`bdsg.bdsg.ODGI`, use ``--odgi-out``.
+To use :class:`bdsg.bdsg.HashGraph` instead, substitute ``--hash-out`` for ``--packed-out``.
 
 .. _encapsulation:
 
 Older vg Graphs with Encapsulation
 ==================================
 
-Versions of vg before 1.28.0 would encapsulate HashGraph, PackedGraph, and ODGI graphs in a file format that vg can read but libbdsg cannot. Consequently, some older graph files will be reported as ``format: HashGraph``, ``format: PackedGraph``, or ``format: ODGI`` by ``vg stats --format``, but will still not be readable using libbdsg.
+Versions of vg before 1.28.0 would encapsulate HashGraph and PackedGraph graphs in a file format that vg can read but libbdsg cannot. Consequently, some older graph files will be reported as ``format: HashGraph`` or ``format: PackedGraph`` by ``vg stats --format``, but will still not be readable using libbdsg.
 
 If you encounter one of these files, you can use ``vg view --extract-tag`` to remove the encapsulation and pull out the internal file which libbdsg can understand. For example, for a file that reports ``format: PackedGraph`` but is not loadable by libbdsg, you can do:
 
@@ -282,6 +248,6 @@ If you encounter one of these files, you can use ``vg view --extract-tag`` to re
 
     vg view graph.vg --extract-tag PackedGraph > graph.pg
 
-This also works for ``HashGraph`` and ``ODGI`` files, by replacing ``PackedGraph`` with ``HashGraph`` or ``ODGI``.
+This also works for ``HashGraph`` files, by replacing ``PackedGraph`` with ``HashGraph``.
 
 Running the file through ``vg convert`` with vg 1.28.0 or newer will also solve the problem, but could take longer.
