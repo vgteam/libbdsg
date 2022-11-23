@@ -21,7 +21,6 @@
 #include <sys/stat.h>
 #include <handlegraph/algorithms/are_equivalent.hpp>
 
-#include "bdsg/odgi.hpp"
 #include "bdsg/packed_graph.hpp"
 #include "bdsg/hash_graph.hpp"
 #include "bdsg/internal/packed_structs.hpp"
@@ -636,9 +635,6 @@ void test_serializable_handle_graphs() {
     HashGraph hg_out, hg_in;
     implementations.emplace_back(&hg_out, &hg_in);
     
-    ODGI og_out, og_in;
-    implementations.emplace_back(&og_out, &og_in);
-    
     MappedPackedGraph mpg_in, mpg_out;
     implementations.emplace_back(&mpg_in, &mpg_out);
     
@@ -698,9 +694,6 @@ void test_deletable_handle_graphs() {
 
         HashGraph hg;
         implementations.push_back(&hg);
-
-        ODGI og;
-        implementations.push_back(&og);
 
         MappedPackedGraph mpg;
         implementations.push_back(&mpg);
@@ -1784,9 +1777,6 @@ void test_deletable_handle_graphs() {
         HashGraph hg;
         implementations.push_back(&hg);
 
-        ODGI og;
-        implementations.push_back(&og);
-
         MappedPackedGraph mpg;
         implementations.push_back(&mpg);
 
@@ -1989,9 +1979,6 @@ void test_deletable_handle_graphs() {
         MappedPackedGraph mpg;
         implementations.push_back(&mpg);
 
-        //ODGI og;
-        //implementations.push_back(&og);
-
         for (DeletableHandleGraph* implementation : implementations) {
             DeletableHandleGraph& graph = *implementation;
 
@@ -2026,9 +2013,6 @@ void test_deletable_handle_graphs() {
 
         PackedGraph pg, pg2;
         implementations.push_back(make_pair(&pg, &pg2));
-
-        ODGI og, og2;
-        implementations.push_back(make_pair(&og, &og2));
 
         HashGraph hg, hg2;
         implementations.push_back(make_pair(&hg, &hg2));
@@ -2111,9 +2095,6 @@ void test_deletable_handle_graphs() {
 
         PackedGraph pg;
         implementations.push_back(&pg);
-
-        ODGI og;
-        implementations.push_back(&og);
 
         HashGraph hg;
         implementations.push_back(&hg);
@@ -2219,9 +2200,6 @@ void test_deletable_handle_graphs() {
         PackedGraph pg;
         implementations.push_back(&pg);
         
-        ODGI og;
-        implementations.push_back(&og);
-        
         HashGraph hg;
         implementations.push_back(&hg);
         
@@ -2304,9 +2282,6 @@ void test_mutable_path_handle_graphs() {
     HashGraph hg;
     implementations.push_back(&hg);
 
-    ODGI og;
-    implementations.push_back(&og);
-    
     MappedPackedGraph mpg;
     implementations.push_back(&mpg);
     
@@ -2661,9 +2636,6 @@ void test_mutable_path_handle_graphs() {
         vector<pair<MutablePathMutableHandleGraph*, MutablePathMutableHandleGraph*>> implementations;
         
         // Add implementations
-        
-        ODGI og, og2;
-        implementations.push_back(make_pair(&og, &og2));
         
         HashGraph hg, hg2;
         implementations.push_back(make_pair(&hg, &hg2));
@@ -3646,9 +3618,6 @@ void test_path_position_overlays() {
     PackedGraph pg;
     implementations.push_back(&pg);
     
-    ODGI og;
-    implementations.push_back(&og);
-    
     MappedPackedGraph mpg;
     implementations.push_back(&mpg);
     
@@ -3804,9 +3773,6 @@ void test_packed_reference_path_overlay() {
     PackedGraph pg;
     implementations.push_back(&pg);
     
-    ODGI og;
-    implementations.push_back(&og);
-    
     MappedPackedGraph mpg;
     implementations.push_back(&mpg);
     
@@ -3940,9 +3906,6 @@ void test_vectorizable_overlays() {
     PackedGraph pg;
     implementations.push_back(&pg);
     
-    ODGI og;
-    implementations.push_back(&og);
-    
     MappedPackedGraph mpg;
     implementations.push_back(&mpg);
     
@@ -4014,9 +3977,6 @@ void test_packed_subgraph_overlay() {
 
     PackedGraph pg;
     implementations.push_back(&pg);
-    
-    ODGI og;
-    implementations.push_back(&og);
     
     MappedPackedGraph mpg;
     implementations.push_back(&mpg);

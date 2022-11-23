@@ -118,7 +118,7 @@ The ``bdsg`` namespace provides useful implementations of the Handle Graph API.
 Full Graph Implementations
 --------------------------
 
-There are three full graph implementations in the module: :cpp:class:`bdsg::PackedGraph`, :cpp:class:`bdsg::HashGraph`, and :cpp:class:`bdsg::ODGI`.
+There are two full graph implementations in the module: :cpp:class:`bdsg::PackedGraph`, :cpp:class:`bdsg::HashGraph`. Previously, a third implementation, ODGI, was provided, but that implementation is now part of its own `odgi project <https://github.com/pangenome/odgi#odgi>`_.
 
 ~~~~~~~~~~~
 PackedGraph
@@ -134,13 +134,6 @@ HashGraph
 .. doxygenclass:: bdsg::HashGraph
    :members:
    
-~~~~
-ODGI
-~~~~
-   
-.. doxygenclass:: bdsg::ODGI
-   :members:
-
 -----------------------------------
 Snarl Decomposition Implementations
 -----------------------------------

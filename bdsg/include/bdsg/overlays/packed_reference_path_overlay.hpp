@@ -8,7 +8,7 @@
 #ifndef BDSG_PACKED_REFERENCE_PATH_OVERLAY_HPP_INCLUDED
 #define BDSG_PACKED_REFERENCE_PATH_OVERLAY_HPP_INCLUDED
 
-#include "packed_path_position_overlay.hpp"
+#include <bdsg/overlays/packed_path_position_overlay.hpp>
 
 namespace bdsg {
     
