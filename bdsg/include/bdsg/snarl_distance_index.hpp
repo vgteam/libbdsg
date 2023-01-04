@@ -1487,8 +1487,6 @@ public:
             bool is_tip = false;
             bool is_root_snarl = false;
 
-            //If any distance was too big, then make this an oversized snarl
-            bool skipped_distances=false;
             size_t get_max_record_length() const ;
         };
         struct TemporaryNodeRecord : TemporaryRecord{
