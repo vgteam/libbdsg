@@ -33,4 +33,5 @@ jobs:
           echo "Build with $(nproc) threads"
           make -j$(nproc) VERBOSE=1
           ../bin/test_libbdsg
+          (cd ../lib && python3 -c 'import bdsg; print(bdsg)')
         shell: bash
