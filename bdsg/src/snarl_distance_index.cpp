@@ -5831,7 +5831,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                                 //Add the snarl to the chain, and get back the record to fill it in
 
                                 record_t record_type = snarl_size_limit == 0 ? SNARL :
-                                    (temp_snarl_record.node_count < snarl_size_limit && !temp_snarl_record.skipped_distances ? DISTANCED_SNARL : OVERSIZED_SNARL);
+                                    (temp_snarl_record.node_count < snarl_size_limit ? DISTANCED_SNARL : OVERSIZED_SNARL);
                                 SnarlRecordWriter snarl_record_constructor =
                                     chain_record_constructor.add_snarl(temp_snarl_record.node_count, record_type, last_child_offset.first);
 
