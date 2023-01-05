@@ -835,7 +835,7 @@ private:
      * Otherwise, for snarls with more children than snarl_size_limit, only store the distances
      * that include boundary nodes (OVERSIZED_SNARL)
      */
-    size_t snarl_size_limit = 1000;
+    size_t snarl_size_limit = 5000;
     uint32_t magic_number = 1738636486;
 public:
     void set_snarl_size_limit (size_t size) {snarl_size_limit=size;}
