@@ -86,7 +86,7 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   # We also might need manual libdl for some reason, so find it properly
   find_path(DL_LIB_PATH libdl.dylib
             PATHS "${HOMEBREW_PREFIX}/lib" /opt/local/lib /usr/local/lib /usr/lib /lib)
-  if ("${DL_LIB_PATH}" STREQUAL "")
+  if ("${DL_LIB_PATH}" STREQUAL "DL_LIB_PATH-NOTFOUND")
     # On new (10.14+?) MacOS, there is no longer a libdl that is libSystem wearing a hat.
     # See <https://github.com/meetecho/janus-gateway/issues/1486#issuecomment-451542851>
     # But since libSystem is just the standard library, the functions are all already there.
