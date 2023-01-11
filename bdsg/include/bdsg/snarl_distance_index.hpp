@@ -838,7 +838,7 @@ private:
      */
     size_t snarl_size_limit = 5000;
     static const int max_num_size_limit_warnings = 100;
-    std::atomic<int> size_limit_warnings = 0;
+    std::atomic<int> size_limit_warnings{0};
     static const uint32_t magic_number = 1738636486;
     
 public:
