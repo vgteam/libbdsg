@@ -1066,7 +1066,14 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
             //If this is an oversized snarl and we're looking for internal distances, then we didn't store the
             //distance and we have to find it using dijkstra's algorithm
             if (graph == nullptr) {
-                cerr << "warning: trying to find the distance in an oversized snarl without a graph. Returning inf" << endl;
+                int warning_num = const_cast<SnarlDistanceIndex*>(this)->size_limit_warnings++;
+                if (warning_num < max_num_size_limit_warnings) {
+                    std::string msg = "warning: trying to find the distance in an oversized snarl without a graph. Returning inf\n";
+                    if (warning_num + 1 == max_num_size_limit_warnings) {
+                        msg += "suppressing further warnings\n";
+                    }
+                    std::cerr << msg;
+                }
                 return std::numeric_limits<size_t>::max();
             }
             handle_t handle1 = is_node(child1) ? get_handle(child1, graph) : get_handle(get_bound(child1, !child_ends_at_start1, false), graph); 
