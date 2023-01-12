@@ -11,6 +11,7 @@
 #include <bdsg/internal/mapped_structs.hpp>
 #include <string>
 #include <numeric>
+#include <atomic>
 #include <arpa/inet.h>
  /**
   * This defines the distance index, which also serves as a snarl tree that implements libhandlegraph's 
@@ -835,8 +836,11 @@ private:
      * Otherwise, for snarls with more children than snarl_size_limit, only store the distances
      * that include boundary nodes (OVERSIZED_SNARL)
      */
-    size_t snarl_size_limit = 1000;
-    uint32_t magic_number = 1738636486;
+    size_t snarl_size_limit = 5000;
+    static const int max_num_size_limit_warnings = 100;
+    std::atomic<int> size_limit_warnings{0};
+    static const uint32_t magic_number = 1738636486;
+    
 public:
     void set_snarl_size_limit (size_t size) {snarl_size_limit=size;}
 
