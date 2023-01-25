@@ -157,6 +157,68 @@ if(get_handle_type(net) == SNARL_HANDLE){
     return get_handle_type(net) == SNARL_HANDLE && get_node_record_offset(net) == 1;
 }
 
+bool SnarlDistanceIndex::is_regular_snarl(const net_handle_t& net) const {
+#ifdef debug_distances
+if(get_handle_type(net) == SNARL_HANDLE){
+    assert(SnarlTreeRecord(net, &snarl_tree_records).get_record_handle_type() == SNARL_HANDLE ||
+        SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == ROOT_SNARL ||
+        SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == DISTANCED_ROOT_SNARL);
+}
+#endif
+
+    //If there is any edge from the boundary nodes to themselves, then it cannot be regular
+    net_handle_t start_in = get_bound(net, false, true);
+    net_handle_t end_in = get_bound(net, true, true);
+    if (distance_in_parent(net, start_in, start_in) != std::numeric_limits<size_t>::max()) {
+        return false;
+    }
+    if (distance_in_parent(net, end_in, end_in) != std::numeric_limits<size_t>::max()) {
+        return false;
+    }
+    bool is_regular = true;
+
+    for_each_child(net, [&](const net_handle_t& child) {
+        //If there isn't a path through the snarl that passes through the child 
+        //or there's an extra path through the child then it is irregular
+        bool start_right = distance_in_parent(net, start_in, child) != std::numeric_limits<size_t>::max();
+        bool start_left = distance_in_parent(net, start_in, flip(child)) != std::numeric_limits<size_t>::max();
+        bool end_right = distance_in_parent(net, end_in, child) != std::numeric_limits<size_t>::max();
+        bool end_left = distance_in_parent(net, end_in, flip(child)) != std::numeric_limits<size_t>::max();
+
+        if (start_right && end_left) {
+            if (start_left || end_right) {
+                is_regular = false;
+                return false;
+            }
+        } else if (start_left && end_right) {
+            if (start_right || end_left) {
+                is_regular = false;
+                return false;
+            }
+        } else {
+            //There wasn't a path through this node so it is irregular
+            is_regular = false;
+            return false;
+        }
+
+        //If there is an edge to any other child, then it is irregular 
+        for_each_child(net, [&](const net_handle_t& child2) {
+            if (distance_in_parent(net, child, child2) != std::numeric_limits<size_t>::max() ||
+                distance_in_parent(net, child, flip(child2)) != std::numeric_limits<size_t>::max() ||
+                distance_in_parent(net, flip(child), child2) != std::numeric_limits<size_t>::max() ||
+                distance_in_parent(net, flip(child), flip(child2)) != std::numeric_limits<size_t>::max()) {
+                is_regular = false;
+                return false;
+            }
+            //Return true to continue traversing
+            return true;
+        });
+        //Return true to continue traversing
+        return true;
+    });
+    return is_regular;
+}
+
 bool SnarlDistanceIndex::is_chain(const net_handle_t& net) const {
 #ifdef debug_distances
 if (get_handle_type(net) ==CHAIN_HANDLE) {

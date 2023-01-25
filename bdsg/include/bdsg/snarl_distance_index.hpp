@@ -347,7 +347,14 @@ public:
     ///Returns true if the given net handle refers to (a traversal of) a simple snarl
     ///A simple snarl is a bubble where each child node can only reach the boundary nodes,
     ///and each side of a node reaches a different boundary node
+    ///There may also be an edge connecting the two boundary nodes but no additional 
+    ///edges are allowed
     bool is_simple_snarl(const net_handle_t& net) const;
+
+    ///Returns true if the given net handle refers to (a traversal of) a regular snarl
+    ///A regular snarl is the same as a simple snarl, except that the children may be
+    ///nested chains, rather than being restricted to nodes 
+    bool is_regular_snarl(const net_handle_t& net) const;
 
     ///Returns true if the given net handle refers to (a traversal of) a chain.
     bool is_chain(const net_handle_t& net) const;
