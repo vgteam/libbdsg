@@ -3096,7 +3096,7 @@ size_t SnarlDistanceIndex::get_connected_component_number(const net_handle_t& ne
         throw runtime_error("error: trying to get the connected component number of the root");
     }
     net_handle_t child = net;
-    net_handle_t parent = get_parent(net);
+    net_handle_t parent = is_root(net) ? net : get_parent(net);
     while (!is_root(parent)) {
         child = parent;
         parent = get_parent(child);
