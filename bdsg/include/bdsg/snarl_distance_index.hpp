@@ -213,6 +213,13 @@ public:
     //Distance limit is the distance after which we give up if we're doing a traversal.
     size_t distance_in_parent(const net_handle_t& parent, const net_handle_t& child1, const net_handle_t& child2, const HandleGraph* graph=nullptr, size_t distance_limit = std::numeric_limits<size_t>::max()) const;
 
+    //Distance_in_parent for distances in a snarl given the rank and orientation instead of a handle
+    //You should use distance in parent unless you're sure the ranks are correct - this shouldn't
+    //be exposed to the public interface but I needed it
+    size_t distance_in_snarl(const net_handle_t& parent, const size_t& rank1, const bool& right_side1, 
+            const size_t& rank2, const bool& right_side2, const HandleGraph* graph=nullptr, 
+            size_t distance_limit = std::numeric_limits<size_t>::max()) const;
+
     ///Find the maximum distance between two children in the parent. 
     ///This is the same as distance_in_parent for everything except children of chains
     size_t max_distance_in_parent(const net_handle_t& parent, const net_handle_t& child1, const net_handle_t& child2, const HandleGraph* graph=nullptr, size_t distance_limit = std::numeric_limits<size_t>::max()) const;
@@ -458,6 +465,11 @@ public:
     ///This returns the number of topological connected components, not necessarily the 
     ///number of nodes in the top-level snarl 
     size_t connected_component_count() const;
+
+    ///Get the child of a snarl from its rank. This shouldn't be exposed to the public interface but I need it
+    ///Please don't use it
+    ///For 0 or 1, returns the sentinel facing in. Otherwise return the child as a chain going START_END
+    net_handle_t get_snarl_child_from_rank(const net_handle_t& snarl, const size_t& rank) const;
 
 protected:
     ///Internal implementation for for_each_child.

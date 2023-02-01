@@ -539,6 +539,29 @@ size_t SnarlDistanceIndex::connected_component_count() const {
     return RootRecord (get_root(), &snarl_tree_records).get_connected_component_count();
 }
 
+net_handle_t SnarlDistanceIndex::get_snarl_child_from_rank(const net_handle_t& snarl, const size_t& rank) const {
+    if (rank == 0) {
+        return get_bound(snarl, false, true);
+    } else if (rank == 1) {
+        return get_bound(snarl, true, true);
+    } else {
+        //Ranks for children of snarls start from 2 since 0 and 1 are reserved for the bounds
+        size_t current_rank = 2;
+        net_handle_t snarl_child;
+        for_each_child_impl(snarl, [&] (const net_handle_t& child) {
+            snarl_child = child;
+            if (current_rank == rank) {
+                //Stop iterating
+                return false;
+            } else {
+                current_rank++;
+                return true;
+            }
+        });
+        return snarl_child;
+    }
+}
+
 bool SnarlDistanceIndex::for_each_child_impl(const net_handle_t& traversal, const std::function<bool(const net_handle_t&)>& iteratee) const {
 #ifdef debug_snarl_traversal
     cerr << "Go through children of " << net_handle_as_string(traversal) << endl;
@@ -1209,6 +1232,84 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
     } else {
         throw runtime_error("error: Trying to find distance in the wrong type of handle");
     }
+}
+
+size_t SnarlDistanceIndex::distance_in_snarl(const net_handle_t& parent, 
+        const size_t& rank1, const bool& right_side1, const size_t& rank2, const bool& right_side2, 
+        const HandleGraph* graph, size_t distance_limit) const {
+
+    bool snarl_is_root = is_root_snarl(parent);
+    
+    if (get_record_type(snarl_tree_records->at(get_record_offset(parent))) == DISTANCED_SIMPLE_SNARL) {
+        return SimpleSnarlRecord(parent, &snarl_tree_records).get_distance(rank1, right_side1, rank2, right_side2);
+    } else if (get_record_type(snarl_tree_records->at(get_record_offset(parent))) == OVERSIZED_SNARL 
+        && !(rank1 == 0 || rank1 == 1 || rank2 == 0 || rank2 == 1) ) {
+        //If this is an oversized snarl and we're looking for internal distances, then we didn't store the
+        //distance and we have to find it using dijkstra's algorithm
+        if (size_limit_warnings.load() < max_num_size_limit_warnings) {
+            int warning_num = const_cast<SnarlDistanceIndex*>(this)->size_limit_warnings++;
+            if (warning_num < max_num_size_limit_warnings) {
+                std::string msg = "warning: Trying to find the distance in an oversized snarl with zip codes. Returning inf\n";
+                if (warning_num + 1 == max_num_size_limit_warnings) {
+                    msg += "suppressing further warnings\n";
+                }
+                std::cerr << msg;
+            }
+        }
+        return std::numeric_limits<size_t>::max();
+        
+    
+        
+    } else if (rank1 == 0 && rank2 == 0 && !snarl_is_root) {
+        //Start to start is stored in the snarl
+        return SnarlRecord(parent, &snarl_tree_records).get_distance_start_start();
+    } else if ((rank1 == 0 && rank2 == 1) || (rank1 == 1 && rank2 == 0) && !snarl_is_root) {
+        //start to end / end to start is stored in the snarl
+        return SnarlRecord(parent, &snarl_tree_records).get_min_length();
+    } else if (rank1 == 1 && rank2 == 1 && !snarl_is_root) {
+        //end to end is stored in the snarl
+        return SnarlRecord(parent, &snarl_tree_records).get_distance_end_end();
+    } else if (rank1 == 0 || rank1 == 1 || rank2 == 0 || rank2 == 1 && !snarl_is_root) {
+        //If one node is a boundary and the other is a child
+        size_t boundary_rank = (rank1 == 0 || rank1 == 1) ? rank1 : rank2;
+        const net_handle_t& internal_child = (rank1 == 0 || rank1 == 1) ? get_snarl_child_from_rank(parent, rank2) 
+                                                                        : get_snarl_child_from_rank(parent, rank1);
+        bool internal_is_reversed = (rank1 == 0 || rank1 == 1) ? right_side2 : right_side1;
+        if (is_trivial_chain( internal_child) ) {
+            //Child is just a node pretending to be a chain
+            if (boundary_rank == 0 && !internal_is_reversed) {
+                //Start to left of child
+                return NodeRecord(internal_child, &snarl_tree_records).get_distance_left_start();
+            } else if (boundary_rank == 0 && internal_is_reversed) {
+                //Start to right of child
+                return NodeRecord(internal_child, &snarl_tree_records).get_distance_right_start();
+            } else if (boundary_rank == 1 && !internal_is_reversed) {
+                //End to left of child
+                return NodeRecord(internal_child, &snarl_tree_records).get_distance_left_end();
+            } else {
+                //End to right of child
+                return NodeRecord(internal_child, &snarl_tree_records).get_distance_right_end();
+            }
+        } else {
+            //Child is an actual chain
+            if (boundary_rank == 0 && !internal_is_reversed) {
+                //Start to left of child
+                return ChainRecord(internal_child, &snarl_tree_records).get_distance_left_start();
+            } else if (boundary_rank == 0 && internal_is_reversed) {
+                //Start to right of child
+                return ChainRecord(internal_child, &snarl_tree_records).get_distance_right_start();
+            } else if (boundary_rank == 1 && !internal_is_reversed) {
+                //End to left of child
+                return ChainRecord(internal_child, &snarl_tree_records).get_distance_left_end();
+            } else {
+                //End to right of child
+                return ChainRecord(internal_child, &snarl_tree_records).get_distance_right_end();
+            }
+        }
+    } else {
+       return SnarlRecord(parent, &snarl_tree_records).get_distance(rank1, right_side1, rank2, right_side2);
+    }
+
 }
 size_t SnarlDistanceIndex::max_distance_in_parent(const net_handle_t& parent, 
         const net_handle_t& child1, const net_handle_t& child2, const HandleGraph* graph, size_t distance_limit) const {
