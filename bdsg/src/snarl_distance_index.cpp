@@ -571,7 +571,10 @@ bool SnarlDistanceIndex::for_each_child_impl(const net_handle_t& traversal, cons
     //What is this according to the handle 
     //(could be a trivial chain but actually a node according to the snarl tree)
     net_handle_record_t handle_type = get_handle_type(traversal);
-    if (SnarlTreeRecord(traversal, &snarl_tree_records).get_record_type() == SIMPLE_SNARL ||
+    if (record_type == ROOT_HANDLE) {
+        RootRecord root_record(get_root(), &snarl_tree_records);
+        return root_record.for_each_child(iteratee);
+    } else if (SnarlTreeRecord(traversal, &snarl_tree_records).get_record_type() == SIMPLE_SNARL ||
         SnarlTreeRecord(traversal, &snarl_tree_records).get_record_type() == DISTANCED_SIMPLE_SNARL ) {
         //If this is a simple snarl then it is a bit different
         if (handle_type == CHAIN_HANDLE) {
@@ -592,10 +595,7 @@ bool SnarlDistanceIndex::for_each_child_impl(const net_handle_t& traversal, cons
     } else if (record_type == CHAIN_HANDLE) {
         ChainRecord chain_record(traversal, &snarl_tree_records);
         return chain_record.for_each_child(iteratee);
-    } else if (record_type == ROOT_HANDLE) {
-        RootRecord root_record(traversal, &snarl_tree_records);
-        return root_record.for_each_child(iteratee);
-    } else if (record_type == NODE_HANDLE && handle_type == CHAIN_HANDLE) {
+    } else  if (record_type == NODE_HANDLE && handle_type == CHAIN_HANDLE) {
         //This is actually a node but we're pretending it's a chain
 #ifdef debug_snarl_traversal
         cerr << "     which is actually a node pretending to be a chain" << endl;
@@ -3853,6 +3853,7 @@ SnarlDistanceIndex::RootRecord::RootRecord (net_handle_t net, const bdsg::yomo::
 
 
 bool SnarlDistanceIndex::RootRecord::for_each_child(const std::function<bool(const handlegraph::net_handle_t&)>& iteratee) const {
+    assert(record_offset == 0);
     size_t connected_component_count = get_connected_component_count();
     for (size_t i = 0 ; i < connected_component_count ; i++) {
 
@@ -5504,7 +5505,7 @@ void SnarlDistanceIndex::print_descendants_of(const net_handle_t net) const {
         string parent;
         if (record_type == ROOT_HANDLE) {
             parent = "none";
-            child_count = RootRecord(net, &snarl_tree_records).get_connected_component_count();
+            child_count = RootRecord(get_root(), &snarl_tree_records).get_connected_component_count();
         } else {
             parent = net_handle_as_string(get_parent(net));
             if (record_type == CHAIN_HANDLE) {
