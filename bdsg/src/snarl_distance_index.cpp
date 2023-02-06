@@ -995,7 +995,8 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
         } else {
 #ifdef debug_distances
             cerr << "=>They are in a snarl, check distance in snarl" << endl;
-#endif
+            cerr << "\tsnarl at offset " << parent_record_offset1 << " with ranks " << get_rank_in_parent(child1) << " " << get_rank_in_parent(child2) << endl;
+#endif                                                                                 
             //They are in the same root snarl, so find the distance between them
             SnarlRecord snarl_record(parent_record_offset1, &snarl_tree_records);
 
@@ -1190,7 +1191,7 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
         } else if (rank1 == 1 && rank2 == 1 && !snarl_is_root) {
             //end to end is stored in the snarl
             return SnarlRecord(parent, &snarl_tree_records).get_distance_end_end();
-        } else if (rank1 == 0 || rank1 == 1 || rank2 == 0 || rank2 == 1 && !snarl_is_root) {
+        } else if ((rank1 == 0 || rank1 == 1 || rank2 == 0 || rank2 == 1) && !snarl_is_root) {
             //If one node is a boundary and the other is a child
             size_t boundary_rank = (rank1 == 0 || rank1 == 1) ? rank1 : rank2;
             const net_handle_t& internal_child = (rank1 == 0 || rank1 == 1) ? child2 : child1;
@@ -1269,7 +1270,7 @@ size_t SnarlDistanceIndex::distance_in_snarl(const net_handle_t& parent,
     } else if (rank1 == 1 && rank2 == 1 && !snarl_is_root) {
         //end to end is stored in the snarl
         return SnarlRecord(parent, &snarl_tree_records).get_distance_end_end();
-    } else if (rank1 == 0 || rank1 == 1 || rank2 == 0 || rank2 == 1 && !snarl_is_root) {
+    } else if ((rank1 == 0 || rank1 == 1 || rank2 == 0 || rank2 == 1) && !snarl_is_root) {
         //If one node is a boundary and the other is a child
         size_t boundary_rank = (rank1 == 0 || rank1 == 1) ? rank1 : rank2;
         const net_handle_t& internal_child = (rank1 == 0 || rank1 == 1) ? get_snarl_child_from_rank(parent, rank2) 
@@ -1307,7 +1308,7 @@ size_t SnarlDistanceIndex::distance_in_snarl(const net_handle_t& parent,
             }
         }
     } else {
-       return SnarlRecord(parent, &snarl_tree_records).get_distance(rank1, right_side1, rank2, right_side2);
+       return SnarlRecord(get_record_offset(parent), &snarl_tree_records).get_distance(rank1, right_side1, rank2, right_side2);
     }
 
 }
