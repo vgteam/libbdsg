@@ -917,37 +917,29 @@ void Manager::preload_chain(chainid_t chain, bool blocking) {
 
     scan_chain(chain, [&](const void* link_start, size_t link_length) {
         // For each link in the chain
+
+#ifdef debug
+        std::cerr << "Preloading link: " << link_start << "-" << (void*)((intptr_t)link_start + link_length) << std::endl;
+#endif
         
-        std::cerr << "Preloading link: " << link_start << " " << link_length << std::endl;
+        // Start address for load has to be page-aligned, but length just has to be nonnegative.
+        void* advice_start = (void*) link_start;
+        size_t advice_length = link_length;
         
-        // Work out the page it starts on
-        intptr_t link_start_page = (intptr_t)link_start / page_size;
-        // How much into that page it starts
-        intptr_t link_remainder = (intptr_t)link_start % page_size;
-        // And the page after the page it ends on. If we have a final partial page, go after that.
-        intptr_t link_past_end_page = ((intptr_t)link_start + link_length) / page_size + ((((intptr_t)link_start + link_length) % page_size == 0) ? 0 : 1);
+        // How much of the first page isn't included?
+        intptr_t before_start_bytes = (intptr_t)advice_start % page_size;
         
-        std::cerr << "Link is on pages " << link_start_page << "-" << link_past_end_page << std::endl;
-        
-        if (link_remainder > 0) {
-            // The link doesn't start on a page boundary.
-            // Ignore the part of the link that is before the first page boundary, if any exists.
-            link_start_page++;
+        // Budge the start left.
+        advice_start = (void*)((intptr_t)advice_start - before_start_bytes);
+        advice_length += before_start_bytes;
+        if (advice_length % page_size != 0) {
+            // And finish out the page
+            advice_length += (page_size - advice_length % page_size);
         }
         
-        std::cerr << "Preloading pages " << link_start_page << "-" << link_past_end_page << std::endl;
-        
-        // Now we need to operate on all the pages from link_start_page,
-        // inclusive, to link_past_end_page, exclusive.
-        if (link_start_page >= link_past_end_page) {
-            // There actually aren't any pages to work on in this link.
-            return;
-        }
-        
-        void* advice_start = (void*) (link_start_page * page_size);
-        size_t advice_length = (link_past_end_page - link_start_page) * page_size;
-        
-        std::cerr << "Preloading addresses " << advice_start << "+" << advice_length << std::endl;
+#ifdef debug
+        std::cerr << "Preloading addresses " << advice_start << "-" << (void*)((intptr_t)advice_start + advice_length) << std::endl;
+#endif
         
         if (blocking) {
             
@@ -957,7 +949,6 @@ void Manager::preload_chain(chainid_t chain, bool blocking) {
             
                 if (result == 0) {
                     // It worked!
-                    std::cerr << "Preloaded pages in " << (link_start_page * page_size) << " to " << (link_past_end_page - link_start_page) * page_size << std::endl;
                     return;
                 }
             
@@ -968,25 +959,38 @@ void Manager::preload_chain(chainid_t chain, bool blocking) {
                 case EINVAL:
                     // Possible the advice we used doesn't exist on the runtime
                     // kernel, which may not be the build kernel.
-                    std::cerr << "warning[yomo::Manager::preload_chain] Cannot prepopulate link with syscall; falling back to reading each page: " << strerror(madvise_error) << std::endl;
-                    // Don't try it on the next link
-                    populate_read_advice = 0;
-                    throw  std::runtime_error(std::string("Could not prefault memory: ") + std::string(strerror(madvise_error)));
+                    // Also possible something weird about the memory range is
+                    // preventing us from using madvise() here even if every
+                    // byte in the range is readable.
+                    std::cerr << "warning[yomo::Manager::preload_chain] Cannot MADV_POPULATE_READ memory range " << advice_start << "-" << (void*)((intptr_t)advice_start + advice_length) << "; falling back to reading each page: " << strerror(madvise_error) << std::endl;
                     break;
                 default:
-                    // This is a problem
+                    // Something else weird happened. This is a problem.
                     throw  std::runtime_error(std::string("Could not prefault memory: ") + std::string(strerror(madvise_error)));
                     break;
                 }
             }
             
-            // If we get here we need to do our own read on every page
-            for (intptr_t addr = link_start_page * page_size; addr < link_past_end_page * page_size; addr += page_size) {
-                // Get a pointer that the compiler doesn't try to reason about
-                volatile const char* to_read_from = (volatile const char*) addr;
-                std::cerr << "Manually preloading " << (const void*)to_read_from << std::endl;
-                // Access it and discard the result
-                (void) *to_read_from;
+            for (size_t page = 0; page < (advice_length / page_size); page++) {
+                volatile const unsigned char* page_start = (volatile const unsigned char*) ((intptr_t)advice_start + page * page_size);
+                // Read first byte of the page
+                (void) *page_start;
+#ifdef debug
+                // Dump the page structure
+                std::cerr << "Page at " << (void*)page_start << std::endl;
+                for (size_t i = 0; i < page_size; i++) {
+                    if (*(page_start + i) == 0) {
+                        std::cerr << " ";
+                    } else {
+                        std::cerr << ".";
+                    }
+                    if ((i + 1) % 128 == 0) {
+                        std::cerr << std::endl;
+                    }
+                }
+                // See if this page in particular doesn't want to madvise in.
+                std::cerr << "Re-advise page: " <<  madvise((void*)page_start, page_size, populate_read_advice) << std::endl;
+#endif
             }
         } else {
             // Just tell the memory management subsystem we will want this
