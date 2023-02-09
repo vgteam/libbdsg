@@ -955,12 +955,18 @@ void Manager::preload_chain(chainid_t chain, bool blocking) {
                 
                 switch (madvise_error) {
                 case EINVAL:
-                    // Possible the advice we used doesn't exist on the runtime
-                    // kernel, which may not be the build kernel.
-                    // Also possible something weird about the memory range is
-                    // preventing us from using madvise() here even if every
-                    // byte in the range is readable.
+                    // It is possible the advice we used doesn't exist on the
+                    // runtime kernel, which may not be the build kernel or
+                    // batch the build glibc.
+                    // Also possible something weird about the memory range,
+                    // like it being secret to the process, is preventing us
+                    // from using madvise() here even if every byte in the
+                    // range is readable.
+                    // TODO: Figure out why this seems to mostly fail. Until
+                    // then, don't usually warn.
+#ifdef debug
                     std::cerr << "warning[yomo::Manager::preload_chain] Cannot MADV_POPULATE_READ memory range " << advice_start << "-" << (void*)((intptr_t)advice_start + advice_length) << "; falling back to reading each page: " << strerror(madvise_error) << std::endl;
+#endif
                     break;
                 default:
                     // Something else weird happened. This is a problem.
