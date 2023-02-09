@@ -83,18 +83,21 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   set (OMP_INCLUDE_FLAGS "-I${OMP_INCLUDE_PATH}")
   set (OMP_LIB_FLAGS "-L${OMP_LIB_PATH}")
   
-  # We also need manual libdl for some reason, so find it properly
+  # We also might need manual libdl for some reason, so find it properly
   find_path(DL_LIB_PATH libdl.dylib
-            PATHS "${HOMEBREW_PREFIX}/lib" /opt/local/lib /usr/local/lib /usr/lib /lib
-            REQUIRED)
-  if ("${DL_LIB_PATH}" STREQUAL "")
-    # REQUIRED is a new CMake feature
-    message(FATAL_ERROR "Could not find libdl.dylib")
+            PATHS "${HOMEBREW_PREFIX}/lib" /opt/local/lib /usr/local/lib /usr/lib /lib)
+  if ("${DL_LIB_PATH}" STREQUAL "DL_LIB_PATH-NOTFOUND")
+    # On new (10.14+?) MacOS, there is no longer a libdl that is libSystem wearing a hat.
+    # See <https://github.com/meetecho/janus-gateway/issues/1486#issuecomment-451542851>
+    # But since libSystem is just the standard library, the functions are all already there.
+    # So don't try to link anything.
+    message("Could not find libdl.dylib; hoping it is not needed")
+    set (DL_LIB_FLAGS "")
   else()
+    # On old MacOS, we have needed to link against libdl. So if we found it, use it.
     message("Found libdl libraries in ${DL_LIB_PATH}")
+    set (DL_LIB_FLAGS "-L${DL_LIB_PATH}" -ldl)
   endif()
-  
-  set (DL_LIB_FLAGS "-L${DL_LIB_PATH}")
   
   set (OpenMP_C "${CMAKE_C_COMPILER}")
   set (OpenMP_C_FLAGS " -Xpreprocessor -fopenmp ${OMP_INCLUDE_FLAGS} ${OMP_LIB_FLAGS}")
@@ -111,9 +114,9 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
   set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS} -lomp")
   
-  # Mac needs libdl and libomp when linking the library and a hint on where to look for them
+  # Mac needs libomp when linking the library and a hint on where to look for them
   # Mac doesn't have $ORIGIN for RPaths. We might not be able to produce a working Mac wheel for Python bindings.
-  set(PLATFORM_EXTRA_LIB_FLAGS -ldl -lomp ${DL_LIB_FLAGS} ${OMP_LIB_FLAGS})
+  set(PLATFORM_EXTRA_LIB_FLAGS -lomp ${DL_LIB_FLAGS} ${OMP_LIB_FLAGS})
   
   # Mac needs install names set after installation
   SET(CMAKE_INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
