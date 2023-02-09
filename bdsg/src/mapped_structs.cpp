@@ -898,20 +898,44 @@ void Manager::preload_chain(chainid_t chain, bool blocking) {
     // madvise calls need to be page-aligned, so get the page size
     intptr_t page_size = (intptr_t) getpagesize();
     
-    scan_chain(chain, [&](void* link_start, size_t link_length) {
+    std::cerr << "Preloading: " << chain << " " << blocking << std::endl;
+    
+    // We may have a way to use madvise to populate a mapping. If we think so, this will be nonzero.
+    int populate_read_advice = 0;
+#ifndef __APPLE__
+#ifdef MADV_POPULATE_READ
+    // Linux has an MADV_POPULATE_READ in kernel 5.14+ that will wait
+    // for everything to be loaded from disk once.
+    // The new advice value for a blocking fake read is in the C library.
+    populate_read_advice = MADV_POPULATE_READ;
+#else
+    // Try guessing the number and hoping it is not anything else.
+    // See https://patchwork.kernel.org/project/linux-mm/patch/20210701015228.QXA77Jpli%25akpm@linux-foundation.org/
+    populate_read_advice = 22;
+#endif
+#endif
+
+    scan_chain(chain, [&](const void* link_start, size_t link_length) {
         // For each link in the chain
+        
+        std::cerr << "Preloading link: " << link_start << " " << link_length << std::endl;
         
         // Work out the page it starts on
         intptr_t link_start_page = (intptr_t)link_start / page_size;
         // How much into that page it starts
         intptr_t link_remainder = (intptr_t)link_start % page_size;
         // And the page after the page it ends on. If we have a final partial page, go after that.
-        intptr_t link_past_end_page = ((intptr_t)link_start + link_length) / page_size + (((intptr_t)link_start + link_length) % page_size == 0) ? 0 : 1;
+        intptr_t link_past_end_page = ((intptr_t)link_start + link_length) / page_size + ((((intptr_t)link_start + link_length) % page_size == 0) ? 0 : 1);
+        
+        std::cerr << "Link is on pages " << link_start_page << "-" << link_past_end_page << std::endl;
+        
         if (link_remainder > 0) {
             // The link doesn't start on a page boundary.
             // Ignore the part of the link that is before the first page boundary, if any exists.
             link_start_page++;
         }
+        
+        std::cerr << "Preloading pages " << link_start_page << "-" << link_past_end_page << std::endl;
         
         // Now we need to operate on all the pages from link_start_page,
         // inclusive, to link_past_end_page, exclusive.
@@ -920,55 +944,53 @@ void Manager::preload_chain(chainid_t chain, bool blocking) {
             return;
         }
         
+        void* advice_start = (void*) (link_start_page * page_size);
+        size_t advice_length = (link_past_end_page - link_start_page) * page_size;
+        
+        std::cerr << "Preloading addresses " << advice_start << "+" << advice_length << std::endl;
+        
         if (blocking) {
-#ifndef __APPLE__
-            // Linux has an MADV_POPULATE_READ in kernel 5.14+ that will wait
-            // for everything to be loaded from disk once.
             
-#ifdef MADV_POPULATE_READ
-            // The new advice value for a blocking fake read is in the C library.
-            int populate_read_advice = MADV_POPULATE_READ;
-#else
-            // Try guessing the number and hoping it is not anything else.
-            // See https://patchwork.kernel.org/project/linux-mm/patch/20210701015228.QXA77Jpli%25akpm@linux-foundation.org/
-            int populate_read_advice = 22;
-#endif
-
-            // Make the call
-            int result = madvise(link_start_page * page_size, (link_past_end_page - link_start_page) * page_size, populate_read_advice);
+            if (populate_read_advice) {
+                // Make the call
+                int result = madvise(advice_start, advice_length, populate_read_advice);
             
-            if (result == 0) {
-                // It worked!
-                return;
+                if (result == 0) {
+                    // It worked!
+                    std::cerr << "Preloaded pages in " << (link_start_page * page_size) << " to " << (link_past_end_page - link_start_page) * page_size << std::endl;
+                    return;
+                }
+            
+                // Otherwise the call failed
+                auto madvise_error = errno;
+                
+                switch (madvise_error) {
+                case EINVAL:
+                    // Possible the advice we used doesn't exist on the runtime
+                    // kernel, which may not be the build kernel.
+                    std::cerr << "warning[yomo::Manager::preload_chain] Cannot prepopulate link with syscall; falling back to reading each page: " << strerror(madvise_error) << std::endl;
+                    // Don't try it on the next link
+                    populate_read_advice = 0;
+                    throw  std::runtime_error(std::string("Could not prefault memory: ") + std::string(strerror(madvise_error)));
+                    break;
+                default:
+                    // This is a problem
+                    throw  std::runtime_error(std::string("Could not prefault memory: ") + std::string(strerror(madvise_error)));
+                    break;
+                }
             }
-            
-            // Otherwise the call failed
-            auto madvise_error = errno;
-            
-            switch (madvise_error) {
-#ifdef MADV_POPULATE_READ
-            case EINVAL:
-                // We made up an advice so it's likely it doesn't exist.
-                std::cerr << "warning[yomo::Manager::preload_chain] Cannot prepopulate link with syscall; falling back to reading each page." << std::endl;
-                break;
-#endif
-            default:
-                // This is a problem
-                throw std::runtime_error(std::string("Could not prefault memory: ") + std::string(strerror(madvise_error));
-            }
-            
-#endif
             
             // If we get here we need to do our own read on every page
             for (intptr_t addr = link_start_page * page_size; addr < link_past_end_page * page_size; addr += page_size) {
                 // Get a pointer that the compiler doesn't try to reason about
-                volatile char* to_read_from = (volatile char*) addr;
+                volatile const char* to_read_from = (volatile const char*) addr;
+                std::cerr << "Manually preloading " << (const void*)to_read_from << std::endl;
                 // Access it and discard the result
                 (void) *to_read_from;
             }
         } else {
             // Just tell the memory management subsystem we will want this
-            int result = madvise(link_start_page * page_size, (link_past_end_page - link_start_page) * page_size, MADV_WILLNEED);
+            int result = madvise(advice_start, advice_length, MADV_WILLNEED);
             
             if (result == 0) {
                 // It worked!
@@ -977,7 +999,7 @@ void Manager::preload_chain(chainid_t chain, bool blocking) {
             
             // Otherwise the call failed
             auto madvise_error = errno;
-            throw std::runtime_error(std::string("Could not mark memory needed: ") + std::string(strerror(madvise_error));
+            throw std::runtime_error(std::string("Could not mark memory needed: ") + std::string(strerror(madvise_error)));
         }
     });
 }

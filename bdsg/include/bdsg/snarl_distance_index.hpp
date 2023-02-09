@@ -156,6 +156,12 @@ public:
 
     virtual uint32_t get_magic_number() const;
     std::string get_prefix() const;
+    
+    /// Allow for preloading the index for more accurate timing of algorithms
+    /// that use it, if it fits in memory. If blocking is true, waits for the
+    /// index to be paged in. Otherwise, just tells the OS that we will want to
+    /// use it.
+    void preload(bool blocking = false) const;
 
 
 ////////////////////////////////////  How we define different properties of a net handle
