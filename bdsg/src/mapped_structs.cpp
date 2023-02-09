@@ -898,8 +898,6 @@ void Manager::preload_chain(chainid_t chain, bool blocking) {
     // madvise calls need to be page-aligned, so get the page size
     intptr_t page_size = (intptr_t) getpagesize();
     
-    std::cerr << "Preloading: " << chain << " " << blocking << std::endl;
-    
     // We may have a way to use madvise to populate a mapping. If we think so, this will be nonzero.
     int populate_read_advice = 0;
 #ifndef __APPLE__
