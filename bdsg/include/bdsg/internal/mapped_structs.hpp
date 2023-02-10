@@ -311,6 +311,15 @@ public:
     static void* allocate_from_same_chain(void* here, size_t bytes);
     
     /**
+     * Tell the memory management subsystem that an entire chain should be
+     * loaded, if possible.
+     *
+     * If blocking is set to true, actually read from each page in the chain,
+     * or make a syscall with similar effect, before returning.
+     */
+    static void preload_chain(chainid_t chain, bool blocking = false);
+    
+    /**
      * Free the given allocated block in the chain to which it belongs.
      * For NO_CHAIN just frees with free().
      */
@@ -764,6 +773,15 @@ public:
     void save_after_prefix(std::ostream& out, const std::string& prefix) const;
     
     /**
+     * Tell the memory management subsystem that the entire memory arena should
+     * be loaded.
+     *
+     * If blocking is set to true, actually read from each page in the chain,
+     * or make a syscall with similar effect, before returning.
+     */
+    void preload(bool blocking = false) const;
+    
+    /**
      * Free any associated memory and become empty.
      */
     void reset();
@@ -783,7 +801,7 @@ public:
     void check_heap_integrity();
     
 private:
-    /// THe memory chain managed by this pointer.
+    /// The memory chain managed by this pointer.
     Manager::chainid_t chain = Manager::NO_CHAIN;
     /// The address of the pointed-to value, as mapped into memory.
     T* cached_value = nullptr;
@@ -2264,6 +2282,13 @@ void UniqueMappedPointer<T>::save_after_prefix(std::ostream& out, const std::str
             throw std::runtime_error("Error writing chunk to stream!");
         }
     });
+}
+
+template<typename T>
+void UniqueMappedPointer<T>::preload(bool blocking) const {
+    if (chain != Manager::NO_CHAIN) {
+        Manager::preload_chain(chain, blocking);
+    }
 }
 
 template<typename T>
