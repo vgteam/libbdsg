@@ -51,6 +51,10 @@ typedef OverlayHelper<VectorizableHandleGraph, PathVectorizableOverlay, PathHand
 typedef PairOverlayHelper<PathPositionHandleGraph, PackedPositionOverlay, PathHandleGraph,
 VectorizableHandleGraph, PathPositionVectorizableOverlay, PathPositionHandleGraph> PathPositionVectorizableOverlayHelper;
 
+/// Helper to ensure that a PathHandleGraph has the VectorizableHandleGraph and PathPositionHandleGraph interfaces,
+/// But ising the GBZ-optimized ReferencePath Overlay instead of the vanilla PathPosition Overlay
+typedef PairOverlayHelper<PathPositionHandleGraph, PackedReferencePathOverlay, PathHandleGraph,
+VectorizableHandleGraph, PathPositionVectorizableOverlay, PathPositionHandleGraph> ReferencePathVectorizableOverlayHelper;
 
 /// Implementation of overlay helper core functionality.
 /// T = desired class
