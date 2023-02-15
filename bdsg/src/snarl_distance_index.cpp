@@ -855,6 +855,9 @@ std::string SnarlDistanceIndex::get_prefix() const {
     return as_string;
 }
 
+void SnarlDistanceIndex::preload(bool blocking) const {
+    snarl_tree_records.preload(blocking);
+}
 
 size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent, 
         const net_handle_t& child1, const net_handle_t& child2, const HandleGraph* graph, size_t distance_limit) const {

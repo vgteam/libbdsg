@@ -282,6 +282,10 @@ void test_mapped_structs() {
             // We should start empty
             assert(vec1.size() == 0);
             
+            // We should be able to preload without crashing
+            numbers_holder.preload();
+            numbers_holder.preload(true);
+            
             // We should be able to expand.
             vec1.resize(100);
             assert(vec1.size() == 100);
@@ -312,6 +316,9 @@ void test_mapped_structs() {
             fill_to(vec1, 1000, 1);
             verify_to(vec1, 1000, 1);
             
+            // And to preload without crashing
+            numbers_holder.preload();
+            numbers_holder.preload(true);
         }
         
         // We're going to need a temporary file
@@ -328,6 +335,10 @@ void test_mapped_structs() {
             // We should have the same data
             assert(vec2.size() == 1000);
             verify_to(vec2, 1000, 1);
+            
+            // We should be able to preload without crashing
+            numbers_holder.preload();
+            numbers_holder.preload(true);
             
             // We should still be able to modify it.
             vec2.resize(4000);
@@ -395,6 +406,10 @@ void test_mapped_structs() {
         
         {
             auto& vec4 = *numbers_holder;
+            
+            // We should be able to preload without crashing
+            numbers_holder.preload();
+            numbers_holder.preload(true);
             
             // When we reload we should see the last thing we wrote before dissociating.
             assert(vec4.size() == 4000);
