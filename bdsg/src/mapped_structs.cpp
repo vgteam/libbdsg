@@ -47,8 +47,10 @@ struct Manager::LinkRecord {
     /// Mapping start address of the first link in the chain.
     intptr_t first;
     
-    /// MIO-managed memory mapping, if any.
-    std::unique_ptr<mio::mmap_sink> mapping;
+    /// MIO-managed read-write memory mapping, if any.
+    std::unique_ptr<mio::mmap_sink> rw_mapping;
+    /// If none, we may have an MIO-managed read-only memory mapping.
+    std::unique_ptr<mio::mmap_source> ro_mapping;
     
     // Then we have per-chain state only used in the first link.
     
@@ -306,10 +308,10 @@ void Manager::destroy_chain(chainid_t chain) {
         
         while(link_entry != Manager::address_space_index.end()) {
             // Clean up each link
-            if (link_entry->second.mapping) {
+            if (link_entry->second.rw_mapping) {
                 // Clear up any MIO mapping
                 // Note that we're allowed to modify the actual record with "read" access, just not the maps.
-                mio_clean.emplace_back(std::move(link_entry->second.mapping));
+                mio_clean.emplace_back(std::move(link_entry->second.rw_mapping));
             } else {
                 // This is just a normal char array allocation.
                 normal_clean.emplace_back((void*)link_entry->first);
@@ -693,7 +695,7 @@ void Manager::dump_links(ostream& out) {
             << "-" << (void*)(link.first + link.second.length) 
             << " in chain " << link.second.first 
             << " with next link at " << link.second.next 
-            << " is " << (link.second.mapping == nullptr ? " not " : "" ) << "mapped" 
+            << " is " << (link.second.rw_mapping == nullptr ? " not " : "" ) << "mapped" 
             << std::endl; 
     }
 }
@@ -1422,13 +1424,13 @@ std::pair<Manager::chainid_t, bool> Manager::open_chain(int fd, size_t start_siz
         }
         
         // Make the MIO mapping of the whole file, or throw.
-        record.mapping = std::make_unique<mio::mmap_sink>(our_fd);
+        record.rw_mapping = std::make_unique<mio::mmap_sink>(our_fd);
     
         // Remember where the memory starts
-        mapping_address = (intptr_t)&((*record.mapping)[0]);
+        mapping_address = (intptr_t)&((*record.rw_mapping)[0]);
         
         // Fill in the record for a MIO mapping
-        record.length = record.mapping->size();
+        record.length = record.rw_mapping->size();
         record.fd = our_fd;
         
         // We may have had data
@@ -1566,10 +1568,10 @@ Manager::LinkRecord& Manager::add_link(LinkRecord& head, size_t new_bytes, void*
         }
     
         // Map the new tail with MIO
-        new_tail.mapping = std::make_unique<mio::mmap_sink>(head.fd, old_end, new_bytes);
+        new_tail.rw_mapping = std::make_unique<mio::mmap_sink>(head.fd, old_end, new_bytes);
         
         // Find its address
-        mapping_address = (intptr_t)&((*new_tail.mapping)[0]);
+        mapping_address = (intptr_t)&((*new_tail.rw_mapping)[0]);
     } else {
         if (!link_data) {
             // Allocate our own link
