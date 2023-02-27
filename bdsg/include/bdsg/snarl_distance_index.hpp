@@ -126,10 +126,23 @@ using namespace handlegraph;
 /**
   * The distance index, which also acts as a snarl decomposition.
   *
-  * The distance index provides an interface to traverse the snarl tree and to find minimum distances
-  * between two sibling nodes in the snarl tree (eg between two chains that are children of the same snarl).
+  * The distance index provides an interface to traverse the snarl tree and to
+  * find minimum distances between two sibling nodes in the snarl tree (eg
+  * between two chains that are children of the same snarl).
   *
-  * It also provides a method for quickly calculating the minimum distance between two positions on the graph.
+  * It also provides a method for quickly calculating the minimum distance
+  * between two positions on the graph.
+  *
+  * The implementation here is tightly coupled with the filling-in code in vg
+  * (see vg::fill_in_distance_index()). To make a SnarlDistanceIndex that
+  * actually works, you have to construct the object, and then call
+  * get_snarl_tree_records() with zero or more TemporaryDistanceIndex objects
+  * for connected components, and a graph.
+  *
+  * The TemporaryDistanceIndex needs to have a variety of TemporaryRecord
+  * implementation classes (TemporaryChainRecord, TemporarySnarlRecord,
+  * TemporaryNodeRecord) set up and added to it; this all has to be done "by
+  * hand", as it were, because no code is in this library to help you do it.
   *
   */
 class SnarlDistanceIndex : public SnarlDecomposition, public TriviallySerializable {

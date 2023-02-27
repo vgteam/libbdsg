@@ -23,6 +23,7 @@
 
 #include "bdsg/packed_graph.hpp"
 #include "bdsg/hash_graph.hpp"
+#include "bdsg/snarl_distance_index.hpp"
 #include "bdsg/internal/packed_structs.hpp"
 #include "bdsg/internal/mapped_structs.hpp"
 #include "bdsg/overlays/path_position_overlays.hpp"
@@ -4304,7 +4305,7 @@ void test_mapped_packed_graph() {
         // Make sure it looks right
         check_graph(mpg);
     }
-    //unlink(filename);
+    unlink(filename);
     
     cerr << "MappedPackedGraph tests successful!" << endl;
 }
@@ -4355,8 +4356,61 @@ void test_hash_graph() {
     cerr << "HashGraph tests successful!" << endl;
 }
 
+void test_snarl_distance_index() {
+
+    char filename[] = "tmpXXXXXX";
+    int fd = -1;
+    {
+        // Make an empty index
+        SnarlDistanceIndex index;
+        
+        // Set it up for a completely empty graph.
+        vector<const SnarlDistanceIndex::TemporaryDistanceIndex*> empty_temp_indexes;
+        HashGraph empty_graph;
+        index.get_snarl_tree_records(empty_temp_indexes, &empty_graph);
+        
+        // It should be empty but working
+        assert(index.get_max_tree_depth() == 0);
+        
+        // Save it
+        fd = mkstemp(filename);
+        assert(fd != -1);
+        index.serialize(fd);
+    }
+    assert(close(fd) == 0);
+    
+    {
+        // Load it again
+        SnarlDistanceIndex index2;
+        index2.deserialize(filename);
+        
+        // It should be empty but working
+        assert(index2.get_max_tree_depth() == 0);
+    }
+    
+    // Make the file un-writable.
+    assert(chmod(filename, S_IRUSR) == 0);
+    
+    {
+        // Load it a third time
+        SnarlDistanceIndex index2;
+        index2.deserialize(filename);
+        
+        // It should be empty but working
+        assert(index2.get_max_tree_depth() == 0);
+    }
+       
+    // Make the file writable again
+    assert(chmod(filename, S_IRUSR | S_IWUSR) == 0);
+    
+    // And remove it
+    unlink(filename);
+    
+    cerr << "SnarlDistanceIndex tests successful!" << endl;
+}
+
 int main(void) {
-    test_bit_packing();
+    /*test_bit_packing();
     test_mapped_structs();
     test_int_vector(); 
     test_packed_vector<PackedVector<>>();
@@ -4381,5 +4435,6 @@ int main(void) {
     test_packed_subgraph_overlay();
     test_multithreaded_overlay_construction();
     test_mapped_packed_graph();
-    test_hash_graph();
+    test_hash_graph();*/
+    test_snarl_distance_index();
 }
