@@ -194,7 +194,9 @@ public:
      * begin with the given prefix, if specified, or an error will occur.
      *
      * Modifications to the chain will affect the file, and it will grow as
-     * necessary.
+     * necessary. If the file is read-only, and an attempt is made to modify
+     * the chain or any data in it, a memory protection error (segmentation
+     * fault) will occur.
      *
      * The Manager will not take ownership of the file descriptor.
      *
@@ -339,6 +341,12 @@ public:
      * Return the total number of bytes in the given chain.
      */
     static size_t get_chain_size(chainid_t chain);
+    
+    /**
+     * Return true if the chain cna be written to, and false if it can only be
+     * accessed read-only.
+     */
+    static bool is_chain_writable(chainid_t chain);
     
     /**
      * Get statistics about the memory in a chain. Returns all 0s if not a managed chain.
@@ -492,6 +500,9 @@ protected:
      * it must point to a block of memory of length start_size already allocated
      * using malloc() and which can be freed using free(). The chain will take
      * ownership of the memory block.
+     *
+     * If the FD is not writable, this will be detected, and memory will be
+     * mapped read-only.
      */
     static std::pair<chainid_t, bool> open_chain(int fd = 0, size_t start_size = BASE_SIZE, void* link_data = nullptr);
     

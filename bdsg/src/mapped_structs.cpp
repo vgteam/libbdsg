@@ -46,11 +46,73 @@ struct Manager::LinkRecord {
     intptr_t next;
     /// Mapping start address of the first link in the chain.
     intptr_t first;
-    
+   
+protected:
     /// MIO-managed read-write memory mapping, if any.
     std::unique_ptr<mio::mmap_sink> rw_mapping;
     /// If none, we may have an MIO-managed read-only memory mapping.
     std::unique_ptr<mio::mmap_source> ro_mapping;
+    
+public:
+    // We have some accessors to abstract over the different kinds of mappings.
+    
+    /// Set up rw_mapping or ro_mapping to map the given range of the given file. Throws on failure.
+    inline void map_file_range(int fd, size_t start, size_t length) {
+        try {
+            rw_mapping = std::make_unique<mio::mmap_sink>(fd, start, length);
+        } catch (std::system_error& e) {
+            // Probably permission denied. Try read-only.
+            ro_mapping = std::make_unique<mio::mmap_source>(fd, start, length);
+        }
+    }
+    
+    /// Set up rw_mapping or ro_mapping to map the entirety of the given file. Throws on failure.
+    inline void map_file(int fd) {
+        try {
+            rw_mapping = std::make_unique<mio::mmap_sink>(fd);
+        } catch (std::system_error& e) {
+            // Probably permission denied. Try read-only.
+            ro_mapping = std::make_unique<mio::mmap_source>(fd);
+        }
+    }
+    
+    /// Return the address at which the link is mapped.
+    inline intptr_t get_mapped_address() const {
+        if (rw_mapping) {
+            return (intptr_t)&((*rw_mapping)[0]);
+        } else if (ro_mapping) {
+            return (intptr_t)&((*ro_mapping)[0]);
+        } else {
+            throw std::runtime_error("Attempted to get address of unmapped link");
+        }
+    }
+    
+    /// Return the length of the stored mapping.
+    inline size_t get_mapped_length() const {
+        if (rw_mapping) {
+            return rw_mapping->size();
+        } else if (ro_mapping) {
+            return ro_mapping->size();
+        } else {
+            throw std::runtime_error("Attempted to get mapped length of unmapped link");
+        }
+    }
+    
+    /// Return true if a mapping exists.
+    inline bool is_mapped() const {
+        return rw_mapping || ro_mapping;
+    }
+    
+    /// Return true if the link can be written (rw mapping or no mapping, which
+    /// indicates non-memory-mapped memory)
+    inline bool is_writable() const {
+        return !ro_mapping;
+    }
+    
+    /// Release any mapping into one of the two returned unique_ptr objects.
+    inline std::pair<std::unique_ptr<mio::mmap_sink>, std::unique_ptr<mio::mmap_source>> release() {
+        return std::make_pair(std::move(rw_mapping), std::move(ro_mapping));
+    }
     
     // Then we have per-chain state only used in the first link.
     
@@ -286,7 +348,7 @@ void Manager::destroy_chain(chainid_t chain) {
     int fd;
     
     // Remember any MIO mappings to unmap
-    std::vector<std::unique_ptr<mio::mmap_sink>> mio_clean;
+    std::vector<std::pair<std::unique_ptr<mio::mmap_sink>, std::unique_ptr<mio::mmap_source>>> mio_clean;
     // Remember any normal memory to clean up
     std::vector<void*> normal_clean;
 
@@ -308,10 +370,10 @@ void Manager::destroy_chain(chainid_t chain) {
         
         while(link_entry != Manager::address_space_index.end()) {
             // Clean up each link
-            if (link_entry->second.rw_mapping) {
+            if (link_entry->second.is_mapped()) {
                 // Clear up any MIO mapping
                 // Note that we're allowed to modify the actual record with "read" access, just not the maps.
-                mio_clean.emplace_back(std::move(link_entry->second.rw_mapping));
+                mio_clean.emplace_back(std::move(link_entry->second.release()));
             } else {
                 // This is just a normal char array allocation.
                 normal_clean.emplace_back((void*)link_entry->first);
@@ -338,8 +400,9 @@ void Manager::destroy_chain(chainid_t chain) {
     
     // Now that we aren't holding locks, free the memory
     
-    for (auto& mapping : mio_clean) {
-        mapping.reset();
+    for (auto& mappings : mio_clean) {
+        mappings.first.reset();
+        mappings.second.reset();
     }
     
     for (auto& mapping : normal_clean) {
@@ -349,7 +412,7 @@ void Manager::destroy_chain(chainid_t chain) {
     if (fd) {
         // We have a backing file.
         // Truncate off any bytes we reclaimed as trailing free space.
-        if (ftruncate(fd, total_size - bytes_to_drop)) {
+        if (bytes_to_drop > 0 && ftruncate(fd, total_size - bytes_to_drop)) {
             throw std::runtime_error("Could not truncate " + std::to_string(bytes_to_drop) +
                 " bytes off of file: " + std::string(strerror(errno)));
         }
@@ -585,7 +648,8 @@ std::pair<void*, bool> Manager::follow_offset_in_same_chain(const void* here, in
         link->second.length > (intptr_t) here - link->first + offset)) {
         // We are actually in the same link (possibly no link)
         // Just need to move in memory.
-        return std::make_pair(applied_local, true);
+        // If the link is nonexistent or writable, set the writable-direct-offset flag.
+        return std::make_pair(applied_local, link == Manager::address_space_index.end() || link->second.is_writable());
     } else {
         // Need to move in this chain to a different link
         chainid_t chain = (chainid_t) link->second.first;
@@ -609,8 +673,8 @@ std::pair<void*, bool> Manager::follow_offset_in_same_chain(const void* here, in
         void* applied_chain = (void*)(found->second + (position - found->first));
         
         // Return the result, and check if it's actually the same as the local
-        // offset, so we can just do that in the future.
-        return std::make_pair(applied_chain, applied_chain == applied_local);
+        // offset and where *we* are is writable, so we can just do that in the future.
+        return std::make_pair(applied_chain, applied_chain == applied_local && link->second.is_writable());
     }
 }
 
@@ -695,7 +759,7 @@ void Manager::dump_links(ostream& out) {
             << "-" << (void*)(link.first + link.second.length) 
             << " in chain " << link.second.first 
             << " with next link at " << link.second.next 
-            << " is " << (link.second.rw_mapping == nullptr ? " not " : "" ) << "mapped" 
+            << " is " << (link.second.is_mapped() ? " not " : "" ) << "mapped" 
             << std::endl; 
     }
 }
@@ -1143,6 +1207,26 @@ size_t Manager::get_chain_size(chainid_t chain) {
 
 }
 
+bool Manager::is_chain_writable(chainid_t chain) {
+    if (chain == NO_CHAIN) {
+        return false;
+    }
+
+    LinkRecord* first;
+    
+    {
+        // Get read access to manager data structures
+        std::shared_lock<std::shared_timed_mutex> lock(Manager::mutex);
+        
+        // Find the first link
+        first = &address_space_index.at((intptr_t) chain);
+    }
+    
+    // Check if the first link is writable.
+    return first->is_writable();
+
+}
+
 std::tuple<size_t, size_t, size_t> Manager::get_usage(chainid_t chain) {
     if (chain == NO_CHAIN) {
         return std::make_tuple<size_t, size_t, size_t>(0, 0, 0);
@@ -1254,6 +1338,11 @@ void Manager::with_allocator_header(chainid_t chain,
 size_t Manager::reclaim_tail(chainid_t chain) {
     if (chain == NO_CHAIN) {
         // Nothing to free here.
+        return 0;
+    }
+    
+    if (!is_chain_writable(chain)) {
+        // Can't free anything.
         return 0;
     }
     
@@ -1424,13 +1513,13 @@ std::pair<Manager::chainid_t, bool> Manager::open_chain(int fd, size_t start_siz
         }
         
         // Make the MIO mapping of the whole file, or throw.
-        record.rw_mapping = std::make_unique<mio::mmap_sink>(our_fd);
+        record.map_file(our_fd);
     
         // Remember where the memory starts
-        mapping_address = (intptr_t)&((*record.rw_mapping)[0]);
+        mapping_address = record.get_mapped_address();
         
         // Fill in the record for a MIO mapping
-        record.length = record.rw_mapping->size();
+        record.length = record.get_mapped_length();
         record.fd = our_fd;
         
         // We may have had data
@@ -1568,10 +1657,10 @@ Manager::LinkRecord& Manager::add_link(LinkRecord& head, size_t new_bytes, void*
         }
     
         // Map the new tail with MIO
-        new_tail.rw_mapping = std::make_unique<mio::mmap_sink>(head.fd, old_end, new_bytes);
+        new_tail.map_file_range(head.fd, old_end, new_bytes);
         
         // Find its address
-        mapping_address = (intptr_t)&((*new_tail.rw_mapping)[0]);
+        mapping_address = new_tail.get_mapped_address();
     } else {
         if (!link_data) {
             // Allocate our own link
