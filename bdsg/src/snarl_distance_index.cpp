@@ -1253,7 +1253,7 @@ size_t SnarlDistanceIndex::distance_in_snarl(const net_handle_t& parent,
         if (size_limit_warnings.load() < max_num_size_limit_warnings) {
             int warning_num = const_cast<SnarlDistanceIndex*>(this)->size_limit_warnings++;
             if (warning_num < max_num_size_limit_warnings) {
-                std::string msg = "warning: Trying to find the distance in an oversized snarl with zip codes. Returning inf\n";
+                std::string msg = "warning: Trying to find the distance in an oversized snarl without a graph. Returning inf\n";
                 if (warning_num + 1 == max_num_size_limit_warnings) {
                     msg += "suppressing further warnings\n";
                 }
