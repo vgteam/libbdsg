@@ -1184,7 +1184,11 @@ private:
 
         size_t get_node_count() const;
 
+        //Get the offset of the list of children
         size_t get_child_record_pointer() const;
+
+        //Get the child given the rank. This includes 0/1 for the bounds, facing into the snarl
+        net_handle_t get_child_from_rank(const size_t& rank) const;
 
         bool for_each_child(const std::function<bool(const net_handle_t&)>& iteratee) const;
 
@@ -1242,6 +1246,8 @@ private:
         size_t get_node_length(size_t rank = std::numeric_limits<size_t>::max()) const;
         bool get_node_is_reversed(size_t rank = std::numeric_limits<size_t>::max()) const;
 
+
+        net_handle_t get_child_from_rank(const size_t& rank) const;
         bool for_each_child(const std::function<bool(const net_handle_t&)>& iteratee) const;
 
     };

@@ -540,25 +540,18 @@ size_t SnarlDistanceIndex::connected_component_count() const {
 }
 
 net_handle_t SnarlDistanceIndex::get_snarl_child_from_rank(const net_handle_t& snarl, const size_t& rank) const {
+#ifdef debug_distances
+    assert(is_snarl(snarl));
+#endif
     if (rank == 0) {
         return get_bound(snarl, false, true);
     } else if (rank == 1) {
         return get_bound(snarl, true, true);
+    } else if (is_simple_snarl(snarl) ){
+        return SimpleSnarlRecord(snarl, &snarl_tree_records).get_child_from_rank(rank);
     } else {
         //Ranks for children of snarls start from 2 since 0 and 1 are reserved for the bounds
-        size_t current_rank = 2;
-        net_handle_t snarl_child;
-        for_each_child_impl(snarl, [&] (const net_handle_t& child) {
-            snarl_child = child;
-            if (current_rank == rank) {
-                //Stop iterating
-                return false;
-            } else {
-                current_rank++;
-                return true;
-            }
-        });
-        return snarl_child;
+        return SnarlRecord(snarl, &snarl_tree_records).get_child_from_rank(rank); 
     }
 }
 
@@ -584,9 +577,7 @@ bool SnarlDistanceIndex::for_each_child_impl(const net_handle_t& traversal, cons
                                            NODE_HANDLE, get_node_record_offset(traversal)));
         } else if (handle_type == SNARL_HANDLE) {
             return SimpleSnarlRecord(traversal, &snarl_tree_records).for_each_child(iteratee);
-        } else if (handle_type == CHAIN_HANDLE) {
-            return iteratee(get_net_handle_from_values(get_record_offset(traversal), get_connectivity(traversal), NODE_HANDLE, get_node_record_offset(traversal)));
-        } else {
+        } else { 
             throw runtime_error("error: Looking for children of a node or sentinel in a simple snarl");
         }
     } else if (record_type == SNARL_HANDLE) {
@@ -4113,13 +4104,33 @@ size_t SnarlDistanceIndex::SnarlRecord::get_distance_vector_offset(size_t rank1,
 }
 
 
+net_handle_t SnarlDistanceIndex::SnarlRecord::get_child_from_rank (const size_t& rank) const {
+#ifdef debug_distances
+    assert(rank-2 < get_node_count());
+#endif
+    if (rank == 0 || rank == 1) {
+        //The boundary node. This technically shouldn't be here because boundary nodes aren't children
+        //of the snarl but I'll leave it anyway because I will probably use it
+        //Returns the bound facing in
+        return get_net_handle_from_values(record_offset, 
+                                          rank == 0 ? START_START : END_END, 
+                                          SENTINEL_HANDLE);
+    } else {
+        size_t child_record_offset = get_child_record_pointer();
+        size_t child_offset =  (*records)->at(child_record_offset + rank - 2);
+        net_handle_t child_handle =  get_net_handle_from_values (child_offset, START_END, CHAIN_HANDLE);
+        return child_handle;
+    }
+}
 bool SnarlDistanceIndex::SnarlRecord::for_each_child(const std::function<bool(const net_handle_t&)>& iteratee) const {
     size_t child_count = get_node_count();
     size_t child_record_offset = get_child_record_pointer();
     for (size_t i = 0 ; i < child_count ; i++) {
         size_t child_offset =  (*records)->at(child_record_offset + i);
+#ifdef debug_distances
         net_handle_record_t type = SnarlTreeRecord(child_offset, records).get_record_handle_type();
         assert(type == NODE_HANDLE || type == CHAIN_HANDLE);
+#endif
         net_handle_t child_handle =  get_net_handle_from_values (child_offset, START_END, CHAIN_HANDLE);
         bool result = iteratee(child_handle);
         if (result == false) {
@@ -4334,6 +4345,9 @@ size_t SnarlDistanceIndex::SimpleSnarlRecord::get_distance(size_t rank1, bool ri
         //Otherwise there is no path between them
         return std::numeric_limits<size_t>::max();
     }
+}
+net_handle_t SnarlDistanceIndex::SimpleSnarlRecord::get_child_from_rank(const size_t& rank) const {
+    return get_net_handle_from_values(record_offset, START_END, CHAIN_HANDLE, rank);
 }
 bool SnarlDistanceIndex::SimpleSnarlRecord::for_each_child(const std::function<bool(const net_handle_t&)>& iteratee) const {
     size_t node_count = get_node_count();
