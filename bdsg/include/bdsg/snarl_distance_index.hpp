@@ -1582,9 +1582,9 @@ public:
             return std::max(x, y);
         }
     }
-    //How many bits are needed to represent this value (with some wiggle room)
+    //How many bits are needed to represent this value 
     static size_t bit_width(size_t value) {
-        return log2(value+1) + 3;
+        return std::ceil(std::log2(value+1));
     }
 public:
     //Given an arbitrary number of temporary indexes, produce the final one
