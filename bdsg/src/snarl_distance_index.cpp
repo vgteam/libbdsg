@@ -5675,6 +5675,9 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
     size_t max_dist_bit_width = bit_width(std::max(maximum_distance, (size_t) max_node_id));
     size_t max_address_bit_width = bit_width(maximum_index_size);
     size_t new_width = std::max(std::max(max_dist_bit_width, max_address_bit_width), (size_t)26); //26 is the size for the simple snarl node count + node lengths
+    if (new_width > 64) {
+        cerr << "The bit width for the distance index is greater than 64 bits, which may cause problems" << endl;
+    }
     snarl_tree_records->width(new_width);
 
 #ifdef debug_distance_indexing
