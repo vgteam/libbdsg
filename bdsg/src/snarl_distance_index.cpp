@@ -1022,7 +1022,7 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
             return node_length2;//return the node length
         }
 
-        return sum({chain_record.get_distance(rank_in_chain1, go_left1,
+        return sum(chain_record.get_distance(rank_in_chain1, go_left1,
                                               node_length1, prefix_sum1,
                                               forward_loop1, reverse_loop1,
                                               component1, component1, 
@@ -1030,7 +1030,7 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
                                               node_length2, prefix_sum2,
                                               forward_loop2, reverse_loop2,
                                               component2, component2),
-                    node_lengths_to_add});
+                    node_lengths_to_add);
 
     } else if (is_snarl(parent)) {
         bool snarl_is_root = is_root_snarl(parent);
@@ -1272,7 +1272,7 @@ size_t SnarlDistanceIndex::max_distance_in_parent(const net_handle_t& parent,
             return node_length2;//return the node length
         }
 
-        return sum({chain_record.get_distance(rank_in_chain1, go_left1,
+        return sum(chain_record.get_distance(rank_in_chain1, go_left1,
                                               node_length1, prefix_sum1,
                                               forward_loop1, reverse_loop1,
                                               component1, component1, 
@@ -1280,7 +1280,7 @@ size_t SnarlDistanceIndex::max_distance_in_parent(const net_handle_t& parent,
                                               node_length2, prefix_sum2,
                                               forward_loop2, reverse_loop2,
                                               component2, component2),
-                    node_lengths_to_add});
+                    node_lengths_to_add);
 
     } else {
         //If the parent isn't a chain, then just return the minimum
@@ -1546,13 +1546,13 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
 
         //Get the distances from the bounds of the parent to the node we're looking at
         size_t distance_start_start = start_bound == net ? 0 
-                : sum({start_length, distance_in_parent(parent, start_bound, flip(net), graph)});
+                : sum(start_length, distance_in_parent(parent, start_bound, flip(net), graph));
         size_t distance_start_end = start_bound == flip(net) ? 0 
-                : sum({start_length, distance_in_parent(parent, start_bound, net, graph)});
+                : sum(start_length, distance_in_parent(parent, start_bound, net, graph));
         size_t distance_end_start = end_bound == net ? 0 
-                : sum({end_length, distance_in_parent(parent, end_bound, flip(net), graph)});
+                : sum(end_length, distance_in_parent(parent, end_bound, flip(net), graph));
         size_t distance_end_end = end_bound == flip(net) ? 0 
-                : sum({end_length, distance_in_parent(parent, end_bound, net, graph)});
+                : sum(end_length, distance_in_parent(parent, end_bound, net, graph));
 
         size_t distance_start = dist_start;
         size_t distance_end = dist_end; 
@@ -1571,31 +1571,31 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
 
             //If we're keeping track of the traceback, then remember the distance to the start/end of the parent
 
-            if (sum({distance_start_start, distance_start}) != std::numeric_limits<size_t>::max() &&
-                sum({distance_start_start, distance_start}) < sum({distance_start_end , distance_end}) ) {
+            if (sum(distance_start_start, distance_start) != std::numeric_limits<size_t>::max() &&
+                sum(distance_start_start, distance_start) < sum(distance_start_end , distance_end) ) {
                 //If the distance to the start of the parent comes form the start of the node
                 std::get<1>(*current_traceback) = distance_start_start == 0 ? std::numeric_limits<int32_t>::min() : -distance_start_start; 
-            } else if (sum({distance_start_end , distance_end}) != std::numeric_limits<size_t>::max()) {
+            } else if (sum(distance_start_end , distance_end) != std::numeric_limits<size_t>::max()) {
                 //If the distance to the start of the parent comes from the end of the node
                 std::get<1>(*current_traceback) = distance_start_end; 
                 
             }
 
-            if (sum({distance_end_start , distance_start}) != std::numeric_limits<size_t>::max() &&
-                sum({distance_end_start , distance_start}) < sum({distance_end_end , distance_end})) {
+            if (sum(distance_end_start , distance_start) != std::numeric_limits<size_t>::max() &&
+                sum(distance_end_start , distance_start) < sum(distance_end_end , distance_end)) {
                 //If the distance to the end of the parent comes from the distance to the start of the node
                 std::get<2>(*current_traceback) = distance_end_start == 0 ? std::numeric_limits<int32_t>::min() : -distance_end_start;
-            } else if (sum({distance_end_end , distance_end})) {
+            } else if (sum(distance_end_end , distance_end)) {
                 //If the distance to the end of the parent comes from the distance to the end of the node
                 std::get<2>(*current_traceback) = distance_end_end;
             }
         }
 
 
-        dist_start = std::min( sum({distance_start_start, distance_start}), 
-                                    sum({distance_start_end , distance_end}));
-        dist_end = std::min(sum({distance_end_start , distance_start}), 
-                            sum({distance_end_end , distance_end}));
+        dist_start = std::min( sum(distance_start_start, distance_start), 
+                                    sum(distance_start_end , distance_end));
+        dist_end = std::min(sum(distance_end_start , distance_start), 
+                            sum(distance_end_end , distance_end));
 #ifdef debug_distances
         cerr << "        ...new distances to start and end: " << dist_start << " " << dist_end << endl;
 #endif
@@ -1659,19 +1659,19 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
      */
  
     if (start_end_traversal_of(net1) == start_end_traversal_of(net2)){
-        if (sum({distance_to_end1 , distance_to_start2}) > node_length(net1) && 
-            sum({distance_to_end1 , distance_to_start2}) != std::numeric_limits<size_t>::max()) {
+        if (sum(distance_to_end1 , distance_to_start2) > node_length(net1) && 
+            sum(distance_to_end1 , distance_to_start2) != std::numeric_limits<size_t>::max()) {
             //If the positions are on the same node and are pointing towards each other, then
             //check the distance between them in the node
-            minimum_distance = minus(sum({distance_to_end1 , distance_to_start2}), node_length(net1));
+            minimum_distance = minus(sum(distance_to_end1 , distance_to_start2), node_length(net1));
             if (distance_traceback != nullptr) {
                 //If we're recording the traceback, remember the common node as the common ancestor
                 common_ancestor_connectivity = std::make_tuple(net1, minimum_distance-1, END_START); 
             }
         }
-        if (sum({distance_to_start1 , distance_to_end2}) > node_length(net1) && 
-            sum({distance_to_start1 , distance_to_end2}) != std::numeric_limits<size_t>::max()) {
-            minimum_distance = std::min(minus(sum({distance_to_start1 , distance_to_end2}), node_length(net1)), minimum_distance);
+        if (sum(distance_to_start1 , distance_to_end2) > node_length(net1) && 
+            sum(distance_to_start1 , distance_to_end2) != std::numeric_limits<size_t>::max()) {
+            minimum_distance = std::min(minus(sum(distance_to_start1 , distance_to_end2), node_length(net1)), minimum_distance);
             if (distance_traceback != nullptr && minimum_distance < std::get<1>(common_ancestor_connectivity)) {
                 //If we're recording the traceback, remember the common node as the common ancestor
                 common_ancestor_connectivity = std::make_tuple(net1, minimum_distance-1, START_END); 
@@ -1749,24 +1749,24 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
 
         //And add those to the distances we've found to get the minimum distance between the positions
         minimum_distance = std::min(minimum_distance, 
-                           std::min(sum({distance_start_start , distance_to_start1 , distance_to_start2}),
-                           std::min(sum({distance_start_end , distance_to_start1 , distance_to_end2}),
-                           std::min(sum({distance_end_start , distance_to_end1 , distance_to_start2}),
-                                    sum({distance_end_end , distance_to_end1 , distance_to_end2})))));
+                           std::min(sum(sum(distance_start_start , distance_to_start1), distance_to_start2),
+                           std::min(sum(sum(distance_start_end , distance_to_start1), distance_to_end2),
+                           std::min(sum(sum(distance_end_start , distance_to_end1), distance_to_start2),
+                                    sum(sum(distance_end_end , distance_to_end1), distance_to_end2)))));
 
         if (distance_traceback != nullptr && minimum_distance != std::numeric_limits<size_t>::max()
             && minimum_distance != old_minimum) {
             //If we want to do traceback and the distance was updated here
 
-            if (minimum_distance == sum({distance_start_start , distance_to_start1 , distance_to_start2})) {
+            if (minimum_distance == sum(sum(distance_start_start , distance_to_start1), distance_to_start2)) {
                 //If the distance was the start of 1 to the start of 2
                 common_ancestor_connectivity = std::make_tuple(common_ancestor, distance_start_start, START_START);
-            } else if (minimum_distance == sum({distance_start_end , distance_to_start1 , distance_to_end2})) {
+            } else if (minimum_distance == sum(sum(distance_start_end , distance_to_start1), distance_to_end2)) {
                 common_ancestor_connectivity = std::make_tuple(common_ancestor, distance_start_end, START_END);
-            } else if (minimum_distance == sum({distance_end_start , distance_to_end1 , distance_to_start2})) {
+            } else if (minimum_distance == sum(sum(distance_end_start , distance_to_end1), distance_to_start2)) {
                 common_ancestor_connectivity = std::make_tuple(common_ancestor, distance_end_start, END_START);
             } else {
-                assert(minimum_distance == sum({distance_end_end , distance_to_end1 , distance_to_end2}));
+                assert(minimum_distance == sum(sum(distance_end_end , distance_to_end1), distance_to_end2));
                 common_ancestor_connectivity = std::make_tuple(common_ancestor, distance_end_end, END_END);
             } 
         }
@@ -1948,21 +1948,21 @@ size_t SnarlDistanceIndex::maximum_distance(const handlegraph::nid_t id1, const 
 
         //Get the distances from the bounds of the parent to the node we're looking at
         size_t distance_start_start = start_bound == net ? 0 
-                : sum({start_length, max_distance_in_parent(parent, start_bound, flip(net), graph)});
+                : sum(start_length, max_distance_in_parent(parent, start_bound, flip(net), graph));
         size_t distance_start_end = start_bound == flip(net) ? 0 
-                : sum({start_length, max_distance_in_parent(parent, start_bound, net, graph)});
+                : sum(start_length, max_distance_in_parent(parent, start_bound, net, graph));
         size_t distance_end_start = end_bound == net ? 0 
-                : sum({end_length, max_distance_in_parent(parent, end_bound, flip(net), graph)});
+                : sum(end_length, max_distance_in_parent(parent, end_bound, flip(net), graph));
         size_t distance_end_end = end_bound == flip(net) ? 0 
-                : sum({end_length, max_distance_in_parent(parent, end_bound, net, graph)});
+                : sum(end_length, max_distance_in_parent(parent, end_bound, net, graph));
 
         size_t distance_start = dist_start;
         size_t distance_end = dist_end; 
 
-        dist_start = maximum( sum({distance_start_start, distance_start}), 
-                              sum({distance_start_end , distance_end}));
-        dist_end = maximum(sum({distance_end_start , distance_start}), 
-                           sum({distance_end_end , distance_end}));
+        dist_start = maximum( sum(distance_start_start, distance_start), 
+                              sum(distance_start_end , distance_end));
+        dist_end = maximum(sum(distance_end_start , distance_start), 
+                           sum(distance_end_end , distance_end));
 #ifdef debug_distances
         cerr << "        ...new distances to start and end: " << dist_start << " " << dist_end << endl;
 #endif
@@ -2028,15 +2028,15 @@ size_t SnarlDistanceIndex::maximum_distance(const handlegraph::nid_t id1, const 
      */
  
     if (start_end_traversal_of(net1) == start_end_traversal_of(net2)){
-        if (sum({distance_to_end1 , distance_to_start2}) > node_length(net1) && 
-            sum({distance_to_end1 , distance_to_start2}) != std::numeric_limits<size_t>::max()) {
+        if (sum(distance_to_end1 , distance_to_start2) > node_length(net1) && 
+            sum(distance_to_end1 , distance_to_start2) != std::numeric_limits<size_t>::max()) {
             //If the positions are on the same node and are pointing towards each other, then
             //check the distance between them in the node
-            maximum_distance = minus(sum({distance_to_end1 , distance_to_start2}), node_length(net1));
+            maximum_distance = minus(sum(distance_to_end1 , distance_to_start2), node_length(net1));
         }
-        if (sum({distance_to_start1 , distance_to_end2}) > node_length(net1) && 
-            sum({distance_to_start1 , distance_to_end2}) != std::numeric_limits<size_t>::max()) {
-            size_t new_max = minus(sum({distance_to_start1 , distance_to_end2}), node_length(net1));
+        if (sum(distance_to_start1 , distance_to_end2) > node_length(net1) && 
+            sum(distance_to_start1 , distance_to_end2) != std::numeric_limits<size_t>::max()) {
+            size_t new_max = minus(sum(distance_to_start1 , distance_to_end2), node_length(net1));
             if (new_max != std::numeric_limits<size_t>::max()) {
                 maximum_distance = maximum_distance == std::numeric_limits<size_t>::max() ? new_max 
                                  : std::max(new_max, maximum_distance);
@@ -2103,10 +2103,10 @@ size_t SnarlDistanceIndex::maximum_distance(const handlegraph::nid_t id1, const 
 
         //And add those to the distances we've found to get the maximum distance between the positions
         maximum_distance = maximum(maximum_distance, 
-                           maximum(sum({distance_start_start , distance_to_start1 , distance_to_start2}),
-                           maximum(sum({distance_start_end , distance_to_start1 , distance_to_end2}),
-                           maximum(sum({distance_end_start , distance_to_end1 , distance_to_start2}),
-                                    sum({distance_end_end , distance_to_end1 , distance_to_end2})))));
+                           maximum(sum(sum(distance_start_start , distance_to_start1), distance_to_start2),
+                           maximum(sum(sum(distance_start_end , distance_to_start1), distance_to_end2),
+                           maximum(sum(sum(distance_end_start , distance_to_end1), distance_to_start2),
+                                    sum(sum(distance_end_end , distance_to_end1), distance_to_end2)))));
 
 
 #ifdef debug_distances
@@ -2470,7 +2470,7 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path_in_snarl(const net_han
 #endif
                started = true;
                 return true; //Continue
-            } else if (sum({distance_in_parent(snarl_handle, next_net, flip(end)), minimum_length(next_net)}) == distance_to_traverse) {
+            } else if (sum(distance_in_parent(snarl_handle, next_net, flip(end)), minimum_length(next_net)) == distance_to_traverse) {
 #ifdef debug_distance_paths
                 cerr << "\tThis can reach the end going across in " << distance_to_traverse << " so iterate on it and continue from " << net_handle_as_string(next_net) << endl;
 #endif
@@ -2524,10 +2524,10 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path_in_snarl(const net_han
                 started = true;
 
                 return false;//Return false to stop iterating
-            } else if (is_chain(next_net) && sum({distance_in_parent(snarl_handle, flip(next_net), flip(end)), 
+            } else if (is_chain(next_net) && sum(sum(distance_in_parent(snarl_handle, flip(next_net), flip(end)), 
                              distance_in_parent(next_net, get_bound(next_net, ends_at(next_net) == START, true),
-                                                          get_bound(next_net, ends_at(next_net) == START, true)),
-                            2*minimum_length(get_bound(next_net, ends_at(next_net) == START, true))}) == distance_to_traverse) {
+                                                          get_bound(next_net, ends_at(next_net) == START, true))),
+                            2*minimum_length(get_bound(next_net, ends_at(next_net) == START, true))) == distance_to_traverse) {
 #ifdef debug_distance_paths
                 cerr << "\tThis can reach the end by looping in " << distance_to_traverse << " so iterate on it and continue from " << net_handle_as_string(flip(next_net)) << endl;
 #endif
@@ -4291,8 +4291,8 @@ tuple<size_t, size_t, size_t, size_t> SnarlDistanceIndex::TrivialSnarlRecord::ge
     //Get the right prefix sum value
     prefix_sum = prefix_sum == 0 ? std::numeric_limits<size_t>::max() : prefix_sum - 1;
     if (node_rank != 0) {
-        prefix_sum =  sum({prefix_sum,  
-               (*records)->at(record_offset+TRIVIAL_SNARL_RECORD_SIZE+ (node_rank*2)-1)});
+        prefix_sum =  sum(prefix_sum,  
+               (*records)->at(record_offset+TRIVIAL_SNARL_RECORD_SIZE+ (node_rank*2)-1));
     } 
 
     /*Get the forward loop value
@@ -4309,7 +4309,7 @@ tuple<size_t, size_t, size_t, size_t> SnarlDistanceIndex::TrivialSnarlRecord::ge
     //the length of the snarl - the right prefix sum of the node
     size_t right_offset = snarl_length - (*records)->at(record_offset+TRIVIAL_SNARL_RECORD_SIZE + (node_rank*2) + 1);
 
-    forward_loop = sum({forward_loop, right_offset*2});
+    forward_loop = sum(forward_loop, right_offset*2);
 
     /* Get the reverse loop value
      */
@@ -4319,7 +4319,7 @@ tuple<size_t, size_t, size_t, size_t> SnarlDistanceIndex::TrivialSnarlRecord::ge
     size_t left_offset = node_rank == 0 ? 0 : 
                           (*records)->at(record_offset+TRIVIAL_SNARL_RECORD_SIZE + (node_rank*2) - 1);
 
-    reverse_loop = sum({reverse_loop, left_offset*2});
+    reverse_loop = sum(reverse_loop, left_offset*2);
 
 
 
@@ -4371,7 +4371,7 @@ size_t SnarlDistanceIndex::TrivialSnarlRecord::get_forward_loop(size_t node_rank
     //the length of the snarl - the right prefix sum of the node
     size_t right_offset = snarl_length - (*records)->at(record_offset+TRIVIAL_SNARL_RECORD_SIZE + (node_rank*2) + 1);
 
-    return sum({forward_loop, right_offset*2});
+    return sum(forward_loop, right_offset*2);
 }
 size_t SnarlDistanceIndex::TrivialSnarlRecord::get_reverse_loop(size_t node_rank) const {
 #ifdef debug_distances
@@ -4384,7 +4384,7 @@ size_t SnarlDistanceIndex::TrivialSnarlRecord::get_reverse_loop(size_t node_rank
     size_t left_offset = node_rank == 0 ? 0 : 
                           (*records)->at(record_offset+TRIVIAL_SNARL_RECORD_SIZE + (node_rank*2) - 1);
 
-    return sum({reverse_loop, left_offset*2});
+    return sum(reverse_loop, left_offset*2);
 }
 size_t SnarlDistanceIndex::TrivialSnarlRecord::get_chain_component(size_t node_rank, bool get_end) const {
     if (!get_end && node_rank == 0 && record_offset == ChainRecord(get_parent_record_offset(), records).get_first_node_offset()){
@@ -4685,7 +4685,7 @@ size_t SnarlDistanceIndex::ChainRecord::get_distance(size_t rank1, bool left_sid
         //Right of 1 and left of 2, so a simple forward traversal of the chain
         if (rank1 == rank2) {
             //If these are the same node, then the path would need to go around the node
-            distance = sum({forward_loop1,reverse_loop2,node_length1});
+            distance = sum(sum(forward_loop1,reverse_loop2),node_length1);
         } else {
             distance = minus(prefix_sum2 - prefix_sum1, node_length1);
         }
@@ -4695,7 +4695,7 @@ size_t SnarlDistanceIndex::ChainRecord::get_distance(size_t rank1, bool left_sid
             distance = forward_loop2;
 
         } else {
-            distance = minus( sum({prefix_sum2 - prefix_sum1, node_length2, forward_loop2}),
+            distance = minus( sum(sum(prefix_sum2 - prefix_sum1, node_length2), forward_loop2),
                          node_length1);
         }
     } else if (left_side1 && left_side2) {
@@ -4704,12 +4704,12 @@ size_t SnarlDistanceIndex::ChainRecord::get_distance(size_t rank1, bool left_sid
             distance = reverse_loop1;
 
         } else {
-            distance = sum({prefix_sum2 - prefix_sum1, reverse_loop1});
+            distance = sum(prefix_sum2 - prefix_sum1, reverse_loop1);
         }
     } else {
         //Left side of 1 and right side of 2
-        distance = sum({prefix_sum2 - prefix_sum1, reverse_loop1,
-                        forward_loop2, node_length2});
+        distance = sum(sum(sum(prefix_sum2 - prefix_sum1, reverse_loop1),
+                        forward_loop2), node_length2);
 
     }
     if (is_looping_chain) {
@@ -4772,16 +4772,16 @@ size_t SnarlDistanceIndex::ChainRecord::get_distance_taking_chain_loop(size_t ra
         //Right of 1 and left of 2, so a simple forward traversal of the chain
         //loop forward from the first node, from the start of the chain to the first
         //node, from the end of the node to the second node, and the reverse loop of the second
-        distance = sum({forward_loop1, node_length1, prefix_sum1,
-                        minus(get_min_length(), prefix_sum2),
-                        reverse_loop2});
+        distance = sum(sum(sum(sum(forward_loop1, node_length1), prefix_sum1),
+                        minus(get_min_length(), prefix_sum2)),
+                        reverse_loop2);
     } else if (!left_side1 && !left_side2) {
         //Right side of 1 and right side of 2
 
         //Check distance for taking loop in chain: loop forward from the first node, from the start of the
         //chain to the first node, from the end of the node to the second node
-        distance = sum({forward_loop1, node_length1, prefix_sum1,
-                        minus(minus(get_min_length(), prefix_sum2), node_length2)});
+        distance = sum(sum(sum(forward_loop1, node_length1), prefix_sum1),
+                        minus(minus(get_min_length(), prefix_sum2), node_length2));
     } else if (left_side1 && left_side2) {
         //Left side of 1 and left side of 2
 
@@ -4789,14 +4789,14 @@ size_t SnarlDistanceIndex::ChainRecord::get_distance_taking_chain_loop(size_t ra
         //chain loop, then the reverse loop of the second node
         //This assumes that the length of the chain only includes the start/end node's length once,
         //which it does but might change
-        distance = sum({prefix_sum1,
-                        minus(get_min_length(), prefix_sum2),reverse_loop2});
+        distance = sum(sum(prefix_sum1,
+                        minus(get_min_length(), prefix_sum2)),reverse_loop2);
     } else {
         //Left side of 1 and right side of 2
 
         //Check the distance going backwards around the chain
-        distance = sum({prefix_sum1,
-                        minus(minus(get_min_length(), prefix_sum2),node_length2)});
+        distance = sum(prefix_sum1,
+                        minus(minus(get_min_length(), prefix_sum2),node_length2));
     }
     return distance;
 }

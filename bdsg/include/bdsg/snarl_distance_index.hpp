@@ -1557,17 +1557,11 @@ public:
             return val1 + val2;
         }
     }
-    static size_t sum(const vector<size_t>& vals) {
-        return std::accumulate(vals.begin(), vals.end(), 0, 
-            [](const size_t& a, const size_t& b) {
-                return sum(a, b);
-            });
-    }
     static size_t minus(size_t x, size_t y) {
         if (x == std::numeric_limits<size_t>::max()) {
             return numeric_limits<size_t>::max();
         } else if (y == std::numeric_limits<size_t>::max()) {
-            return -numeric_limits<size_t>::max();
+            return numeric_limits<size_t>::max();
         } else {
             return x - y;
         }
