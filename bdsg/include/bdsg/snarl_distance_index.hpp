@@ -1557,17 +1557,11 @@ public:
             return val1 + val2;
         }
     }
-    static size_t sum(const vector<size_t>& vals) {
-        return std::accumulate(vals.begin(), vals.end(), 0, 
-            [](const size_t& a, const size_t& b) {
-                return sum(a, b);
-            });
-    }
     static size_t minus(size_t x, size_t y) {
         if (x == std::numeric_limits<size_t>::max()) {
             return numeric_limits<size_t>::max();
         } else if (y == std::numeric_limits<size_t>::max()) {
-            return -numeric_limits<size_t>::max();
+            return numeric_limits<size_t>::max();
         } else {
             return x - y;
         }
@@ -1582,9 +1576,9 @@ public:
             return std::max(x, y);
         }
     }
-    //How many bits are needed to represent this value (with some wiggle room)
+    //How many bits are needed to represent this value 
     static size_t bit_width(size_t value) {
-        return log2(value+1) + 3;
+        return std::ceil(std::log2(value+1));
     }
 public:
     //Given an arbitrary number of temporary indexes, produce the final one
