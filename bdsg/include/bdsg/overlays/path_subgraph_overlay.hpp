@@ -28,6 +28,9 @@ using namespace handlegraph;
 class PathSubgraphOverlay : virtual public SubgraphOverlay, virtual public PathHandleGraph  {
 
 public:
+
+    PathSubgraphOverlay() = delete;
+
     /**
      * Make a new PathSubgraphOverlay. The backing graph must not be modified
      * while the overlay exists.

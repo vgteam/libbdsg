@@ -228,6 +228,11 @@ def make_bindings_code(all_includes_fn, binder_executable):
         # Also make sure to look for libomp from macports or homebrew, like CMakeLists.txt does
         command.append('-I/opt/local/include/libomp')
         command.append('-I/usr/local/include')
+
+    # Find Jansson
+    jansson_flags = subprocess.check_output(['pkg-config', '--cflags', 'jansson']).decode('utf-8').strip().split(' ')
+    command += jansson_flags
+
     command = command + proj_include
     command.append("-DNDEBUG")
     command.append("-v")
