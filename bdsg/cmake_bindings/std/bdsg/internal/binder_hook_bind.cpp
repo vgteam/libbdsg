@@ -1,5 +1,3 @@
-#include <__iterator/move_iterator.h>
-#include <__iterator/wrap_iter.h>
 #include <handlegraph/types.hpp>
 #include <memory>
 #include <sstream> // __str__

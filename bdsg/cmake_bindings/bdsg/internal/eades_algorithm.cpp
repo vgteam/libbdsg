@@ -1,5 +1,3 @@
-#include <__iterator/move_iterator.h>
-#include <__iterator/wrap_iter.h>
 #include <bdsg/internal/eades_algorithm.hpp>
 #include <functional>
 #include <handlegraph/handle_graph.hpp>

@@ -1,5 +1,3 @@
-#include <__iterator/move_iterator.h>
-#include <__iterator/wrap_iter.h>
 #include <bdsg/overlays/packed_path_position_overlay.hpp>
 #include <functional>
 #include <handlegraph/handle_graph.hpp>

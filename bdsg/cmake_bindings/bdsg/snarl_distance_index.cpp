@@ -1,4 +1,3 @@
-#include <__ios/fpos.h>
 #include <bdsg/snarl_distance_index.hpp>
 #include <functional>
 #include <handlegraph/handle_graph.hpp>

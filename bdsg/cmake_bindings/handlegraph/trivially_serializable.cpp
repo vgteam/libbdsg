@@ -1,4 +1,3 @@
-#include <__ios/fpos.h>
 #include <functional>
 #include <handlegraph/trivially_serializable.hpp>
 #include <ios>

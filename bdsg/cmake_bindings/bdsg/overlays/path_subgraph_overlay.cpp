@@ -1,7 +1,3 @@
-#include <__functional/hash.h>
-#include <__functional/operations.h>
-#include <__iterator/move_iterator.h>
-#include <__iterator/wrap_iter.h>
 #include <bdsg/overlays/path_subgraph_overlay.hpp>
 #include <bdsg/overlays/subgraph_overlay.hpp>
 #include <functional>

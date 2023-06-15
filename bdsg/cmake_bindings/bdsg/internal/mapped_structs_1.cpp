@@ -1,4 +1,3 @@
-#include <__ios/fpos.h>
 #include <bdsg/internal/mapped_structs.hpp>
 #include <bdsg/internal/packed_structs.hpp>
 #include <ios>
