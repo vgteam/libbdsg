@@ -1403,7 +1403,10 @@ bool BasePackedGraph<Backend>::for_each_handle(const std::function<bool(const ha
 template<typename Backend>
 size_t BasePackedGraph<Backend>::get_edge_count() const {
     // each edge (except reversing self edges) are stored twice in the edge vector
-    return (edge_lists_iv.size() / EDGE_RECORD_SIZE + reversing_self_edge_records - deleted_edge_records) / 2;
+    // (edge_lists_iv.size() - deleted_edge_records) gives the number of live edge records
+    // (reversing_self_edge_records - deleted_reversing_self_edge_records) gives the number of additional
+    // counts necessary for reversing self edges
+    return (edge_lists_iv.size() / EDGE_RECORD_SIZE + reversing_self_edge_records - deleted_reversing_self_edge_records - deleted_edge_records) / 2;
 }
 
 template<typename Backend>
@@ -1701,7 +1704,7 @@ std::vector<handle_t> BasePackedGraph<Backend>::divide_handle(const handle_t& ha
 
 template<typename Backend>
 void BasePackedGraph<Backend>::destroy_handle(const handle_t& handle) {
-    
+
     // Clear out any paths on this handle.
     // We need to first compose a list of distinct visiting paths.
     std::unordered_set<path_handle_t> visiting_paths;
@@ -1722,9 +1725,8 @@ void BasePackedGraph<Backend>::destroy_handle(const handle_t& handle) {
         
         // we don't actually bother removing the reference, but we will also consider
         // the edge on the deleting node to be deleted and hence count it up here
-        ++deleted_edge_records;
-        if (next == flip(handle)) {
-            ++deleted_reversing_self_edge_records;
+        if (next != flip(handle)) {
+            ++deleted_edge_records;
         }
         return true;
     });
@@ -1734,9 +1736,8 @@ void BasePackedGraph<Backend>::destroy_handle(const handle_t& handle) {
         
         // we don't actually bother removing the reference, but we will also consider
         // the edge on the deleting node to be deleted and hence count it up here
-        ++deleted_edge_records;
-        if (prev == flip(handle)) {
-            ++deleted_reversing_self_edge_records;
+        if (prev != flip(handle)) {
+            ++deleted_edge_records;
         }
         return true;
     });

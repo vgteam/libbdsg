@@ -1,4 +1,6 @@
 #include <bdsg/hash_graph.hpp>
+#include <bdsg/internal/hash_map.hpp>
+#include <bdsg/internal/mapped_structs.hpp>
 #include <bdsg/internal/utility.hpp>
 #include <functional>
 #include <handlegraph/handle_graph.hpp>
@@ -11,655 +13,653 @@
 #include <handlegraph/types.hpp>
 #include <ios>
 #include <istream>
-#include <iterator>
 #include <memory>
 #include <sstream> // __str__
 #include <streambuf>
 #include <string>
-#include <unordered_map>
-#include <unordered_set>
+#include <string_view>
 #include <utility>
 #include <vector>
 
-#include <pybind11/pybind11.h>
 #include <functional>
+#include <pybind11/pybind11.h>
 #include <string>
+#include <bdsg/internal/binder_hook_compile.hpp>
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
 #include <pybind11/functional.h>
 #include <fstream>
-#include <bdsg/internal/binder_hook_compile.hpp>
 
 
 #ifndef BINDER_PYBIND11_TYPE_CASTER
 	#define BINDER_PYBIND11_TYPE_CASTER
-	PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>);
-	PYBIND11_DECLARE_HOLDER_TYPE(T, T*);
-	PYBIND11_MAKE_OPAQUE(std::shared_ptr<void>);
+	PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>)
+	PYBIND11_DECLARE_HOLDER_TYPE(T, T*)
+	PYBIND11_MAKE_OPAQUE(std::shared_ptr<void>)
 #endif
 
 // bdsg::HashGraph file:bdsg/hash_graph.hpp line:32
 struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 	using bdsg::HashGraph::HashGraph;
 
-	bool has_node(long long a0) const override { 
+	bool has_node(long long a0) const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "has_node");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::overload_caster_t<bool> caster;
+				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return HashGraph::has_node(a0);
 	}
-	struct handlegraph::handle_t get_handle(const long long & a0, bool a1) const override { 
+	struct handlegraph::handle_t get_handle(const long long & a0, bool a1) const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_handle");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::handle_t>::value) {
-				static pybind11::detail::overload_caster_t<struct handlegraph::handle_t> caster;
+				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		return HashGraph::get_handle(a0, a1);
 	}
-	long long get_id(const struct handlegraph::handle_t & a0) const override { 
+	long long get_id(const struct handlegraph::handle_t & a0) const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
-				static pybind11::detail::overload_caster_t<long long> caster;
+				static pybind11::detail::override_caster_t<long long> caster;
 				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return HashGraph::get_id(a0);
 	}
-	bool get_is_reverse(const struct handlegraph::handle_t & a0) const override { 
+	bool get_is_reverse(const struct handlegraph::handle_t & a0) const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_is_reverse");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::overload_caster_t<bool> caster;
+				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return HashGraph::get_is_reverse(a0);
 	}
-	struct handlegraph::handle_t flip(const struct handlegraph::handle_t & a0) const override { 
+	struct handlegraph::handle_t flip(const struct handlegraph::handle_t & a0) const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "flip");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::handle_t>::value) {
-				static pybind11::detail::overload_caster_t<struct handlegraph::handle_t> caster;
+				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		return HashGraph::flip(a0);
 	}
-	unsigned long get_length(const struct handlegraph::handle_t & a0) const override { 
+	unsigned long get_length(const struct handlegraph::handle_t & a0) const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_length");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
-				static pybind11::detail::overload_caster_t<unsigned long> caster;
+				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return HashGraph::get_length(a0);
 	}
-	std::string get_sequence(const struct handlegraph::handle_t & a0) const override { 
+	std::string get_sequence(const struct handlegraph::handle_t & a0) const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_sequence");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<std::string>::value) {
-				static pybind11::detail::overload_caster_t<std::string> caster;
+				static pybind11::detail::override_caster_t<std::string> caster;
 				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		return HashGraph::get_sequence(a0);
 	}
-	bool follow_edges_impl(const struct handlegraph::handle_t & a0, bool a1, const class std::function<bool (const struct handlegraph::handle_t &)> & a2) const override { 
+	bool follow_edges_impl(const struct handlegraph::handle_t & a0, bool a1, const class std::function<bool (const struct handlegraph::handle_t &)> & a2) const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "follow_edges_impl");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1, a2);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::overload_caster_t<bool> caster;
+				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return HashGraph::follow_edges_impl(a0, a1, a2);
 	}
-	bool for_each_handle_impl(const class std::function<bool (const struct handlegraph::handle_t &)> & a0, bool a1) const override { 
+	bool for_each_handle_impl(const class std::function<bool (const struct handlegraph::handle_t &)> & a0, bool a1) const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "for_each_handle_impl");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::overload_caster_t<bool> caster;
+				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return HashGraph::for_each_handle_impl(a0, a1);
 	}
-	unsigned long get_node_count() const override { 
+	unsigned long get_node_count() const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_node_count");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
 			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
-				static pybind11::detail::overload_caster_t<unsigned long> caster;
+				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return HashGraph::get_node_count();
 	}
-	long long min_node_id() const override { 
+	long long min_node_id() const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "min_node_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
 			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
-				static pybind11::detail::overload_caster_t<long long> caster;
+				static pybind11::detail::override_caster_t<long long> caster;
 				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return HashGraph::min_node_id();
 	}
-	long long max_node_id() const override { 
+	long long max_node_id() const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "max_node_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
 			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
-				static pybind11::detail::overload_caster_t<long long> caster;
+				static pybind11::detail::override_caster_t<long long> caster;
 				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return HashGraph::max_node_id();
 	}
-	unsigned long get_degree(const struct handlegraph::handle_t & a0, bool a1) const override { 
+	unsigned long get_degree(const struct handlegraph::handle_t & a0, bool a1) const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_degree");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
-				static pybind11::detail::overload_caster_t<unsigned long> caster;
+				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return HashGraph::get_degree(a0, a1);
 	}
-	char get_base(const struct handlegraph::handle_t & a0, unsigned long a1) const override { 
+	char get_base(const struct handlegraph::handle_t & a0, unsigned long a1) const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_base");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<char>::value) {
-				static pybind11::detail::overload_caster_t<char> caster;
+				static pybind11::detail::override_caster_t<char> caster;
 				return pybind11::detail::cast_ref<char>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<char>(std::move(o));
 		}
 		return HashGraph::get_base(a0, a1);
 	}
-	std::string get_subsequence(const struct handlegraph::handle_t & a0, unsigned long a1, unsigned long a2) const override { 
+	std::string get_subsequence(const struct handlegraph::handle_t & a0, unsigned long a1, unsigned long a2) const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_subsequence");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1, a2);
 			if (pybind11::detail::cast_is_temporary_value_reference<std::string>::value) {
-				static pybind11::detail::overload_caster_t<std::string> caster;
+				static pybind11::detail::override_caster_t<std::string> caster;
 				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		return HashGraph::get_subsequence(a0, a1, a2);
 	}
-	struct handlegraph::handle_t create_handle(const std::string & a0) override { 
+	struct handlegraph::handle_t create_handle(const std::string & a0) override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "create_handle");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::handle_t>::value) {
-				static pybind11::detail::overload_caster_t<struct handlegraph::handle_t> caster;
+				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		return HashGraph::create_handle(a0);
 	}
-	struct handlegraph::handle_t create_handle(const std::string & a0, const long long & a1) override { 
+	struct handlegraph::handle_t create_handle(const std::string & a0, const long long & a1) override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "create_handle");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::handle_t>::value) {
-				static pybind11::detail::overload_caster_t<struct handlegraph::handle_t> caster;
+				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		return HashGraph::create_handle(a0, a1);
 	}
-	void destroy_handle(const struct handlegraph::handle_t & a0) override { 
+	void destroy_handle(const struct handlegraph::handle_t & a0) override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "destroy_handle");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
-				static pybind11::detail::overload_caster_t<void> caster;
+				static pybind11::detail::override_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return HashGraph::destroy_handle(a0);
 	}
-	void create_edge(const struct handlegraph::handle_t & a0, const struct handlegraph::handle_t & a1) override { 
+	void create_edge(const struct handlegraph::handle_t & a0, const struct handlegraph::handle_t & a1) override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "create_edge");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
-				static pybind11::detail::overload_caster_t<void> caster;
+				static pybind11::detail::override_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return HashGraph::create_edge(a0, a1);
 	}
-	void destroy_edge(const struct handlegraph::handle_t & a0, const struct handlegraph::handle_t & a1) override { 
+	void destroy_edge(const struct handlegraph::handle_t & a0, const struct handlegraph::handle_t & a1) override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "destroy_edge");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
-				static pybind11::detail::overload_caster_t<void> caster;
+				static pybind11::detail::override_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return HashGraph::destroy_edge(a0, a1);
 	}
-	struct handlegraph::handle_t truncate_handle(const struct handlegraph::handle_t & a0, bool a1, unsigned long a2) override { 
+	struct handlegraph::handle_t truncate_handle(const struct handlegraph::handle_t & a0, bool a1, unsigned long a2) override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "truncate_handle");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1, a2);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::handle_t>::value) {
-				static pybind11::detail::overload_caster_t<struct handlegraph::handle_t> caster;
+				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		return HashGraph::truncate_handle(a0, a1, a2);
 	}
-	void clear() override { 
+	void clear() override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "clear");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
 			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
-				static pybind11::detail::overload_caster_t<void> caster;
+				static pybind11::detail::override_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return HashGraph::clear();
 	}
-	struct handlegraph::handle_t apply_orientation(const struct handlegraph::handle_t & a0) override { 
+	struct handlegraph::handle_t apply_orientation(const struct handlegraph::handle_t & a0) override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "apply_orientation");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::handle_t>::value) {
-				static pybind11::detail::overload_caster_t<struct handlegraph::handle_t> caster;
+				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		return HashGraph::apply_orientation(a0);
 	}
-	class std::vector<handlegraph::handle_t> divide_handle(const struct handlegraph::handle_t & a0, const class std::vector<unsigned long> & a1) override { 
+	class std::vector<handlegraph::handle_t> divide_handle(const struct handlegraph::handle_t & a0, const class std::vector<unsigned long> & a1) override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "divide_handle");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<class std::vector<handlegraph::handle_t>>::value) {
-				static pybind11::detail::overload_caster_t<class std::vector<handlegraph::handle_t>> caster;
+				static pybind11::detail::override_caster_t<class std::vector<handlegraph::handle_t>> caster;
 				return pybind11::detail::cast_ref<class std::vector<handlegraph::handle_t>>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<class std::vector<handlegraph::handle_t>>(std::move(o));
 		}
 		return HashGraph::divide_handle(a0, a1);
 	}
-	void optimize(bool a0) override { 
+	void optimize(bool a0) override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "optimize");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
-				static pybind11::detail::overload_caster_t<void> caster;
+				static pybind11::detail::override_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return HashGraph::optimize(a0);
 	}
-	bool apply_ordering(const class std::vector<handlegraph::handle_t> & a0, bool a1) override { 
+	bool apply_ordering(const class std::vector<handlegraph::handle_t> & a0, bool a1) override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "apply_ordering");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::overload_caster_t<bool> caster;
+				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return HashGraph::apply_ordering(a0, a1);
 	}
-	unsigned long get_path_count() const override { 
+	unsigned long get_path_count() const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_path_count");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
 			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
-				static pybind11::detail::overload_caster_t<unsigned long> caster;
+				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return HashGraph::get_path_count();
 	}
-	bool has_path(const std::string & a0) const override { 
+	bool has_path(const std::string & a0) const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "has_path");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::overload_caster_t<bool> caster;
+				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return HashGraph::has_path(a0);
 	}
-	struct handlegraph::path_handle_t get_path_handle(const std::string & a0) const override { 
+	struct handlegraph::path_handle_t get_path_handle(const std::string & a0) const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_path_handle");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::path_handle_t>::value) {
-				static pybind11::detail::overload_caster_t<struct handlegraph::path_handle_t> caster;
+				static pybind11::detail::override_caster_t<struct handlegraph::path_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::path_handle_t>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<struct handlegraph::path_handle_t>(std::move(o));
 		}
 		return HashGraph::get_path_handle(a0);
 	}
-	std::string get_path_name(const struct handlegraph::path_handle_t & a0) const override { 
+	std::string get_path_name(const struct handlegraph::path_handle_t & a0) const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_path_name");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<std::string>::value) {
-				static pybind11::detail::overload_caster_t<std::string> caster;
+				static pybind11::detail::override_caster_t<std::string> caster;
 				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		return HashGraph::get_path_name(a0);
 	}
-	bool get_is_circular(const struct handlegraph::path_handle_t & a0) const override { 
+	bool get_is_circular(const struct handlegraph::path_handle_t & a0) const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_is_circular");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::overload_caster_t<bool> caster;
+				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return HashGraph::get_is_circular(a0);
 	}
-	unsigned long get_step_count(const struct handlegraph::path_handle_t & a0) const override { 
+	unsigned long get_step_count(const struct handlegraph::path_handle_t & a0) const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_step_count");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
-				static pybind11::detail::overload_caster_t<unsigned long> caster;
+				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return HashGraph::get_step_count(a0);
 	}
-	struct handlegraph::handle_t get_handle_of_step(const struct handlegraph::step_handle_t & a0) const override { 
+	struct handlegraph::handle_t get_handle_of_step(const struct handlegraph::step_handle_t & a0) const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_handle_of_step");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::handle_t>::value) {
-				static pybind11::detail::overload_caster_t<struct handlegraph::handle_t> caster;
+				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		return HashGraph::get_handle_of_step(a0);
 	}
-	struct handlegraph::path_handle_t get_path_handle_of_step(const struct handlegraph::step_handle_t & a0) const override { 
+	struct handlegraph::path_handle_t get_path_handle_of_step(const struct handlegraph::step_handle_t & a0) const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_path_handle_of_step");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::path_handle_t>::value) {
-				static pybind11::detail::overload_caster_t<struct handlegraph::path_handle_t> caster;
+				static pybind11::detail::override_caster_t<struct handlegraph::path_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::path_handle_t>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<struct handlegraph::path_handle_t>(std::move(o));
 		}
 		return HashGraph::get_path_handle_of_step(a0);
 	}
-	struct handlegraph::step_handle_t path_begin(const struct handlegraph::path_handle_t & a0) const override { 
+	struct handlegraph::step_handle_t path_begin(const struct handlegraph::path_handle_t & a0) const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "path_begin");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::step_handle_t>::value) {
-				static pybind11::detail::overload_caster_t<struct handlegraph::step_handle_t> caster;
+				static pybind11::detail::override_caster_t<struct handlegraph::step_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::step_handle_t>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<struct handlegraph::step_handle_t>(std::move(o));
 		}
 		return HashGraph::path_begin(a0);
 	}
-	struct handlegraph::step_handle_t path_end(const struct handlegraph::path_handle_t & a0) const override { 
+	struct handlegraph::step_handle_t path_end(const struct handlegraph::path_handle_t & a0) const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "path_end");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::step_handle_t>::value) {
-				static pybind11::detail::overload_caster_t<struct handlegraph::step_handle_t> caster;
+				static pybind11::detail::override_caster_t<struct handlegraph::step_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::step_handle_t>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<struct handlegraph::step_handle_t>(std::move(o));
 		}
 		return HashGraph::path_end(a0);
 	}
-	struct handlegraph::step_handle_t path_back(const struct handlegraph::path_handle_t & a0) const override { 
+	struct handlegraph::step_handle_t path_back(const struct handlegraph::path_handle_t & a0) const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "path_back");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::step_handle_t>::value) {
-				static pybind11::detail::overload_caster_t<struct handlegraph::step_handle_t> caster;
+				static pybind11::detail::override_caster_t<struct handlegraph::step_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::step_handle_t>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<struct handlegraph::step_handle_t>(std::move(o));
 		}
 		return HashGraph::path_back(a0);
 	}
-	struct handlegraph::step_handle_t path_front_end(const struct handlegraph::path_handle_t & a0) const override { 
+	struct handlegraph::step_handle_t path_front_end(const struct handlegraph::path_handle_t & a0) const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "path_front_end");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::step_handle_t>::value) {
-				static pybind11::detail::overload_caster_t<struct handlegraph::step_handle_t> caster;
+				static pybind11::detail::override_caster_t<struct handlegraph::step_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::step_handle_t>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<struct handlegraph::step_handle_t>(std::move(o));
 		}
 		return HashGraph::path_front_end(a0);
 	}
-	bool has_next_step(const struct handlegraph::step_handle_t & a0) const override { 
+	bool has_next_step(const struct handlegraph::step_handle_t & a0) const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "has_next_step");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::overload_caster_t<bool> caster;
+				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return HashGraph::has_next_step(a0);
 	}
-	bool has_previous_step(const struct handlegraph::step_handle_t & a0) const override { 
+	bool has_previous_step(const struct handlegraph::step_handle_t & a0) const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "has_previous_step");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::overload_caster_t<bool> caster;
+				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return HashGraph::has_previous_step(a0);
 	}
-	struct handlegraph::step_handle_t get_next_step(const struct handlegraph::step_handle_t & a0) const override { 
+	struct handlegraph::step_handle_t get_next_step(const struct handlegraph::step_handle_t & a0) const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_next_step");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::step_handle_t>::value) {
-				static pybind11::detail::overload_caster_t<struct handlegraph::step_handle_t> caster;
+				static pybind11::detail::override_caster_t<struct handlegraph::step_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::step_handle_t>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<struct handlegraph::step_handle_t>(std::move(o));
 		}
 		return HashGraph::get_next_step(a0);
 	}
-	struct handlegraph::step_handle_t get_previous_step(const struct handlegraph::step_handle_t & a0) const override { 
+	struct handlegraph::step_handle_t get_previous_step(const struct handlegraph::step_handle_t & a0) const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_previous_step");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::step_handle_t>::value) {
-				static pybind11::detail::overload_caster_t<struct handlegraph::step_handle_t> caster;
+				static pybind11::detail::override_caster_t<struct handlegraph::step_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::step_handle_t>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<struct handlegraph::step_handle_t>(std::move(o));
 		}
 		return HashGraph::get_previous_step(a0);
 	}
-	bool for_each_path_handle_impl(const class std::function<bool (const struct handlegraph::path_handle_t &)> & a0) const override { 
+	bool for_each_path_handle_impl(const class std::function<bool (const struct handlegraph::path_handle_t &)> & a0) const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "for_each_path_handle_impl");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::overload_caster_t<bool> caster;
+				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return HashGraph::for_each_path_handle_impl(a0);
 	}
-	bool for_each_step_on_handle_impl(const struct handlegraph::handle_t & a0, const class std::function<bool (const struct handlegraph::step_handle_t &)> & a1) const override { 
+	bool for_each_step_on_handle_impl(const struct handlegraph::handle_t & a0, const class std::function<bool (const struct handlegraph::step_handle_t &)> & a1) const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "for_each_step_on_handle_impl");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::overload_caster_t<bool> caster;
+				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return HashGraph::for_each_step_on_handle_impl(a0, a1);
 	}
-	void destroy_path(const struct handlegraph::path_handle_t & a0) override { 
+	void destroy_path(const struct handlegraph::path_handle_t & a0) override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "destroy_path");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
-				static pybind11::detail::overload_caster_t<void> caster;
+				static pybind11::detail::override_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return HashGraph::destroy_path(a0);
 	}
-	struct handlegraph::path_handle_t create_path_handle(const std::string & a0, bool a1) override { 
+	struct handlegraph::path_handle_t create_path_handle(const std::string & a0, bool a1) override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "create_path_handle");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::path_handle_t>::value) {
-				static pybind11::detail::overload_caster_t<struct handlegraph::path_handle_t> caster;
+				static pybind11::detail::override_caster_t<struct handlegraph::path_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::path_handle_t>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<struct handlegraph::path_handle_t>(std::move(o));
 		}
 		return HashGraph::create_path_handle(a0, a1);
 	}
-	struct handlegraph::step_handle_t append_step(const struct handlegraph::path_handle_t & a0, const struct handlegraph::handle_t & a1) override { 
+	struct handlegraph::step_handle_t append_step(const struct handlegraph::path_handle_t & a0, const struct handlegraph::handle_t & a1) override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "append_step");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::step_handle_t>::value) {
-				static pybind11::detail::overload_caster_t<struct handlegraph::step_handle_t> caster;
+				static pybind11::detail::override_caster_t<struct handlegraph::step_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::step_handle_t>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<struct handlegraph::step_handle_t>(std::move(o));
 		}
 		return HashGraph::append_step(a0, a1);
 	}
-	struct handlegraph::step_handle_t prepend_step(const struct handlegraph::path_handle_t & a0, const struct handlegraph::handle_t & a1) override { 
+	struct handlegraph::step_handle_t prepend_step(const struct handlegraph::path_handle_t & a0, const struct handlegraph::handle_t & a1) override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "prepend_step");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::step_handle_t>::value) {
-				static pybind11::detail::overload_caster_t<struct handlegraph::step_handle_t> caster;
+				static pybind11::detail::override_caster_t<struct handlegraph::step_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::step_handle_t>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<struct handlegraph::step_handle_t>(std::move(o));
@@ -667,260 +667,260 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 		return HashGraph::prepend_step(a0, a1);
 	}
 	using _binder_ret_0 = struct std::pair<struct handlegraph::step_handle_t, struct handlegraph::step_handle_t>;
-	_binder_ret_0 rewrite_segment(const struct handlegraph::step_handle_t & a0, const struct handlegraph::step_handle_t & a1, const class std::vector<handlegraph::handle_t> & a2) override { 
+	_binder_ret_0 rewrite_segment(const struct handlegraph::step_handle_t & a0, const struct handlegraph::step_handle_t & a1, const class std::vector<handlegraph::handle_t> & a2) override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "rewrite_segment");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1, a2);
 			if (pybind11::detail::cast_is_temporary_value_reference<_binder_ret_0>::value) {
-				static pybind11::detail::overload_caster_t<_binder_ret_0> caster;
+				static pybind11::detail::override_caster_t<_binder_ret_0> caster;
 				return pybind11::detail::cast_ref<_binder_ret_0>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<_binder_ret_0>(std::move(o));
 		}
 		return HashGraph::rewrite_segment(a0, a1, a2);
 	}
-	void set_circularity(const struct handlegraph::path_handle_t & a0, bool a1) override { 
+	void set_circularity(const struct handlegraph::path_handle_t & a0, bool a1) override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "set_circularity");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
-				static pybind11::detail::overload_caster_t<void> caster;
+				static pybind11::detail::override_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return HashGraph::set_circularity(a0, a1);
 	}
-	void set_id_increment(const long long & a0) override { 
+	void set_id_increment(const long long & a0) override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "set_id_increment");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
-				static pybind11::detail::overload_caster_t<void> caster;
+				static pybind11::detail::override_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return HashGraph::set_id_increment(a0);
 	}
-	void increment_node_ids(long long a0) override { 
+	void increment_node_ids(long long a0) override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "increment_node_ids");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
-				static pybind11::detail::overload_caster_t<void> caster;
+				static pybind11::detail::override_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return HashGraph::increment_node_ids(a0);
 	}
-	void reassign_node_ids(const class std::function<long long (const long long &)> & a0) override { 
+	void reassign_node_ids(const class std::function<long long (const long long &)> & a0) override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "reassign_node_ids");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
-				static pybind11::detail::overload_caster_t<void> caster;
+				static pybind11::detail::override_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return HashGraph::reassign_node_ids(a0);
 	}
-	unsigned int get_magic_number() const override { 
+	unsigned int get_magic_number() const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_magic_number");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
 			if (pybind11::detail::cast_is_temporary_value_reference<unsigned int>::value) {
-				static pybind11::detail::overload_caster_t<unsigned int> caster;
+				static pybind11::detail::override_caster_t<unsigned int> caster;
 				return pybind11::detail::cast_ref<unsigned int>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<unsigned int>(std::move(o));
 		}
 		return HashGraph::get_magic_number();
 	}
-	struct handlegraph::path_handle_t rename_path(const struct handlegraph::path_handle_t & a0, const std::string & a1) override { 
+	struct handlegraph::path_handle_t rename_path(const struct handlegraph::path_handle_t & a0, const std::string & a1) override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "rename_path");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::path_handle_t>::value) {
-				static pybind11::detail::overload_caster_t<struct handlegraph::path_handle_t> caster;
+				static pybind11::detail::override_caster_t<struct handlegraph::path_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::path_handle_t>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<struct handlegraph::path_handle_t>(std::move(o));
 		}
 		return MutablePathHandleGraph::rename_path(a0, a1);
 	}
-	void pop_front_step(const struct handlegraph::path_handle_t & a0) override { 
+	void pop_front_step(const struct handlegraph::path_handle_t & a0) override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "pop_front_step");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
-				static pybind11::detail::overload_caster_t<void> caster;
+				static pybind11::detail::override_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return MutablePathHandleGraph::pop_front_step(a0);
 	}
-	void pop_back_step(const struct handlegraph::path_handle_t & a0) override { 
+	void pop_back_step(const struct handlegraph::path_handle_t & a0) override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "pop_back_step");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
-				static pybind11::detail::overload_caster_t<void> caster;
+				static pybind11::detail::override_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return MutablePathHandleGraph::pop_back_step(a0);
 	}
-	unsigned long get_step_count(const struct handlegraph::handle_t & a0) const override { 
+	unsigned long get_step_count(const struct handlegraph::handle_t & a0) const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_step_count");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
-				static pybind11::detail::overload_caster_t<unsigned long> caster;
+				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return PathHandleGraph::get_step_count(a0);
 	}
-	class std::vector<handlegraph::step_handle_t> steps_of_handle(const struct handlegraph::handle_t & a0, bool a1) const override { 
+	class std::vector<handlegraph::step_handle_t> steps_of_handle(const struct handlegraph::handle_t & a0, bool a1) const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "steps_of_handle");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<class std::vector<handlegraph::step_handle_t>>::value) {
-				static pybind11::detail::overload_caster_t<class std::vector<handlegraph::step_handle_t>> caster;
+				static pybind11::detail::override_caster_t<class std::vector<handlegraph::step_handle_t>> caster;
 				return pybind11::detail::cast_ref<class std::vector<handlegraph::step_handle_t>>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<class std::vector<handlegraph::step_handle_t>>(std::move(o));
 		}
 		return PathHandleGraph::steps_of_handle(a0, a1);
 	}
-	bool is_empty(const struct handlegraph::path_handle_t & a0) const override { 
+	bool is_empty(const struct handlegraph::path_handle_t & a0) const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "is_empty");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::overload_caster_t<bool> caster;
+				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return PathHandleGraph::is_empty(a0);
 	}
-	bool has_edge(const struct handlegraph::handle_t & a0, const struct handlegraph::handle_t & a1) const override { 
+	bool has_edge(const struct handlegraph::handle_t & a0, const struct handlegraph::handle_t & a1) const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "has_edge");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::overload_caster_t<bool> caster;
+				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return HandleGraph::has_edge(a0, a1);
 	}
-	unsigned long get_edge_count() const override { 
+	unsigned long get_edge_count() const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_edge_count");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
 			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
-				static pybind11::detail::overload_caster_t<unsigned long> caster;
+				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return HandleGraph::get_edge_count();
 	}
-	unsigned long get_total_length() const override { 
+	unsigned long get_total_length() const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_total_length");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
 			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
-				static pybind11::detail::overload_caster_t<unsigned long> caster;
+				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return HandleGraph::get_total_length();
 	}
-	enum handlegraph::PathSense get_sense(const struct handlegraph::path_handle_t & a0) const override { 
+	enum handlegraph::PathSense get_sense(const struct handlegraph::path_handle_t & a0) const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_sense");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<enum handlegraph::PathSense>::value) {
-				static pybind11::detail::overload_caster_t<enum handlegraph::PathSense> caster;
+				static pybind11::detail::override_caster_t<enum handlegraph::PathSense> caster;
 				return pybind11::detail::cast_ref<enum handlegraph::PathSense>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<enum handlegraph::PathSense>(std::move(o));
 		}
 		return PathMetadata::get_sense(a0);
 	}
-	std::string get_sample_name(const struct handlegraph::path_handle_t & a0) const override { 
+	std::string get_sample_name(const struct handlegraph::path_handle_t & a0) const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_sample_name");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<std::string>::value) {
-				static pybind11::detail::overload_caster_t<std::string> caster;
+				static pybind11::detail::override_caster_t<std::string> caster;
 				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		return PathMetadata::get_sample_name(a0);
 	}
-	std::string get_locus_name(const struct handlegraph::path_handle_t & a0) const override { 
+	std::string get_locus_name(const struct handlegraph::path_handle_t & a0) const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_locus_name");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<std::string>::value) {
-				static pybind11::detail::overload_caster_t<std::string> caster;
+				static pybind11::detail::override_caster_t<std::string> caster;
 				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		return PathMetadata::get_locus_name(a0);
 	}
-	unsigned long get_haplotype(const struct handlegraph::path_handle_t & a0) const override { 
+	unsigned long get_haplotype(const struct handlegraph::path_handle_t & a0) const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_haplotype");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
-				static pybind11::detail::overload_caster_t<unsigned long> caster;
+				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return PathMetadata::get_haplotype(a0);
 	}
-	unsigned long get_phase_block(const struct handlegraph::path_handle_t & a0) const override { 
+	unsigned long get_phase_block(const struct handlegraph::path_handle_t & a0) const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_phase_block");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
-				static pybind11::detail::overload_caster_t<unsigned long> caster;
+				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
@@ -928,91 +928,78 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 		return PathMetadata::get_phase_block(a0);
 	}
 	using _binder_ret_1 = struct std::pair<unsigned long, unsigned long>;
-	_binder_ret_1 get_subrange(const struct handlegraph::path_handle_t & a0) const override { 
+	_binder_ret_1 get_subrange(const struct handlegraph::path_handle_t & a0) const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "get_subrange");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<_binder_ret_1>::value) {
-				static pybind11::detail::overload_caster_t<_binder_ret_1> caster;
+				static pybind11::detail::override_caster_t<_binder_ret_1> caster;
 				return pybind11::detail::cast_ref<_binder_ret_1>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<_binder_ret_1>(std::move(o));
 		}
 		return PathMetadata::get_subrange(a0);
 	}
-	bool for_each_path_matching_impl(const class std::unordered_set<enum handlegraph::PathSense, struct std::hash<enum handlegraph::PathSense>, struct std::equal_to<enum handlegraph::PathSense>, class std::allocator<enum handlegraph::PathSense> > * a0, const class std::unordered_set<std::string, struct std::hash<std::string>, struct std::equal_to<std::string >, class std::allocator<std::string > > * a1, const class std::unordered_set<std::string, struct std::hash<std::string>, struct std::equal_to<std::string >, class std::allocator<std::string > > * a2, const class std::function<bool (const struct handlegraph::path_handle_t &)> & a3) const override { 
-		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "for_each_path_matching_impl");
-		if (overload) {
-			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1, a2, a3);
-			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::overload_caster_t<bool> caster;
-				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
-			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
-		}
-		return PathMetadata::for_each_path_matching_impl(a0, a1, a2, a3);
-	}
-	bool for_each_step_of_sense_impl(const struct handlegraph::handle_t & a0, const enum handlegraph::PathSense & a1, const class std::function<bool (const struct handlegraph::step_handle_t &)> & a2) const override { 
+	bool for_each_step_of_sense_impl(const struct handlegraph::handle_t & a0, const enum handlegraph::PathSense & a1, const class std::function<bool (const struct handlegraph::step_handle_t &)> & a2) const override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "for_each_step_of_sense_impl");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1, a2);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::overload_caster_t<bool> caster;
+				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return PathMetadata::for_each_step_of_sense_impl(a0, a1, a2);
 	}
-	struct handlegraph::path_handle_t create_path(const enum handlegraph::PathSense & a0, const std::string & a1, const std::string & a2, const unsigned long & a3, const unsigned long & a4, const struct std::pair<unsigned long, unsigned long> & a5, bool a6) override { 
+	struct handlegraph::path_handle_t create_path(const enum handlegraph::PathSense & a0, const std::string & a1, const std::string & a2, const unsigned long & a3, const unsigned long & a4, const struct std::pair<unsigned long, unsigned long> & a5, bool a6) override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "create_path");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1, a2, a3, a4, a5, a6);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::path_handle_t>::value) {
-				static pybind11::detail::overload_caster_t<struct handlegraph::path_handle_t> caster;
+				static pybind11::detail::override_caster_t<struct handlegraph::path_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::path_handle_t>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<struct handlegraph::path_handle_t>(std::move(o));
 		}
 		return MutablePathMetadata::create_path(a0, a1, a2, a3, a4, a5, a6);
 	}
-	void increment_node_ids(long a0) override { 
+	void increment_node_ids(long a0) override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "increment_node_ids");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
-				static pybind11::detail::overload_caster_t<void> caster;
+				static pybind11::detail::override_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return MutableHandleGraph::increment_node_ids(a0);
 	}
-	void deserialize(const std::string & a0) override { 
+	void deserialize(const std::string & a0) override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "deserialize");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
-				static pybind11::detail::overload_caster_t<void> caster;
+				static pybind11::detail::override_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return Serializable::deserialize(a0);
 	}
-	void serialize(const std::string & a0) override { 
+	void serialize(const std::string & a0) override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "serialize");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
-				static pybind11::detail::overload_caster_t<void> caster;
+				static pybind11::detail::override_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<void>(std::move(o));
@@ -1021,8 +1008,48 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 	}
 };
 
-void bind_bdsg_internal_utility(std::function< pybind11::module &(std::string const &namespace_) > &M)
+void bind_bdsg_internal_hash_map(std::function< pybind11::module &(std::string const &namespace_) > &M)
 {
+	{ // bdsg::wang_hash file:bdsg/internal/hash_map.hpp line:120
+		pybind11::class_<bdsg::wang_hash<long long,void>, std::shared_ptr<bdsg::wang_hash<long long,void>>> cl(M("bdsg"), "wang_hash_long_long_void_t", "");
+		cl.def( pybind11::init( [](){ return new bdsg::wang_hash<long long,void>(); } ) );
+		cl.def("__call__", (unsigned long (bdsg::wang_hash<long long,void>::*)(const long long &) const) &bdsg::wang_hash<long long>::operator(), "C++: bdsg::wang_hash<long long>::operator()(const long long &) const --> unsigned long", pybind11::arg("x"));
+		cl.def("assign", (struct bdsg::wang_hash<long long> & (bdsg::wang_hash<long long,void>::*)(const struct bdsg::wang_hash<long long> &)) &bdsg::wang_hash<long long>::operator=, "C++: bdsg::wang_hash<long long>::operator=(const struct bdsg::wang_hash<long long> &) --> struct bdsg::wang_hash<long long> &", pybind11::return_value_policy::automatic, pybind11::arg(""));
+	}
+	{ // bdsg::wang_hash file:bdsg/internal/hash_map.hpp line:120
+		pybind11::class_<bdsg::wang_hash<char,void>, std::shared_ptr<bdsg::wang_hash<char,void>>> cl(M("bdsg"), "wang_hash_char_void_t", "");
+		cl.def( pybind11::init( [](){ return new bdsg::wang_hash<char,void>(); } ) );
+		cl.def("__call__", (unsigned long (bdsg::wang_hash<char,void>::*)(const char &) const) &bdsg::wang_hash<char>::operator(), "C++: bdsg::wang_hash<char>::operator()(const char &) const --> unsigned long", pybind11::arg("x"));
+		cl.def("assign", (struct bdsg::wang_hash<char> & (bdsg::wang_hash<char,void>::*)(const struct bdsg::wang_hash<char> &)) &bdsg::wang_hash<char>::operator=, "C++: bdsg::wang_hash<char>::operator=(const struct bdsg::wang_hash<char> &) --> struct bdsg::wang_hash<char> &", pybind11::return_value_policy::automatic, pybind11::arg(""));
+	}
+	{ // bdsg::StringHashMapFor file:bdsg/internal/hash_map.hpp line:212
+		pybind11::class_<bdsg::StringHashMapFor<bdsg::STLBackend>, std::shared_ptr<bdsg::StringHashMapFor<bdsg::STLBackend>>> cl(M("bdsg"), "StringHashMapFor_bdsg_STLBackend_t", "");
+		cl.def( pybind11::init( [](){ return new bdsg::StringHashMapFor<bdsg::STLBackend>(); } ) );
+	}
+	{ // bdsg::PairHashMapFor file:bdsg/internal/hash_map.hpp line:245
+		pybind11::class_<bdsg::PairHashMapFor<bdsg::STLBackend>, std::shared_ptr<bdsg::PairHashMapFor<bdsg::STLBackend>>> cl(M("bdsg"), "PairHashMapFor_bdsg_STLBackend_t", "");
+		cl.def( pybind11::init( [](){ return new bdsg::PairHashMapFor<bdsg::STLBackend>(); } ) );
+	}
+	{ // bdsg::HashSetFor file:bdsg/internal/hash_map.hpp line:295
+		pybind11::class_<bdsg::HashSetFor<bdsg::STLBackend>, std::shared_ptr<bdsg::HashSetFor<bdsg::STLBackend>>> cl(M("bdsg"), "HashSetFor_bdsg_STLBackend_t", "");
+		cl.def( pybind11::init( [](){ return new bdsg::HashSetFor<bdsg::STLBackend>(); } ) );
+	}
+	{ // bdsg::HashSetFor file:bdsg/internal/hash_map.hpp line:302
+		pybind11::class_<bdsg::HashSetFor<bdsg::CompatBackend>, std::shared_ptr<bdsg::HashSetFor<bdsg::CompatBackend>>> cl(M("bdsg"), "HashSetFor_bdsg_CompatBackend_t", "");
+		cl.def( pybind11::init( [](){ return new bdsg::HashSetFor<bdsg::CompatBackend>(); } ) );
+	}
+	{ // bdsg::HashSetFor file:bdsg/internal/hash_map.hpp line:309
+		pybind11::class_<bdsg::HashSetFor<bdsg::MappedBackend>, std::shared_ptr<bdsg::HashSetFor<bdsg::MappedBackend>>> cl(M("bdsg"), "HashSetFor_bdsg_MappedBackend_t", "");
+		cl.def( pybind11::init( [](){ return new bdsg::HashSetFor<bdsg::MappedBackend>(); } ) );
+	}
+	{ // bdsg::StringHashSetFor file:bdsg/internal/hash_map.hpp line:342
+		pybind11::class_<bdsg::StringHashSetFor<bdsg::STLBackend>, std::shared_ptr<bdsg::StringHashSetFor<bdsg::STLBackend>>> cl(M("bdsg"), "StringHashSetFor_bdsg_STLBackend_t", "");
+		cl.def( pybind11::init( [](){ return new bdsg::StringHashSetFor<bdsg::STLBackend>(); } ) );
+	}
+	{ // bdsg::PairHashSetFor file:bdsg/internal/hash_map.hpp line:375
+		pybind11::class_<bdsg::PairHashSetFor<bdsg::STLBackend>, std::shared_ptr<bdsg::PairHashSetFor<bdsg::STLBackend>>> cl(M("bdsg"), "PairHashSetFor_bdsg_STLBackend_t", "");
+		cl.def( pybind11::init( [](){ return new bdsg::PairHashSetFor<bdsg::STLBackend>(); } ) );
+	}
 	// bdsg::reverse_complement(const char &) file:bdsg/internal/utility.hpp line:13
 	M("bdsg").def("reverse_complement", (char (*)(const char &)) &bdsg::reverse_complement, "C++: bdsg::reverse_complement(const char &) --> char", pybind11::arg("c"));
 

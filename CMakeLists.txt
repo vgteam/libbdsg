@@ -192,7 +192,7 @@ if (BUILD_PYTHON_BINDINGS)
     # Binder (because some generated bindings depend on headers packaged with Binder)
     ExternalProject_Add(binder
       GIT_REPOSITORY "https://github.com/RosettaCommons/binder.git"
-      GIT_TAG "788ab422f9e919478944d79d5890441a964dd1db"
+      GIT_TAG "ee2ecff151d125c3add072a7765aebad6f42a70d"
       # we don't actually build or install Binder via its CMake because we just need its headers
       #CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_DIR}
       CONFIGURE_COMMAND ""
@@ -209,7 +209,7 @@ if (BUILD_PYTHON_BINDINGS)
         if (NOT EXISTS "${PROJECT_SOURCE_DIR}/pybind11")
             message(WARNING "Running on CMake without FetchContent_Declare; attempting to download pybind11 manually")
             execute_process(COMMAND git clone https://github.com/RosettaCommons/pybind11.git "${PROJECT_SOURCE_DIR}/pybind11")
-            execute_process(COMMAND git checkout 4f72ef846fe8453596230ac285eeaa0ce3278bb4
+            execute_process(COMMAND git checkout 5b0a6fc2017fcc176545afe3e09c9f9885283242
                             WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/pybind11")
         endif()
         
@@ -225,7 +225,7 @@ if (BUILD_PYTHON_BINDINGS)
         FetchContent_Declare(
             pybind11
             GIT_REPOSITORY https://github.com/RosettaCommons/pybind11.git
-            GIT_TAG 4f72ef846fe8453596230ac285eeaa0ce3278bb4
+            GIT_TAG 5b0a6fc2017fcc176545afe3e09c9f9885283242
         )
         FetchContent_GetProperties(pybind11)
         if (NOT pybind11_POPULATED)
