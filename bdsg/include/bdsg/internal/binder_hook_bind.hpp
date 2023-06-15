@@ -4,6 +4,8 @@
 // Components needed at binding generation time to make pybind11/Binder work for the library.
 // Forced to be used as a source for things to bind, even though nothing includes it.
 
+#include <string.h>
+
 #include <vector>
 #include <functional>
 

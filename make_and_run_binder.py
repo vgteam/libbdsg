@@ -31,13 +31,10 @@ def clone_repos():
     ''' download the most recent copy of binder from git '''
     if not glob.glob("binder"):
         print("Binder not found, cloning repo...")
-        # TODO: Change back to https://github.com/RosettaCommons/binder.git
-        # master when https://github.com/RosettaCommons/binder/pull/99 is
-        # fixed.
         subprocess.check_call(['git', 'clone', 'https://github.com/RosettaCommons/binder.git', 'binder'])
         parent = os.getcwd()
         os.chdir('binder')
-        subprocess.check_call(['git', 'checkout', '788ab422f9e919478944d79d5890441a964dd1db'])
+        subprocess.check_call(['git', 'checkout', 'ee2ecff151d125c3add072a7765aebad6f42a70d'])
         os.chdir(parent)
 
 def build_binder():
@@ -49,6 +46,8 @@ def build_binder():
     '''
     if not glob.glob("./build/*/*/bin/*"):
         print("Binder not compiled, using packaged build.py...")
+        # Make Binder use out pybind11 version
+        subprocess.check_call(['sed', '-i', "s/^_pybind11_version_ = .*/_pybind11_version_ = '5b0a6fc2017fcc176545afe3e09c9f9885283242'/g", 'build.py'])
         # TODO: Use CPU counting that accounts for container quotas?
         subprocess.check_call([sys.executable, 'build.py', '--jobs', str(multiprocessing.cpu_count())])
     return "binder/" + glob.glob('./build/*/*/bin/')[0] + "binder"
@@ -144,9 +143,7 @@ def make_all_includes():
     We collect all the include directives from this project's sources.
     '''
     
-    # Start by always including the binding-generation-time hook file, with
-    # things Binder needs to see to generate good bindings.
-    all_includes = ['#include <bdsg/internal/binder_hook_bind.hpp>']
+    all_includes = []
     all_include_filename = 'all_cmake_includes.hpp'
     
     for filename in all_sources_and_headers(include_deps=False):
@@ -174,6 +171,9 @@ def make_all_includes():
     # will cause inconsistent errors without it.
     all_includes.sort()
     with open(all_include_filename, 'w') as fh:
+        # Start by always including the binding-generation-time hook file, with
+        # things Binder needs to see to generate good bindings.
+        fh.write('#include <bdsg/internal/binder_hook_bind.hpp>\n')
         for include in all_includes:
             fh.write(f'{include}\n')
     return all_include_filename
@@ -222,15 +222,7 @@ def make_bindings_code(all_includes_fn, binder_executable):
         "-std=c++14",
         f'-I{this_project_include}']
     if platform.system() == 'Darwin':
-        # On (newer) Macs, Binder can't find the C++ STL because it is not in
-        # /usr/include but under a weird path returned by xcode-select -p and
-        # then /usr/include.  See
-        # https://github.com/RosettaCommons/binder/issues/26#issuecomment-322538385
-        # and
-        # https://developer.apple.com/documentation/xcode_release_notes/xcode_10_release_notes#3035624
-        stl_path = os.path.join(subprocess.check_output(['xcode-select', '-p']).decode('utf8').strip(), 'usr', 'include', 'c++', 'v1')
-        command.append('-isystem' + stl_path)
-        # But we also need the MacOS SDK, which provides e.g. the "real" string.h that this STL depends on
+        # We need the MacOS SDK, which provides the C standard library and also a C++ STL, at least as of Apple Clang 14.
         sdk_path=subprocess.check_output(['xcrun', '-sdk', 'macosx', '--show-sdk-path']).decode('utf8').strip()
         command.append('-isysroot' + sdk_path)
         # Also make sure to look for libomp from macports or homebrew, like CMakeLists.txt does
