@@ -30,6 +30,11 @@ using namespace handlegraph;
 class SubgraphOverlay : virtual public HandleGraph {
 
 public:
+
+    inline SubgraphOverlay() : SubgraphOverlay(nullptr, nullptr) {
+        throw std::runtime_error("SubgraphOverlay::SubgraphOverlay() exists only to work around Binder requiring it when it shouldn't, but it was called!");
+    };
+
     /**
      * Make a new PathSubgraphOverlay. The backing graph must not be modified
      * while the overlay exists.

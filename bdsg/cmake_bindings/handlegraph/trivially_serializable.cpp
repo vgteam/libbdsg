@@ -2,28 +2,28 @@
 #include <handlegraph/trivially_serializable.hpp>
 #include <ios>
 #include <istream>
-#include <iterator>
 #include <memory>
 #include <ostream>
 #include <sstream> // __str__
 #include <streambuf>
 #include <string>
+#include <string_view>
 
-#include <pybind11/pybind11.h>
 #include <functional>
+#include <pybind11/pybind11.h>
 #include <string>
+#include <bdsg/internal/binder_hook_compile.hpp>
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
 #include <pybind11/functional.h>
 #include <fstream>
-#include <bdsg/internal/binder_hook_compile.hpp>
 
 
 #ifndef BINDER_PYBIND11_TYPE_CASTER
 	#define BINDER_PYBIND11_TYPE_CASTER
-	PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>);
-	PYBIND11_DECLARE_HOLDER_TYPE(T, T*);
-	PYBIND11_MAKE_OPAQUE(std::shared_ptr<void>);
+	PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>)
+	PYBIND11_DECLARE_HOLDER_TYPE(T, T*)
+	PYBIND11_MAKE_OPAQUE(std::shared_ptr<void>)
 #endif
 
 void bind_handlegraph_trivially_serializable(std::function< pybind11::module &(std::string const &namespace_) > &M)
