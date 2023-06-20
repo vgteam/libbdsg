@@ -146,6 +146,50 @@ if(get_handle_type(net) == SNARL_HANDLE){
 #endif
     return get_handle_type(net) == SNARL_HANDLE;
 }
+
+bool SnarlDistanceIndex::is_dag(const net_handle_t& snarl) const {
+    record_t record_type = SnarlTreeRecord(snarl, &snarl_tree_records).get_record_type();
+    if ( record_type == SNARL || record_type == ROOT_SNARL ) {
+        //If this is a snarl but didn't store distances
+        cerr << "warning: checking if a snarl is a dag in an index without distances. Returning false" << endl;
+        return false; 
+    } else if (record_type == DISTANCED_SNARL || record_type == OVERSIZED_SNARL || record_type == DISTANCED_ROOT_SNARL) {
+        //If this is any kind of non-simple snarl
+
+        if (record_type != DISTANCED_ROOT_SNARL) {
+            //If there were boundary nodes, check for loops on the bounds
+
+            //The bounds of the snarl facing in
+            net_handle_t snarl_start = get_bound(snarl, false, true);
+            net_handle_t snarl_end = get_bound(snarl, true, true);
+
+            //If there are loops on the bounds, then this is not a dag
+            if (distance_in_parent(snarl, snarl_start, snarl_start) != std::numeric_limits<size_t>::max() ||
+                distance_in_parent(snarl, snarl_end, snarl_end) != std::numeric_limits<size_t>::max()){
+                return false;
+            }
+        }
+
+        //Otherwise, go through each child of the snarl
+        //This returns false if it stopped early - if the iterator returned false - if it had non-dag edges
+        return for_each_child(snarl, [&] (const net_handle_t& child) {
+            //Check if there are any self-loops on the child
+            if (distance_in_parent(snarl, child, child) != std::numeric_limits<size_t>::max() ||
+                distance_in_parent(snarl, child, flip(child)) != std::numeric_limits<size_t>::max() ||
+                distance_in_parent(snarl, flip(child), child) != std::numeric_limits<size_t>::max()){
+
+                //If there are self-loops
+                return false;
+            } else {
+                return true;
+            }
+        });
+    } else {
+        //If this is a simple snarl or not a snarl, then return false
+        return false;
+    }
+}
+
 bool SnarlDistanceIndex::is_simple_snarl(const net_handle_t& net) const {
 #ifdef debug_distances
 if(get_handle_type(net) == SNARL_HANDLE){

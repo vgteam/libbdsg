@@ -264,6 +264,7 @@ public:
     bool is_externally_start_start_connected(const net_handle_t net) const {return is_externally_start_start_connected(snarl_tree_records->at(get_record_offset(net)));}
     bool is_externally_end_end_connected(const net_handle_t net) const {return is_externally_end_end_connected(snarl_tree_records->at(get_record_offset(net)));}
 
+
     ///For two net handles, get a net handle lowest common ancestor.
     ///If the lowest common ancestor is the root, then the two handles may be in
     ///different connected components. In this case, return false.
@@ -369,6 +370,10 @@ public:
     
     ///Returns true if the given net handle refers to (a traversal of) a snarl.
     bool is_snarl(const net_handle_t& net) const;
+
+    //Return true if the given snarl is a DAG and false otherwise
+    //Returns false if the given net_handle_t is not a snarl
+    bool is_dag(const net_handle_t& snarl) const;
 
     ///Returns true if the given net handle refers to (a traversal of) a simple snarl
     ///A simple snarl is a bubble where each child node can only reach the boundary nodes,
