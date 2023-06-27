@@ -1285,19 +1285,43 @@ size_t SnarlDistanceIndex::distance_in_snarl(const net_handle_t& parent,
         && !(rank1 == 0 || rank1 == 1 || rank2 == 0 || rank2 == 1) ) {
         //If this is an oversized snarl and we're looking for internal distances, then we didn't store the
         //distance and we have to find it using dijkstra's algorithm
-        if (size_limit_warnings.load() < max_num_size_limit_warnings) {
-            int warning_num = const_cast<SnarlDistanceIndex*>(this)->size_limit_warnings++;
-            if (warning_num < max_num_size_limit_warnings) {
-                std::string msg = "warning: Trying to find the distance in an oversized snarl with zip codes. Returning inf\n";
-                if (warning_num + 1 == max_num_size_limit_warnings) {
-                    msg += "suppressing further warnings\n";
+        if (graph == nullptr) {
+            if (size_limit_warnings.load() < max_num_size_limit_warnings) {
+                int warning_num = const_cast<SnarlDistanceIndex*>(this)->size_limit_warnings++;
+                if (warning_num < max_num_size_limit_warnings) {
+                    std::string msg = "warning: Trying to find the distance in an oversized snarl with zip codes. Returning inf\n";
+                    if (warning_num + 1 == max_num_size_limit_warnings) {
+                        msg += "suppressing further warnings\n";
+                    }
+                    std::cerr << msg;
                 }
-                std::cerr << msg;
             }
+            return std::numeric_limits<size_t>::max();
+        } else {
+            net_handle_t net1 = get_snarl_child_from_rank(parent, rank1);  
+            if (!right_side1) {
+                net1 = flip(net1);
+            }
+            net_handle_t net2 = get_snarl_child_from_rank(parent, rank2);  
+            if (right_side2) {
+                net2 = flip(net2);
+            }
+            handle_t handle1 = get_handle(net1, graph); 
+            handle_t handle2 = get_handle(net2, graph);
+
+            size_t distance = std::numeric_limits<size_t>::max();
+            handlegraph::algorithms::dijkstra(graph, handle1, [&](const handle_t& reached, size_t dist) {
+                if (reached == handle2) {
+                    distance = dist;
+                    return false;
+                } else if (dist > distance_limit) {
+                    distance = std::numeric_limits<size_t>::max();
+                    return false;
+                }
+                return true;
+            }, false);
+            return distance;
         }
-        return std::numeric_limits<size_t>::max();
-        
-    
         
     } else if (rank1 == 0 && rank2 == 0 && !snarl_is_root) {
         //Start to start is stored in the snarl
