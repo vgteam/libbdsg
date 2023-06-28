@@ -151,8 +151,8 @@ bool SnarlDistanceIndex::is_dag(const net_handle_t& snarl) const {
     record_t record_type = SnarlTreeRecord(snarl, &snarl_tree_records).get_record_type();
     if ( record_type == SNARL || record_type == ROOT_SNARL ) {
         //If this is a snarl but didn't store distances
-        cerr << "warning: checking if a snarl is a dag in an index without distances. Returning false" << endl;
-        return false; 
+        cerr << "warning: checking if a snarl is a dag in an index without distances. Returning true" << endl;
+        return true; 
     } else if (record_type == DISTANCED_SNARL || record_type == OVERSIZED_SNARL || record_type == DISTANCED_ROOT_SNARL) {
         //If this is any kind of non-simple snarl
 
@@ -186,7 +186,10 @@ bool SnarlDistanceIndex::is_dag(const net_handle_t& snarl) const {
         });
     } else {
         //If this is a simple snarl or not a snarl, then return false
-        return false;
+        if (!is_snarl(snarl)) {
+            cerr << "Warning: checking if a non-snarl is a dag" << endl;
+        }
+        return true;
     }
 }
 
