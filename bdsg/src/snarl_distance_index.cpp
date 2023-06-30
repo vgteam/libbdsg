@@ -193,6 +193,170 @@ bool SnarlDistanceIndex::is_dag(const net_handle_t& snarl) const {
     }
 }
 
+size_t SnarlDistanceIndex::non_dag_edge_count(const net_handle_t& snarl, const HandleGraph* graph) const {
+    size_t non_dag_edge_count = 0;
+
+    /* Count the number of back-edges in the snarl
+       Traverse the snarl from the start node in a dfs order
+       An edge is considered a back edge if it reaches:
+         - an ancestor node in the same direction (loops)
+         - a previously seen node in the opposite direction AND the incoming
+           edge hasn't been seen before in either direction (reversals)
+
+       Need to keep track of seen nodes+orientations and edges regardless of orientation
+       For each node in the stack, its incoming edge
+
+       The loops will be found by traversing the snarl in either direction, but reversals
+       will only be found starting from either the start or end nodes.
+       So the DFS will have to be done twice, once from each end of the snarl.
+       The second pass will only look for reversals that weren't found in the first pass.
+       An edge is a back edge if:
+         - It reaches a node+orientation seen in the first pass with a new edge
+         - It reaches a node seen in the opposite orientation in the second pass
+           with a new edge (in either pass)
+
+        So for the second pass, use keep track of new nodes+orientations, and maintain the
+        edges and nodes+orientations seen in the first pass
+
+     */
+
+    //Nodes that have been visited
+    unordered_set<net_handle_t> visited_nodes;
+
+    //Nodes that have been visited in the second pass
+    unordered_set<net_handle_t> visited_nodes_second_pass;
+
+    //To make this consistent, the edge will always be expressed with lower ranked 
+    //child (rank in the snarl) first
+    //An edge is equivalent to the edge with the order switched and the orientations flipped
+    //The same set is used for both passes
+    unordered_set<pair<net_handle_t, net_handle_t>> seen_edges;
+
+
+    //The stack used for the DFS
+    //The first net_handle_t is the handle to visit, the second is the predecessor,
+    //which is used to find the edge
+    std::vector<pair<net_handle_t, net_handle_t>> to_visit_stack;
+
+    //Holds the subset of net_handle_ts in to_visit_stack that are ancestors of the current node
+    std::unordered_set<net_handle_t> ancestors;
+
+    //Start with the two bounds facing in
+    //It has no incoming edges but use the same bound
+    to_visit_stack.emplace_back(get_bound(snarl, true, true),
+                          get_bound(snarl, true, true));
+    to_visit_stack.emplace_back(get_bound(snarl, false, true),
+                          get_bound(snarl, false, true));
+
+    //The start/end boundary nodes pointing out, so we can check when to stop
+    net_handle_t start_bound = get_bound(snarl, false, false);
+    net_handle_t end_bound = get_bound(snarl, true, false);
+
+    //Is this the first or second pass?
+    bool second_pass = false;
+
+    //Now do dfs
+    while (!to_visit_stack.empty()) {
+
+        //Get the next thing on the stack
+
+        //The child we're looking at
+        net_handle_t current_child = to_visit_stack.back().first;
+
+        if (current_child == flip(end_bound)) {
+            //If this is the end bound facing in, then we must have finished the first pass
+            //and now start the second pass
+            second_pass = true;
+        }
+
+        //And the edge we took to get here
+        net_handle_t predecessor_child = to_visit_stack.back().second;
+
+        //Have we seen this edge before?
+        bool seen_edge = seen_edges.count ( get_rank_in_parent(current_child) < get_rank_in_parent(predecessor_child)
+                                          ? std::make_pair(current_child, predecessor_child) 
+                                          : std::make_pair(flip(predecessor_child), flip(current_child)));
+
+        //Mark the edge as having been seen
+        seen_edges.emplace ( get_rank_in_parent(current_child) < get_rank_in_parent(predecessor_child)
+                                          ? std::make_pair(current_child, predecessor_child) 
+                                          : std::make_pair(flip(predecessor_child), flip(current_child)));
+
+        if (visited_nodes.count(current_child) == 0 ||
+            (second_pass && visited_nodes_second_pass.count(current_child) == 0)) {
+            // If this is the first time we're processing this node, then we will go through each
+            // of its outgoing edges
+            // For normal forward edges going to nodes we haven't seen yet, just add them to the stack
+            // If any edge is a back edge that forms a cycle, count it and do nothing
+            // If any edge is a reversing edge that changes direction in the snarl, count it
+            // and add the node to keep traversing
+            // TODO :for these reversing edges, maybe we don't need to keep going?
+
+
+            //Mark the node as having been seen
+            visited_nodes.emplace(current_child);
+            if (second_pass) {
+                visited_nodes_second_pass.emplace(current_child);
+            }
+
+
+            //Mark the node as an ancestor of all of its descendants that we're about to look at
+            ancestors.emplace(current_child);
+
+            //Go though all the children of this node
+            follow_net_edges(current_child, graph, false, [&]( const net_handle_t& next_child) {
+                if (next_child == end_bound || next_child == start_bound) {
+                    //If this is a boundary node going out, then this is considered a leaf so do nothing
+                    return false;
+                }
+
+                if (visited_nodes.count(next_child) == 0 || 
+                    (second_pass && visited_nodes_second_pass.count(next_child) == 0)) {
+                    //If we haven't visited this node before, add it to the stack
+                    to_visit_stack.emplace_back(next_child, current_child);
+                    //Don't add it to ancestors yet because we're adding all children
+
+                    if ((!second_pass && visited_nodes.count(flip(next_child)) != 0 && !seen_edge) || 
+                         (second_pass && visited_nodes_second_pass.count(flip(next_child)) != 0 && !seen_edge)) {
+                        //If we have visited the next node in the opposite direction and 
+                        // we haven't yet traversed the edge to get there (the first
+                        // time we've seen this reversal)
+                        //The same thing applies for the second pass, but only checking nodes seen in the second pass
+                        non_dag_edge_count++;
+                    }
+                } else {
+                    //Otherwise, we have already visited this node
+                    //Check if it is a non-dag edge
+                    if (!second_pass && ancestors.count(next_child) != 0) {
+                        //If the next child is an ancestor of the current child in the dfs tree,
+                        //then this is a cycle
+                        //This is only for the first pass, because a loop like this would be seen
+                        //in both directions, but we don't want to double count it
+                        non_dag_edge_count++;
+                    } else if (second_pass && !seen_edge) {
+                        //If this is the second pass, and we're seeing this node a second time with a new
+                        //edge, then this is a new reversal
+                        non_dag_edge_count++;
+                    }
+                }
+
+                //Return true to keep going
+                return true;
+            });
+        } else {
+            //If we've seen this node before, then we need to pop it from the stack and remove it from the
+            //set of ancestors
+            to_visit_stack.pop_back();
+            ancestors.erase(current_child);
+        }
+    }
+
+    
+    //Double check that dags have no non-dag edges
+    assert((non_dag_edge_count == 0) == is_dag(snarl));
+    return non_dag_edge_count;
+}
+
 bool SnarlDistanceIndex::is_simple_snarl(const net_handle_t& net) const {
 #ifdef debug_distances
 if(get_handle_type(net) == SNARL_HANDLE){
