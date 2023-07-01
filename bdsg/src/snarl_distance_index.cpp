@@ -598,7 +598,29 @@ net_handle_t SnarlDistanceIndex::get_snarl_child_from_rank(const net_handle_t& s
         return SimpleSnarlRecord(snarl, &snarl_tree_records).get_child_from_rank(rank);
     } else {
         //Ranks for children of snarls start from 2 since 0 and 1 are reserved for the bounds
-        return SnarlRecord(snarl, &snarl_tree_records).get_child_from_rank(rank); 
+#ifdef debug_distances
+        assert(rank-2 < get_node_count());
+#endif
+        if (rank == 0) {
+            //The boundary node. This technically shouldn't be here because boundary nodes aren't children
+            //of the snarl but I'll leave it anyway because I will probably use it
+            //Returns the bound facing in
+            return get_bound(snarl, false, true);
+        } else if ( rank == 1) {
+            //The end bound
+            return get_bound(snarl, true, true);
+        } else {
+            //TODO: Since I changed the ranks of snarls to be in a topological order, this is now slow
+            net_handle_t child_handle;
+            for_each_child(snarl, [&](const net_handle_t& child) {
+                if (get_rank_in_parent(child) == rank) {
+                    child_handle = child;
+                    return false;
+                }
+                return true;
+            });
+            return child_handle;
+        }
     }
 }
 
@@ -4175,24 +4197,6 @@ size_t SnarlDistanceIndex::SnarlRecord::get_distance_vector_offset(size_t rank1,
 }
 
 
-net_handle_t SnarlDistanceIndex::SnarlRecord::get_child_from_rank (const size_t& rank) const {
-#ifdef debug_distances
-    assert(rank-2 < get_node_count());
-#endif
-    if (rank == 0 || rank == 1) {
-        //The boundary node. This technically shouldn't be here because boundary nodes aren't children
-        //of the snarl but I'll leave it anyway because I will probably use it
-        //Returns the bound facing in
-        return get_net_handle_from_values(record_offset, 
-                                          rank == 0 ? START_START : END_END, 
-                                          SENTINEL_HANDLE);
-    } else {
-        size_t child_record_offset = get_child_record_pointer();
-        size_t child_offset =  (*records)->at(child_record_offset + rank - 2);
-        net_handle_t child_handle =  get_net_handle_from_values (child_offset, START_END, CHAIN_HANDLE);
-        return child_handle;
-    }
-}
 bool SnarlDistanceIndex::SnarlRecord::for_each_child(const std::function<bool(const net_handle_t&)>& iteratee) const {
     size_t child_count = get_node_count();
     size_t child_record_offset = get_child_record_pointer();

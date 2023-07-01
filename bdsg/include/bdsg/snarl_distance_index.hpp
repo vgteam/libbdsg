@@ -371,9 +371,13 @@ public:
     ///Returns true if the given net handle refers to (a traversal of) a snarl.
     bool is_snarl(const net_handle_t& net) const;
 
-    //Return true if the given snarl is a DAG and false otherwise
-    //Returns false if the given net_handle_t is not a snarl
+    ///Return true if the given snarl is a DAG and false otherwise
+    ///Returns true if the given net_handle_t is not a snarl
     bool is_dag(const net_handle_t& snarl) const;
+
+    ///Given a snarl, return the number of non-dag edges it contains
+    ///0 for a dag
+    size_t non_dag_edge_count(const net_handle_t& snarl, const HandleGraph* graph) const;
 
     ///Returns true if the given net handle refers to (a traversal of) a simple snarl
     ///A simple snarl is a bubble where each child node can only reach the boundary nodes,
@@ -1191,9 +1195,6 @@ private:
 
         //Get the offset of the list of children
         size_t get_child_record_pointer() const;
-
-        //Get the child given the rank. This includes 0/1 for the bounds, facing into the snarl
-        net_handle_t get_child_from_rank(const size_t& rank) const;
 
         bool for_each_child(const std::function<bool(const net_handle_t&)>& iteratee) const;
 
