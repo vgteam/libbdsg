@@ -1351,7 +1351,7 @@ size_t SnarlDistanceIndex::distance_in_snarl(const net_handle_t& parent,
     } else if (rank1 == 0 && rank2 == 0 && !snarl_is_root) {
         //Start to start is stored in the snarl
         return SnarlRecord(parent, &snarl_tree_records).get_distance_start_start();
-    } else if ((rank1 == 0 && rank2 == 1) || (rank1 == 1 && rank2 == 0) && !snarl_is_root) {
+    } else if (((rank1 == 0 && rank2 == 1) || (rank1 == 1 && rank2 == 0)) && !snarl_is_root) {
         //start to end / end to start is stored in the snarl
         return SnarlRecord(parent, &snarl_tree_records).get_min_length();
     } else if (rank1 == 1 && rank2 == 1 && !snarl_is_root) {
