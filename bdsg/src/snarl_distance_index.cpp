@@ -290,7 +290,7 @@ if (get_handle_type(net) ==CHAIN_HANDLE) {
         && SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == MULTICOMPONENT_CHAIN;
 }
 bool SnarlDistanceIndex::is_looping_chain(const net_handle_t& net) const {
-    if (!is_chain(net)) {
+    if (!is_chain(net) || is_trivial_chain(net)) {
         return false;
     }
     ChainRecord chain_record(net, &snarl_tree_records);
