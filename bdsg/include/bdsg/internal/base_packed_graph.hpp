@@ -1191,10 +1191,6 @@ handle_t BasePackedGraph<Backend>::create_handle(const string& sequence) {
 template<typename Backend>
 handle_t BasePackedGraph<Backend>::create_handle(const string& sequence, const nid_t& id) {
     
-    if (sequence.empty()) {
-        throw std::runtime_error("error:[BasePackedGraph] tried to create an empty node with ID " + std::to_string(id));
-    }
-    
     if (id <= 0) {
         throw std::runtime_error("error:[BasePackedGraph] tried to create a node with non-positive ID " + std::to_string(id));
     }
