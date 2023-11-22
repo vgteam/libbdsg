@@ -427,9 +427,12 @@ step_handle_t BBHashHelper::iterator::operator*() const {
 bool BBHashHelper::iterator::operator==(const BBHashHelper::iterator& other) const {
     // on the end iterator, we don't care what the step is, only that we're past-the-last
     // path handle
-    return (iteratee == other.iteratee
-            && path_handle_idx == other.path_handle_idx
-            && (step == other.step || path_handle_idx == iteratee->path_handles.size()));
+    if (iteratee == other.iteratee && path_handle_idx == other.path_handle_idx) {
+        if (path_handle_idx == iteratee->path_handles.size() || step == other.step) {
+            return true;
+        }
+    }
+    return false;
 }
 
 bool BBHashHelper::iterator::operator!=(const BBHashHelper::iterator& other) const {
