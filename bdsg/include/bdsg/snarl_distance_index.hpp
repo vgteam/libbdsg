@@ -333,21 +333,25 @@ public:
 
     ///Get the prefix sum value for a node in a chain.
     ///Fails if the parent of net is not a chain
-    size_t get_prefix_sum_value(const net_handle_t net) const;
+    size_t get_prefix_sum_value(const net_handle_t& net) const;
 
-    ///Get the prefix sum value for a node in a chain.
+    ///Get the maximum prefix sum value for a node in a chain.
     ///Fails if the parent of net is not a chain
-    size_t get_forward_loop_value(const net_handle_t net) const;
+    size_t get_max_prefix_sum_value(const net_handle_t& net) const;
 
-    ///Get the prefix sum value for a node in a chain.
+    ///Get the forward loop value for a node in a chain.
     ///Fails if the parent of net is not a chain
-    size_t get_reverse_loop_value(const net_handle_t net) const;
+    size_t get_forward_loop_value(const net_handle_t& net) const;
+
+    ///Get the reverse value for a node in a chain.
+    ///Fails if the parent of net is not a chain
+    size_t get_reverse_loop_value(const net_handle_t& net) const;
 
     //If get_end is true, then get the second component of the last node in a looping chain.
     //If the chain loops, then the first and last node are the same.
     //If it is also a multicomponent, chain, then it is in two different components.
     //If get_end is true, then get the larger of the two components.
-    size_t get_chain_component(const net_handle_t net, bool get_end = false) const;
+    size_t get_chain_component(const net_handle_t& net, bool get_end = false) const;
 
 
 
