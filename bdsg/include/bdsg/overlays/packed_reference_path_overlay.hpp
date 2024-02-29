@@ -33,7 +33,7 @@ public:
     
     // We assume that tracing out a path is fast in the backing graph, but
     // finding visits on nodes is slow. We override the reverse lookups to go
-    // fron graph nodes to paths.
+    // from graph nodes to paths.
 
     /// overload this to use the cache 
     virtual path_handle_t get_path_handle_of_step(const step_handle_t& step_handle) const;
