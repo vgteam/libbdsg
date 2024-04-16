@@ -52,6 +52,8 @@ public:
     /// Convert a string into an integer vector using only existing char assignments
     /// If the string contains previously unseen characters, returns an empty vector.
     PackedVector<> encode(const string& to_encode) const;
+    /// Convert a string into an integer vector, assigning new chars as necessary.
+    PackedVector<> encode_and_assign(const string& to_encode);
 
     /// Write the contents of this object to an ostream.
     void serialize(std::ostream& out) const;
@@ -60,6 +62,15 @@ public:
     /// implementation of the interface as is calling deserialize(). Can only
     /// be called on an empty object.
     void deserialize(std::istream& in);
+
+    /// Dump text about the contents of the collection to the given stream.
+    void print(std::ostream& out) const;
+
+    /// Get the number of bytes of memory usage
+    size_t memory_usage() const;
+
+    /// Report on memory usage by field to the given stream
+    void report_memory(ostream& out) const;
 
     /// We use standard page widths for page-compressed vectors
     constexpr static size_t NARROW_PAGE_WIDTH = 256;
@@ -73,9 +84,6 @@ private:
     inline uint64_t get_or_make_assignment(const char& c);
     /// Get the char assigned to an integer (must be already assigned)
     inline char get_char(const uint64_t& assignment) const;
-    
-    /// Convert a string into an integer vector, assigning new chars as necessary.
-    PackedVector<> encode_and_assign(const string& to_encode);
     
     /// We will reassign char values from the strings to small integers
     typename HashMapFor<Backend>::template type<char, uint64_t> char_assignment;
@@ -193,10 +201,10 @@ template<typename Backend>
 PackedVector<> PackedStringCollection<Backend>::encode(const string& to_encode) const {
     PackedVector<> encoded;
     encoded.resize(to_encode.size());
-    for (size_t i = 0; i < path_name.size(); ++i) {
+    for (size_t i = 0; i < to_encode.size(); ++i) {
         uint64_t encoded_char = get_assignment(to_encode.at(i));
         if (encoded_char == numeric_limits<uint64_t>::max()) {
-            // this path name contains characters we've never seen before
+            // this string contains characters we've never seen before
             encoded.clear();
             break;
         }
@@ -226,6 +234,78 @@ void PackedStringCollection<Backend>::deserialize(std::istream& in) {
     strings_iv.deserialize(in);
     string_start_iv.deserialize(in);
     string_length_iv.deserialize(in);
+}
+
+template<typename Backend>
+void PackedStringCollection<Backend>::print(std::ostream& out) const {
+    out << "char_assignment" << endl;
+    for (const auto& char_mapping : char_assignment) {
+        out << " " << char_mapping.first << ":" << char_mapping.second;
+    }
+    out << endl;
+    out << "inverse_char_assignment" << endl;
+    out << " " << inverse_char_assignment << endl;
+    out << "string_start_iv" << endl;
+    for (size_t i = 0; i < string_start_iv.size(); ++i) {
+        if (i != 0) {
+            out << " |";
+        }
+        out << " " << string_start_iv.get(i);
+    }
+    out << endl;
+    out << "string_length_iv" << endl;
+    for (size_t i = 0; i < string_length_iv.size(); ++i) {
+        if (i != 0) {
+            out << " |";
+        }
+        out << " " << string_length_iv.get(i);
+    }
+    out << endl;
+    out << "strings_iv" << endl;
+    for (size_t i = 0; i < strings_iv.size(); ++i) {
+        out << " " << strings_iv.get(i);
+    }
+    out << endl;
+}
+
+template<typename Backend>
+size_t PackedStringCollection<Backend>::memory_usage() const {
+    size_t grand_total = 0;
+    size_t item_mem = sizeof(inverse_char_assignment) + inverse_char_assignment.capacity() * sizeof(char);
+    item_mem += char_assignment.bucket_count() * (sizeof(typename decltype(char_assignment)::value_type)
+                                                  + sizeof(typename decltype(char_assignment)::key_type));
+    item_mem += sizeof(char_assignment);
+    grand_total += item_mem;
+    
+    item_mem = strings_iv.memory_usage();
+    grand_total += item_mem;
+    
+    item_mem = string_start_iv.memory_usage();
+    grand_total += item_mem;
+    
+    item_mem = string_length_iv.memory_usage();
+    grand_total += item_mem;
+
+    return grand_total;
+}
+
+template<typename Backend>
+void PackedStringCollection<Backend>::report_memory(ostream& out) const {
+    
+    size_t item_mem = sizeof(inverse_char_assignment) + inverse_char_assignment.capacity() * sizeof(char);
+    item_mem += char_assignment.bucket_count() * (sizeof(typename decltype(char_assignment)::value_type)
+                                                  + sizeof(typename decltype(char_assignment)::key_type));
+    item_mem += sizeof(char_assignment);
+    out << "char assignment indexes: " << format_memory(item_mem) << endl;
+    
+    item_mem = strings_iv.memory_usage();
+    out << "strings_iv: " << format_memory(item_mem) << endl;
+    
+    item_mem = string_start_iv.memory_usage();
+    out << "string_start_iv: " << format_memory(item_mem) << endl;
+    
+    item_mem = string_length_iv.memory_usage();
+    out << "string_end_iv: " << format_memory(item_mem) << endl;
 }
 
 template<typename Backend>
@@ -765,23 +845,6 @@ private:
     /// WARNING: invalidates step_handle_t's to this path.
     void defragment_path(const int64_t& path_idx, bool force = false);
     
-    /// Convert a path name into an integer vector, assigning new chars as necessary.
-    PackedVector<> encode_and_assign_path_name(const string& path_name);
-    
-    /// Convert a path name into an integer vector using only existing char assignments
-    /// If the path name contains previously unseen characters, returns an empty vector.
-    PackedVector<> encode_path_name(const string& path_name) const;
-    
-    /// Encode the path name into the internal representation and append it to the master
-    /// list of path names.
-    void append_path_name(const string& path_name);
-    
-    /// Decode the internal representation of a path name and return it as a string.
-    string decode_path_name(const int64_t& path_idx) const;
-    
-    /// Extract the internal representation of a path name, but do not decode it.
-    PackedVector<> extract_encoded_path_name(const int64_t& path_idx) const;
-    
     /// Defragment data structures when the orphaned records are this fraction of the whole.
     const static double defrag_factor;
     
@@ -855,21 +918,8 @@ private:
     const static size_t MEMBERSHIP_OFFSET_RECORD_SIZE;
     const static size_t MEMBERSHIP_NEXT_RECORD_SIZE;
     
-    /// We will reassign char values from the path names to small integers
-    typename HashMapFor<Backend>::template type<char, uint64_t> char_assignment;
-    /// The inverse mapping from integer to the char value
-    string inverse_char_assignment;
-    
-    /// All path names, encoded according to the char assignments and concatenated in
-    /// a single vector
-    PackedVector<Backend> path_names_iv;
-    
-    /// The starting index of the path's name in path_names_iv for the path with the
-    /// same index in paths
-    PagedVector<NARROW_PAGE_WIDTH, Backend> path_name_start_iv;
-    
-    /// The length of the path's name for the path with the same index in paths
-    PackedVector<Backend> path_name_length_iv;
+    /// All path names in a collection of numbered strings.
+    PackedStringCollection<Backend> path_names;
     
     /// Bit-vector that marks whether the path at the same index has been deleted
     PackedVector<Backend> path_is_deleted_iv;
@@ -926,14 +976,6 @@ private:
     inline char decode_nucleotide(const uint64_t& val) const;
     /// Complement nucleotide encoded as [0, 4]
     inline uint64_t complement_encoded_nucleotide(const uint64_t& val) const;
-    
-    /// Get the integer assignment of a char, or numeric_limits<uint64_t>::max()
-    /// if no assignment has been made
-    inline uint64_t get_assignment(const char& c) const;
-    /// Get the integer assignment of a char, assigning a new one if necessary
-    inline uint64_t get_or_make_assignment(const char& c);
-    /// Get the char assigned to an integer (must be already assigned)
-    inline char get_char(const uint64_t& assignment) const;
     
     inline size_t graph_iv_index(const handle_t& handle) const;
     
@@ -1131,35 +1173,6 @@ inline void BasePackedGraph<Backend>::set_step_next(PackedPath& path, const uint
 }
 
 template<typename Backend>
-inline uint64_t BasePackedGraph<Backend>::get_assignment(const char& c) const {
-    auto it = char_assignment.find(c);
-    if (it != char_assignment.end()) {
-        return it->second;
-    }
-    else {
-        return numeric_limits<uint64_t>::max();
-    }
-}
-
-template<typename Backend>
-inline uint64_t BasePackedGraph<Backend>::get_or_make_assignment(const char& c) {
-    auto it = char_assignment.find(c);
-    if (it != char_assignment.end()) {
-        return it->second;
-    }
-    else {
-        char_assignment[c] = inverse_char_assignment.size();
-        inverse_char_assignment.push_back(c);
-        return inverse_char_assignment.size() - 1;
-    }
-}
-
-template<typename Backend>
-inline char BasePackedGraph<Backend>::get_char(const uint64_t& assignment) const {
-    return inverse_char_assignment.at(assignment);
-}
-
-template<typename Backend>
 const double BasePackedGraph<Backend>::defrag_factor = .2;
 
 template<typename Backend>
@@ -1238,12 +1251,7 @@ void BasePackedGraph<Backend>::serialize_members(ostream& out) const {
     path_membership_offset_iv.serialize(out);
     path_membership_next_iv.serialize(out);
     
-    // it's sufficient to only serialize one direction of the mapping
-    sdsl::write_member(inverse_char_assignment, out);
-    
-    path_names_iv.serialize(out);
-    path_name_start_iv.serialize(out);
-    path_name_length_iv.serialize(out);
+    path_names.serialize(out);
     path_is_deleted_iv.serialize(out);
     path_is_circular_iv.serialize(out);
     path_head_iv.serialize(out);
@@ -1280,23 +1288,15 @@ void BasePackedGraph<Backend>::deserialize_members(istream& in) {
     path_membership_offset_iv.deserialize(in);
     path_membership_next_iv.deserialize(in);
     
-    sdsl::read_member(inverse_char_assignment, in);
-    // reconstruct the forward char assignments
-    for (size_t i = 0; i < inverse_char_assignment.size(); ++i) {
-        char_assignment[inverse_char_assignment[i]] = i;
-    }
-    
-    path_names_iv.deserialize(in);
-    path_name_start_iv.deserialize(in);
-    path_name_length_iv.deserialize(in);
+    path_names.deserialize(in);
     path_is_deleted_iv.deserialize(in);
     path_is_circular_iv.deserialize(in);
     path_head_iv.deserialize(in);
     path_tail_iv.deserialize(in);
     path_deleted_steps_iv.deserialize(in);
     
-    paths.reserve(path_name_start_iv.size());
-    for (size_t i = 0; i < path_name_start_iv.size(); i++) {
+    paths.reserve(path_names.size());
+    for (size_t i = 0; i < path_names.size(); i++) {
         paths.emplace_back();
         PackedPath& path = paths.back();
         path.links_iv.deserialize(in);
@@ -1306,7 +1306,7 @@ void BasePackedGraph<Backend>::deserialize_members(istream& in) {
     // reconstruct the path_id mapping
     for (int64_t i = 0; i < paths.size(); i++) {
         if (!path_is_deleted_iv.get(i)) {
-            path_id[extract_encoded_path_name(i)] = i;
+            path_id[path_names.extract_encoded(i)] = i;
         }
     }
     
@@ -2102,7 +2102,7 @@ void BasePackedGraph<Backend>::defragment_path(const int64_t& path_idx, bool for
             path_tail_iv.set(path_idx, prev);
             
             // retrieve the ID of this path so we can match it to membership records
-            int64_t path_id_here = path_id.at(extract_encoded_path_name(path_idx));
+            int64_t path_id_here = path_id.at(path_names.extract_encoded(path_idx));
             
             // now we need to iterate over each node on the path exactly one time to update its membership
             // records (even if the node occurs multiple times on this path), so we will use a bit deque
@@ -2169,8 +2169,10 @@ void BasePackedGraph<Backend>::defragment_path(const int64_t& path_idx, bool for
 template<typename Backend>
 void BasePackedGraph<Backend>::eject_deleted_paths() {
     
+    // Remove path names in place
+    path_names.eject(path_is_deleted_iv);
+
     uint64_t num_paths_deleted = 0;
-    uint64_t path_name_length_deleted = 0;
     vector<uint64_t> paths_deleted_before(paths.size(), 0);
     for (size_t i = 0; i < paths.size(); i++) {
         
@@ -2178,15 +2180,12 @@ void BasePackedGraph<Backend>::eject_deleted_paths() {
         
         if (path_is_deleted_iv.get(i)) {
             num_paths_deleted++;
-            path_name_length_deleted += path_name_length_iv.get(i);
             continue;
         }
         
         // move non-deleted paths into the front of the vectors
         if (num_paths_deleted > 0) {
             paths[i - num_paths_deleted] = std::move(paths[i]);
-            path_name_start_iv.set(i - num_paths_deleted, path_name_start_iv.get(i));
-            path_name_length_iv.set(i - num_paths_deleted, path_name_length_iv.get(i));
             path_is_deleted_iv.set(i - num_paths_deleted, path_is_deleted_iv.get(i));
             path_is_circular_iv.set(i - num_paths_deleted, path_is_circular_iv.get(i));
             path_head_iv.set(i - num_paths_deleted, path_head_iv.get(i));
@@ -2203,7 +2202,7 @@ void BasePackedGraph<Backend>::eject_deleted_paths() {
         
         // update the path IDs
         for (size_t i = 0; i < paths.size(); ++i) {
-            path_id[extract_encoded_path_name(i)] = i;
+            path_id[path_names.extract_encoded(i)] = i;
         }
         
         // update the path IDs in the membership records
@@ -2211,47 +2210,10 @@ void BasePackedGraph<Backend>::eject_deleted_paths() {
             uint64_t current_path = path_membership_id_iv.get(i);
             path_membership_id_iv.set(i, current_path - paths_deleted_before[current_path]);
         }
-        
-        // make a new path name vector that we can fill with the remaining path names
-        PackedVector<> new_path_names_iv;
-        new_path_names_iv.resize(path_names_iv.size() - path_name_length_deleted);
-        
-        // transfer over path names and update pointers on paths into the vector
-        size_t name_filled_so_far = 0;
-        for (size_t i = 0; i < paths.size(); ++i) {
-            PackedPath& packed_path = paths[i];
-            size_t name_start = path_name_start_iv.get(i);
-            size_t name_length = path_name_length_iv.get(i);
-            for (size_t j = 0; j < name_length; ++j) {
-                new_path_names_iv.set(name_filled_so_far + j,
-                                      path_names_iv.get(name_start + j));
-            }
-            path_name_start_iv.set(i, name_filled_so_far);
-            name_filled_so_far += name_length;
-        }
-        
-        // replace the old path names vector
-        path_names_iv = std::move(new_path_names_iv);
-        
-        // TODO: should I reassign the char to int mapping in case entire chars where ejected?
     }
     
     // consolidate the vectors that share indexes with the paths vector (we do this to get them
     // to a tight allocation even if no paths have been deleted)
-    decltype(path_name_start_iv) new_path_name_start_iv;
-    new_path_name_start_iv.reserve(paths.size());
-    for (size_t i = 0; i < paths.size(); ++i) {
-        new_path_name_start_iv.append(path_name_start_iv.get(i));
-    }
-    path_name_start_iv = std::move(new_path_name_start_iv);
-    
-    PackedVector<> new_path_name_length_iv;
-    new_path_name_length_iv.reserve(paths.size());
-    for (size_t i = 0; i < paths.size(); ++i) {
-        new_path_name_length_iv.append(path_name_length_iv.get(i));
-    }
-    path_name_length_iv = std::move(new_path_name_length_iv);
-    
     PackedVector<> new_path_is_deleted_iv;
     new_path_is_deleted_iv.reserve(paths.size());
     for (size_t i = 0; i < paths.size(); ++i) {
@@ -2286,8 +2248,6 @@ void BasePackedGraph<Backend>::eject_deleted_paths() {
         new_path_deleted_steps_iv.append(path_deleted_steps_iv.get(i));
     }
     path_deleted_steps_iv = std::move(new_path_deleted_steps_iv);
-    
-    // TODO: unless paths have been deleted, path_names_iv doesn't get a tight allocation...
 }
 
 template<typename Backend>
@@ -2600,7 +2560,7 @@ void BasePackedGraph<Backend>::clear(void) {
 
 template<typename Backend>
 bool BasePackedGraph<Backend>::has_path(const std::string& path_name) const {
-    auto encoded = encode_path_name(path_name);
+    auto encoded = path_names.encode(path_name);
     if (encoded.empty()) {
         return false;
     }
@@ -2611,12 +2571,12 @@ bool BasePackedGraph<Backend>::has_path(const std::string& path_name) const {
 
 template<typename Backend>
 path_handle_t BasePackedGraph<Backend>::get_path_handle(const std::string& path_name) const {
-    return as_path_handle(path_id.at(encode_path_name(path_name)));
+    return as_path_handle(path_id.at(path_names.encode(path_name)));
 }
 
 template<typename Backend>
 string BasePackedGraph<Backend>::get_path_name(const path_handle_t& path_handle) const {
-    return decode_path_name(as_integer(path_handle));
+    return path_names.decode(as_integer(path_handle));
 }
 
 template<typename Backend>
@@ -2782,60 +2742,6 @@ bool BasePackedGraph<Backend>::is_empty(const path_handle_t& path_handle) const 
 }
 
 template<typename Backend>
-PackedVector<> BasePackedGraph<Backend>::encode_and_assign_path_name(const string& path_name) {
-    PackedVector<> encoded;
-    encoded.resize(path_name.size());
-    for (size_t i = 0; i < path_name.size(); ++i) {
-        encoded.set(i, get_or_make_assignment(path_name.at(i)));
-    }
-    return encoded;
-}
-
-template<typename Backend>
-PackedVector<> BasePackedGraph<Backend>::encode_path_name(const string& path_name) const {
-    PackedVector<> encoded;
-    encoded.resize(path_name.size());
-    for (size_t i = 0; i < path_name.size(); ++i) {
-        uint64_t encoded_char = get_assignment(path_name.at(i));
-        if (encoded_char == numeric_limits<uint64_t>::max()) {
-            // this path name contains characters we've never seen before
-            encoded.clear();
-            break;
-        }
-        encoded.set(i, encoded_char);
-    }
-    return encoded;
-}
-
-template<typename Backend>
-void BasePackedGraph<Backend>::append_path_name(const string& path_name) {
-    for (size_t i = 0; i < path_name.size(); ++i) {
-        path_names_iv.append(get_or_make_assignment(path_name.at(i)));
-    }
-}
-
-template<typename Backend>
-PackedVector<> BasePackedGraph<Backend>::extract_encoded_path_name(const int64_t& path_idx) const {
-    size_t name_start = path_name_start_iv.get(path_idx);
-    PackedVector<> name;
-    name.resize(path_name_length_iv.get(path_idx));
-    for (size_t i = 0; i < name.size(); ++i) {
-        name.set(i, path_names_iv.get(name_start + i));
-    }
-    return name;
-}
-
-template<typename Backend>
-string BasePackedGraph<Backend>::decode_path_name(const int64_t& path_idx) const {
-    size_t name_start = path_name_start_iv.get(path_idx);
-    string name(path_name_length_iv.get(path_idx), '\0');
-    for (size_t i = 0; i < name.size(); ++i) {
-        name[i] = get_char(path_names_iv.get(name_start + i));
-    }
-    return name;
-}
-
-template<typename Backend>
 void BasePackedGraph<Backend>::destroy_path(const path_handle_t& path) {
     
     PackedPath& packed_path = paths.at(as_integer(path));
@@ -2874,7 +2780,7 @@ void BasePackedGraph<Backend>::destroy_path(const path_handle_t& path) {
         first_iter = false;
     }
     
-    path_id.erase(extract_encoded_path_name(as_integer(path)));
+    path_id.erase(path_names.extract_encoded(as_integer(path)));
     
     path_is_deleted_iv.set(as_integer(path), true);
     packed_path.steps_iv.clear();
@@ -2892,7 +2798,7 @@ path_handle_t BasePackedGraph<Backend>::create_path_handle(const string& name, b
         throw std::runtime_error("[BasePackedGraph] error: cannot create paths with no name");
     }
     
-    PackedVector<> encoded = encode_and_assign_path_name(name);
+    PackedVector<> encoded = path_names.encode_and_assign(name);
     if (path_id.count(encoded)) {
         throw std::runtime_error("[BasePackedGraph] error: path of name " + name + " already exists, cannot create again");
     }
@@ -2912,15 +2818,13 @@ path_handle_t BasePackedGraph<Backend>::create_path_handle(const string& name, b
     
     paths.emplace_back();
     
-    path_name_start_iv.append(path_names_iv.size());
-    path_name_length_iv.append(name.size());
     path_is_circular_iv.append(is_circular);
     path_is_deleted_iv.append(false);
     path_head_iv.append(0);
     path_tail_iv.append(0);
     path_deleted_steps_iv.append(0);
     
-    append_path_name(name);
+    path_names.push_back(name);
     
     return path_handle;
 }
@@ -3423,34 +3327,7 @@ void BasePackedGraph<Backend>::print_graph(ostream& out) const {
         out << " " << path_membership_next_iv.get(i);
     }
     out << endl;
-    out << "char_assignment" << endl;
-    for (const auto& char_mapping : char_assignment) {
-        out << " " << char_mapping.first << ":" << char_mapping.second;
-    }
-    out << endl;
-    out << "inverse_char_assignment" << endl;
-    out << " " << inverse_char_assignment << endl;
-    out << "path_name_start_iv" << endl;
-    for (size_t i = 0; i < path_name_start_iv.size(); ++i) {
-        if (i != 0) {
-            out << " |";
-        }
-        out << " " << path_name_start_iv.get(i);
-    }
-    out << endl;
-    out << "path_name_length_iv" << endl;
-    for (size_t i = 0; i < path_name_length_iv.size(); ++i) {
-        if (i != 0) {
-            out << " |";
-        }
-        out << " " << path_name_length_iv.get(i);
-    }
-    out << endl;
-    out << "path_names_iv" << endl;
-    for (size_t i = 0; i < path_names_iv.size(); ++i) {
-        out << " " << path_names_iv.get(i);
-    }
-    out << endl;
+    path_names.print(out);
     out << "path_is_deleted_iv" << endl;
     for (size_t i = 0; i < path_is_deleted_iv.size(); ++i) {
         out << " " << path_is_deleted_iv.get(i);
@@ -3541,23 +3418,8 @@ void BasePackedGraph<Backend>::report_memory(ostream& out, bool individual_paths
     out << "path_membership_next_iv: " << format_memory(item_mem) << endl;
     grand_total += item_mem;
     
-    item_mem = sizeof(inverse_char_assignment) + inverse_char_assignment.capacity() * sizeof(char);
-    item_mem += char_assignment.bucket_count() * (sizeof(typename decltype(char_assignment)::value_type)
-                                                  + sizeof(typename decltype(char_assignment)::key_type));
-    item_mem += sizeof(char_assignment);
-    out << "char assignment indexes: " << format_memory(item_mem) << endl;
-    grand_total += item_mem;
-    
-    item_mem = path_names_iv.memory_usage();
-    out << "path_names_iv: " << format_memory(item_mem) << endl;
-    grand_total += item_mem;
-    
-    item_mem = path_name_start_iv.memory_usage();
-    out << "path_name_start_iv: " << format_memory(item_mem) << endl;
-    grand_total += item_mem;
-    
-    item_mem = path_name_length_iv.memory_usage();
-    out << "path_name_length_iv: " << format_memory(item_mem) << endl;
+    item_mem = path_names.memory_usage();
+    out << "path_names: " << format_memory(item_mem) << endl;
     grand_total += item_mem;
     
     item_mem = path_is_deleted_iv.memory_usage();
@@ -3588,7 +3450,7 @@ void BasePackedGraph<Backend>::report_memory(ostream& out, bool individual_paths
     vector<string> names;
     names.reserve(path_id.size());
     for (const auto& path_id_record : path_id) {
-        names.push_back(decode_path_name(path_id_record.second));
+        names.push_back(path_names.decode(path_id_record.second));
         unused_path_ids.erase(path_id_record.second);
     }
     
@@ -3600,7 +3462,7 @@ void BasePackedGraph<Backend>::report_memory(ostream& out, bool individual_paths
     size_t link_length = 0, step_length = 0;
     size_t name_total = 0, id_total = 0, links_total = 0, steps_total = 0;
     for (const auto& path_name : names) {
-        auto it = path_id.find(encode_path_name(path_name));
+        auto it = path_id.find(path_names.encode(path_name));
         size_t path_name_mem = it->first.memory_usage();
         size_t path_id_mem = sizeof(it->second);
         const auto& packed_path = paths.at(it->second);
