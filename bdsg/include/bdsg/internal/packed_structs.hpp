@@ -1406,7 +1406,7 @@ inline void PackedSet<Backend>::rehash(bool shrink) {
     }
     
     anchor = new_anchor;
-    table = move(new_table);
+    table = std::move(new_table);
 }
 
 template<typename Backend>
