@@ -191,6 +191,18 @@ void PackedStringCollection<Backend>::eject(const PackedVector<Backend>& is_dele
 
 template<typename Backend>
 PackedVector<> PackedStringCollection<Backend>::encode(const string& to_encode) const {
+    PackedVector<> encoded;
+    encoded.resize(to_encode.size());
+    for (size_t i = 0; i < path_name.size(); ++i) {
+        uint64_t encoded_char = get_assignment(to_encode.at(i));
+        if (encoded_char == numeric_limits<uint64_t>::max()) {
+            // this path name contains characters we've never seen before
+            encoded.clear();
+            break;
+        }
+        encoded.set(i, encoded_char);
+    }
+    return encoded;
 }
 
 template<typename Backend>
