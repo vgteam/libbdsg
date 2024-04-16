@@ -61,7 +61,18 @@ public:
     /// be called on an empty object.
     void deserialize(std::istream& in);
 
+    /// We use standard page widths for page-compressed vectors
+    constexpr static size_t NARROW_PAGE_WIDTH = 256;
+
 private:
+
+    /// Get the integer assignment of a char, or numeric_limits<uint64_t>::max()
+    /// if no assignment has been made
+    inline uint64_t get_assignment(const char& c) const;
+    /// Get the integer assignment of a char, assigning a new one if necessary
+    inline uint64_t get_or_make_assignment(const char& c);
+    /// Get the char assigned to an integer (must be already assigned)
+    inline char get_char(const uint64_t& assignment) const;
     
     /// Convert a string into an integer vector, assigning new chars as necessary.
     PackedVector<> encode_and_assign(const string& to_encode);
@@ -90,14 +101,32 @@ int64_t PackedStringCollection<Backend>::size() const {
 
 template<typename Backend>
 std::string PackedStringCollection<Backend>::decode(const int64_t& index) const {
+    size_t start = string_start_iv.get(index);
+    string decoded(string_length_iv.get(index), '\0');
+    for (size_t i = 0; i < decoded.size(); ++i) {
+        decoded[i] = get_char(strings_iv.get(start + i));
+    }
+    return decoded;
 }
 
 template<typename Backend>
 PackedVector<> PackedStringCollection<Backend>::extract_encoded(const int64_t& index) const {
+    size_t start = string_start_iv.get(index);
+    PackedVector<> encoded;
+    encoded.resize(string_length_iv.get(index));
+    for (size_t i = 0; i < encoded.size(); ++i) {
+        encoded.set(i, strings_iv.get(start + i));
+    }
+    return encoded;
 }
     
 template<typename Backend>
 void PackedStringCollection<Backend>::push_back(const std::string& to_add) {
+    string_start_iv.append(strings_iv.size());
+    string_length_iv.append(to_add.size());
+    for (size_t i = 0; i < to_add.size(); ++i) {
+        strings_iv.append(get_or_make_assignment(to_add.at(i)));
+    }
 }
 
 template<typename Backend>
@@ -108,10 +137,7 @@ void PackedStringCollection<Backend>::eject(const PackedVector<Backend>& is_dele
 
     uint64_t num_deleted = 0;
     uint64_t length_deleted = 0;
-    vector<uint64_t> paths_deleted_before(size(), 0);
-    for (size_t i = 0; i < paths.size(); i++) {
-        
-        paths_deleted_before[i] = num_deleted;
+    for (size_t i = 0; i < is_deleted.size(); i++) {
         
         if (is_deleted.get(i)) {
             num_deleted++;
@@ -136,7 +162,7 @@ void PackedStringCollection<Backend>::eject(const PackedVector<Backend>& is_dele
         size_t start = string_start_iv.get(i);
         size_t length = string_length_iv.get(i);
         for (size_t j = 0; j < length; ++j) {
-            new_strings_iv.set(name_filled_so_far + j,
+            new_strings_iv.set(filled_so_far + j,
                                strings_iv.get(start + j));
         }
         string_start_iv.set(i, filled_so_far);
@@ -191,7 +217,42 @@ void PackedStringCollection<Backend>::deserialize(std::istream& in) {
 }
 
 template<typename Backend>
+inline uint64_t PackedStringCollection<Backend>::get_assignment(const char& c) const {
+    auto it = char_assignment.find(c);
+    if (it != char_assignment.end()) {
+        return it->second;
+    }
+    else {
+        return numeric_limits<uint64_t>::max();
+    }
+}
+
+template<typename Backend>
+inline uint64_t PackedStringCollection<Backend>::get_or_make_assignment(const char& c) {
+    auto it = char_assignment.find(c);
+    if (it != char_assignment.end()) {
+        return it->second;
+    }
+    else {
+        char_assignment[c] = inverse_char_assignment.size();
+        inverse_char_assignment.push_back(c);
+        return inverse_char_assignment.size() - 1;
+    }
+}
+
+template<typename Backend>
+inline char PackedStringCollection<Backend>::get_char(const uint64_t& assignment) const {
+    return inverse_char_assignment.at(assignment);
+}
+
+template<typename Backend>
 PackedVector<> PackedStringCollection<Backend>::encode_and_assign(const string& to_encode) {
+    PackedVector<> encoded;
+    encoded.resize(to_encode.size());
+    for (size_t i = 0; i < to_encode.size(); ++i) {
+        encoded.set(i, get_or_make_assignment(to_encode.at(i)));
+    }
+    return encoded;
 }
 
 /**
