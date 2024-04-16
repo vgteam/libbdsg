@@ -16,6 +16,7 @@ python:
     - requirements: bdsg/docs/requirements.txt
 
 build:
+  os: ubuntu-22.04
   apt_packages:
     - libjansson-dev
 
