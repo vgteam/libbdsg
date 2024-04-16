@@ -417,11 +417,6 @@ public:
     /// or NO_HAPLOTYPE if it does not belong to one.
     size_t get_haplotype(const path_handle_t& handle) const;
     
-    /// Get the phase block number (contiguously phased region of a sample,
-    /// contig, and haplotype) of the path-or-thread, or NO_PHASE_BLOCK if it
-    /// does not belong to one.
-    size_t get_phase_block(const path_handle_t& handle) const;
-    
     /// Get the bounds of the path-or-thread that are actually represented
     /// here. Should be NO_SUBRANGE if the entirety is represented here, and
     /// 0-based inclusive start and exclusive end positions of the stored 
@@ -446,7 +441,6 @@ public:
                               const std::string& sample,
                               const std::string& locus,
                               const size_t& haplotype,
-                              const size_t& phase_block,
                               const subrange_t& subrange,
                               bool is_circular = false);
                               
@@ -3061,11 +3055,6 @@ size_t BasePackedGraph<Backend>::get_haplotype(const path_handle_t& handle) cons
 }
 
 template<typename Backend>
-size_t BasePackedGraph<Backend>::get_phase_block(const path_handle_t& handle) const {
-    return PathMetadata::parse_phase_block(get_path_name(handle));
-}
-
-template<typename Backend>
 subrange_t BasePackedGraph<Backend>::get_subrange(const path_handle_t& handle) const {
     return PathMetadata::parse_subrange(get_path_name(handle));
 }
@@ -3112,10 +3101,9 @@ path_handle_t BasePackedGraph<Backend>::create_path(const PathSense& sense,
                                                     const std::string& sample,
                                                     const std::string& locus,
                                                     const size_t& haplotype,
-                                                    const size_t& phase_block,
                                                     const subrange_t& subrange,
                                                     bool is_circular) {
-    return create_path_handle(PathMetadata::create_path_name(sense, sample, locus, haplotype, phase_block, subrange), is_circular);
+    return create_path_handle(PathMetadata::create_path_name(sense, sample, locus, haplotype, subrange), is_circular);
 }
 
 template<typename Backend>

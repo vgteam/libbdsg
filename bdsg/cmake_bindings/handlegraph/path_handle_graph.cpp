@@ -307,13 +307,13 @@ struct PyCallBack_handlegraph_SnarlDecomposition : public handlegraph::SnarlDeco
 
 void bind_handlegraph_path_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M)
 {
-	{ // handlegraph::PathForEachSocket file:handlegraph/path_handle_graph.hpp line:220
+	{ // handlegraph::PathForEachSocket file:handlegraph/path_handle_graph.hpp line:222
 		pybind11::class_<handlegraph::PathForEachSocket, std::shared_ptr<handlegraph::PathForEachSocket>> cl(M("handlegraph"), "PathForEachSocket", "An auxilliary class that enables for each loops over paths. Not intended to\n constructed directly. Instead, use the PathHandleGraph's scan_path method.");
 		cl.def( pybind11::init( [](handlegraph::PathForEachSocket const &o){ return new handlegraph::PathForEachSocket(o); } ) );
 		cl.def("begin", (class handlegraph::PathForEachSocket::iterator (handlegraph::PathForEachSocket::*)() const) &handlegraph::PathForEachSocket::begin, "C++: handlegraph::PathForEachSocket::begin() const --> class handlegraph::PathForEachSocket::iterator");
 		cl.def("end", (class handlegraph::PathForEachSocket::iterator (handlegraph::PathForEachSocket::*)() const) &handlegraph::PathForEachSocket::end, "C++: handlegraph::PathForEachSocket::end() const --> class handlegraph::PathForEachSocket::iterator");
 
-		{ // handlegraph::PathForEachSocket::iterator file:handlegraph/path_handle_graph.hpp line:234
+		{ // handlegraph::PathForEachSocket::iterator file:handlegraph/path_handle_graph.hpp line:236
 			auto & enclosing_class = cl;
 			pybind11::class_<handlegraph::PathForEachSocket::iterator, std::shared_ptr<handlegraph::PathForEachSocket::iterator>> cl(enclosing_class, "iterator", "Iterator object over path");
 			cl.def( pybind11::init( [](handlegraph::PathForEachSocket::iterator const &o){ return new handlegraph::PathForEachSocket::iterator(o); } ) );

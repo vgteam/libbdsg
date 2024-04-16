@@ -7,6 +7,8 @@
 #include <bdsg/packed_graph.hpp>
 #include <functional>
 #include <handlegraph/mutable_path_handle_graph.hpp>
+#include <handlegraph/path_handle_graph.hpp>
+#include <handlegraph/path_metadata.hpp>
 #include <handlegraph/types.hpp>
 #include <ios>
 #include <istream>
@@ -614,19 +616,6 @@ struct PyCallBack_bdsg_PackedGraph : public bdsg::PackedGraph {
 		}
 		return GraphProxy::get_haplotype(a0);
 	}
-	unsigned long get_phase_block(const struct handlegraph::path_handle_t & a0) const override {
-		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedGraph *>(this), "get_phase_block");
-		if (overload) {
-			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
-				static pybind11::detail::override_caster_t<unsigned long> caster;
-				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
-			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
-		}
-		return GraphProxy::get_phase_block(a0);
-	}
 	using _binder_ret_0 = struct std::pair<unsigned long, unsigned long>;
 	_binder_ret_0 get_subrange(const struct handlegraph::path_handle_t & a0) const override {
 		pybind11::gil_scoped_acquire gil;
@@ -928,18 +917,18 @@ struct PyCallBack_bdsg_PackedGraph : public bdsg::PackedGraph {
 		}
 		return GraphProxy::clear();
 	}
-	struct handlegraph::path_handle_t create_path(const enum handlegraph::PathSense & a0, const std::string & a1, const std::string & a2, const unsigned long & a3, const unsigned long & a4, const struct std::pair<unsigned long, unsigned long> & a5, bool a6) override {
+	struct handlegraph::path_handle_t create_path(const enum handlegraph::PathSense & a0, const std::string & a1, const std::string & a2, const unsigned long & a3, const struct std::pair<unsigned long, unsigned long> & a4, bool a5) override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedGraph *>(this), "create_path");
 		if (overload) {
-			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1, a2, a3, a4, a5, a6);
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1, a2, a3, a4, a5);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::path_handle_t>::value) {
 				static pybind11::detail::override_caster_t<struct handlegraph::path_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::path_handle_t>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<struct handlegraph::path_handle_t>(std::move(o));
 		}
-		return GraphProxy::create_path(a0, a1, a2, a3, a4, a5, a6);
+		return GraphProxy::create_path(a0, a1, a2, a3, a4, a5);
 	}
 	unsigned int get_magic_number() const override {
 		pybind11::gil_scoped_acquire gil;
@@ -1018,6 +1007,59 @@ struct PyCallBack_bdsg_PackedGraph : public bdsg::PackedGraph {
 			else return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return MutablePathHandleGraph::pop_back_step(a0);
+	}
+	unsigned long get_path_length(const struct handlegraph::path_handle_t & a0) const override {
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedGraph *>(this), "get_path_length");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
+				static pybind11::detail::override_caster_t<unsigned long> caster;
+				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+		}
+		return PathHandleGraph::get_path_length(a0);
+	}
+	std::string get_path_scaffold_name(const struct handlegraph::path_handle_t & a0) const override {
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedGraph *>(this), "get_path_scaffold_name");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<std::string>::value) {
+				static pybind11::detail::override_caster_t<std::string> caster;
+				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<std::string>(std::move(o));
+		}
+		return PathMetadata::get_path_scaffold_name(a0);
+	}
+	using _binder_ret_2 = struct std::pair<std::string, struct std::pair<unsigned long, unsigned long> >;
+	_binder_ret_2 get_path_region(const struct handlegraph::path_handle_t & a0) const override {
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedGraph *>(this), "get_path_region");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<_binder_ret_2>::value) {
+				static pybind11::detail::override_caster_t<_binder_ret_2> caster;
+				return pybind11::detail::cast_ref<_binder_ret_2>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<_binder_ret_2>(std::move(o));
+		}
+		return PathMetadata::get_path_region(a0);
+	}
+	bool for_each_path_on_scaffold_impl(const std::string & a0, const class std::function<bool (const struct handlegraph::path_handle_t &)> & a1) const override {
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::PackedGraph *>(this), "for_each_path_on_scaffold_impl");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
+			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
+				static pybind11::detail::override_caster_t<bool> caster;
+				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<bool>(std::move(o));
+		}
+		return PathMetadata::for_each_path_on_scaffold_impl(a0, a1);
 	}
 };
 
@@ -1649,19 +1691,6 @@ struct PyCallBack_bdsg_MappedPackedGraph : public bdsg::MappedPackedGraph {
 		}
 		return GraphProxy::get_haplotype(a0);
 	}
-	unsigned long get_phase_block(const struct handlegraph::path_handle_t & a0) const override {
-		pybind11::gil_scoped_acquire gil;
-		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::MappedPackedGraph *>(this), "get_phase_block");
-		if (overload) {
-			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
-			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
-				static pybind11::detail::override_caster_t<unsigned long> caster;
-				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
-			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
-		}
-		return GraphProxy::get_phase_block(a0);
-	}
 	using _binder_ret_0 = struct std::pair<unsigned long, unsigned long>;
 	_binder_ret_0 get_subrange(const struct handlegraph::path_handle_t & a0) const override {
 		pybind11::gil_scoped_acquire gil;
@@ -1963,18 +1992,18 @@ struct PyCallBack_bdsg_MappedPackedGraph : public bdsg::MappedPackedGraph {
 		}
 		return GraphProxy::clear();
 	}
-	struct handlegraph::path_handle_t create_path(const enum handlegraph::PathSense & a0, const std::string & a1, const std::string & a2, const unsigned long & a3, const unsigned long & a4, const struct std::pair<unsigned long, unsigned long> & a5, bool a6) override {
+	struct handlegraph::path_handle_t create_path(const enum handlegraph::PathSense & a0, const std::string & a1, const std::string & a2, const unsigned long & a3, const struct std::pair<unsigned long, unsigned long> & a4, bool a5) override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::MappedPackedGraph *>(this), "create_path");
 		if (overload) {
-			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1, a2, a3, a4, a5, a6);
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1, a2, a3, a4, a5);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::path_handle_t>::value) {
 				static pybind11::detail::override_caster_t<struct handlegraph::path_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::path_handle_t>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<struct handlegraph::path_handle_t>(std::move(o));
 		}
-		return GraphProxy::create_path(a0, a1, a2, a3, a4, a5, a6);
+		return GraphProxy::create_path(a0, a1, a2, a3, a4, a5);
 	}
 	void deserialize(const std::string & a0) override {
 		pybind11::gil_scoped_acquire gil;
@@ -2040,6 +2069,59 @@ struct PyCallBack_bdsg_MappedPackedGraph : public bdsg::MappedPackedGraph {
 			else return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return MutablePathHandleGraph::pop_back_step(a0);
+	}
+	unsigned long get_path_length(const struct handlegraph::path_handle_t & a0) const override {
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::MappedPackedGraph *>(this), "get_path_length");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
+				static pybind11::detail::override_caster_t<unsigned long> caster;
+				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+		}
+		return PathHandleGraph::get_path_length(a0);
+	}
+	std::string get_path_scaffold_name(const struct handlegraph::path_handle_t & a0) const override {
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::MappedPackedGraph *>(this), "get_path_scaffold_name");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<std::string>::value) {
+				static pybind11::detail::override_caster_t<std::string> caster;
+				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<std::string>(std::move(o));
+		}
+		return PathMetadata::get_path_scaffold_name(a0);
+	}
+	using _binder_ret_2 = struct std::pair<std::string, struct std::pair<unsigned long, unsigned long> >;
+	_binder_ret_2 get_path_region(const struct handlegraph::path_handle_t & a0) const override {
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::MappedPackedGraph *>(this), "get_path_region");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<_binder_ret_2>::value) {
+				static pybind11::detail::override_caster_t<_binder_ret_2> caster;
+				return pybind11::detail::cast_ref<_binder_ret_2>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<_binder_ret_2>(std::move(o));
+		}
+		return PathMetadata::get_path_region(a0);
+	}
+	bool for_each_path_on_scaffold_impl(const std::string & a0, const class std::function<bool (const struct handlegraph::path_handle_t &)> & a1) const override {
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::MappedPackedGraph *>(this), "for_each_path_on_scaffold_impl");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
+			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
+				static pybind11::detail::override_caster_t<bool> caster;
+				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<bool>(std::move(o));
+		}
+		return PathMetadata::for_each_path_on_scaffold_impl(a0, a1);
 	}
 };
 
