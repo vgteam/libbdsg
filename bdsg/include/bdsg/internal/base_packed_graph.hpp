@@ -28,6 +28,173 @@ using namespace std;
 using namespace handlegraph;
 
 /**
+ * A collection of numbered strings.
+ *
+ * Uses an alphabet of small integers to represent the strings.
+ */
+template <typename Backend = STLBackend>
+class PackedStringCollection {
+
+public:
+    /// Get the number of strings in the collection.
+    int64_t size() const;
+    /// Get the ith string in the collection.
+    std::string decode(const int64_t& index) const;
+    /// Extract the internal representation of a string, but do not decode it.
+    PackedVector<> extract_encoded(const int64_t& index) const;
+    
+    /// Add a new string to the end of the collection.
+    void push_back(const std::string& to_add);
+    /// Remove any strings corresponding to entries in the given bit vector
+    /// that are set. Strings get re-numbered.
+    void eject(const PackedVector<Backend>& is_deleted);
+
+    /// Convert a string into an integer vector using only existing char assignments
+    /// If the string contains previously unseen characters, returns an empty vector.
+    PackedVector<> encode(const string& to_encode) const;
+
+    /// Write the contents of this object to an ostream.
+    void serialize(std::ostream& out) const;
+    /// Sets the contents of this object to the contents of a serialized object
+    /// from an istream. The serialized object must be from the same
+    /// implementation of the interface as is calling deserialize(). Can only
+    /// be called on an empty object.
+    void deserialize(std::istream& in);
+
+private:
+    
+    /// Convert a string into an integer vector, assigning new chars as necessary.
+    PackedVector<> encode_and_assign(const string& to_encode);
+    
+    /// We will reassign char values from the strings to small integers
+    typename HashMapFor<Backend>::template type<char, uint64_t> char_assignment;
+    /// The inverse mapping from integer to the char value.
+    /// TODO: Isn't this not allowed in mapped memory???
+    string inverse_char_assignment;
+
+    /// All strings, encoded according to the char assignments and concatenated in
+    /// a single vector
+    PackedVector<Backend> strings_iv;
+    
+    /// The starting index of the string in strings_iv for the string with the given number.
+    PagedVector<NARROW_PAGE_WIDTH, Backend> string_start_iv;
+    
+    /// The length of each string
+    PackedVector<Backend> string_length_iv;
+};
+
+template<typename Backend>
+int64_t PackedStringCollection<Backend>::size() const {
+    return string_length_iv.size();
+}
+
+template<typename Backend>
+std::string PackedStringCollection<Backend>::decode(const int64_t& index) const {
+}
+
+template<typename Backend>
+PackedVector<> PackedStringCollection<Backend>::extract_encoded(const int64_t& index) const {
+}
+    
+template<typename Backend>
+void PackedStringCollection<Backend>::push_back(const std::string& to_add) {
+}
+
+template<typename Backend>
+void PackedStringCollection<Backend>::eject(const PackedVector<Backend>& is_deleted) {
+    // We must have a flag for each item since we mooch off the flags for the
+    // original length.
+    assert(is_deleted.size() == size());
+
+    uint64_t num_deleted = 0;
+    uint64_t length_deleted = 0;
+    vector<uint64_t> paths_deleted_before(size(), 0);
+    for (size_t i = 0; i < paths.size(); i++) {
+        
+        paths_deleted_before[i] = num_deleted;
+        
+        if (is_deleted.get(i)) {
+            num_deleted++;
+            length_deleted += string_length_iv.get(i);
+            continue;
+        }
+        
+        // move non-deleted strings into the front of the vectors
+        if (num_deleted > 0) {
+            string_start_iv.set(i - num_deleted, string_start_iv.get(i));
+            string_length_iv.set(i - num_deleted, string_length_iv.get(i));
+        }
+    }
+
+    // make a new path vector that we can fill with the remaining strings
+    PackedVector<> new_strings_iv;
+    new_strings_iv.resize(strings_iv.size() - length_deleted);
+    
+    // transfer over strings and update pointers into the vector
+    size_t filled_so_far = 0;
+    for (size_t i = 0; i < (is_deleted.size() - num_deleted); ++i) {
+        size_t start = string_start_iv.get(i);
+        size_t length = string_length_iv.get(i);
+        for (size_t j = 0; j < length; ++j) {
+            new_strings_iv.set(name_filled_so_far + j,
+                               strings_iv.get(start + j));
+        }
+        string_start_iv.set(i, filled_so_far);
+        filled_so_far += length;
+    }
+    
+    // replace the old strings vector
+    strings_iv = std::move(new_strings_iv);
+
+    // consolidate the vectors (we do this to get them to a tight allocation
+    // even if no strings have been deleted)
+    decltype(string_start_iv) new_string_start_iv;
+    new_string_start_iv.reserve((is_deleted.size() - num_deleted));
+    for (size_t i = 0; i < (is_deleted.size() - num_deleted); ++i) {
+        new_string_start_iv.append(string_start_iv.get(i));
+    }
+    string_start_iv = std::move(new_string_start_iv);
+    
+    PackedVector<> new_string_length_iv;
+    new_string_length_iv.reserve((is_deleted.size() - num_deleted));
+    for (size_t i = 0; i < (is_deleted.size() - num_deleted); ++i) {
+        new_string_length_iv.append(string_length_iv.get(i));
+    }
+    string_length_iv = std::move(new_string_length_iv);
+}
+
+template<typename Backend>
+PackedVector<> PackedStringCollection<Backend>::encode(const string& to_encode) const {
+}
+
+template<typename Backend>
+void PackedStringCollection<Backend>::serialize(std::ostream& out) const {
+    // it's sufficient to only serialize one direction of the mapping
+    sdsl::write_member(inverse_char_assignment, out);
+
+    strings_iv.serialize(out);
+    string_start_iv.serialize(out);
+    string_length_iv.serialize(out);
+}
+
+template<typename Backend>
+void PackedStringCollection<Backend>::deserialize(std::istream& in) {
+    sdsl::read_member(inverse_char_assignment, in);
+    // reconstruct the forward char assignments
+    for (size_t i = 0; i < inverse_char_assignment.size(); ++i) {
+        char_assignment[inverse_char_assignment[i]] = i;
+    }
+
+    strings_iv.deserialize(in);
+    string_start_iv.deserialize(in);
+    string_length_iv.deserialize(in);
+}
+
+template<typename Backend>
+PackedVector<> PackedStringCollection<Backend>::encode_and_assign(const string& to_encode) {
+}
+
+/**
  * BasePackedGraph is a graph implementation designed to use very little
  * memory. It stores its data in bit-packed integer vectors, which are
  * dynamically widened as needed in O(1) amortized time. Within these vectors,
