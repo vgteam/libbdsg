@@ -822,7 +822,25 @@ public:
     void serialize(const std::string& filename);
     
 private:
-    
+
+    /**
+     * Type for representing a parsed structured path name, usable as a key.
+     * Can be assigned across backends.
+     */
+    template<typename NameBackend = STLBackend>
+    using PackedPathName = PackedVector<NameBackend>;
+
+    /// Turn a string path name into a PackedPathName, or an empty
+    /// PackedPathName if it definitely does not exist in the graph.
+    PackedPathName<> pack_name(const std::string& name) const;
+
+    /// Turn a string path name into a PackedPathName, allocating any necessary
+    /// symbols if it doesn't exist in the graph.
+    PackedPathName<> pack_and_assign_name(const std::string& name);
+
+    /// Construct the packed path name key for the path with the given index
+    PackedPathName<> extract_packed_name(const int64_t& path_idx) const;
+
     // Forward declaration so we can use it as an argument to methods
     struct PackedPath;
     
@@ -971,7 +989,7 @@ private:
     
     /// Map from path names to index in the paths vector.
     // TODO: This is not serialized usually!
-    typename StringHashMapFor<Backend>::template type<PackedVector<Backend>, int64_t> path_id;
+    typename StringHashMapFor<Backend>::template type<PackedPathName<Backend>, int64_t> path_id;
     
     /// Vector of the embedded paths in the graph
     typename VectorFor<Backend>::template type<PackedPath> paths;
@@ -1317,7 +1335,7 @@ void BasePackedGraph<Backend>::deserialize_members(istream& in) {
     // reconstruct the path_id mapping
     for (int64_t i = 0; i < paths.size(); i++) {
         if (!path_is_deleted_iv.get(i)) {
-            path_id[path_names.extract_encoded(i)] = i;
+            path_id[extract_packed_name(i)] = i;
         }
     }
     
@@ -2113,7 +2131,7 @@ void BasePackedGraph<Backend>::defragment_path(const int64_t& path_idx, bool for
             path_tail_iv.set(path_idx, prev);
             
             // retrieve the ID of this path so we can match it to membership records
-            int64_t path_id_here = path_id.at(path_names.extract_encoded(path_idx));
+            int64_t path_id_here = path_id.at(extract_packed_name(path_idx));
             
             // now we need to iterate over each node on the path exactly one time to update its membership
             // records (even if the node occurs multiple times on this path), so we will use a bit deque
@@ -2213,7 +2231,7 @@ void BasePackedGraph<Backend>::eject_deleted_paths() {
         
         // update the path IDs
         for (size_t i = 0; i < paths.size(); ++i) {
-            path_id[path_names.extract_encoded(i)] = i;
+            path_id[extract_packed_name(i)] = i;
         }
         
         // update the path IDs in the membership records
@@ -2282,6 +2300,21 @@ void BasePackedGraph<Backend>::compact_ids(const vector<handle_t>& order) {
     reassign_node_ids([&](const nid_t& node_id) {
         return nid_trans.get(node_id - pre_assignment_min_id);
     });
+}
+
+template<typename Backend>
+BasePackedGraph<Backend>::PackedPathName<> BasePackedGraph<Backend>::pack_name(const std::string& name) const {
+    return path_names.encode(name);
+}
+
+template<typename Backend>
+BasePackedGraph<Backend>::PackedPathName<> BasePackedGraph<Backend>::pack_and_assign_name(const std::string& name) {
+    return path_names.encode_and_assign(name);
+}
+
+template<typename Backend>
+BasePackedGraph<Backend>::PackedPathName<> BasePackedGraph<Backend>::extract_packed_name(const int64_t& path_idx) const {
+    return path_names.extract_encoded(i);
 }
 
 template<typename Backend>
@@ -2572,7 +2605,7 @@ void BasePackedGraph<Backend>::clear(void) {
 
 template<typename Backend>
 bool BasePackedGraph<Backend>::has_path(const std::string& path_name) const {
-    auto encoded = path_names.encode(path_name);
+    auto encoded = pack_name(path_name);
     if (encoded.empty()) {
         return false;
     }
@@ -2583,7 +2616,7 @@ bool BasePackedGraph<Backend>::has_path(const std::string& path_name) const {
 
 template<typename Backend>
 path_handle_t BasePackedGraph<Backend>::get_path_handle(const std::string& path_name) const {
-    return as_path_handle(path_id.at(path_names.encode(path_name)));
+    return as_path_handle(path_id.at(pack_name(path_name)));
 }
 
 template<typename Backend>
@@ -2792,7 +2825,7 @@ void BasePackedGraph<Backend>::destroy_path(const path_handle_t& path) {
         first_iter = false;
     }
     
-    path_id.erase(path_names.extract_encoded(as_integer(path)));
+    path_id.erase(extract_packed_name(as_integer(path)));
     
     path_is_deleted_iv.set(as_integer(path), true);
     packed_path.steps_iv.clear();
@@ -2810,7 +2843,7 @@ path_handle_t BasePackedGraph<Backend>::create_path_handle(const string& name, b
         throw std::runtime_error("[BasePackedGraph] error: cannot create paths with no name");
     }
     
-    PackedVector<> encoded = path_names.encode_and_assign(name);
+    PackedPathName<> encoded = pack_and_assign_name(name);
     if (path_id.count(encoded)) {
         throw std::runtime_error("[BasePackedGraph] error: path of name " + name + " already exists, cannot create again");
     }
@@ -3474,7 +3507,7 @@ void BasePackedGraph<Backend>::report_memory(ostream& out, bool individual_paths
     size_t link_length = 0, step_length = 0;
     size_t name_total = 0, id_total = 0, links_total = 0, steps_total = 0;
     for (const auto& path_name : names) {
-        auto it = path_id.find(path_names.encode(path_name));
+        auto it = path_id.find(pack_name(path_name));
         size_t path_name_mem = it->first.memory_usage();
         size_t path_id_mem = sizeof(it->second);
         const auto& packed_path = paths.at(it->second);
