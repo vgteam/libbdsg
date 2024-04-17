@@ -45,6 +45,8 @@ public:
     
     /// Add a new string to the end of the collection.
     void push_back(const std::string& to_add);
+    /// Add a new pre-encoded string to the end of the collection.
+    void push_back(const PackedVector<>& to_add);
     /// Remove any strings corresponding to entries in the given bit vector
     /// that are set. Strings get re-numbered.
     void eject(const PackedVector<Backend>& is_deleted);
@@ -135,6 +137,15 @@ void PackedStringCollection<Backend>::push_back(const std::string& to_add) {
     string_length_iv.append(to_add.size());
     for (size_t i = 0; i < to_add.size(); ++i) {
         strings_iv.append(get_or_make_assignment(to_add.at(i)));
+    }
+}
+
+template<typename Backend>
+void PackedStringCollection<Backend>::push_back(const PackedVector<>& to_add) {
+    string_start_iv.append(strings_iv.size());
+    string_length_iv.append(to_add.size());
+    for (size_t i = 0; i < to_add.size(); ++i) {
+        strings_iv.append(to_add.at(i));
     }
 }
 
@@ -3478,9 +3489,15 @@ path_handle_t BasePackedGraph<Backend>::create_path(const PathSense& sense,
                                                     const subrange_t& subrange,
                                                     bool is_circular) {
 
-    PackedPathName<> encoded = pack_and_assign_name(name);
+    // Encode name and sample, allocating symbols
+    auto encoded_sample = path_sample.encode_and_assign(sample == PathMetadata::NO_SAMPLE ? "" : sample);
+    auto encoded_locus = path_locus.encode_and_assign(locus);
+
+    PackedPathName<> encoded = pack_name(encoded_sample, encoded_locus, haplotype, subrange);
     if (path_id.count(encoded)) {
-        throw std::runtime_error("[BasePackedGraph] error: path of name " + name + " already exists, cannot create again");
+        // To report the duplicate we need to go back to a string.
+        std::string recomposed = PathMetadata::create_path_name(sense, sample, locus, haplotype, subrange); 
+        throw std::runtime_error("[BasePackedGraph] error: path of name " + recomposed + " already exists, cannot create again");
     }
 
     path_id[encoded] = paths.size();
@@ -3504,7 +3521,19 @@ path_handle_t BasePackedGraph<Backend>::create_path(const PathSense& sense,
     path_tail_iv.append(0);
     path_deleted_steps_iv.append(0);
     
-    path_names.push_back(name);
+    path_sense_iv.append(sense);
+    path_sample.push_back(encoded_sample);
+    path_locus.push_back(encoded_locus);
+    path_halpotype_iv.append(haplotype == PathMetadata::NO_HAPLOTYPE ? 0 : (haplotype + 1));
+    if (subrange == PathMetadata::NO_SUBRANGE) {
+        // Use 0s to say no subrange
+        path_range_start_iv.append(0);
+        path_range_length_iv.append(0);
+    } else {
+        // Use the subrange start, and the length if there is an end.
+        path_range_start_iv.append(subrange.first + 1);
+        path_range_length_iv.append(subrange.second == PathMetadata::NO_END_POSITION ? 0 : (subrange.second - subrange.first + 1));
+    }
     
     return path_handle;
 }
