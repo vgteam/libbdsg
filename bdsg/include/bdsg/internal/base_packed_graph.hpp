@@ -834,8 +834,11 @@ private:
     /// PackedPathName if it definitely does not exist in the graph.
     PackedPathName<> pack_name(const std::string& name) const;
 
+    /// Turn an already parsed and encoded series of path name pieces into a PackedPathName.
+    PackedPathName<> pack_name(const PackedVector<>& encoded_sample, const PackedVector<>& encoded_locus, size_t haplotype, subrange_t subrange) const;
+
     /// Turn a string path name into a PackedPathName, allocating any necessary
-    /// symbols if it doesn't exist in the graph.
+    /// symbols if it doesn't exist in the graph .
     PackedPathName<> pack_and_assign_name(const std::string& name);
 
     /// Construct the packed path name key for the path with the given index
@@ -947,8 +950,19 @@ private:
     const static size_t MEMBERSHIP_OFFSET_RECORD_SIZE;
     const static size_t MEMBERSHIP_NEXT_RECORD_SIZE;
     
-    /// All path names in a collection of numbered strings.
-    PackedStringCollection<Backend> path_names;
+    /// All path senses.
+    PackedVector<Backend> path_sense_iv;
+    /// All path samples in a collection of numbered strings.
+    /// The empty string is used for NO_SAMPLE.
+    PackedStringCollection<Backend> path_sample;
+    /// All path loci in a collection of numbered strings.
+    PackedStringCollection<Backend> path_locus;
+    /// All path haplotypes + 1, with 0 representing NO_HAPLOTYPE
+    PackedVector<Backend> path_haplotype_iv;
+    /// All path range starts + 1, with 0 representing NO_SUBRANGE
+    PagedVector<NARROW_PAGE_WIDTH, Backend> path_range_start_iv;
+    /// All path range lengths + 1, with 0 representing NO_END_POSITION
+    PagedVector<NARROW_PAGE_WIDTH, Backend> path_range_length_iv;
     
     /// Bit-vector that marks whether the path at the same index has been deleted
     PackedVector<Backend> path_is_deleted_iv;
@@ -1280,7 +1294,12 @@ void BasePackedGraph<Backend>::serialize_members(ostream& out) const {
     path_membership_offset_iv.serialize(out);
     path_membership_next_iv.serialize(out);
     
-    path_names.serialize(out);
+    path_sense_iv.serialize(out);
+    path_sample.serialize(out);
+    path_locus.serialize(out);
+    path_haplotype_iv.serialize(out);
+    path_range_start_iv.serialize(out);
+    path_range_length_iv.serialize(out);
     path_is_deleted_iv.serialize(out);
     path_is_circular_iv.serialize(out);
     path_head_iv.serialize(out);
@@ -1317,15 +1336,20 @@ void BasePackedGraph<Backend>::deserialize_members(istream& in) {
     path_membership_offset_iv.deserialize(in);
     path_membership_next_iv.deserialize(in);
     
-    path_names.deserialize(in);
+    path_sense_iv.seserialize(in);
+    path_sample.deserialize(in);
+    path_locus.deserialize(in);
+    path_haplotype_iv.deserialize(in);
+    path_range_start_iv.deserialize(in);
+    path_range_length_iv.deserialize(in);
     path_is_deleted_iv.deserialize(in);
     path_is_circular_iv.deserialize(in);
     path_head_iv.deserialize(in);
     path_tail_iv.deserialize(in);
     path_deleted_steps_iv.deserialize(in);
     
-    paths.reserve(path_names.size());
-    for (size_t i = 0; i < path_names.size(); i++) {
+    paths.reserve(path_sample.size());
+    for (size_t i = 0; i < path_sample.size(); i++) {
         paths.emplace_back();
         PackedPath& path = paths.back();
         path.links_iv.deserialize(in);
@@ -2199,7 +2223,8 @@ template<typename Backend>
 void BasePackedGraph<Backend>::eject_deleted_paths() {
     
     // Remove path names in place
-    path_names.eject(path_is_deleted_iv);
+    path_sample.eject(path_is_deleted_iv);
+    path_locus.eject(path_is_deleted_iv);
 
     uint64_t num_paths_deleted = 0;
     vector<uint64_t> paths_deleted_before(paths.size(), 0);
@@ -2215,6 +2240,10 @@ void BasePackedGraph<Backend>::eject_deleted_paths() {
         // move non-deleted paths into the front of the vectors
         if (num_paths_deleted > 0) {
             paths[i - num_paths_deleted] = std::move(paths[i]);
+            path_sense_iv.set(i - num_paths_deleted, path_sense_iv.get(i));
+            path_haplotype_iv.set(i - num_paths_deleted, path_haplotype_iv.get(i));
+            path_range_start_iv.set(i - num_paths_deleted, path_range_start_iv.get(i));
+            path_range_length_iv.set(i - num_paths_deleted, path_range_length_iv.get(i));
             path_is_deleted_iv.set(i - num_paths_deleted, path_is_deleted_iv.get(i));
             path_is_circular_iv.set(i - num_paths_deleted, path_is_circular_iv.get(i));
             path_head_iv.set(i - num_paths_deleted, path_head_iv.get(i));
@@ -2243,6 +2272,28 @@ void BasePackedGraph<Backend>::eject_deleted_paths() {
     
     // consolidate the vectors that share indexes with the paths vector (we do this to get them
     // to a tight allocation even if no paths have been deleted)
+    
+    PackedVector<> new_path_haplotype_iv;
+    new_path_haplotype_iv.reserve(paths.size());
+    for (size_t i = 0; i < paths.size(); ++i) {
+        new_path_haplotype_iv.append(path_haplotype_iv.get(i));
+    }
+    path_haplotype_iv = std::move(new_path_haplotype_iv);
+
+    decltype(path_range_start_iv) new_path_range_start_iv;
+    new_path_range_start_iv.reserve(paths.size());
+    for (size_t i = 0; i < paths.size(); ++i) {
+        new_path_range_start_iv.append(path_range_start_iv.get(i));
+    }
+    path_range_start_iv = std::move(new_path_range_start_iv);
+
+    decltype(path_range_length_iv) new_path_range_length_iv;
+    new_path_range_length_iv.reserve(paths.size());
+    for (size_t i = 0; i < paths.size(); ++i) {
+        new_path_range_length_iv.append(path_range_length_iv.get(i));
+    }
+    path_range_length_iv = std::move(new_path_range_length_iv);
+
     PackedVector<> new_path_is_deleted_iv;
     new_path_is_deleted_iv.reserve(paths.size());
     for (size_t i = 0; i < paths.size(); ++i) {
@@ -2304,17 +2355,127 @@ void BasePackedGraph<Backend>::compact_ids(const vector<handle_t>& order) {
 
 template<typename Backend>
 BasePackedGraph<Backend>::PackedPathName<> BasePackedGraph<Backend>::pack_name(const std::string& name) const {
-    return path_names.encode(name);
+    // Parse out the name into its component parts.
+    PathSense sense;
+    std::string sample;
+    std::string locus;
+    size_t haplotype;
+    subrange_t subrange;
+    PathMetadata::parse_path_name(name, sense, sample, locus, haplotype, subrange);
+
+    // Note that sense is ignored.
+
+    // Encode name and sample, or get empty vectors if they definitely aren't present.
+    auto encoded_sample = path_sample.encode(sample == PathMetadata::NO_SAMPLE ? "" : sample);
+    auto encoded_locus = path_locus.encode(locus);
+
+    return pack_name(encoded_sample, encoded_locus, haplotype, subrange);
+}
+
+
+template<typename Backend>
+BasePackedGraph<Backend>::PackedPathName<> BasePackedGraph<Backend>::pack_name(const PackedVector<>& encoded_sample, const PackedVector<>& encoded_locus, size_t haplotype, subrange_t subrange) const {
+
+    BasePackedGraph<Backend>::PackedPathName<> encoded;
+
+    if (encoded_sample.empty() && encoded_locus.empty()) {
+        // We know the sample or locus uses characters we haven't assigned, so we know the path isn't in here.
+        return encoded;
+    }
+
+    // Copy the strings into the encoded name, bumping the numbers up by 1 and using 0 as a separator.
+    for (size_t i = 0; i < encoded_sample.size(); i++) {
+        encoded.append(encoded_sample.get(i) + 1);
+    }
+    encoded.append(0);
+    for (size_t i = 0; i < encoded_locus.size(); i++) {
+        encoded.append(encoded_locus.get(i) + 1);
+    }
+    encoded.append(0);
+
+    // Copy the haplotype + 1, or 0 for no haplotype
+    encoded.append(haplotype == PathMetadata::NO_HAPLOTYPE ? 0 : (haplotype + 1));
+    
+    // Copy the path range start and length both +1, encoded as incremented
+    // digit strings terminated with 0, or 0 for none.
+    if (subrange == PathMetadata::NO_SUBRANGE) {
+        encoded.append(0);
+        encoded.append(0);
+    } else {
+        for (const char& c : std::to_string(subrange.first + 1)) {
+            encoded.append(c - '0' + 1);
+        }
+        encoded.append(0);
+        if (subrange.second != PathMetadata::NO_END_POSITION) {
+            for (const char& c : std::to_string(subrange.second - subrange.first + 1)) {
+                encoded.append(c - '0' + 1);
+            }
+        }
+        encoded.append(0);
+
+    }
+
+    return encoded;
 }
 
 template<typename Backend>
 BasePackedGraph<Backend>::PackedPathName<> BasePackedGraph<Backend>::pack_and_assign_name(const std::string& name) {
-    return path_names.encode_and_assign(name);
+    // Parse out the name into its component parts.
+    PathSense sense;
+    std::string sample;
+    std::string locus;
+    size_t haplotype;
+    subrange_t subrange;
+    PathMetadata::parse_path_name(name, sense, sample, locus, haplotype, subrange);
+
+    // Note that sense is ignored.
+
+    // Encode name and sample, allocating symbols
+    auto encoded_sample = path_sample.encode_and_assign(sample == PathMetadata::NO_SAMPLE ? "" : sample);
+    auto encoded_locus = path_locus.encode_and_assign(locus);
+
+    return pack_name(encoded_sample, encoded_locus, haplotype, subrange);
 }
 
 template<typename Backend>
 BasePackedGraph<Backend>::PackedPathName<> BasePackedGraph<Backend>::extract_packed_name(const int64_t& path_idx) const {
-    return path_names.extract_encoded(i);
+
+    // Get all the already encoded and +1'd values for the path
+    auto encoded_sample = path_sample.extract_encoded(i);
+    auto encoded_locus = path_locus.extract_encoded(i);
+    size_t incremented_haplotype = path_haplotype_iv.get(i);
+    size_t incremented_range_start = path_range_start_iv.get(i);
+    size_t incremented_range_length = path_range_length_iv.get(i);
+
+    BasePackedGraph<Backend>::PackedPathName<> encoded;
+
+    // Put them in the vector
+    for (size_t i = 0; i < encoded_sample.size(); i++) {
+        encoded.append(encoded_sample.get(i) + 1);
+    }
+    encoded.append(0);
+    for (size_t i = 0; i < encoded_locus.size(); i++) {
+        encoded.append(encoded_locus.get(i) + 1);
+    }
+    encoded.append(0);
+    
+    encoded.append(incremented_haplotype);
+
+    if (incremented_range_start > 0) {
+        for (const char& c : std::to_string(incremented_range_start)) {
+            encoded.append(c - '0' + 1);
+        }
+    }
+    encoded.append(0);
+    if (incremented_range_length > 0) {
+        for (const char& c : std::to_string(incremented_range_length)) {
+            encoded.append(c - '0' + 1);
+        }
+    }
+    encoded.append(0);
+
+    // And return it
+    return encoded;
 }
 
 template<typename Backend>
@@ -2589,7 +2750,17 @@ void BasePackedGraph<Backend>::clear(void) {
     path_membership_id_iv.clear();
     path_membership_offset_iv.clear();
     path_membership_next_iv.clear();
-    path_names.clear();
+    path_sense_iv.clear();
+    path_sample.clear();
+    path_locus.clear();
+    path_haplotype_iv.clear();
+    path_range_start_iv.clear();
+    path_range_length_iv.clear();
+    path_is_deleted_iv.clear();
+    path_is_curcular_iv.clear();
+    path_head_iv.clear();
+    path_tail_iv.clear();
+    path_deleted_steps_iv.clear();
     paths.clear();
     paths.shrink_to_fit();
     path_id.clear();
@@ -2621,7 +2792,38 @@ path_handle_t BasePackedGraph<Backend>::get_path_handle(const std::string& path_
 
 template<typename Backend>
 string BasePackedGraph<Backend>::get_path_name(const path_handle_t& path_handle) const {
-    return path_names.decode(as_integer(path_handle));
+    int64_t path_idx = as_integer(path_handle);
+
+    // Get all the stored pieces of path metadata and undo the incremented encodings.
+    PathSense sense = path_sense_iv.get(path_idx);
+    std::string sample = path_sample.decode(path_idx);
+    if (sample.empty()) {
+        sample = PathMetadata::NO_SAMPLE;
+    }
+    std::string locus = path_locus.decode(idx);
+    size_t haplotype = path_haplotype_iv.decode(path_idx);
+    if (haplotype == 0) {
+        haplotype = PathMetadata::NO_HAPLOTYPE;
+    } else {
+        haplotype--;
+    }
+    subrange_t subrange;
+    subrange.first = path_range_start_iv.decode(path_idx);
+    if (subrange.first == 0) {
+        subrange = PathMetadata::NO_SUBRANGE;
+    } else {
+        subrange.first--;
+        subrange.second = path_range_length_iv.decode(path_idx);
+        if (subrange.second == 0) {
+            subrange.second = PathMetadata::NO_END_POSITION;
+        } else {
+            subrange.second--;
+            subrange.second += subrange.first;
+        }
+    }
+
+    // Put them together into a string.
+    return PathMetadata::create_path_name(sense, sample, locus, haplotype, subrange);
 }
 
 template<typename Backend>
