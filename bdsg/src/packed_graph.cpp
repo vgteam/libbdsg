@@ -85,7 +85,7 @@ namespace bdsg {
     
     uint32_t MappedPackedGraph::get_magic_number() const {
         // Chosen by fair dice roll, guaranteed to be magic.
-        return 672226447;
+        return 219549492;
     }
     
     std::string MappedPackedGraph::get_prefix() const {
