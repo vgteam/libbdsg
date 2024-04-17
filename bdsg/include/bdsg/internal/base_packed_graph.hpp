@@ -3045,35 +3045,18 @@ path_handle_t BasePackedGraph<Backend>::create_path_handle(const string& name, b
         throw std::runtime_error("[BasePackedGraph] error: cannot create paths with no name");
     }
     
-    PackedPathName<> encoded = pack_and_assign_name(name);
-    if (path_id.count(encoded)) {
-        throw std::runtime_error("[BasePackedGraph] error: path of name " + name + " already exists, cannot create again");
-    }
+    // Parse the name to get structured metadata.
+    // TODO: Sense is guessed.
+    PathSense sense;
+    std::string sample;
+    std::string locus;
+    size_t haplotype;
+    subrange_t subrange;
+    PathMetadata::parse_path_name(name, sense, sample, locus, haplotype, subrange); 
     
-    path_id[encoded] = paths.size();
-    path_handle_t path_handle = as_path_handle(paths.size());
-    
-    // we manually handle the geometric expansion of the array so we can give it a smaller
-    // constant factor on the memory
-    if (paths.size() == paths.capacity()) {
-        size_t new_capacity = paths.capacity() * PATH_RESIZE_FACTOR;
-        if (new_capacity == paths.capacity()) {
-            new_capacity++;
-        }
-        paths.reserve(new_capacity);
-    }
-    
-    paths.emplace_back();
-    
-    path_is_circular_iv.append(is_circular);
-    path_is_deleted_iv.append(false);
-    path_head_iv.append(0);
-    path_tail_iv.append(0);
-    path_deleted_steps_iv.append(0);
-    
-    path_names.push_back(name);
-    
-    return path_handle;
+    // Delegate to the version dealing eith structured metadata
+    return create_path(sense, sample, locus, haplotype, subrange, is_circular);
+
 }
 
 template<typename Backend>
@@ -3494,7 +3477,36 @@ path_handle_t BasePackedGraph<Backend>::create_path(const PathSense& sense,
                                                     const size_t& haplotype,
                                                     const subrange_t& subrange,
                                                     bool is_circular) {
-    return create_path_handle(PathMetadata::create_path_name(sense, sample, locus, haplotype, subrange), is_circular);
+
+    PackedPathName<> encoded = pack_and_assign_name(name);
+    if (path_id.count(encoded)) {
+        throw std::runtime_error("[BasePackedGraph] error: path of name " + name + " already exists, cannot create again");
+    }
+
+    path_id[encoded] = paths.size();
+    path_handle_t path_handle = as_path_handle(paths.size());
+    
+    // we manually handle the geometric expansion of the array so we can give it a smaller
+    // constant factor on the memory
+    if (paths.size() == paths.capacity()) {
+        size_t new_capacity = paths.capacity() * PATH_RESIZE_FACTOR;
+        if (new_capacity == paths.capacity()) {
+            new_capacity++;
+        }
+        paths.reserve(new_capacity);
+    }
+    
+    paths.emplace_back();
+    
+    path_is_circular_iv.append(is_circular);
+    path_is_deleted_iv.append(false);
+    path_head_iv.append(0);
+    path_tail_iv.append(0);
+    path_deleted_steps_iv.append(0);
+    
+    path_names.push_back(name);
+    
+    return path_handle;
 }
 
 template<typename Backend>
