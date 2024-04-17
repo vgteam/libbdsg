@@ -90,8 +90,7 @@ private:
     /// We will reassign char values from the strings to small integers
     typename HashMapFor<Backend>::template type<char, uint64_t> char_assignment;
     /// The inverse mapping from integer to the char value.
-    /// TODO: Isn't this not allowed in mapped memory???
-    string inverse_char_assignment;
+    VectorFor<Backend>::template type<char> inverse_char_assignment;
 
     /// All strings, encoded according to the char assignments and concatenated in
     /// a single vector
@@ -225,7 +224,7 @@ PackedVector<> PackedStringCollection<Backend>::encode(const string& to_encode) 
 template<typename Backend>
 void PackedStringCollection<Backend>::serialize(std::ostream& out) const {
     // it's sufficient to only serialize one direction of the mapping
-    sdsl::write_member(inverse_char_assignment, out);
+    sdsl::serialize_member(inverse_char_assignment, out);
 
     strings_iv.serialize(out);
     string_start_iv.serialize(out);
@@ -234,7 +233,7 @@ void PackedStringCollection<Backend>::serialize(std::ostream& out) const {
 
 template<typename Backend>
 void PackedStringCollection<Backend>::deserialize(std::istream& in) {
-    sdsl::read_member(inverse_char_assignment, in);
+    sdsl::deserialize_member(inverse_char_assignment, in);
     // reconstruct the forward char assignments
     for (size_t i = 0; i < inverse_char_assignment.size(); ++i) {
         char_assignment[inverse_char_assignment[i]] = i;
@@ -253,7 +252,10 @@ void PackedStringCollection<Backend>::print(std::ostream& out) const {
     }
     out << endl;
     out << "inverse_char_assignment" << endl;
-    out << " " << inverse_char_assignment << endl;
+    for (size_t i = 0; i < inverse_char_assignment.size(); ++i) {
+        out << (char) inverse_char_assignment[i];
+    }
+    out << endl;
     out << "string_start_iv" << endl;
     for (size_t i = 0; i < string_start_iv.size(); ++i) {
         if (i != 0) {
@@ -280,7 +282,7 @@ void PackedStringCollection<Backend>::print(std::ostream& out) const {
 template<typename Backend>
 size_t PackedStringCollection<Backend>::memory_usage() const {
     size_t grand_total = 0;
-    size_t item_mem = sizeof(inverse_char_assignment) + inverse_char_assignment.capacity() * sizeof(char);
+    size_t item_mem = sizeof(inverse_char_assignment) + sizeof(char) * inverse_char_assignment.capacity();
     item_mem += char_assignment.bucket_count() * (sizeof(typename decltype(char_assignment)::value_type)
                                                   + sizeof(typename decltype(char_assignment)::key_type));
     item_mem += sizeof(char_assignment);
@@ -301,7 +303,7 @@ size_t PackedStringCollection<Backend>::memory_usage() const {
 template<typename Backend>
 void PackedStringCollection<Backend>::report_memory(ostream& out) const {
     
-    size_t item_mem = sizeof(inverse_char_assignment) + inverse_char_assignment.capacity() * sizeof(char);
+    size_t item_mem = sizeof(inverse_char_assignment) + sizeof(char) * inverse_char_assignment.capacity();
     item_mem += char_assignment.bucket_count() * (sizeof(typename decltype(char_assignment)::value_type)
                                                   + sizeof(typename decltype(char_assignment)::key_type));
     item_mem += sizeof(char_assignment);
