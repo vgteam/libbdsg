@@ -48,6 +48,8 @@ public:
     /// Remove any strings corresponding to entries in the given bit vector
     /// that are set. Strings get re-numbered.
     void eject(const PackedVector<Backend>& is_deleted);
+    /// Remove all strings.
+    void clear();
 
     /// Convert a string into an integer vector using only existing char assignments
     /// If the string contains previously unseen characters, returns an empty vector.
@@ -195,6 +197,13 @@ void PackedStringCollection<Backend>::eject(const PackedVector<Backend>& is_dele
         new_string_length_iv.append(string_length_iv.get(i));
     }
     string_length_iv = std::move(new_string_length_iv);
+}
+
+template<typename Backend>
+void PackedStringCollection<Backend>::clear() {
+    string_iv.clear();
+    string_start_iv.clear();
+    string_end_iv.clear();
 }
 
 template<typename Backend>
@@ -2545,6 +2554,7 @@ void BasePackedGraph<Backend>::clear(void) {
     path_membership_id_iv.clear();
     path_membership_offset_iv.clear();
     path_membership_next_iv.clear();
+    path_names.clear();
     paths.clear();
     paths.shrink_to_fit();
     path_id.clear();
