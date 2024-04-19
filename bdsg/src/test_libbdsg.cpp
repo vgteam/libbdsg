@@ -672,6 +672,7 @@ void test_serializable_handle_graphs() {
         build_graph->create_edge(build_graph->flip(h3), h4);
         
         path_handle_t p = build_graph->create_path_handle("path");
+
         build_graph->append_step(p, h1);
         build_graph->append_step(p, h2);
         build_graph->append_step(p, h4);
@@ -685,7 +686,7 @@ void test_serializable_handle_graphs() {
         assert(build_graph->get_node_count() == check_graph->get_node_count());
         assert(build_graph->get_edge_count() == check_graph->get_edge_count());
         assert(build_graph->get_path_count() == check_graph->get_path_count());
-        
+
         for (handle_t h : {h1, h2, h3, h4}) {
             assert(check_graph->has_node(build_graph->get_id(h)));
             assert(check_graph->get_sequence(check_graph->get_handle(build_graph->get_id(h))) == build_graph->get_sequence(h));

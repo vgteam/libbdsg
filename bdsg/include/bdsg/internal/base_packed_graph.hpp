@@ -235,8 +235,15 @@ PackedVector<> PackedStringCollection<Backend>::encode(const string& to_encode) 
 template<typename Backend>
 void PackedStringCollection<Backend>::serialize(std::ostream& out) const {
     // it's sufficient to only serialize one direction of the mapping
-    sdsl::write_member(inverse_char_assignment, out);
 
+    // Since this can be either an STL vector or a CompatVector, and STL vector
+    // has no serialize, we serialize manually.
+    size_t char_length = inverse_char_assignment.size();
+    out.write((const char*)&char_length, sizeof(char_length));
+    if (char_length > 0) {
+        out.write((const char*)&inverse_char_assignment[0], char_length);
+    }
+    
     strings_iv.serialize(out);
     string_start_iv.serialize(out);
     string_length_iv.serialize(out);
@@ -244,7 +251,13 @@ void PackedStringCollection<Backend>::serialize(std::ostream& out) const {
 
 template<typename Backend>
 void PackedStringCollection<Backend>::deserialize(std::istream& in) {
-    sdsl::read_member(inverse_char_assignment, in);
+    size_t char_length;
+    in.read((char*)&char_length, sizeof(char_length));
+    inverse_char_assignment.resize(char_length);
+    if (char_length > 0) {
+        in.read((char*)&inverse_char_assignment[0], char_length);
+    }
+
     // reconstruct the forward char assignments
     for (size_t i = 0; i < inverse_char_assignment.size(); ++i) {
         char_assignment[inverse_char_assignment[i]] = i;

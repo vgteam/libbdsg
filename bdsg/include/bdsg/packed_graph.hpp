@@ -72,7 +72,7 @@ public:
     void dissociate();
     
     /**
-     * Serialize us as a series of in-memory blocks shown to the given finction.
+     * Serialize us as a series of in-memory blocks shown to the given function.
      * Backs const serialization to FDs, and serialization to streams.
      */
     void serialize(const std::function<void(const void*, size_t)>& iteratee) const;
