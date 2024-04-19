@@ -2812,35 +2812,14 @@ path_handle_t BasePackedGraph<Backend>::get_path_handle(const std::string& path_
 
 template<typename Backend>
 string BasePackedGraph<Backend>::get_path_name(const path_handle_t& path_handle) const {
-    int64_t path_idx = as_integer(path_handle);
-
-    // Get all the stored pieces of path metadata and undo the incremented encodings.
-    PathSense sense = (PathSense)path_sense_iv.get(path_idx);
-    std::string sample = path_sample.decode(path_idx);
-    std::string locus = path_locus.decode(path_idx);
-    size_t haplotype = path_haplotype_iv.get(path_idx);
-    if (haplotype == 0) {
-        haplotype = PathMetadata::NO_HAPLOTYPE;
-    } else {
-        haplotype--;
-    }
-    subrange_t subrange;
-    subrange.first = path_range_start_iv.get(path_idx);
-    if (subrange.first == 0) {
-        subrange = PathMetadata::NO_SUBRANGE;
-    } else {
-        subrange.first--;
-        subrange.second = path_range_length_iv.get(path_idx);
-        if (subrange.second == 0) {
-            subrange.second = PathMetadata::NO_END_POSITION;
-        } else {
-            subrange.second--;
-            subrange.second += subrange.first;
-        }
-    }
-
-    // Put them together into a string.
-    return PathMetadata::create_path_name(sense, sample, locus, haplotype, subrange);
+    // Fetch all the parts and put them together into a string
+    return PathMetadata::create_path_name(
+        get_sense(path_handle),
+        get_sample_name(path_handle),
+        get_locus_name(path_handle),
+        get_haplotype(path_handle),
+        get_subrange(path_handle)
+    );
 }
 
 template<typename Backend>
@@ -3427,27 +3406,48 @@ void BasePackedGraph<Backend>::reassign_node_ids(const std::function<nid_t(const
 
 template<typename Backend>
 PathSense BasePackedGraph<Backend>::get_sense(const path_handle_t& handle) const {
-    return PathMetadata::parse_sense(get_path_name(handle));
+    return (PathSense)path_sense_iv.get(as_integer(handle));
 }
 
 template<typename Backend>
 std::string BasePackedGraph<Backend>::get_sample_name(const path_handle_t& handle) const {
-    return PathMetadata::parse_sample_name(get_path_name(handle));
+    return sample_name.decode(as_integer(handle));
 }
 
 template<typename Backend>
 std::string BasePackedGraph<Backend>::get_locus_name(const path_handle_t& handle) const {
-    return PathMetadata::parse_locus_name(get_path_name(handle));
+    return locus_name.decode(as_integer(handle));
 }
 
 template<typename Backend>
 size_t BasePackedGraph<Backend>::get_haplotype(const path_handle_t& handle) const {
-    return PathMetadata::parse_haplotype(get_path_name(handle));
+    size_t haplotype = path_haplotype_iv.get(as_integer(handle));
+    if (haplotype == 0) {
+        // We use - to represent no haplotype
+        return PathMetadata::NO_HAPLOTYPE;
+    } else {
+        // And otherwise we stored 1 more than the haplotype number.
+        return haplotype - 1;
+    }
 }
 
 template<typename Backend>
 subrange_t BasePackedGraph<Backend>::get_subrange(const path_handle_t& handle) const {
-    return PathMetadata::parse_subrange(get_path_name(handle));
+    subrange_t subrange;
+    subrange.first = path_range_start_iv.get(path_idx);
+    if (subrange.first == 0) {
+        subrange = PathMetadata::NO_SUBRANGE;
+    } else {
+        subrange.first--;
+        subrange.second = path_range_length_iv.get(path_idx);
+        if (subrange.second == 0) {
+            subrange.second = PathMetadata::NO_END_POSITION;
+        } else {
+            subrange.second--;
+            subrange.second += subrange.first;
+        }
+    }
+    return subrange;
 }
 
 template<typename Backend>
