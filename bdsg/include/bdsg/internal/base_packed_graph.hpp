@@ -92,7 +92,7 @@ private:
     /// We will reassign char values from the strings to small integers
     typename HashMapFor<Backend>::template type<char, uint64_t> char_assignment;
     /// The inverse mapping from integer to the char value.
-    VectorFor<Backend>::template type<char> inverse_char_assignment;
+    typename VectorFor<Backend>::template type<char> inverse_char_assignment;
 
     /// All strings, encoded according to the char assignments and concatenated in
     /// a single vector
@@ -145,7 +145,7 @@ void PackedStringCollection<Backend>::push_back(const PackedVector<>& to_add) {
     string_start_iv.append(strings_iv.size());
     string_length_iv.append(to_add.size());
     for (size_t i = 0; i < to_add.size(); ++i) {
-        strings_iv.append(to_add.at(i));
+        strings_iv.append(to_add.get(i));
     }
 }
 
@@ -211,9 +211,9 @@ void PackedStringCollection<Backend>::eject(const PackedVector<Backend>& is_dele
 
 template<typename Backend>
 void PackedStringCollection<Backend>::clear() {
-    string_iv.clear();
+    strings_iv.clear();
     string_start_iv.clear();
-    string_end_iv.clear();
+    string_length_iv.clear();
 }
 
 template<typename Backend>
@@ -235,7 +235,7 @@ PackedVector<> PackedStringCollection<Backend>::encode(const string& to_encode) 
 template<typename Backend>
 void PackedStringCollection<Backend>::serialize(std::ostream& out) const {
     // it's sufficient to only serialize one direction of the mapping
-    sdsl::serialize_member(inverse_char_assignment, out);
+    sdsl::write_member(inverse_char_assignment, out);
 
     strings_iv.serialize(out);
     string_start_iv.serialize(out);
@@ -244,7 +244,7 @@ void PackedStringCollection<Backend>::serialize(std::ostream& out) const {
 
 template<typename Backend>
 void PackedStringCollection<Backend>::deserialize(std::istream& in) {
-    sdsl::deserialize_member(inverse_char_assignment, in);
+    sdsl::read_member(inverse_char_assignment, in);
     // reconstruct the forward char assignments
     for (size_t i = 0; i < inverse_char_assignment.size(); ++i) {
         char_assignment[inverse_char_assignment[i]] = i;
@@ -964,7 +964,7 @@ private:
     /// All path senses.
     PackedVector<Backend> path_sense_iv;
     /// All path samples in a collection of numbered strings.
-    /// The empty string is used for NO_SAMPLE.
+    /// The empty string is used for NO_SAMPLE_NAME.
     PackedStringCollection<Backend> path_sample;
     /// All path loci in a collection of numbered strings.
     PackedStringCollection<Backend> path_locus;
@@ -2365,7 +2365,7 @@ void BasePackedGraph<Backend>::compact_ids(const vector<handle_t>& order) {
 }
 
 template<typename Backend>
-BasePackedGraph<Backend>::PackedPathName<> BasePackedGraph<Backend>::pack_name(const std::string& name) const {
+typename BasePackedGraph<Backend>::template PackedPathName<> BasePackedGraph<Backend>::pack_name(const std::string& name) const {
     // Parse out the name into its component parts.
     PathSense sense;
     std::string sample;
@@ -2377,7 +2377,7 @@ BasePackedGraph<Backend>::PackedPathName<> BasePackedGraph<Backend>::pack_name(c
     // Note that sense is ignored.
 
     // Encode name and sample, or get empty vectors if they definitely aren't present.
-    auto encoded_sample = path_sample.encode(sample == PathMetadata::NO_SAMPLE ? "" : sample);
+    auto encoded_sample = path_sample.encode(sample == PathMetadata::NO_SAMPLE_NAME ? "" : sample);
     auto encoded_locus = path_locus.encode(locus);
 
     return pack_name(encoded_sample, encoded_locus, haplotype, subrange);
@@ -2385,7 +2385,7 @@ BasePackedGraph<Backend>::PackedPathName<> BasePackedGraph<Backend>::pack_name(c
 
 
 template<typename Backend>
-BasePackedGraph<Backend>::PackedPathName<> BasePackedGraph<Backend>::pack_name(const PackedVector<>& encoded_sample, const PackedVector<>& encoded_locus, size_t haplotype, subrange_t subrange) const {
+typename BasePackedGraph<Backend>::template PackedPathName<> BasePackedGraph<Backend>::pack_name(const PackedVector<>& encoded_sample, const PackedVector<>& encoded_locus, size_t haplotype, subrange_t subrange) const {
 
     BasePackedGraph<Backend>::PackedPathName<> encoded;
 
@@ -2430,7 +2430,7 @@ BasePackedGraph<Backend>::PackedPathName<> BasePackedGraph<Backend>::pack_name(c
 }
 
 template<typename Backend>
-BasePackedGraph<Backend>::PackedPathName<> BasePackedGraph<Backend>::pack_and_assign_name(const std::string& name) {
+typename BasePackedGraph<Backend>::template PackedPathName<> BasePackedGraph<Backend>::pack_and_assign_name(const std::string& name) {
     // Parse out the name into its component parts.
     PathSense sense;
     std::string sample;
@@ -2442,14 +2442,14 @@ BasePackedGraph<Backend>::PackedPathName<> BasePackedGraph<Backend>::pack_and_as
     // Note that sense is ignored.
 
     // Encode name and sample, allocating symbols
-    auto encoded_sample = path_sample.encode_and_assign(sample == PathMetadata::NO_SAMPLE ? "" : sample);
+    auto encoded_sample = path_sample.encode_and_assign(sample == PathMetadata::NO_SAMPLE_NAME ? "" : sample);
     auto encoded_locus = path_locus.encode_and_assign(locus);
 
     return pack_name(encoded_sample, encoded_locus, haplotype, subrange);
 }
 
 template<typename Backend>
-BasePackedGraph<Backend>::PackedPathName<> BasePackedGraph<Backend>::extract_packed_name(const int64_t& path_idx) const {
+typename BasePackedGraph<Backend>::template PackedPathName<> BasePackedGraph<Backend>::extract_packed_name(const int64_t& path_idx) const {
 
     // Get all the already encoded and +1'd values for the path
     auto encoded_sample = path_sample.extract_encoded(i);
@@ -2809,7 +2809,7 @@ string BasePackedGraph<Backend>::get_path_name(const path_handle_t& path_handle)
     PathSense sense = path_sense_iv.get(path_idx);
     std::string sample = path_sample.decode(path_idx);
     if (sample.empty()) {
-        sample = PathMetadata::NO_SAMPLE;
+        sample = PathMetadata::NO_SAMPLE_NAME;
     }
     std::string locus = path_locus.decode(idx);
     size_t haplotype = path_haplotype_iv.decode(path_idx);
@@ -3490,7 +3490,7 @@ path_handle_t BasePackedGraph<Backend>::create_path(const PathSense& sense,
                                                     bool is_circular) {
 
     // Encode name and sample, allocating symbols
-    auto encoded_sample = path_sample.encode_and_assign(sample == PathMetadata::NO_SAMPLE ? "" : sample);
+    auto encoded_sample = path_sample.encode_and_assign(sample == PathMetadata::NO_SAMPLE_NAME ? "" : sample);
     auto encoded_locus = path_locus.encode_and_assign(locus);
 
     PackedPathName<> encoded = pack_name(encoded_sample, encoded_locus, haplotype, subrange);
