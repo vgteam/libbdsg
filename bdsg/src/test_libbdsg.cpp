@@ -2706,6 +2706,157 @@ void test_mutable_path_handle_graphs() {
     cerr << "MutablePathDeletableHandleGraph tests successful!" << endl;
 }
 
+void test_path_metadata() {
+    
+    // Actually we test mutable graphs with mutable path metadata
+    vector<MutablePathDeletableHandleGraph*> implementations;
+    
+    PackedGraph pg;
+    implementations.push_back(&pg);
+    
+    HashGraph hg;
+    implementations.push_back(&hg);
+
+    MappedPackedGraph mpg;
+    implementations.push_back(&mpg);
+    
+    for (MutablePathDeletableHandleGraph* implementation : implementations) {
+
+        MutablePathDeletableHandleGraph& graph = *implementation;
+
+        handle_t h1 = graph.create_handle("AC");
+        handle_t h2 = graph.create_handle("CAGTGA");
+        handle_t h3 = graph.create_handle("GT");
+
+        graph.create_edge(h1, h2);
+        graph.create_edge(h2, h3);
+        graph.create_edge(h1, graph.flip(h2));
+        graph.create_edge(graph.flip(h2), h3);
+
+        size_t path_count = 0;
+        graph.for_each_path_matching(nullptr, nullptr, nullptr, nullptr, [&](const path_handle_t& p) {
+            path_count++;
+        });
+        assert(path_count == 0);
+
+        assert(!graph.has_path("1"));
+        assert(!graph.has_path("GRCh38#0#chr1"));
+        assert(!graph.has_path("GRCh38#0#chr1:1-100"));
+
+        path_handle_t p1 = graph.create_path(PathSense::REFERENCE, "GRCh38", "chr1", 0, {0, 100});
+        graph.append_step(p1, h1);
+        graph.append_step(p1, h2);
+        graph.append_step(p1, h3);
+
+        assert(graph.get_sense(p1) == PathSense::REFERENCE);
+        assert(graph.get_sample_name(p1) == "GRCh38");
+        assert(graph.get_locus_name(p1) == "chr1");
+        assert(graph.get_haplotype(p1) == 0);
+        assert(graph.get_subrange(p1) == subrange_t(0, 100));
+
+        assert(graph.get_path_scaffold_name(p1) == "GRCh38#0#chr1");
+
+        // This is what the name should come out to now.
+        // Note the coordinate conversion.
+        assert(graph.get_path_name(p1) == "GRCh38#0#chr1:1-100");
+
+        path_handle_t p2 = graph.create_path(PathSense::HAPLOTYPE, "HG002", "chr1", 1, PathMetadata::NO_SUBRANGE);
+        graph.append_step(p2, h1);
+        graph.append_step(p2, graph.flip(h2));
+
+        assert(graph.get_sense(p2) == PathSense::HAPLOTYPE);
+        assert(graph.get_sample_name(p2) == "HG002");
+        assert(graph.get_locus_name(p2) == "chr1");
+        assert(graph.get_haplotype(p2) == 1);
+        assert(graph.get_subrange(p2) == PathMetadata::NO_SUBRANGE);
+
+        assert(graph.get_path_scaffold_name(p2) == "HG002#1#chr1");
+
+        assert(graph.get_path_name(p2) == "HG002#1#chr1");
+
+        path_handle_t p3 = graph.create_path(PathSense::HAPLOTYPE, "HG002", "chr1", 2, PathMetadata::NO_SUBRANGE);
+
+        assert(graph.get_sense(p3) == PathSense::HAPLOTYPE);
+        assert(graph.get_sample_name(p3) == "HG002");
+        assert(graph.get_locus_name(p3) == "chr1");
+        assert(graph.get_haplotype(p3) == 2);
+        assert(graph.get_subrange(p3) == PathMetadata::NO_SUBRANGE);
+
+        assert(graph.get_path_scaffold_name(p3) == "HG002#2#chr1");
+
+        assert(graph.get_path_name(p3) == "HG002#2#chr1");
+
+        path_handle_t p4 = graph.create_path(PathSense::GENERIC, PathMetadata::NO_SAMPLE_NAME, "thing", PathMetadata::NO_HAPLOTYPE, PathMetadata::NO_SUBRANGE);
+
+        assert(graph.get_sense(p4) == PathSense::GENERIC);
+        assert(graph.get_sample_name(p4) == PathMetadata::NO_SAMPLE_NAME);
+        assert(graph.get_locus_name(p4) == "thing");
+        assert(graph.get_haplotype(p4) == PathMetadata::NO_HAPLOTYPE);
+        assert(graph.get_subrange(p4) == PathMetadata::NO_SUBRANGE);
+
+        assert(graph.get_path_scaffold_name(p4) == "thing");
+
+        assert(graph.get_path_name(p4) == "thing");
+
+        
+        // Search with no constraints sees everything
+        path_count = 0;
+        graph.for_each_path_matching({}, {}, {}, {}, [&](const path_handle_t& p) {
+            path_count++;
+        });
+        assert(path_count == 4);
+
+        // Search for haplotypes sees only haplotypes
+        path_count = 0;
+        graph.for_each_path_matching({PathSense::HAPLOTYPE}, {}, {}, {}, [&](const path_handle_t& p) {
+            assert(p == p2 || p == p3);
+            path_count++;
+        });
+        assert(path_count == 2);
+
+        // Search for all paths on haplotype 1 finds the one path
+        path_count = 0;
+        graph.for_each_path_matching({}, {}, {}, {1}, [&](const path_handle_t& p) {
+            assert(p == p2);
+            path_count++;
+        });
+        assert(path_count == 1);
+
+        // Search for all paths on chr1 finds the reference and the 2 haplotypes
+        path_count = 0;
+        graph.for_each_path_matching({}, {}, {"chr1"}, {}, [&](const path_handle_t& p) {
+            assert(p == p1 || p == p2 || p == p3);
+            path_count++;
+        });
+        assert(path_count == 3);
+
+        // Search for exactly each path finds only it (since we don't have multiple subranges on a scaffold
+        graph.for_each_path_handle([&](const path_handle_t to_find) {
+            size_t results = 0;
+            graph.for_each_path_matching({graph.get_sense(to_find)}, {graph.get_sample_name(to_find)}, {graph.get_locus_name(to_find)}, {graph.get_haplotype(to_find)}, [&](const path_handle_t& p) {
+                assert(p == to_find);
+                results++;
+            });
+            assert(results == 1);
+        });
+
+        // Add more subranges to a scaffold
+        path_handle_t p5 = graph.create_path(PathSense::REFERENCE, "GRCh38", "chr1", 0, {200, 300});
+        
+        // Now we should be able to look them both up by scaffold
+        path_count = 0;
+        graph.for_each_path_on_scaffold("GRCh38#0#chr1", [&](const path_handle_t& p) {
+            assert(p == p1 || p == p5);
+            path_count++;
+        });
+        assert(path_count == 2);
+        
+
+    }
+
+    cerr << "PathMetadata tests successful!" << endl;
+}
+
 template<typename PackedVectorImpl>
 void test_packed_vector() {
     enum vec_op_t {SET = 0, GET = 1, APPEND = 2, POP = 3, SERIALIZE = 4};
@@ -4428,6 +4579,7 @@ int main(void) {
     test_packed_set();
     test_deletable_handle_graphs();
     test_mutable_path_handle_graphs();
+    test_path_metadata();
     test_serializable_handle_graphs();
     test_packed_graph();
     test_path_position_overlays();
