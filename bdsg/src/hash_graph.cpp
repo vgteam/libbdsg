@@ -502,7 +502,7 @@ namespace bdsg {
     }
     
     string HashGraph::get_path_name(const path_handle_t& path_handle) const {
-        return paths.at(as_integer(path_handle)).name;
+        return paths.at(as_integer(path_handle)).name();
     }
     
     bool HashGraph::get_is_circular(const path_handle_t& path_handle) const {
@@ -609,15 +609,20 @@ namespace bdsg {
         });
         
         // erase the path itself
-        path_id.erase(paths[as_integer(path)].name);
+        path_id.erase(paths[as_integer(path)].name());
         paths.erase(as_integer(path));
     }
     
     path_handle_t HashGraph::create_path_handle(const string& name, bool is_circular) {
-        path_id[name] = next_path_id;
-        paths[next_path_id] = path_t(name, next_path_id, is_circular);
-        next_path_id++;
-        return as_path_handle(next_path_id - 1);
+        // Parse out the name into its component parts.
+        PathSense sense;
+        std::string sample;
+        std::string locus;
+        size_t haplotype;
+        subrange_t subrange;
+        PathMetadata::parse_path_name(name, sense, sample, locus, haplotype, subrange);
+
+        return create_path(sense, sample, locus, haplotype, subrange);
     }
     
     step_handle_t HashGraph::append_step(const path_handle_t& path, const handle_t& to_append) {
@@ -781,16 +786,49 @@ namespace bdsg {
         max_id = new_max_id;
         min_id = new_min_id;
     }
+
+    PathSense HashGraph::get_sense(const path_handle_t& handle) const {
+        return paths.at(as_integer(handle)).sense;
+    }
+    
+    std::string HashGraph::get_sample_name(const path_handle_t& handle) const {
+        return paths.at(as_integer(handle)).sample;
+    }
+    
+    std::string HashGraph::get_locus_name(const path_handle_t& handle) const {
+        return paths.at(as_integer(handle)).locus;
+    }
+    
+    size_t HashGraph::get_haplotype(const path_handle_t& handle) const {
+        return paths.at(as_integer(handle)).haplotype;
+    }
+    
+    subrange_t HashGraph::get_subrange(const path_handle_t& handle) const {
+        return paths.at(as_integer(handle)).subrange;
+    }
+
+    path_handle_t HashGraph::create_path(const PathSense& sense,
+                                         const std::string& sample,
+                                         const std::string& locus,
+                                         const size_t& haplotype,
+                                         const subrange_t& subrange,
+                                         bool is_circular) {
+    
+        paths[next_path_id] = path_t(sense, sample, locus, haplotype, subrange, next_path_id, is_circular);
+        path_id[paths[next_path_id].name()] = next_path_id;
+        next_path_id++;
+        return as_path_handle(next_path_id - 1);
+    }
     
     HashGraph::path_t::path_t() {
         
     }
     
-    HashGraph::path_t::path_t(const string& name, const int64_t& path_id, bool is_circular) : name(name), path_id(path_id), is_circular(is_circular) {
+    HashGraph::path_t::path_t(const PathSense& sense, const std::string& sample, const std::string& locus, const size_t& haplotype, const subrange_t& subrange, const int64_t& path_id, bool is_circular) : sense(sense), sample(sample), locus(locus), haplotype(haplotype), subrange(subrange), path_id(path_id), is_circular(is_circular) {
         
     }
     
-    HashGraph::path_t::path_t(path_t&& other) : head(other.head), tail(other.tail), path_id(other.path_id), count(other.count), name(std::move(other.name)), is_circular(other.is_circular) {
+    HashGraph::path_t::path_t(path_t&& other) : head(other.head), tail(other.tail), path_id(other.path_id), count(other.count), sense(std::move(other.sense)), sample(std::move(other.sample)), locus(std::move(other.locus)), haplotype(other.haplotype), subrange(other.subrange), is_circular(other.is_circular) {
         // we grabbed the data in the initializer, now make sure the other one is in a valid state
         other.head = nullptr;
         other.tail = nullptr;
@@ -809,7 +847,11 @@ namespace bdsg {
             other.head = nullptr;
             other.tail = nullptr;
             
-            name = std::move(other.name);
+            sense = other.sense;
+            sample = std::move(other.sample);
+            locus = std::move(other.locus);
+            haplotype = other.haplotype;
+            subrange = other.subrange;
             
             is_circular = other.is_circular;
             
@@ -822,7 +864,7 @@ namespace bdsg {
         return *this;
     }
     
-    HashGraph::path_t::path_t(const path_t& other) : path_id(other.path_id), count(other.count), name(other.name), is_circular(other.is_circular) {
+    HashGraph::path_t::path_t(const path_t& other) : path_id(other.path_id), count(other.count), sense(other.sense), sample(other.sample), locus(other.locus), haplotype(other.haplotype), subrange(other.subrange), is_circular(other.is_circular) {
         
         path_mapping_t* prev = nullptr;
         bool first_iter = true;
@@ -880,7 +922,11 @@ namespace bdsg {
             
             // copy the rest of the info
             path_id = other.path_id;
-            name = other.name;
+            sense = other.sense;
+            sample = other.sample;
+            locus = other.locus;
+            haplotype = other.haplotype;
+            subrange = other.subrange;
             count = other.count;
             is_circular = other.is_circular;
             
@@ -979,25 +1025,20 @@ namespace bdsg {
         
         out.write((const char*) &is_circular, sizeof(is_circular) / sizeof(char));
         
-        int64_t path_id_out = endianness<int64_t>::to_big_endian(path_id);
-        out.write((const char*) &path_id_out, sizeof(path_id_out) / sizeof(char));
-        
-        uint64_t name_size_out = endianness<uint64_t>::to_big_endian(name.size());
-        out.write((const char*) &name_size_out, sizeof(name_size_out) / sizeof(char));
-
-        out.write(name.c_str(), name.size());
-        
-        uint64_t count_out = endianness<uint64_t>::to_big_endian(count);
-        out.write((const char*) &count_out, sizeof(count_out) / sizeof(char));
+        write_number(path_id, out);
+        write_number((uint64_t) sense, out);
+        write_string(sample, out);
+        write_string(locus, out);
+        write_number(haplotype, out);
+        write_number(subrange.first, out);
+        write_number(subrange.second, out);
+        write_number(count, out);
         
         path_mapping_t* mapping = head;
         bool first_iter = true;
         while (mapping && (first_iter || mapping != head)) { // extra condition for circular paths
-            int64_t step = endianness<int64_t>::to_big_endian(as_integer(mapping->handle));
-
-            out.write((const char*) &step, sizeof(step) / sizeof(char));
+            write_number(as_integer(mapping->handle), out);
             mapping = mapping->next;
-            
             first_iter = false;
         }
     }
@@ -1007,51 +1048,44 @@ namespace bdsg {
         this->~path_t();
         in.read((char*) &is_circular, sizeof(is_circular) / sizeof(char));
         
-        int64_t path_id_in;
-        in.read((char*) &path_id_in, sizeof(path_id_in) / sizeof(char));
-        path_id = endianness<int64_t>::from_big_endian(path_id_in);
+        read_number(path_id, in);
         
-        uint64_t name_size_in;
-        in.read((char*) &name_size_in, sizeof(name_size_in) / sizeof(char));
-        uint64_t name_size = endianness<uint64_t>::from_big_endian(name_size_in);
-        
-        name.resize(name_size);
-        for (size_t i = 0; i < name.size(); i++) {
-            in.read((char*) &name[i], sizeof(char));
-        }
-        
-        uint64_t num_mappings_in;
-        in.read((char*) &num_mappings_in, sizeof(num_mappings_in) / sizeof(char));
-        uint64_t num_mappings = endianness<uint64_t>::from_big_endian(num_mappings_in);
+        uint64_t sense_in;
+        read_number(sense_in, in);
+        sense = (PathSense) sense_in;
+        read_string(sample, in);
+        read_string(locus, in);
+        read_number(haplotype, in);
+        read_number(subrange.first, in);
+        read_number(subrange.second, in);
+
+        size_t num_mappings;
+        read_number(num_mappings, in);
         
         // note: count will be incremented in the push_back method
         count = 0;
         for (size_t i = 0; i < num_mappings; i++) {
-            int64_t step_in;
-            in.read((char*) &step_in, sizeof(step_in) / sizeof(char));
-            int64_t step = endianness<int64_t>::from_big_endian(step_in);
-            push_back(as_handle(step));
+            handle_t step;
+            read_number(as_integer(step), in);
+            push_back(step);
         }
+    }
+
+    std::string HashGraph::path_t::name() const {
+        return PathMetadata::create_path_name(sense, sample, locus, haplotype, subrange);
     }
     
     void HashGraph::node_t::serialize(ostream& out) const {
         
-        uint64_t seq_size_out = endianness<uint64_t>::to_big_endian( sequence.size());
-        out.write((const char*) &seq_size_out, sizeof(seq_size_out) / sizeof(char));
-        out.write(sequence.c_str(), sequence.size());
-        
-        uint64_t left_edges_size_out = endianness<uint64_t>::to_big_endian(left_edges.size());
-        out.write((const char*) &left_edges_size_out, sizeof(left_edges_size_out) / sizeof(char));
+        write_string(sequence, out);
+        write_number(left_edges.size(), out); 
         for (size_t i = 0; i < left_edges.size(); i++) {
-            int64_t next_out = endianness<int64_t>::to_big_endian(as_integer(left_edges[i]));
-            out.write((const char*) &next_out, sizeof(next_out) / sizeof(char));
+            write_number(as_integer(left_edges[i]), out);
         }
         
-        uint64_t right_edges_size_out = endianness<uint64_t>::to_big_endian(right_edges.size());
-        out.write((const char*) &right_edges_size_out, sizeof(right_edges_size_out) / sizeof(char));
+        write_number(right_edges.size(), out); 
         for (size_t i = 0; i < right_edges.size(); i++) {
-            int64_t next_out = endianness<int64_t>::to_big_endian(as_integer(right_edges[i]));
-            out.write((const char*) &next_out, sizeof(next_out) / sizeof(char));
+             write_number(as_integer(right_edges[i]), out);
         }
         
         // don't serialize the occurrences, since they are redundant information with the actual
@@ -1060,58 +1094,35 @@ namespace bdsg {
     
     void HashGraph::node_t::deserialize(istream& in) {
         
-        uint64_t seq_size_in;
-        in.read((char*) &seq_size_in, sizeof(seq_size_in) / sizeof(char));
-        uint64_t seq_size = endianness<uint64_t>::from_big_endian(seq_size_in);
-        sequence.resize(seq_size);
-        for (size_t i = 0; i < sequence.size(); i++) {
-            in.read((char*) &sequence[i], sizeof(char));
-        }
-        
-        uint64_t num_left_edges_in;
-        in.read((char*) &num_left_edges_in, sizeof(num_left_edges_in) / sizeof(char));
-        uint64_t num_left_edges = endianness<uint64_t>::from_big_endian(num_left_edges_in);
+        read_string(sequence, in);
+
+        size_t num_left_edges;
+        read_number(num_left_edges, in);
         left_edges.resize(num_left_edges);
         for (size_t i = 0; i < left_edges.size(); i++) {
-            int64_t next_in;
-            in.read((char*) &next_in, sizeof(next_in) / sizeof(char));
-            int64_t next = endianness<int64_t>::from_big_endian(next_in);
-            left_edges[i] = as_handle(next);
+            read_number(as_integer(left_edges[i]), in);
         }
-        
-        uint64_t num_right_edges_in;
-        in.read((char*) &num_right_edges_in, sizeof(num_right_edges_in) / sizeof(char));
-        uint64_t num_right_edges = endianness<uint64_t>::from_big_endian(num_right_edges_in);
+
+        size_t num_right_edges;
+        read_number(num_right_edges, in);
         right_edges.resize(num_right_edges);
         for (size_t i = 0; i < right_edges.size(); i++) {
-            int64_t next_in;
-            in.read((char*) &next_in, sizeof(next_in) / sizeof(char));
-            int64_t next = endianness<int64_t>::from_big_endian(next_in);
-            right_edges[i] = as_handle(next);
+            read_number(as_integer(right_edges[i]), in);
         }
     }
     
     void HashGraph::serialize_members(ostream& out) const {
-        nid_t max_id_out = endianness<nid_t>::to_big_endian(max_id);
-        out.write((const char*) &max_id_out, sizeof(max_id_out) / sizeof(char));
-        
-        nid_t min_id_out = endianness<nid_t>::to_big_endian(min_id);
-        out.write((const char*) &min_id_out, sizeof(min_id_out) / sizeof(char));
-        
-        int64_t next_path_id_out = endianness<int64_t>::to_big_endian(next_path_id);
-        out.write((const char*) &next_path_id_out, sizeof(next_path_id_out) / sizeof(char));
-        
-        uint64_t graph_size_out = endianness<uint64_t>::to_big_endian(graph.size());
-        out.write((const char*) &graph_size_out, sizeof(graph_size_out) / sizeof(char));
-        
+        write_number(max_id, out);
+        write_number(min_id, out);
+        write_number(next_path_id, out);
+
+        write_number(graph.size(), out);
         for (const pair<nid_t, node_t>& node_record : graph) {
-            nid_t node_id_out = endianness<nid_t>::to_big_endian(node_record.first);
-            out.write((const char*) &node_id_out, sizeof(node_id_out) / sizeof(char));
+            write_number(node_record.first, out);
             node_record.second.serialize(out);
         }
         
-        uint64_t paths_size_out = endianness<uint64_t>::to_big_endian(paths.size());
-        out.write((const char*) &paths_size_out, sizeof(paths_size_out) / sizeof(char));
+        write_number(paths.size(), out);
         for (const pair<int64_t, path_t>& path_record : paths) {
             path_record.second.serialize(out);
         }
@@ -1120,40 +1131,27 @@ namespace bdsg {
     void HashGraph::deserialize_members(istream& in) {
         clear();
         
-        nid_t max_id_in;
-        in.read((char*) &max_id_in, sizeof(max_id_in) / sizeof(char));
-        max_id = endianness<nid_t>::from_big_endian(max_id_in);
+        read_number(max_id, in);
+        read_number(min_id, in);
+        read_number(next_path_id, in);
         
-        nid_t min_id_in;
-        in.read((char*) &min_id_in, sizeof(min_id_in) / sizeof(char));
-        min_id = endianness<nid_t>::from_big_endian(min_id_in);
-        
-        int64_t next_path_id_in;
-        in.read((char*) &next_path_id_in, sizeof(next_path_id_in) / sizeof(char));
-        next_path_id = endianness<int64_t>::from_big_endian(next_path_id_in);
-        
-        uint64_t num_nodes_in;
-        in.read((char*) &num_nodes_in, sizeof(num_nodes_in) / sizeof(char));
-        uint64_t num_nodes = endianness<uint64_t>::from_big_endian(num_nodes_in);
-        
+        size_t num_nodes;
+        read_number(num_nodes, in);
         graph.reserve(num_nodes);
         for (size_t i = 0; i < num_nodes; i++) {
-            nid_t node_id_in;
-            in.read((char*) &node_id_in, sizeof(node_id_in) / sizeof(char));
-            nid_t node_id = endianness<nid_t>::from_big_endian(node_id_in);
+            nid_t node_id;
+            read_number(node_id, in);
             graph[node_id].deserialize(in);
         }
         
-        uint64_t num_paths_in;
-        in.read((char*) &num_paths_in, sizeof(num_paths_in) / sizeof(char));
-        uint64_t num_paths = endianness<uint64_t>::from_big_endian(num_paths_in);
-        
+        size_t num_paths;
+        read_number(num_paths, in);
         paths.reserve(num_paths);
         path_id.reserve(num_paths);
         for (size_t i = 0; i < num_paths; i++) {
             path_t path;
             path.deserialize(in);
-            path_id[path.name] = path.path_id;
+            path_id[path.name()] = path.path_id;
             paths[path.path_id] = std::move(path);
         }
         
@@ -1173,9 +1171,22 @@ namespace bdsg {
     }
 
     uint32_t HashGraph::get_magic_number() const {
-        return 676155192ul;
+        return 212981017ul;
     }
     
+    void HashGraph::write_string(const std::string& str, std::ostream& out) {
+        write_number(str.size(), out);
+        out.write(str.c_str(), str.size());
+    }
+    void HashGraph::read_string(std::string& str, std::istream& in) {
+        size_t size;
+        read_number(size, in);
+        str.resize(size);
+        for (size_t i = 0; i < str.size(); i++) {
+            in.read((char*) &str[i], sizeof(char));
+        }
+    }
+
     handle_t HashGraph::set_id(const handle_t& handle, nid_t new_id) {
         bool is_reverse = handlegraph::number_bool_packing::unpack_bit(handle);
         return handlegraph::number_bool_packing::pack(new_id, is_reverse);

@@ -154,8 +154,8 @@ public:
         return this->get()->get_locus_name(handle);
     }
     
-    /// Get the haplotype number (0 or 1, for diploid) of the path-or-thread,
-    /// or NO_HAPLOTYPE if it does not belong to one.
+    /// Get the haplotype number (0 for haploid, 1 or 2 for diploid) of the
+    /// path-or-thread, or NO_HAPLOTYPE if it does not belong to one.
     virtual size_t get_haplotype(const path_handle_t& handle) const {
         return this->get()->get_haplotype(handle);
     }
@@ -173,16 +173,6 @@ public:
     
 protected:
     
-    /// Loop through all the paths matching the given query. Query elements
-    /// which are null match everything. Returns false and stops if the
-    /// iteratee returns false.
-    virtual bool for_each_path_matching_impl(const std::unordered_set<PathSense>* senses,
-                                             const std::unordered_set<std::string>* samples,
-                                             const std::unordered_set<std::string>* loci,
-                                             const std::function<bool(const path_handle_t&)>& iteratee) const {
-        return this->get()->for_each_path_matching(senses, samples, loci, iteratee);
-    }
-
     /// Loop through all the paths matching the given query. Query elements
     /// which are null match everything. Returns false and stops if the
     /// iteratee returns false.

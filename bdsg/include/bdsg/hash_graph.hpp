@@ -335,6 +335,43 @@ public:
      */
     void reassign_node_ids(const std::function<nid_t(const nid_t&)>& get_new_id);
 
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Path metadata interface
+    ////////////////////////////////////////////////////////////////////////////
+
+    /// What is the given path meant to be representing?
+    virtual PathSense get_sense(const path_handle_t& handle) const;
+    
+    /// Get the name of the sample or assembly asociated with the
+    /// path-or-thread, or NO_SAMPLE_NAME if it does not belong to one.
+    virtual std::string get_sample_name(const path_handle_t& handle) const;
+    
+    /// Get the name of the contig or gene asociated with the path-or-thread,
+    /// or NO_LOCUS_NAME if it does not belong to one.
+    virtual std::string get_locus_name(const path_handle_t& handle) const;
+    
+    /// Get the haplotype number (0 for haploid, 1 or 2 for diploid) of the
+    /// path-or-thread, or NO_HAPLOTYPE if it does not belong to one.
+    virtual size_t get_haplotype(const path_handle_t& handle) const;
+    
+    /// Get the bounds of the path-or-thread that are actually represented
+    /// here. Should be NO_SUBRANGE if the entirety is represented here, and
+    /// 0-based inclusive start and exclusive end positions of the stored 
+    /// region on the full path-or-thread if a subregion is stored.
+    ///
+    /// If no end position is stored, NO_END_POSITION may be returned for the
+    /// end position.
+    virtual subrange_t get_subrange(const path_handle_t& handle) const;
+
+    /// Create a new path with the given metadata.
+    virtual path_handle_t create_path(const PathSense& sense,
+                                      const std::string& sample,
+                                      const std::string& locus,
+                                      const size_t& haplotype,
+                                      const subrange_t& subrange,
+                                      bool is_circular = false);
+
     ////////////////////////////////////////////////////////////////////////////
     // I/O helper function
     ////////////////////////////////////////////////////////////////////////////
@@ -344,6 +381,17 @@ public:
     
 private:
     
+    // Utility functions for serialization.
+    // The number functions need to use template logic to make sure all signed
+    // numbers become int64_t and all unsigned numbers become uint64_t.
+
+    template<typename Number>
+    static void write_number(const Number& number, std::ostream& out);
+    template<typename Number>
+    static void read_number(Number& number, std::istream& in);
+
+    static void write_string(const std::string& str, std::ostream& out);
+    static void read_string(std::string& str, std::istream& in);
     
     /*
      * A linked list record representing a single node in an embedded path
@@ -386,7 +434,7 @@ private:
     public:
         
         path_t();
-        path_t(const string& name, const int64_t& path_id, bool is_circular = false);
+        path_t(const PathSense& sense, const std::string& sample, const std::string& locus, const size_t& haplotype, const subrange_t& subrange, const int64_t& path_id, bool is_circular = false);
         
         /// Move constructor
         path_t(path_t&& other);
@@ -421,12 +469,19 @@ private:
         
         /// Read the path (in the format written by serialize()) from an in stream.
         void deserialize(istream& in);
-        
+
+        /// Get the name of this path
+        std::string name() const;
+
         path_mapping_t* head = nullptr;
         path_mapping_t* tail = nullptr;
         size_t count = 0;
         int64_t path_id = 0;
-        string name;
+        PathSense sense = PathSense::GENERIC;
+        string sample = NO_SAMPLE_NAME;
+        string locus;
+        size_t haplotype = NO_HAPLOTYPE;
+        subrange_t subrange = NO_SUBRANGE;
         bool is_circular = false;
     };
     
@@ -457,8 +512,23 @@ public:
     HashGraph(HashGraph&& other);
     HashGraph& operator=(HashGraph&& other);
 };
-    
-    
+
+template<typename Number>
+void HashGraph::write_number(const Number& number, std::ostream& out) {
+    // Decide whether we want the signed or unsigned 64-bit int
+    using on_disk_t = typename std::conditional<std::is_signed<Number>::value, int64_t, uint64_t>::type;
+    on_disk_t number_out = endianness<on_disk_t>::to_big_endian((on_disk_t)number);
+    out.write((const char*) &number_out, sizeof(number_out) / sizeof(char));
+}
+
+template<typename Number>
+void HashGraph::read_number(Number& number, std::istream& in) {
+    // Decide whether we want the signed or unsigned 64-bit int
+    using on_disk_t = typename std::conditional<std::is_signed<Number>::value, int64_t, uint64_t>::type;
+    on_disk_t number_in;
+    in.read((char*) &number_in, sizeof(number_in) / sizeof(char));
+    number = (Number) endianness<on_disk_t>::from_big_endian(number_in);
+}   
 
 } // end dankness
 

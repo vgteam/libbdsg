@@ -755,7 +755,7 @@ public:
     /// or NO_LOCUS_NAME if it does not belong to one.
     std::string get_locus_name(const path_handle_t& handle) const;
     
-    /// Get the haplotype number (0 or 1, for diploid) of the path-or-thread,
+    /// Get the haplotype number (0 for haploid, 1 or 2 for diploid) of the path-or-thread,
     /// or NO_HAPLOTYPE if it does not belong to one.
     size_t get_haplotype(const path_handle_t& handle) const;
     
@@ -3411,12 +3411,12 @@ PathSense BasePackedGraph<Backend>::get_sense(const path_handle_t& handle) const
 
 template<typename Backend>
 std::string BasePackedGraph<Backend>::get_sample_name(const path_handle_t& handle) const {
-    return sample_name.decode(as_integer(handle));
+    return path_sample.decode(as_integer(handle));
 }
 
 template<typename Backend>
 std::string BasePackedGraph<Backend>::get_locus_name(const path_handle_t& handle) const {
-    return locus_name.decode(as_integer(handle));
+    return path_locus.decode(as_integer(handle));
 }
 
 template<typename Backend>
@@ -3433,6 +3433,7 @@ size_t BasePackedGraph<Backend>::get_haplotype(const path_handle_t& handle) cons
 
 template<typename Backend>
 subrange_t BasePackedGraph<Backend>::get_subrange(const path_handle_t& handle) const {
+    size_t path_idx = as_integer(handle);
     subrange_t subrange;
     subrange.first = path_range_start_iv.get(path_idx);
     if (subrange.first == 0) {
