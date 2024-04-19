@@ -42,10 +42,11 @@ void bind_bdsg_internal_base_packed_graph(std::function< pybind11::module &(std:
 		cl.def("size", (long long (bdsg::PackedStringCollection<bdsg::STLBackend>::*)() const) &bdsg::PackedStringCollection<>::size, "C++: bdsg::PackedStringCollection<>::size() const --> long long");
 		cl.def("decode", (std::string (bdsg::PackedStringCollection<bdsg::STLBackend>::*)(const long long &) const) &bdsg::PackedStringCollection<>::decode, "C++: bdsg::PackedStringCollection<>::decode(const long long &) const --> std::string", pybind11::arg("index"));
 		cl.def("push_back", (void (bdsg::PackedStringCollection<bdsg::STLBackend>::*)(const std::string &)) &bdsg::PackedStringCollection<>::push_back, "C++: bdsg::PackedStringCollection<>::push_back(const std::string &) --> void", pybind11::arg("to_add"));
+		cl.def("clear", (void (bdsg::PackedStringCollection<bdsg::STLBackend>::*)()) &bdsg::PackedStringCollection<>::clear, "C++: bdsg::PackedStringCollection<>::clear() --> void");
 		cl.def("memory_usage", (unsigned long (bdsg::PackedStringCollection<bdsg::STLBackend>::*)() const) &bdsg::PackedStringCollection<>::memory_usage, "C++: bdsg::PackedStringCollection<>::memory_usage() const --> unsigned long");
 		cl.def("assign", (class bdsg::PackedStringCollection<> & (bdsg::PackedStringCollection<bdsg::STLBackend>::*)(const class bdsg::PackedStringCollection<> &)) &bdsg::PackedStringCollection<>::operator=, "C++: bdsg::PackedStringCollection<>::operator=(const class bdsg::PackedStringCollection<> &) --> class bdsg::PackedStringCollection<> &", pybind11::return_value_policy::automatic, pybind11::arg(""));
 	}
-	{ // bdsg::BasePackedGraph file:bdsg/internal/base_packed_graph.hpp line:374
+	{ // bdsg::BasePackedGraph file:bdsg/internal/base_packed_graph.hpp line:408
 		pybind11::class_<bdsg::BasePackedGraph<bdsg::STLBackend>, std::shared_ptr<bdsg::BasePackedGraph<bdsg::STLBackend>>> cl(M("bdsg"), "BasePackedGraph_bdsg_STLBackend_t", "");
 		cl.def( pybind11::init( [](){ return new bdsg::BasePackedGraph<bdsg::STLBackend>(); } ) );
 		cl.def( pybind11::init( [](bdsg::BasePackedGraph<bdsg::STLBackend> const &o){ return new bdsg::BasePackedGraph<bdsg::STLBackend>(o); } ) );
