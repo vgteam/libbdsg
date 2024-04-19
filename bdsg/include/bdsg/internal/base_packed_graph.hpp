@@ -964,7 +964,7 @@ private:
     /// All path senses.
     PackedVector<Backend> path_sense_iv;
     /// All path samples in a collection of numbered strings.
-    /// The empty string is used for NO_SAMPLE_NAME.
+    /// NO_SAMPLE_NAME may be encoded.
     PackedStringCollection<Backend> path_sample;
     /// All path loci in a collection of numbered strings.
     PackedStringCollection<Backend> path_locus;
@@ -2377,7 +2377,7 @@ typename BasePackedGraph<Backend>::template PackedPathName<> BasePackedGraph<Bac
     // Note that sense is ignored.
 
     // Encode name and sample, or get empty vectors if they definitely aren't present.
-    auto encoded_sample = path_sample.encode(sample == PathMetadata::NO_SAMPLE_NAME ? "" : sample);
+    auto encoded_sample = path_sample.encode(sample);
     auto encoded_locus = path_locus.encode(locus);
 
     return pack_name(encoded_sample, encoded_locus, haplotype, subrange);
@@ -2442,7 +2442,7 @@ typename BasePackedGraph<Backend>::template PackedPathName<> BasePackedGraph<Bac
     // Note that sense is ignored.
 
     // Encode name and sample, allocating symbols
-    auto encoded_sample = path_sample.encode_and_assign(sample == PathMetadata::NO_SAMPLE_NAME ? "" : sample);
+    auto encoded_sample = path_sample.encode_and_assign(sample);
     auto encoded_locus = path_locus.encode_and_assign(locus);
 
     return pack_name(encoded_sample, encoded_locus, haplotype, subrange);
@@ -2808,9 +2808,6 @@ string BasePackedGraph<Backend>::get_path_name(const path_handle_t& path_handle)
     // Get all the stored pieces of path metadata and undo the incremented encodings.
     PathSense sense = path_sense_iv.get(path_idx);
     std::string sample = path_sample.decode(path_idx);
-    if (sample.empty()) {
-        sample = PathMetadata::NO_SAMPLE_NAME;
-    }
     std::string locus = path_locus.decode(idx);
     size_t haplotype = path_haplotype_iv.decode(path_idx);
     if (haplotype == 0) {
@@ -3490,7 +3487,7 @@ path_handle_t BasePackedGraph<Backend>::create_path(const PathSense& sense,
                                                     bool is_circular) {
 
     // Encode name and sample, allocating symbols
-    auto encoded_sample = path_sample.encode_and_assign(sample == PathMetadata::NO_SAMPLE_NAME ? "" : sample);
+    auto encoded_sample = path_sample.encode_and_assign(sample);
     auto encoded_locus = path_locus.encode_and_assign(locus);
 
     PackedPathName<> encoded = pack_name(encoded_sample, encoded_locus, haplotype, subrange);
