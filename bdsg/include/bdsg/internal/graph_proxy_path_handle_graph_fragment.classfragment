@@ -182,6 +182,17 @@ protected:
                                              const std::function<bool(const path_handle_t&)>& iteratee) const {
         return this->get()->for_each_path_matching(senses, samples, loci, iteratee);
     }
+
+    /// Loop through all the paths matching the given query. Query elements
+    /// which are null match everything. Returns false and stops if the
+    /// iteratee returns false.
+    virtual bool for_each_path_matching_impl(const std::unordered_set<PathSense>* senses,
+                                             const std::unordered_set<std::string>* samples,
+                                             const std::unordered_set<std::string>* loci,
+                                             const std::unordered_set<size_t>* haplotypes,
+                                             const std::function<bool(const path_handle_t&)>& iteratee) const {
+        return this->get()->for_each_path_matching(senses, samples, loci, haplotypes, iteratee);
+    }
     
     /// Loop through all steps on the given handle for paths with the given
     /// sense. Returns false and stops if the iteratee returns false.

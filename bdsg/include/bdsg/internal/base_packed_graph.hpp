@@ -349,7 +349,7 @@ inline uint64_t PackedStringCollection<Backend>::get_or_make_assignment(const ch
     }
     else {
         char_assignment[c] = inverse_char_assignment.size();
-        inverse_char_assignment.push_back(c);
+        inverse_char_assignment.emplace_back(c);
         return inverse_char_assignment.size() - 1;
     }
 }
@@ -792,6 +792,15 @@ public:
     bool for_each_path_matching(const std::unordered_set<PathSense>* senses,
                                 const std::unordered_set<std::string>* samples,
                                 const std::unordered_set<std::string>* loci,
+                                const std::function<bool(const path_handle_t&)>& iteratee) const;
+
+    /// Loop through all the paths matching the given query. Query elements
+    /// which are null match everything. Returns false and stops if the
+    /// iteratee returns false.
+    bool for_each_path_matching(const std::unordered_set<PathSense>* senses,
+                                const std::unordered_set<std::string>* samples,
+                                const std::unordered_set<std::string>* loci,
+                                const std::unordered_set<size_t>* haplotypes,
                                 const std::function<bool(const path_handle_t&)>& iteratee) const;
     
     /// Loop through all steps on the given handle for paths with the given
@@ -1347,7 +1356,7 @@ void BasePackedGraph<Backend>::deserialize_members(istream& in) {
     path_membership_offset_iv.deserialize(in);
     path_membership_next_iv.deserialize(in);
     
-    path_sense_iv.seserialize(in);
+    path_sense_iv.deserialize(in);
     path_sample.deserialize(in);
     path_locus.deserialize(in);
     path_haplotype_iv.deserialize(in);
@@ -2452,11 +2461,11 @@ template<typename Backend>
 typename BasePackedGraph<Backend>::template PackedPathName<> BasePackedGraph<Backend>::extract_packed_name(const int64_t& path_idx) const {
 
     // Get all the already encoded and +1'd values for the path
-    auto encoded_sample = path_sample.extract_encoded(i);
-    auto encoded_locus = path_locus.extract_encoded(i);
-    size_t incremented_haplotype = path_haplotype_iv.get(i);
-    size_t incremented_range_start = path_range_start_iv.get(i);
-    size_t incremented_range_length = path_range_length_iv.get(i);
+    auto encoded_sample = path_sample.extract_encoded(path_idx);
+    auto encoded_locus = path_locus.extract_encoded(path_idx);
+    size_t incremented_haplotype = path_haplotype_iv.get(path_idx);
+    size_t incremented_range_start = path_range_start_iv.get(path_idx);
+    size_t incremented_range_length = path_range_length_iv.get(path_idx);
 
     BasePackedGraph<Backend>::PackedPathName<> encoded;
 
@@ -2768,7 +2777,7 @@ void BasePackedGraph<Backend>::clear(void) {
     path_range_start_iv.clear();
     path_range_length_iv.clear();
     path_is_deleted_iv.clear();
-    path_is_curcular_iv.clear();
+    path_is_circular_iv.clear();
     path_head_iv.clear();
     path_tail_iv.clear();
     path_deleted_steps_iv.clear();
@@ -2806,22 +2815,22 @@ string BasePackedGraph<Backend>::get_path_name(const path_handle_t& path_handle)
     int64_t path_idx = as_integer(path_handle);
 
     // Get all the stored pieces of path metadata and undo the incremented encodings.
-    PathSense sense = path_sense_iv.get(path_idx);
+    PathSense sense = (PathSense)path_sense_iv.get(path_idx);
     std::string sample = path_sample.decode(path_idx);
-    std::string locus = path_locus.decode(idx);
-    size_t haplotype = path_haplotype_iv.decode(path_idx);
+    std::string locus = path_locus.decode(path_idx);
+    size_t haplotype = path_haplotype_iv.get(path_idx);
     if (haplotype == 0) {
         haplotype = PathMetadata::NO_HAPLOTYPE;
     } else {
         haplotype--;
     }
     subrange_t subrange;
-    subrange.first = path_range_start_iv.decode(path_idx);
+    subrange.first = path_range_start_iv.get(path_idx);
     if (subrange.first == 0) {
         subrange = PathMetadata::NO_SUBRANGE;
     } else {
         subrange.first--;
-        subrange.second = path_range_length_iv.decode(path_idx);
+        subrange.second = path_range_length_iv.get(path_idx);
         if (subrange.second == 0) {
             subrange.second = PathMetadata::NO_END_POSITION;
         } else {
@@ -3446,6 +3455,17 @@ bool BasePackedGraph<Backend>::for_each_path_matching(const std::unordered_set<P
                                                       const std::unordered_set<std::string>* samples,
                                                       const std::unordered_set<std::string>* loci,
                                                       const std::function<bool(const path_handle_t&)>& iteratee) const {
+    // Delegate to version that can also match on haplotype
+    return for_each_path_matching(senses, samples, loci, nullptr, iteratee);
+}
+
+template<typename Backend>
+bool BasePackedGraph<Backend>::for_each_path_matching(const std::unordered_set<PathSense>* senses,
+                                                      const std::unordered_set<std::string>* samples,
+                                                      const std::unordered_set<std::string>* loci,
+                                                      const std::unordered_set<size_t>* haplotypes,
+                                                      const std::function<bool(const path_handle_t&)>& iteratee) const {
+
     return for_each_path_handle([&](const path_handle_t& handle) {
         if (senses && !senses->count(get_sense(handle))) {
             // Sense doesn't match
@@ -3459,9 +3479,14 @@ bool BasePackedGraph<Backend>::for_each_path_matching(const std::unordered_set<P
             // Locus name doesn't match
             return true;
         }
+        if (haplotypes && !haplotypes->count(get_haplotype(handle))) {
+            // Haplotype doesn't match
+            return true;
+        }
         // Emit any matching handles
         return iteratee(handle);
     });
+
 }
 
 template<typename Backend>
@@ -3518,10 +3543,10 @@ path_handle_t BasePackedGraph<Backend>::create_path(const PathSense& sense,
     path_tail_iv.append(0);
     path_deleted_steps_iv.append(0);
     
-    path_sense_iv.append(sense);
+    path_sense_iv.append((uint64_t)sense);
     path_sample.push_back(encoded_sample);
     path_locus.push_back(encoded_locus);
-    path_halpotype_iv.append(haplotype == PathMetadata::NO_HAPLOTYPE ? 0 : (haplotype + 1));
+    path_haplotype_iv.append(haplotype == PathMetadata::NO_HAPLOTYPE ? 0 : (haplotype + 1));
     if (subrange == PathMetadata::NO_SUBRANGE) {
         // Use 0s to say no subrange
         path_range_start_iv.append(0);
@@ -3612,7 +3637,30 @@ void BasePackedGraph<Backend>::print_graph(ostream& out) const {
         out << " " << path_membership_next_iv.get(i);
     }
     out << endl;
-    path_names.print(out);
+    out << "path_sense_iv" << endl;
+    for (size_t i = 0; i < path_sense_iv.size(); ++i) {
+        out << " " << path_sense_iv.get(i);
+    }
+    out << endl;
+    out << "path_sample" << endl;
+    path_sample.print(out);
+    out << "path_locus" << endl;
+    path_locus.print(out);
+    out << "path_haplotype_iv" << endl;
+    for (size_t i = 0; i < path_haplotype_iv.size(); ++i) {
+        out << " " << path_haplotype_iv.get(i);
+    }
+    out << endl;
+    out << "path_range_start_iv" << endl;
+    for (size_t i = 0; i < path_range_start_iv.size(); ++i) {
+        out << " " << path_range_start_iv.get(i);
+    }
+    out << endl;
+    out << "path_range_length_iv" << endl;
+    for (size_t i = 0; i < path_range_length_iv.size(); ++i) {
+        out << " " << path_range_length_iv.get(i);
+    }
+    out << endl;
     out << "path_is_deleted_iv" << endl;
     for (size_t i = 0; i < path_is_deleted_iv.size(); ++i) {
         out << " " << path_is_deleted_iv.get(i);
@@ -3703,8 +3751,23 @@ void BasePackedGraph<Backend>::report_memory(ostream& out, bool individual_paths
     out << "path_membership_next_iv: " << format_memory(item_mem) << endl;
     grand_total += item_mem;
     
-    item_mem = path_names.memory_usage();
-    out << "path_names: " << format_memory(item_mem) << endl;
+    item_mem = path_sense_iv.memory_usage();
+    out << "path_sense_iv: " << format_memory(item_mem) << endl;
+    grand_total += item_mem;
+    item_mem = path_sample.memory_usage();
+    out << "path_sample: " << format_memory(item_mem) << endl;
+    grand_total += item_mem;
+    item_mem = path_locus.memory_usage();
+    out << "path_locus: " << format_memory(item_mem) << endl;
+    grand_total += item_mem;
+    item_mem = path_haplotype_iv.memory_usage();
+    out << "path_haplotype_iv: " << format_memory(item_mem) << endl;
+    grand_total += item_mem;
+    item_mem = path_range_start_iv.memory_usage();
+    out << "path_range_start_iv: " << format_memory(item_mem) << endl;
+    grand_total += item_mem;
+    item_mem = path_range_length_iv.memory_usage();
+    out << "path_range_length_iv: " << format_memory(item_mem) << endl;
     grand_total += item_mem;
     
     item_mem = path_is_deleted_iv.memory_usage();
@@ -3735,7 +3798,7 @@ void BasePackedGraph<Backend>::report_memory(ostream& out, bool individual_paths
     vector<string> names;
     names.reserve(path_id.size());
     for (const auto& path_id_record : path_id) {
-        names.push_back(path_names.decode(path_id_record.second));
+        names.push_back(get_path_name(as_path_handle(path_id_record.second)));
         unused_path_ids.erase(path_id_record.second);
     }
     
