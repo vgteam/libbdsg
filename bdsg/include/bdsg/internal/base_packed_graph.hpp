@@ -783,8 +783,7 @@ public:
     
     /**
      * Add a path with the given metadata. Any item can be the corresponding
-     * unset sentinel (PathMetadata::NO_LOCUS_NAME,
-     * PathMetadata::NO_PHASE_BLOCK, etc.).
+     * unset sentinel (PathMetadata::NO_LOCUS_NAME, etc.).
      * 
      * Implementations may refuse to store paths-or-threads of certain senses
      * when relevant fields are unset.
