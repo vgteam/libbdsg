@@ -252,6 +252,7 @@ void PackedPositionOverlay::index_path_positions() {
     
     // And this will be the cumulative path length of all the paths in each collection.
     std::vector<size_t> path_set_steps;
+    size_t total_length = 0;
     size_t accumulated_length = 0;
     for (size_t i = 0; i < path_handles.size(); i++) {
         if (accumulated_length >= steps_per_index) {
@@ -264,6 +265,7 @@ void PackedPositionOverlay::index_path_positions() {
 #endif
             
             path_set_steps.push_back(accumulated_length);
+            total_length += accumulated_length;
             accumulated_length = 0;
         }
         // Remember that this path's steps went into this index.
@@ -271,13 +273,14 @@ void PackedPositionOverlay::index_path_positions() {
     }
     bounds.push_back(path_handles.size());
     path_set_steps.push_back(accumulated_length);
+    total_length += accumulated_length;
     
     // Now we know how many indexes we need
     this->set_index_count(path_set_steps.size());
             
 #ifdef debug
         #pragma omp critical (cerr)
-        std::cerr << "Using " << indexes.size() << " indexes" << std::endl;
+        std::cerr << "Using " << indexes.size() << " indexes for " << total_length << " total steps" << std::endl;
 #endif
     
     #pragma omp parallel for

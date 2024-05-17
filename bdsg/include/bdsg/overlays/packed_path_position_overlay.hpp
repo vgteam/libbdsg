@@ -34,7 +34,7 @@ public:
     /// Make a new PackedPositionOverlay, on the given graph. Glom short paths
     /// together to make internal indexes each over at least the given number
     /// of steps.
-    PackedPositionOverlay(const PathHandleGraph* graph, size_t steps_per_index = 1000000);
+    PackedPositionOverlay(const PathHandleGraph* graph, size_t steps_per_index = 20000000);
     PackedPositionOverlay() = default;
     PackedPositionOverlay(const PackedPositionOverlay& other) = default;
     PackedPositionOverlay(PackedPositionOverlay&& other) = default;

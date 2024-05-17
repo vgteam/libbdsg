@@ -29,7 +29,7 @@ public:
 
     /// Make a PackedReferencePathOverlay. Do the indexing and compute the
     /// additional indexes that the base class doesn't have.
-    PackedReferencePathOverlay(const PathHandleGraph* graph, size_t steps_per_index = 1000000);
+    PackedReferencePathOverlay(const PathHandleGraph* graph, size_t steps_per_index = 20000000);
     
     // We assume that tracing out a path is fast in the backing graph, but
     // finding visits on nodes is slow. We override the reverse lookups to go
