@@ -13,8 +13,8 @@
 
 #include "bdsg/overlays/vectorizable_overlays.hpp"
 #include "bdsg/overlays/packed_path_position_overlay.hpp"
-#include "bdsg/overlays/packed_reference_path_overlay.hpp"
 #include "bdsg/overlays/reference_path_overlay.hpp"
+#include "bdsg/overlays/packed_reference_path_overlay.hpp"
 
 namespace bdsg {
     
