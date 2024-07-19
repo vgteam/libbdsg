@@ -285,6 +285,11 @@ public:
     ///the last component, which is used for calculating distance, instead of inf 
     size_t chain_minimum_length(const net_handle_t& net) const;
 
+    ///The length of a chain. If it is a multicomponent chain, then it is the sum
+    /// of the lengths of its children, not including snarls that are not start-end
+    /// connected, which is used for calculating distance, instead of inf.
+    size_t chain_maximum_length(const net_handle_t& net) const;
+
     ///What is the node id of the node represented by this net handle.
     ///net must be a node or a sentinel
     nid_t node_id(const net_handle_t& net) const ;

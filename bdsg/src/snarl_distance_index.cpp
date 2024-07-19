@@ -3196,8 +3196,20 @@ size_t SnarlDistanceIndex::maximum_length(const net_handle_t& net) const {
         } else {
             return SimpleSnarlRecord(net, &snarl_tree_records).get_node_length();
         }
+    } else if (SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == MULTICOMPONENT_CHAIN) {
+        return std::numeric_limits<size_t>::max();
     } else {
         return SnarlTreeRecord(net, &snarl_tree_records).get_max_length();
+    }
+}
+size_t SnarlDistanceIndex::chain_maximum_length(const net_handle_t& net) const {
+#ifdef debug_distances
+    assert(is_chain(net));
+#endif
+    if (is_trivial_chain(net)) {
+        return NodeRecord(net, &snarl_tree_records).get_node_length();
+    } else {
+        return ChainRecord(net, &snarl_tree_records).get_max_length();
     }
 }
 nid_t SnarlDistanceIndex::node_id(const net_handle_t& net) const {
