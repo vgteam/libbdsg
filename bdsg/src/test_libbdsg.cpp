@@ -2285,6 +2285,73 @@ void test_deletable_handle_graphs() {
         }
     }
     
+    // batch deletion of paths works as expected
+    {
+        vector<MutablePathDeletableHandleGraph*> implementations;
+        
+        // Add implementations
+        
+        PackedGraph pg;
+        implementations.push_back(&pg);
+        
+        HashGraph hg;
+        implementations.push_back(&hg);
+        
+        MappedPackedGraph mpg;
+        implementations.push_back(&mpg);
+        
+        for (int imp = 0; imp < implementations.size(); ++imp) {
+            
+            MutablePathDeletableHandleGraph& graph = *implementations[imp];
+            
+            auto h1 = graph.create_handle("A");
+            auto h2 = graph.create_handle("A");
+            auto h3 = graph.create_handle("A");
+            
+            graph.create_edge(h1, h2);
+            graph.create_edge(h2, h3);
+            
+            auto p1 = graph.create_path_handle("1");
+            auto p2 = graph.create_path_handle("2");
+            auto p3 = graph.create_path_handle("3");
+            auto p4 = graph.create_path_handle("4");
+            auto p5 = graph.create_path_handle("5");
+            
+            for (const auto& p : {p1, p2, p3, p4, p5}) {
+                for (auto h : {h1, h2, h3}) {
+                    graph.append_step(p, h);
+                }
+            }
+            
+            graph.destroy_paths({p1, p3, p4});
+            
+            set<path_handle_t> paths_seen;
+            set<path_handle_t> paths_expected{p2, p5};
+            graph.for_each_path_handle([&](const path_handle_t& path) {
+                assert(!paths_seen.count(path));
+                paths_seen.insert(path);
+                std::vector<handle_t> handles;
+                std::vector<handle_t> handles_expected{h1, h2, h3};
+                for (auto h : graph.scan_path(path)) {
+                    handles.push_back(h);
+                }
+                assert(handles == handles_expected);
+            });
+            
+            assert(paths_seen == paths_expected);
+            
+            graph.for_each_handle([&](const handle_t& h) {
+                set<path_handle_t> paths;
+                graph.for_each_step_on_handle(h, [&](const step_handle_t& step) {
+                    auto p = graph.get_path_handle_of_step(step);
+                    assert(!paths.count(p));
+                    paths.insert(p);
+                });
+                assert(paths_seen == paths_expected);
+            });
+        }
+    }
+    
     cerr << "DeletableHandleGraph tests successful!" << endl;
 }
 

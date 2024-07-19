@@ -270,6 +270,11 @@ public:
     void destroy_path(const path_handle_t& path);
 
     /**
+    * Destroy the given set of paths. Invalidates handles to all the paths and their steps.
+    */
+    void destroy_paths(const std::vector<path_handle_t>& paths);
+    
+    /**
      * Create a path with the given name. The caller must ensure that no path
      * with the given name exists already, or the behavior is undefined.
      * Returns a handle to the created empty path. Handles to other paths must
