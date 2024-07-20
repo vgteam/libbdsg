@@ -333,6 +333,11 @@ public:
      * Destroy the given path. Invalidates handles to the path and its node steps.
      */
     void destroy_path(const path_handle_t& path);
+    
+    /**
+     * Destroy the given set of paths. Invalidates handles to all the paths and their steps.
+     */
+    void destroy_paths(const std::vector<path_handle_t>& paths);
 
     /**
      * Create a path with the given name. The caller must ensure that no path
@@ -2603,51 +2608,75 @@ string BasePackedGraph<Backend>::decode_path_name(const int64_t& path_idx) const
 
 template<typename Backend>
 void BasePackedGraph<Backend>::destroy_path(const path_handle_t& path) {
+    destroy_paths({path});
+}
+
+template<typename Backend>
+void BasePackedGraph<Backend>::destroy_paths(const std::vector<path_handle_t>& paths) {
     
-    PackedPath& packed_path = paths.at(as_integer(path));
+    std::unordered_set<path_handle_t> paths_set(paths.begin(), paths.end());
     
-    // remove node membership records corresponding to this path
-    bool first_iter = true;
-    for (uint64_t step_offset = path_head_iv.get(as_integer(path));
-         step_offset != 0 && (step_offset != path_head_iv.get(as_integer(path)) || first_iter);
-         step_offset = get_step_next(packed_path, step_offset)) {
+    PackedSet<Backend> nodes_visited;
+    
+    for (const auto& path : paths) {
         
-        uint64_t trav = get_step_trav(packed_path, step_offset);
-        size_t node_member_idx = graph_index_to_node_member_index(graph_iv_index(decode_traversal(trav)));
+        PackedPath& packed_path = this->paths.at(as_integer(path));
         
-        // find a membership record for this path
-        size_t prev = 0;
-        size_t here = path_membership_node_iv.get(node_member_idx);
-        while (as_path_handle(get_membership_path(here)) != path) {
-            prev = here;
-            here = get_next_membership(here);
-            // note: we don't need to be careful about getting the exact corresponding step since this node
-            // should try to delete a membership record exactly as many times as it occurs on this path -- all of
-            // the records will get deleted
+        // remove node membership records corresponding to this path
+        bool first_iter = true;
+        for (uint64_t step_offset = path_head_iv.get(as_integer(path));
+             step_offset != 0 && (step_offset != path_head_iv.get(as_integer(path)) || first_iter);
+             step_offset = get_step_next(packed_path, step_offset)) {
+            
+            uint64_t trav = get_step_trav(packed_path, step_offset);
+            // if there are multiple paths, we check for whether we've gone over the same
+            // node multiple times (which would be wasteful)
+            if (paths.size() > 1) {
+                nid_t node_id = get_id(decode_traversal(trav));
+                if (nodes_visited.find(node_id)) {
+                    continue;
+                }
+                nodes_visited.insert(node_id);
+            }
+            
+            size_t node_member_idx = graph_index_to_node_member_index(graph_iv_index(decode_traversal(trav)));
+            
+            // find a membership record for this path
+            size_t prev = 0;
+            size_t here = path_membership_node_iv.get(node_member_idx);
+            while (here) {
+                if (paths_set.count(as_path_handle(get_membership_path(here)))) {
+                    // this is a membership record for a path that we're deleting
+                    if (prev == 0) {
+                        // this was the first record, set following one to be the head
+                        path_membership_node_iv.set(node_member_idx, get_next_membership(here));
+                    }
+                    else {
+                        // make the link from the previous record skip over the current one
+                        set_next_membership(prev, get_next_membership(here));
+                    }
+                    
+                    ++deleted_membership_records;
+                }
+                else {
+                    prev = here;
+                }
+                
+                here = get_next_membership(here);
+            }
+            
+            first_iter = false;
         }
         
-        if (prev == 0) {
-            // this was the first record, set following one to be the head
-            path_membership_node_iv.set(node_member_idx, get_next_membership(here));
-        }
-        else {
-            // make the link from the previous record skip over the current one
-            set_next_membership(prev, get_next_membership(here));
-        }
+        path_id.erase(extract_encoded_path_name(as_integer(path)));
         
-        ++deleted_membership_records;
-        
-        first_iter = false;
+        path_is_deleted_iv.set(as_integer(path), true);
+        packed_path.steps_iv.clear();
+        packed_path.links_iv.clear();
+        path_head_iv.set(as_integer(path), 0);
+        path_tail_iv.set(as_integer(path), 0);
+        path_deleted_steps_iv.set(as_integer(path), 0);
     }
-    
-    path_id.erase(extract_encoded_path_name(as_integer(path)));
-    
-    path_is_deleted_iv.set(as_integer(path), true);
-    packed_path.steps_iv.clear();
-    packed_path.links_iv.clear();
-    path_head_iv.set(as_integer(path), 0);
-    path_tail_iv.set(as_integer(path), 0);
-    path_deleted_steps_iv.set(as_integer(path), 0);
     
     defragment();
 }

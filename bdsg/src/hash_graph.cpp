@@ -592,25 +592,46 @@ namespace bdsg {
         }
         return true;
     }
-    
+
     void HashGraph::destroy_path(const path_handle_t& path) {
+        destroy_paths({path});
+    }
+    
+    void HashGraph::destroy_paths(const vector<path_handle_t>& paths) {
         
-        // remove the records of nodes occurring on this path
-        for_each_step_in_path(path, [&](const step_handle_t& step) {
-            path_mapping_t* mapping = (path_mapping_t*) intptr_t(as_integers(step)[1]);
-            vector<path_mapping_t*>& node_occs = graph[get_id(mapping->handle)].occurrences;
-            for (size_t i = 0; i < node_occs.size(); i++) {
-                if (node_occs[i] == mapping) {
-                    node_occs[i] = node_occs.back();
-                    node_occs.pop_back();
-                    break;
+        unordered_set<int64_t> path_ids;
+        for (auto path : paths) {
+            path_ids.emplace(as_integer(path));
+        }
+        unordered_set<nid_t> nodes_visited;
+        
+        for (auto path : paths) {
+            // remove the records of nodes occurring on this path
+            for_each_step_in_path(path, [&](const step_handle_t& step) {
+                path_mapping_t* mapping = (path_mapping_t*) intptr_t(as_integers(step)[1]);
+                if (paths.size() > 1) {
+                    bool did_insert = nodes_visited.insert(get_id(mapping->handle)).second;
+                    if (!did_insert) {
+                        // we've already deleted on this node
+                        return;
+                    }
                 }
-            }
-        });
-        
-        // erase the path itself
-        path_id.erase(paths[as_integer(path)].name);
-        paths.erase(as_integer(path));
+                vector<path_mapping_t*>& node_occs = graph[get_id(mapping->handle)].occurrences;
+                for (size_t i = 0; i < node_occs.size(); ) {
+                    if (path_ids.count(node_occs[i]->path_id)) {
+                        node_occs[i] = node_occs.back();
+                        node_occs.pop_back();
+                    }
+                    else {
+                        ++i;
+                    }
+                }
+            });
+            
+            // erase the path itself
+            path_id.erase(this->paths[as_integer(path)].name);
+            this->paths.erase(as_integer(path));
+        }
     }
     
     path_handle_t HashGraph::create_path_handle(const string& name, bool is_circular) {
