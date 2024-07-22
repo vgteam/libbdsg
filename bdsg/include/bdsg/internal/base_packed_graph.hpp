@@ -2619,6 +2619,10 @@ template<typename Backend>
 void BasePackedGraph<Backend>::destroy_paths(const std::vector<path_handle_t>& paths) {
     
     std::unordered_set<path_handle_t> paths_set(paths.begin(), paths.end());
+    path_handle_t first_path = as_path_handle(-1);
+    if (paths.size() == 1) {
+        first_path = paths.front();
+    }
     
     PackedSet<Backend> nodes_visited;
     
@@ -2649,7 +2653,8 @@ void BasePackedGraph<Backend>::destroy_paths(const std::vector<path_handle_t>& p
             size_t prev = 0;
             size_t here = path_membership_node_iv.get(node_member_idx);
             while (here) {
-                if (paths_set.count(as_path_handle(get_membership_path(here)))) {
+                auto path_here = as_path_handle(get_membership_path(here));
+                if (paths.size() == 1 ? path_here == first_path : paths_set.count(path_here)) {
                     // this is a membership record for a path that we're deleting
                     if (prev == 0) {
                         // this was the first record, set following one to be the head
