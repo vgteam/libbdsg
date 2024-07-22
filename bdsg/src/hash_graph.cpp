@@ -603,6 +603,10 @@ namespace bdsg {
         for (auto path : paths) {
             path_ids.emplace(as_integer(path));
         }
+        int64_t first_path = -1;
+        if (path_ids.size() == 1) {
+            first_path = *path_ids.begin();
+        }
         unordered_set<nid_t> nodes_visited;
         
         for (auto path : paths) {
@@ -618,7 +622,7 @@ namespace bdsg {
                 }
                 vector<path_mapping_t*>& node_occs = graph[get_id(mapping->handle)].occurrences;
                 for (size_t i = 0; i < node_occs.size(); ) {
-                    if (path_ids.count(node_occs[i]->path_id)) {
+                    if (first_path != -1 ? node_occs[i]->path_id == first_path : path_ids.count(node_occs[i]->path_id)) {
                         node_occs[i] = node_occs.back();
                         node_occs.pop_back();
                     }

@@ -104,6 +104,13 @@ public:
     virtual void destroy_path(const path_handle_t& path) {
         this->get()->destroy_path(path);
     }
+    
+    /**
+     * Destroy the given paths. Invalidates handles to the paths and their steps.
+     */
+    virtual void destroy_paths(const std::vector<path_handle_t>& paths) {
+        this->get()->destroy_paths(paths);
+    }
 
     /**
      * Create a path with the given name. The caller must ensure that no path
