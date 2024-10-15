@@ -12,6 +12,7 @@ build:
     python: "3.12"
   apt_packages:
     - libjansson-dev
+    - cmake
 
 # Build documentation in the bdsg/docs/ directory with Sphinx
 sphinx:
