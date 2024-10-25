@@ -6,25 +6,52 @@
 #include <omp.h>
 
 #include <handlegraph/util.hpp>
+#include <handlegraph/types.hpp>
 
 namespace bdsg {
 
 using namespace std;
 using namespace handlegraph;
 
-ReferencePathOverlay::ReferencePathOverlay(const PathHandleGraph* graph) : graph(graph) {
+ReferencePathOverlay::ReferencePathOverlay(const PathHandleGraph* graph, const std::unordered_set<std::string>& extra_path_names) : graph(graph) {
     
-    // init the base hash table and gather path handles
-    uint64_t max_path_handle = 0;
-    std::vector<path_handle_t> path_handles;
-    graph->for_each_path_handle([&](const path_handle_t& path) {
-        path_handles.push_back(path);
-        reference_paths.insert(pair<path_handle_t, PathRecord>(path, PathRecord()));
-        max_path_handle = std::max<uint64_t>(max_path_handle, handlegraph::as_integer(path));
+    // Get step counts for all paths we want to process, once.
+    std::unordered_map<path_handle_t, size_t> cached_step_counts;
+    graph->for_each_path_matching({PathSense::REFERENCE, PathSense::GENERIC}, {}, {}, [&](const path_handle_t& path) {
+        // Find and measure all the reference and generic paths.
+        // TODO: Kick out generic paths?
+        cached_step_counts[path] = graph->get_step_count(path);
     });
+    for (auto& path_name : extra_path_names) {
+        if (graph->has_path(path_name)) {
+            // The graph actually has this path.
+            path_handle_t path = graph->get_path_handle(path_name);
+            auto found = cached_step_counts.find(path);
+            if (found == cached_step_counts.end()) {
+                // And it's not already reference sense.
+                // Count steps and remember it
+                cached_step_counts.emplace_hint(found, path, graph->get_step_count(path));
+            }
+        }
+    }
+
+    // Now use the cache as a source of truth and make a vector of the paths. 
+    std::vector<path_handle_t> path_handles;
+    // We also track the numerically max path handle
+    uint64_t max_path_handle = 0;
+    for (auto& handle_and_length : cached_step_counts) {
+        const path_handle_t& path = handle_and_length.first;
+        path_handles.push_back(path);
+        
+        // Each of the paths needs a PathRecord
+        reference_paths.insert(pair<path_handle_t, PathRecord>(path, PathRecord()));
+        // And needs to be maxed into the max handles.
+        max_path_handle = std::max<uint64_t>(max_path_handle, handlegraph::as_integer(path));
+    }
+
     // sort in descending order by length to limit parallel scheduling makespan
     std::sort(path_handles.begin(), path_handles.end(), [&](path_handle_t a, path_handle_t b) {
-        return graph->get_step_count(a) > graph->get_step_count(b);
+        return cached_step_counts.at(a) > cached_step_counts.at(b);
     });
     
     std::vector<std::atomic<size_t>> num_steps(graph->max_node_id() + 1);
@@ -35,7 +62,7 @@ ReferencePathOverlay::ReferencePathOverlay(const PathHandleGraph* graph) : graph
         auto& path_record = reference_paths.at(path);
         
         // init the step vectors
-        size_t path_size = graph->get_step_count(path);
+        size_t path_size = cached_step_counts.at(path);
         path_record.steps.resize(path_size);
         
         // record the steps and the path length

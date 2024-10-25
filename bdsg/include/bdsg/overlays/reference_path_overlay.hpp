@@ -9,6 +9,7 @@
 #define BDSG_REFERENCE_PATH_OVERLAY_HPP_INCLUDED
 
 #include <unordered_map>
+#include <unordered_set>
 
 #include <handlegraph/path_position_handle_graph.hpp>
 #include <sdsl/bit_vectors.hpp>
@@ -30,7 +31,9 @@ class ReferencePathOverlay : public PathPositionHandleGraph {
         
 public:
     
-    ReferencePathOverlay(const PathHandleGraph* graph);
+    /// Create a ReferencePathOverlay. For paths with names in
+    /// extra_path_names, index them as if they were reference paths.
+    ReferencePathOverlay(const PathHandleGraph* graph, const std::unordered_set<std::string>& extra_path_names = {});
     ReferencePathOverlay() = default;
     ~ReferencePathOverlay() = default;
     

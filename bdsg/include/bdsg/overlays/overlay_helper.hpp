@@ -66,10 +66,11 @@ template<typename T, typename U, typename V>
 class OverlayHelper {
 public:
     // Handle non-const base graph
-    T* apply(V* input_graph) {
+    template <typename ...Params>
+    T* apply(V* input_graph, Params&&... params) {
         auto mutable_overlaid = dynamic_cast<T*>(input_graph);
         if (mutable_overlaid == nullptr) {
-            overlay = make_unique<U>(input_graph);
+            overlay = make_unique<U>(input_graph, std::forward<Params>(params)...);
             mutable_overlaid = dynamic_cast<T*>(overlay.get());
             assert(mutable_overlaid != nullptr);
         }
@@ -78,10 +79,11 @@ public:
     }
 
     // Handle const base graph
-    const T* apply(const V* input_graph) {
+    template <typename ...Params>
+    const T* apply(const V* input_graph, Params&&... params) {
         overlaid = dynamic_cast<const T*>(input_graph);
         if (overlaid == nullptr) {
-            overlay = make_unique<U>(input_graph);
+            overlay = make_unique<U>(input_graph, std::forward<Params>(params)...);
             overlaid = dynamic_cast<T*>(overlay.get());
             assert(overlaid != nullptr);
         }
@@ -100,6 +102,7 @@ protected:
 /// Implementation of overlay helper functionality for when multiple overlays need to be stacked.
 // There must be a way to generalize with variadic templates
 // (I had trouble chaining the output of the nested overlays together and getting the types right when trying)
+// TODO: Add support for passing overlay constructor arguments through.
 template<typename T1, typename U1, typename V1, typename T2, typename U2, typename V2>
 class PairOverlayHelper {
 public:
