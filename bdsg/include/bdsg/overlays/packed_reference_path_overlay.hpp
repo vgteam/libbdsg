@@ -18,6 +18,14 @@ using namespace handlegraph;
 /*
  * An overlay that adds fast access to paths in addition to allowing path
  * position queries on them.
+ *
+ * TODO: Won't work properly with paths hidden from for_each_path_handle on the
+ * backing graph, since they won't be indexed but we also won't pass any kind
+ * of queries through to the backign graph for queries we expect to be able to
+ * fulfil from the index. Unkike in PackedPositionOverlay, we now expect the
+ * index to have some path data in it, not just offset tables that we wouldn't
+ * expect to use for hidden (i,e, haplotype) paths. We should make the overlay
+ * transparent so hidden paths work properly, or remove hidden paths.
  */
 class PackedReferencePathOverlay : public PackedPositionOverlay {
         
