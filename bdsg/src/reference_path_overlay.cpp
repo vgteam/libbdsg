@@ -17,12 +17,16 @@ ReferencePathOverlay::ReferencePathOverlay(const PathHandleGraph* graph, const s
     
     // Get step counts for all paths we want to process, once.
     std::unordered_map<path_handle_t, size_t> cached_step_counts;
-    graph->for_each_path_matching({PathSense::REFERENCE, PathSense::GENERIC}, {}, {}, [&](const path_handle_t& path) {
-        // Find and measure all the reference and generic paths.
-        // TODO: Kick out generic paths?
+    graph->for_each_path_handle([&](const path_handle_t& path) {
+        // Find and measure all the non-hidden paths.
+        // TODO: If we made the overlay transparent so we could access paths
+        // that didn't get indexed, we wouldn't be weirdly indexing haplotype
+        // paths from backends that don't hide them in the "reference" path
+        // overlay.
         cached_step_counts[path] = graph->get_step_count(path);
     });
     for (auto& path_name : extra_path_names) {
+        // Also index hidden paths that the user is asking for by name.
         if (graph->has_path(path_name)) {
             // The graph actually has this path.
             path_handle_t path = graph->get_path_handle(path_name);
