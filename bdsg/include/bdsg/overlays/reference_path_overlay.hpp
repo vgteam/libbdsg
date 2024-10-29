@@ -9,6 +9,7 @@
 #define BDSG_REFERENCE_PATH_OVERLAY_HPP_INCLUDED
 
 #include <unordered_map>
+#include <unordered_set>
 
 #include <handlegraph/path_position_handle_graph.hpp>
 #include <sdsl/bit_vectors.hpp>
@@ -25,12 +26,27 @@ using namespace handlegraph;
  * An overlay that adds fast access to paths in addition to allowing path
  * position queries on them. The original graph's handle_t's and path_handle_t's
  * remain valid for the overlay, but not the step_t's.
+ *
+ * Note that paths that are not indexed as reference paths (i.e. those that are
+ * hidden from for_each_path_handle by the backing graph and not listed in
+ * extra_path_names on construction) *will not be accessible through the
+ * overlay*! You can ask if they exist, but trying to get handles to steps on
+ * them will not work. To actually look at them you will need to go back to the
+ * base graph.
+ *
+ * TODO: Make the overlay transparent so that paths that don't get indexed in
+ * the overlay remain accessible but without the (fast versions of?) the
+ * position queries.
  */
 class ReferencePathOverlay : public PathPositionHandleGraph {
         
 public:
     
-    ReferencePathOverlay(const PathHandleGraph* graph);
+    /// Create a ReferencePathOverlay indexing all non-hidden paths in the
+    /// backing graph (which show up in for_each_path_handle()). For path names
+    /// in extra_path_names, look them up and index them too, even if they are
+    /// hidden.
+    ReferencePathOverlay(const PathHandleGraph* graph, const std::unordered_set<std::string>& extra_path_names = {});
     ReferencePathOverlay() = default;
     ~ReferencePathOverlay() = default;
     

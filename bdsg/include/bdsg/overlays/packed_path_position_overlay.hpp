@@ -25,7 +25,10 @@ using namespace handlegraph;
 
 /*
  * An overlay that adds the PathPositionHandleGraph interface to a static PathHandleGraph
- * by augmenting it with compressed index data structures
+ * by augmenting it with compressed index data structures.
+ *
+ * TODO: Make the overlay transparent so that paths hidden in the base graph
+ * remain accessible through the path metadata queries. 
  */
 class PackedPositionOverlay : public PathPositionHandleGraph, public ExpandingOverlayGraph {
         
