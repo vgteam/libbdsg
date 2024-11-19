@@ -3683,72 +3683,72 @@ SnarlDistanceIndex::SnarlTreeRecordWriter::SnarlTreeRecordWriter (const net_hand
 
 
 SnarlDistanceIndex::record_t SnarlDistanceIndex::SnarlTreeRecordWriter::get_record_type() const {
-    return static_cast<record_t>((*records)->at(record_offset) >> 9);
+    return static_cast<record_t>(((*records)->at(record_offset) >> MANDATORY_FLAG_BITS) & RECORD_T_MASK_LOW);
 }
 void SnarlDistanceIndex::SnarlTreeRecordWriter::set_start_start_connected() {
 #ifdef debug_distance_indexing
     cerr << record_offset << " set start_start_connected" << endl;
 #endif    
 
-    (*records)->at(record_offset) = (*records)->at(record_offset) | 32;
+    (*records)->at(record_offset) = (*records)->at(record_offset) | FLAG_START_START_CONNECTED;
 }
 void SnarlDistanceIndex::SnarlTreeRecordWriter::set_start_end_connected() {
 #ifdef debug_distance_indexing
     cerr << record_offset << " set start_end_connected" << endl;
 #endif
 
-    (*records)->at(record_offset) = (*records)->at(record_offset) | 16;
+    (*records)->at(record_offset) = (*records)->at(record_offset) | FLAG_START_END_CONNECTED;
 }
 void SnarlDistanceIndex::SnarlTreeRecordWriter::set_start_tip_connected() {
 #ifdef debug_distance_indexing
     cerr << record_offset << " set start_tip_connected" << endl;
 #endif
 
-    (*records)->at(record_offset) = (*records)->at(record_offset) | 8;
+    (*records)->at(record_offset) = (*records)->at(record_offset) | FLAG_START_TIP_CONNECTED;
 }
 void SnarlDistanceIndex::SnarlTreeRecordWriter::set_end_end_connected() {
 #ifdef debug_distance_indexing
     cerr << record_offset << " set end_end_connected" << endl;
 #endif
 
-    (*records)->at(record_offset) = (*records)->at(record_offset) | 4;
+    (*records)->at(record_offset) = (*records)->at(record_offset) | FLAG_END_END_CONNECTED;
 }
 void SnarlDistanceIndex::SnarlTreeRecordWriter::set_end_tip_connected() {
 #ifdef debug_distance_indexing
     cerr << record_offset << " set end_tip_connected" << endl;
 #endif
 
-    (*records)->at(record_offset) = (*records)->at(record_offset) | 2;
+    (*records)->at(record_offset) = (*records)->at(record_offset) | FLAG_END_TIP_CONNECTED;
 }
 void SnarlDistanceIndex::SnarlTreeRecordWriter::set_tip_tip_connected() {
 #ifdef debug_distance_indexing
     cerr << record_offset << " set tpi_tip_connected" << endl;
 #endif
 
-    (*records)->at(record_offset) = (*records)->at(record_offset) | 1;
+    (*records)->at(record_offset) = (*records)->at(record_offset) | FLAG_TIP_TIP_CONNECTED;
 }
 void SnarlDistanceIndex::SnarlTreeRecordWriter::set_externally_start_end_connected() {
 #ifdef debug_distance_indexing
     cerr << record_offset << " set externally start_end connected" << endl;
 #endif
 
-    (*records)->at(record_offset) = (*records)->at(record_offset) | 64;
+    (*records)->at(record_offset) = (*records)->at(record_offset) | FLAG_EXTERNALLY_START_END_CONNECTED;
 }
 void SnarlDistanceIndex::SnarlTreeRecordWriter::set_externally_start_start_connected() const {
 #ifdef debug_distance_indexing
     cerr << record_offset << " set externally start_start connected" << endl;
 #endif
-    (*records)->at(record_offset) = (*records)->at(record_offset) | 128;
+    (*records)->at(record_offset) = (*records)->at(record_offset) | FLAG_EXTERNALLY_START_START_CONNECTED;
 }
 void SnarlDistanceIndex::SnarlTreeRecordWriter::set_externally_end_end_connected() const {
 #ifdef debug_distance_indexing
     cerr << record_offset << " set externally end_end connected" << endl;
 #endif
-    (*records)->at(record_offset) = (*records)->at(record_offset) | 256;
+    (*records)->at(record_offset) = (*records)->at(record_offset) | FLAG_EXTERNALLY_END_END_CONNECTED;
 }
 void SnarlDistanceIndex::SnarlTreeRecordWriter::set_record_type(record_t type) {
     assert((*records)->at(record_offset) == 0);
-    (*records)->at(record_offset) = ((static_cast<size_t>(type) << 9) | ((*records)->at(record_offset) & 511));
+    (*records)->at(record_offset) = ((static_cast<size_t>(type) << MANDATORY_FLAG_BITS) | ((*records)->at(record_offset) & (RECORD_T_MASK_LOW << MANDATORY_FLAG_BITS)));
 }
 
 

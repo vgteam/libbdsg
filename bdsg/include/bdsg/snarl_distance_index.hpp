@@ -584,10 +584,8 @@ public:
                    SNARL, DISTANCED_SNARL,  OVERSIZED_SNARL, 
                    ROOT_SNARL, DISTANCED_ROOT_SNARL,
                    CHAIN, DISTANCED_CHAIN, MULTICOMPONENT_CHAIN,
-                   CHILDREN};
+                   LAST_RECORD_T=CHILDREN};
 
-
-    
     ///Given the type of the record, return the handle type. Some record types can represent multiple things,
     ///for example a simple snarl record is used to represent a snarl, and the nodes/trivial chains in it.
     ///This will return whatever is higher on the snarl tree. A simple snarl will be considered a snarl,
@@ -870,17 +868,23 @@ private:
 
 private:
     /*Give each of the enum types a name for printing */
-    vector<std::string> record_t_as_string = {"ROOT", "NODE", "DISTANCED_NODE", 
-                     "TRIVIAL_SNARL", "DISTANCED_TRIVIAL_SNARL",
-                     "SNARL", "DISTANCED_SNARL", "SIMPLE_SNARL", "OVERSIZED_SNARL", 
-                     "ROOT_SNARL", "DISTANCED_ROOT_SNARL",
-                     "CHAIN", "DISTANCED_CHAIN", "MULTICOMPONENT_CHAIN",
-                     "CHILDREN"};
-    vector<std::string> connectivity_t_as_string = { "START_START", "START_END", "START_TIP", 
-                            "END_START", "END_END", "END_TIP", 
-                            "TIP_START", "TIP_END", "TIP_TIP"};
-    vector<std::string> net_handle_record_t_string = {"ROOT_HANDLE", "NODE_HANDLE", "SNARL_HANDLE", 
-                                                "CHAIN_HANDLE", "SENTINEL_HANDLE"};
+    static constexpr vector<std::string> record_t_as_string = {
+        "ROOT", "NODE", "DISTANCED_NODE", 
+        "TRIVIAL_SNARL", "DISTANCED_TRIVIAL_SNARL",
+        "SNARL", "DISTANCED_SNARL", "SIMPLE_SNARL", "OVERSIZED_SNARL", 
+        "ROOT_SNARL", "DISTANCED_ROOT_SNARL",
+        "CHAIN", "DISTANCED_CHAIN", "MULTICOMPONENT_CHAIN",
+        "CHILDREN"
+    };
+    static constexpr vector<std::string> connectivity_t_as_string = {
+        "START_START", "START_END", "START_TIP", 
+        "END_START", "END_END", "END_TIP", 
+        "TIP_START", "TIP_END", "TIP_TIP"
+    };
+    static constexpr vector<std::string> net_handle_record_t_string = {
+        "ROOT_HANDLE", "NODE_HANDLE", "SNARL_HANDLE", 
+        "CHAIN_HANDLE", "SENTINEL_HANDLE"
+    };
 
 
     /* If this is 0, then don't store distances.
@@ -903,29 +907,62 @@ private:
      *
      * The "tags" for defining what kind of record we're looking at. These are the first entry in any 
      * record. They will be a record_t and a bit vector indicating connectivity.
-     * The bit vector will be the last 6 bits of the tag
+     * The bit vector will be the last 9 bits of the tag
      * 
      * Each bit represents one type of connectivity:
      * start-start, start-end, start-tip, end-end, end-tip, tip-tip
      * 
-     * The remainder of the tag will be the record_t of the record
+     * The next 3 bits are used only for root-level structures and define external connectivity.
+     *
+     * After that is the record_t of the record, in 5 bits.
+     *
+     * After that we have backwards-compatible flags. On root snarls, we have a
+     * bit we set if the index has at least some distances, and a bit we set if
+     * the index definitely contains no distances and only has snarl
+     * infromation. 
      */
+
+    /// How many bits are reserved in the on-disk format for storing record types?
+    static constexpr int RECORD_T_BITS = 5;
+    // Make sure it fits. TODO:
+    static_assert(LAST_RECORD_T < (1 << RECORD_T_BITS), "Too many record types for bits reserved in format. Update file format.");
+    /// This mask drops all but the low RECORD_T_BITS bits.
+    static constexpr size_t RECORD_T_MASK_LOW = ~(std::numeric_limits<size_t>::max() << RECORD_T_BITS);
+
+    /// How many mandatory flag bits do we have?
+    static constexpr int MANDATORY_FLAG_BITS = 9;
+
+    static constexpr size_t FLAG_TIP_TIP_CONNECTED = 1 << 0;
+    static constexpr size_t FLAG_END_TIP_CONNECTED = 1 << 1;
+    static constexpr size_t FLAG_END_END_CONNECTED = 1 << 2;
+    static constexpr size_t FLAG_START_TIP_CONNECTED = 1 << 3;
+    static constexpr size_t FLAG_START_END_CONNECTED = 1 << 4;
+    static constexpr size_t FLAG_START_START_CONNECTED = 1 << 5;
+    static constexpr size_t FLAG_EXTERNALLY_START_END_CONNECTED = 1 << 6;
+    static constexpr size_t FLAG_EXTERNALLY_START_START_CONNECTED = 1 << 7;
+    static constexpr size_t FLAG_EXTERNALLY_END_END_CONNECTED = 1 << 8;
+
+    static constexpr size_t FLAG_DISTANCES = 1 << (MANDATORY_FLAG_BITS + RECORD_T_BITS);
+    static constexpr size_t FLAG_NO_DISTANCES = 1 << (MANDATORY_FLAG_BITS + RECORD_T_BITS + 1);
+
     /////////// Methods for interpreting the tags for each snarl tree record
 
-    const static record_t get_record_type(const size_t tag) {return static_cast<record_t>(tag >> 9);}
+    const static record_t get_record_type(const size_t tag) {return static_cast<record_t>((tag >> MANDATORY_FLAG_BITS) & RECORD_T_MASK_LOW);}
 
-    const static bool is_start_start_connected(const size_t tag) {return tag & 32;}
-    const static bool is_start_end_connected(const size_t tag)   {return tag & 16;}
-    const static bool is_start_tip_connected(const size_t tag)   {return tag & 8;}
-    const static bool is_end_end_connected(const size_t tag)     {return tag & 4;}
-    const static bool is_end_tip_connected(const size_t tag)     {return tag & 2;}
-    const static bool is_tip_tip_connected(const size_t tag)     {return tag & 1;}
+    const static bool is_start_start_connected(const size_t tag) {return tag & FLAG_START_START_CONNECTED;}
+    const static bool is_start_end_connected(const size_t tag)   {return tag & FLAG_START_END_CONNECTED;}
+    const static bool is_start_tip_connected(const size_t tag)   {return tag & FLAG_START_TIP_CONNECTED;}
+    const static bool is_end_end_connected(const size_t tag)     {return tag & FLAG_END_END_CONNECTED;}
+    const static bool is_end_tip_connected(const size_t tag)     {return tag & FLAG_END_TIP_CONNECTED;}
+    const static bool is_tip_tip_connected(const size_t tag)     {return tag & FLAG_TIP_TIP_CONNECTED;}
 
     //And the external connectivity. This is only relevant for root-level structures
     //since it would otherwise be captured by the containing snarl
-    const static bool is_externally_start_end_connected(const size_t tag) {return tag & 64;}
-    const static bool is_externally_start_start_connected(const size_t tag) {return tag & 128;}
-    const static bool is_externally_end_end_connected(const size_t tag) {return tag & 256;}
+    const static bool is_externally_start_end_connected(const size_t tag) {return tag & FLAG_EXTERNALLY_START_END_CONNECTED;}
+    const static bool is_externally_start_start_connected(const size_t tag) {return tag & FLAG_EXTERNALLY_START_START_CONNECTED;}
+    const static bool is_externally_end_end_connected(const size_t tag) {return tag & FLAG_EXTERNALLY_END_END_CONNECTED;}
+
+    const static bool has_
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
