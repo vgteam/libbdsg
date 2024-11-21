@@ -585,6 +585,11 @@ public:
                    ROOT_SNARL, DISTANCED_ROOT_SNARL,
                    CHAIN, DISTANCED_CHAIN, MULTICOMPONENT_CHAIN,
                    CHILDREN};
+    const static bool has_distances(record_t type) {
+        return type == DISTANCED_NODE || type == DISTANCED_TRIVIAL_SNARL || type == DISTANCED_SIMPLE_SNARL
+            || type == DISTANCED_SNARL || type == OVERSIZED_SNARL || type == DISTANCED_ROOT_SNARL 
+            || type == DISTANCED_CHAIN || type == MULTICOMPONENT_CHAIN;
+    }
 
 
     
@@ -1390,7 +1395,7 @@ private:
         //If new_record is true, make a new trivial snarl record for the node
         size_t add_node(nid_t node_id, size_t node_length, bool is_reversed_in_parent,
                 size_t prefix_sum, size_t forward_loop, size_t reverse_loop, size_t component, 
-                size_t max_prefix_sum, size_t previous_child_offset, bool new_record);
+                size_t max_prefix_sum, size_t previous_child_offset, bool new_record, bool include_distances);
 
     };
 
