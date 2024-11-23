@@ -812,7 +812,8 @@ bool SnarlDistanceIndex::follow_net_edges_impl(const net_handle_t& here, const h
                 cerr << "    -> actual child node " << net_handle_as_string(next_net) << endl;
 #endif
                    return iteratee(next_net);
-                } else if (get_record_type(snarl_tree_records->at(get_record_offset(node_net_handle))) == DISTANCED_SIMPLE_SNARL ) {
+                } else if (get_record_type(snarl_tree_records->at(get_record_offset(node_net_handle))) == SIMPLE_SNARL || 
+                           get_record_type(snarl_tree_records->at(get_record_offset(node_net_handle))) == DISTANCED_SIMPLE_SNARL ) {
                     //If the node is a node in a simple snarl
                     net_handle_t next_net = get_net_handle_from_values(get_record_offset(node_net_handle), 
                                                            graph->get_is_reverse(h) ? END_START : START_END, 
@@ -3157,17 +3158,18 @@ size_t SnarlDistanceIndex::node_length(const net_handle_t& net) const {
 
 
 size_t SnarlDistanceIndex::minimum_length(const net_handle_t& net) const {
-    if (SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == TRIVIAL_SNARL || 
-        SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == DISTANCED_TRIVIAL_SNARL) {
+    auto record_type = SnarlTreeRecord(net, &snarl_tree_records).get_record_type();
+    if (!has_distances(record_type)) {
+        throw runtime_error("error: trying to access get distance in a distanceless index");
+    } else if (record_type == DISTANCED_TRIVIAL_SNARL) {
         return TrivialSnarlRecord(get_record_offset(net), &snarl_tree_records).get_node_length(get_node_record_offset(net));
-    } else if (SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == SIMPLE_SNARL || 
-               SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == DISTANCED_SIMPLE_SNARL) {
+    } else if (record_type == DISTANCED_SIMPLE_SNARL) {
         if (is_snarl(net)) {
             return SimpleSnarlRecord(net, &snarl_tree_records).get_min_length();
         } else {
             return SimpleSnarlRecord(net, &snarl_tree_records).get_node_length();
         }
-    } else if (SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == MULTICOMPONENT_CHAIN) {
+    } else if (record_type == MULTICOMPONENT_CHAIN) {
         return std::numeric_limits<size_t>::max();
     } else {
         return SnarlTreeRecord(net, &snarl_tree_records).get_min_length();
@@ -3185,12 +3187,13 @@ size_t SnarlDistanceIndex::chain_minimum_length(const net_handle_t& net) const {
     }
 }
 size_t SnarlDistanceIndex::maximum_length(const net_handle_t& net) const {
-    if ((SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == TRIVIAL_SNARL || 
-        SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == DISTANCED_TRIVIAL_SNARL) &&
+    auto record_type = SnarlTreeRecord(net, &snarl_tree_records).get_record_type();
+    if (!has_distances(record_type)) {
+        throw runtime_error("error: trying to access get distance in a distanceless index");
+    } else if (record_type == DISTANCED_TRIVIAL_SNARL &&
         get_node_record_offset(net) != 0) {
         return TrivialSnarlRecord(get_record_offset(net), &snarl_tree_records).get_node_length(get_node_record_offset(net));
-    } else if (SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == SIMPLE_SNARL || 
-               SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == DISTANCED_SIMPLE_SNARL) {
+    } else if (record_type == DISTANCED_SIMPLE_SNARL) {
         if (is_snarl(net)) {
             return SimpleSnarlRecord(net, &snarl_tree_records).get_max_length();
         } else {
@@ -5470,7 +5473,7 @@ SnarlDistanceIndex::SimpleSnarlRecordWriter SnarlDistanceIndex::ChainRecordWrite
 
     size_t snarl_record_size = SIMPLE_SNARL_RECORD_SIZE + 2*snarl_size;
 #ifdef debug_distance_indexing
-    cerr << (*records)->size() << " Adding child snarl length to the end of the array " << endl;
+    cerr << (*records)->size() << " Adding simple snarl to the end of the array " << endl;
     assert(SnarlDistanceIndex::get_record_type((*records)->at(previous_child_offset))== DISTANCED_TRIVIAL_SNARL);
 #endif
 
@@ -5522,6 +5525,7 @@ size_t SnarlDistanceIndex::ChainRecordWriter::add_node(nid_t node_id, size_t nod
             || SnarlDistanceIndex::get_record_type((*records)->at(previous_child_offset)) == SNARL 
             || SnarlDistanceIndex::get_record_type((*records)->at(previous_child_offset)) == DISTANCED_SNARL 
             || SnarlDistanceIndex::get_record_type((*records)->at(previous_child_offset)) == OVERSIZED_SNARL 
+            || SnarlDistanceIndex::get_record_type((*records)->at(previous_child_offset)) == SIMPLE_SNARL 
             || SnarlDistanceIndex::get_record_type((*records)->at(previous_child_offset)) == DISTANCED_SIMPLE_SNARL 
             || TrivialSnarlRecord(previous_child_offset, records).get_node_count() == MAX_TRIVIAL_SNARL_NODE_COUNT
             || reverse_loop == 0 || new_record) {
