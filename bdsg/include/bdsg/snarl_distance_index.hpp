@@ -1492,12 +1492,12 @@ public:
             bool start_node_rev;
             handlegraph::nid_t end_node_id;
             bool end_node_rev;
-            size_t end_node_length;
+            size_t end_node_length=0;
             size_t tree_depth = 0;
             //Type of the parent and offset into the appropriate vector
             //(TEMP_ROOT, 0) if this is a root level chain
             pair<temp_record_t, size_t> parent;
-            size_t min_length;//Including boundary nodes
+            size_t min_length=0;//Including boundary nodes
             size_t max_length = 0;
             vector<pair<temp_record_t, size_t>> children; //All children, both nodes and snarls, in order
             //Distances for the chain, one entry per node
@@ -1513,7 +1513,7 @@ public:
             size_t distance_left_end = std::numeric_limits<size_t>::max();
             size_t distance_right_end = std::numeric_limits<size_t>::max();
 
-            size_t rank_in_parent;
+            size_t rank_in_parent=0;
             bool reversed_in_parent;
             bool is_trivial;
             bool is_tip = false;
@@ -1525,11 +1525,11 @@ public:
         struct TemporarySnarlRecord : TemporaryRecord{
             handlegraph::nid_t start_node_id;
             bool start_node_rev;
-            size_t start_node_length;
+            size_t start_node_length=0;
             handlegraph::nid_t end_node_id;
             bool end_node_rev;
-            size_t end_node_length;
-            size_t node_count;
+            size_t end_node_length=0;
+            size_t node_count=0;
             size_t min_length = std::numeric_limits<size_t>::max(); //Not including boundary nodes
             size_t max_length = 0;
             size_t max_distance = 0;
@@ -1543,7 +1543,7 @@ public:
             size_t distance_start_start = std::numeric_limits<size_t>::max();
             size_t distance_end_end = std::numeric_limits<size_t>::max();
 
-            size_t rank_in_parent;
+            size_t rank_in_parent=0;
             bool reversed_in_parent;
             bool is_trivial;
             bool is_simple;
@@ -1559,8 +1559,8 @@ public:
             }
             handlegraph::nid_t node_id;
             pair<temp_record_t, size_t> parent;
-            size_t node_length;
-            size_t rank_in_parent;
+            size_t node_length=0;
+            size_t rank_in_parent=0;
             bool reversed_in_parent;
             bool is_tip = false;
             size_t root_snarl_index = std::numeric_limits<size_t>::max();
