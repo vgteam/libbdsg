@@ -821,7 +821,8 @@ private:
      *   [trivial snarl tag, pointer to parent, node count, prefix sum, fd loop, rev loop, component]
 
      * The record is followed by [node id+orientation, right prefix sum] for each node in the trivial snarl
-     * So the total length of the trivial snarl is 8+2*#nodes
+     * So the total length of the distanced trivial snarl is 8+2*#nodes, and the length of a distanceless
+     * trivial snarl is 8+#nodes
      * The right prefix sum is the sum from the start of the trivial chain to the right side of the node (relative to the chain)
      * The node_record_offset in a net_handle_t to a trivial snarl points to a node in the trivial snarl
  
@@ -1144,7 +1145,9 @@ private:
         bool get_is_reversed_in_parent(size_t node_rank) const; //is the node_rank-th node reversed
 
         size_t get_record_size() { 
-            return TRIVIAL_SNARL_RECORD_SIZE + (get_node_count() * 2);
+            return get_record_type() == DISTANCED_TRIVIAL_SNARL
+                   ? TRIVIAL_SNARL_RECORD_SIZE + (get_node_count() * 2)
+                   : TRIVIAL_SNARL_RECORD_SIZE + get_node_count();
         }
         TrivialSnarlRecord (size_t offset, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records);
     };
