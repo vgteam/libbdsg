@@ -830,7 +830,7 @@ private:
     const static size_t BITS_FOR_TRIVIAL_NODE_OFFSET = 8;
     const static size_t MAX_TRIVIAL_SNARL_NODE_COUNT =  (1 << BITS_FOR_TRIVIAL_NODE_OFFSET) -1;
     const static size_t DISTANCED_TRIVIAL_SNARL_RECORD_SIZE = 8;
-    const static size_t DISTANCELESS_TRIVIAL_SNARL_RECORD_SIZE = 2;
+    const static size_t DISTANCELESS_TRIVIAL_SNARL_RECORD_SIZE = 3;
     const static size_t TRIVIAL_SNARL_PARENT_OFFSET = 1;
     const static size_t TRIVIAL_SNARL_NODE_COUNT_OFFSET = 2;
     const static size_t TRIVIAL_SNARL_PREFIX_SUM_OFFSET = 3;
@@ -895,6 +895,11 @@ private:
      * that include boundary nodes (OVERSIZED_SNARL)
      */
     size_t snarl_size_limit = 5000;
+
+    //If this is true, then only store distance along top-level chains. Everything still needs its minimum lengths to get
+    //the distances along top-level chains but don't store internal distances in snarls or in nested chains
+    //This overrides snarl_size_limit
+    bool only_top_level_chain_distances=false;
     static const int max_num_size_limit_warnings = 100;
     std::atomic<int> size_limit_warnings{0};
     static const uint32_t magic_number = 1738636486;
