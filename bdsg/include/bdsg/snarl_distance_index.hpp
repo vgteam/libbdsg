@@ -906,6 +906,7 @@ private:
     
 public:
     void set_snarl_size_limit (size_t size) {snarl_size_limit=size;}
+    void set_only_top_level_chain_distances (bool only_chain) {only_top_level_chain_distances=only_chain;}
 
 
 
