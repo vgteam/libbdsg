@@ -5457,7 +5457,7 @@ SnarlDistanceIndex::SnarlRecordWriter SnarlDistanceIndex::ChainRecordWriter::add
 #ifdef debug_distance_indexing
     cerr << (*records)->size() << " Adding child snarl length to the end of the array " << endl;
     cerr << "Previous child was at " << previous_child_offset << endl;
-    assert(SnarlDistanceIndex::get_record_type((*records)->at(previous_child_offset))== DISTANCED_TRIVIAL_SNARL);
+    assert(SnarlDistanceIndex::get_record_type((*records)->at(previous_child_offset))== DISTANCED_TRIVIAL_SNARL || SnarlDistanceIndex::get_record_type((*records)->at(previous_child_offset))== TRIVIAL_SNARL);
 #endif
 
     
@@ -5490,7 +5490,7 @@ SnarlDistanceIndex::SimpleSnarlRecordWriter SnarlDistanceIndex::ChainRecordWrite
     size_t snarl_record_size = SIMPLE_SNARL_RECORD_SIZE + 2*snarl_size;
 #ifdef debug_distance_indexing
     cerr << (*records)->size() << " Adding simple snarl to the end of the array " << endl;
-    assert(SnarlDistanceIndex::get_record_type((*records)->at(previous_child_offset))== DISTANCED_TRIVIAL_SNARL);
+    assert(SnarlDistanceIndex::get_record_type((*records)->at(previous_child_offset))== DISTANCED_TRIVIAL_SNARL || SnarlDistanceIndex::get_record_type((*records)->at(previous_child_offset))== TRIVIAL_SNARL);
 #endif
 
     
@@ -6143,10 +6143,12 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
 #endif
                     record_to_offset.emplace(make_pair(temp_index_i,current_record_index), snarl_tree_records->size());
 
+                    bool ignore_distances = (snarl_size_limit == 0) || (only_top_level_chain_distances && temp_chain_record.tree_depth != 0);
+
                     ChainRecordWriter chain_record_constructor;
 
-                    if (temp_chain_record.chain_components.back() == 0 || snarl_size_limit == 0) {
-                        record_t record_type = snarl_size_limit == 0 ? CHAIN : DISTANCED_CHAIN;
+                    if (temp_chain_record.chain_components.back() == 0 || ignore_distances) {
+                        record_t record_type = ignore_distances ? CHAIN : DISTANCED_CHAIN;
                         chain_record_constructor = ChainRecordWriter(snarl_tree_records->size(), record_type,
                                                                temp_chain_record.prefix_sum.size(), &snarl_tree_records);
                         chain_record_constructor.set_start_end_connected();
@@ -6156,7 +6158,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                     }
                     chain_record_constructor.set_parent_record_offset(
                             record_to_offset[make_pair(temp_index_i, temp_chain_record.parent)]);
-                    if (snarl_size_limit != 0) {
+                    if (!ignore_distances) {
                         chain_record_constructor.set_distance_left_start(temp_chain_record.distance_left_start);
                         chain_record_constructor.set_distance_right_start(temp_chain_record.distance_right_start);
                         chain_record_constructor.set_distance_left_end(temp_chain_record.distance_left_end);
@@ -6187,7 +6189,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                     }
 
 
-                    if (snarl_size_limit != 0) {
+                    if (!ignore_distances) {
                         chain_record_constructor.set_min_length(temp_chain_record.min_length);
                         chain_record_constructor.set_max_length(temp_chain_record.max_length);
                     }
@@ -6227,7 +6229,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                                         temp_chain_record.backward_loops[chain_node_i], temp_chain_record.chain_components[chain_node_i],
                                         temp_chain_record.max_prefix_sum[chain_node_i],
                                         last_child_offset.first, last_child_was_nontrivial_snarl,
-                                        snarl_size_limit != 0);
+                                        !ignore_distances);
 
                                 //Remember this node as the last thing in the chain
                                 last_child_offset = make_pair(new_offset, false);
@@ -6262,7 +6264,9 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
 
                                 //Add the snarl to the chain, and get back the record to fill it in
 
-                                record_t record_type = snarl_size_limit == 0 ? SNARL :
+                                bool ignore_distances = (snarl_size_limit == 0) || only_top_level_chain_distances;
+
+                                record_t record_type = ignore_distances ? SNARL :
                                     (temp_snarl_record.node_count < snarl_size_limit ? DISTANCED_SNARL : OVERSIZED_SNARL);
                                 SnarlRecordWriter snarl_record_constructor =
                                     chain_record_constructor.add_snarl(temp_snarl_record.node_count, record_type, last_child_offset.first);
@@ -6271,7 +6275,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                                 record_to_offset.emplace(make_pair(temp_index_i, child_record_index), snarl_record_constructor.record_offset);
 
                                 //Fill in snarl info
-                                if (snarl_size_limit != 0) {
+                                if (!ignore_distances) {
                                     snarl_record_constructor.set_min_length(temp_snarl_record.min_length);
                                     snarl_record_constructor.set_max_length(temp_snarl_record.max_length);
                                 }
@@ -6284,7 +6288,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                                     pair<size_t, size_t> node_rank2 = it.first.second;
                                     const size_t distance = it.second;
 
-                                    if (snarl_size_limit != 0) {
+                                    if (!ignore_distances) {
                                         //If we are keeping track of distances
                                         //If the distance exceeded the limit, then it wasn't found in the first place
                                         snarl_record_constructor.set_distance(node_rank1.first, node_rank1.second,
@@ -6361,8 +6365,9 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                                 //Make a simple snarl
 
                                 //Add the snarl to the chain, and get back the record to fill it in
+                                bool ignore_distances = (snarl_size_limit == 0) || only_top_level_chain_distances;
 
-                                record_t record_type = snarl_size_limit == 0 ? SIMPLE_SNARL : DISTANCED_SIMPLE_SNARL;
+                                record_t record_type = ignore_distances ? SIMPLE_SNARL : DISTANCED_SIMPLE_SNARL;
                                 SimpleSnarlRecordWriter snarl_record_constructor =
                                     chain_record_constructor.add_simple_snarl(temp_snarl_record.node_count, record_type, last_child_offset.first);
 
@@ -6370,7 +6375,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                                 record_to_offset.emplace(make_pair(temp_index_i, child_record_index), snarl_record_constructor.record_offset);
 
                                 //Fill in snarl info
-                                if (snarl_size_limit != 0) {
+                                if (!ignore_distances) {
                                     snarl_record_constructor.set_min_length(temp_snarl_record.min_length);
                                     snarl_record_constructor.set_max_length(temp_snarl_record.max_length);
                                 }
@@ -6423,12 +6428,16 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                     const TemporaryDistanceIndex::TemporaryNodeRecord& temp_node_record =
                             temp_index->temp_node_records[temp_chain_record.children[0].second-min_node_id];
 
-                    record_t record_type = snarl_size_limit == 0 ? NODE : DISTANCED_NODE;
+
+                    //TODO: I don't think we ever need distances if its a top-level chain distance only index but it doesn't change much
+                    bool ignore_distances = (snarl_size_limit == 0) || (only_top_level_chain_distances && temp_chain_record.tree_depth != 0);
+
+                    record_t record_type = ignore_distances ? NODE : DISTANCED_NODE;
                     NodeRecordWriter node_record(snarl_tree_records->size(), 0, record_type, &snarl_tree_records, temp_node_record.node_id);
                     node_record.set_node_id(temp_node_record.node_id);
                     node_record.set_rank_in_parent(temp_chain_record.rank_in_parent);
                     node_record.set_parent_record_offset(record_to_offset[make_pair(temp_index_i, temp_chain_record.parent)]);
-                    if (snarl_size_limit != 0) {
+                    if (!ignore_distances) {
                         node_record.set_node_length(temp_node_record.node_length);
                         node_record.set_distance_left_start(temp_chain_record.distance_left_start);
                         node_record.set_distance_right_start(temp_chain_record.distance_right_start);
@@ -6444,8 +6453,10 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                 cerr << "        this is a root-level snarl "
                      << temp_index->structure_start_end_as_string(current_record_index) << endl;
 #endif
+
+                bool ignore_distances = (snarl_size_limit == 0) || only_top_level_chain_distances;
                 //This is a root-level snarl
-                record_t record_type = snarl_size_limit == 0 ? ROOT_SNARL : DISTANCED_ROOT_SNARL;
+                record_t record_type = ignore_distances ? ROOT_SNARL : DISTANCED_ROOT_SNARL;
 
                 const TemporaryDistanceIndex::TemporarySnarlRecord& temp_snarl_record = temp_index->temp_snarl_records[current_record_index.second];
                 record_to_offset.emplace(make_pair(temp_index_i,current_record_index), snarl_tree_records->size());
@@ -6457,7 +6468,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
 
                 //Add distances and record connectivity
 
-                if (snarl_size_limit != 0 ) {
+                if (!ignore_distances ) {
 
 
                     for (const auto& it : temp_snarl_record.distances) {
@@ -6497,13 +6508,15 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
 #endif
                 const TemporaryDistanceIndex::TemporaryNodeRecord& temp_node_record =
                         temp_index->temp_node_records[current_record_index.second-min_node_id];
-                record_t record_type = snarl_size_limit == 0 ? NODE : DISTANCED_NODE;
+
+                bool ignore_distances = (snarl_size_limit == 0) || only_top_level_chain_distances;
+                record_t record_type = ignore_distances ? NODE : DISTANCED_NODE;
                 NodeRecordWriter node_record(snarl_tree_records->size(), 0, record_type, &snarl_tree_records, temp_node_record.node_id);
                 node_record.set_node_id(temp_node_record.node_id);
                 node_record.set_rank_in_parent(temp_node_record.rank_in_parent);
                 node_record.set_parent_record_offset(record_to_offset[make_pair(temp_index_i, temp_node_record.parent)]);
 
-                if (snarl_size_limit != 0) {
+                if (!ignore_distances) {
                     node_record.set_node_length(temp_node_record.node_length);
                     node_record.set_distance_left_start(temp_node_record.distance_left_start);
                     node_record.set_distance_right_start(temp_node_record.distance_right_start);
