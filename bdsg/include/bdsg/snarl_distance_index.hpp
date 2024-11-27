@@ -829,7 +829,8 @@ private:
      */
     const static size_t BITS_FOR_TRIVIAL_NODE_OFFSET = 8;
     const static size_t MAX_TRIVIAL_SNARL_NODE_COUNT =  (1 << BITS_FOR_TRIVIAL_NODE_OFFSET) -1;
-    const static size_t TRIVIAL_SNARL_RECORD_SIZE = 8;
+    const static size_t DISTANCED_TRIVIAL_SNARL_RECORD_SIZE = 8;
+    const static size_t DISTANCELESS_TRIVIAL_SNARL_RECORD_SIZE = 2;
     const static size_t TRIVIAL_SNARL_PARENT_OFFSET = 1;
     const static size_t TRIVIAL_SNARL_NODE_COUNT_OFFSET = 2;
     const static size_t TRIVIAL_SNARL_PREFIX_SUM_OFFSET = 3;
@@ -1146,8 +1147,8 @@ private:
 
         size_t get_record_size() { 
             return get_record_type() == DISTANCED_TRIVIAL_SNARL
-                   ? TRIVIAL_SNARL_RECORD_SIZE + (get_node_count() * 2)
-                   : TRIVIAL_SNARL_RECORD_SIZE + get_node_count();
+                   ? DISTANCED_TRIVIAL_SNARL_RECORD_SIZE + (get_node_count() * 2)
+                   : DISTANCELESS_TRIVIAL_SNARL_RECORD_SIZE + get_node_count();
         }
         TrivialSnarlRecord (size_t offset, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records);
     };
