@@ -6143,7 +6143,22 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
 #endif
                     record_to_offset.emplace(make_pair(temp_index_i,current_record_index), snarl_tree_records->size());
 
-                    bool ignore_distances = (snarl_size_limit == 0) || (only_top_level_chain_distances && temp_chain_record.tree_depth != 0);
+
+                    //If this chain's parent is a root snarl, then the temporary parent is a snarl but we consider 
+                    //the parent to be the root and the chain to have depth 1
+                    bool is_child_of_root_snarl = false;
+                    if (temp_chain_record.parent.first == TEMP_SNARL) {
+                        const TemporaryDistanceIndex::TemporarySnarlRecord& temp_parent_record =
+                             temp_index->temp_snarl_records[temp_chain_record.parent.second];
+                        if (temp_parent_record.is_root_snarl) {
+                            is_child_of_root_snarl = true;
+                        }
+                    }
+
+                    //We don't keep track of distances for this chain if the snarl_size_limit is 0, or if we only want top-level chain distances
+                    // and this is a nested chain
+                    bool ignore_distances = (snarl_size_limit == 0) || 
+                                            (only_top_level_chain_distances && !(temp_chain_record.parent.first == TEMP_ROOT || is_child_of_root_snarl));
 
                     ChainRecordWriter chain_record_constructor;
 
@@ -6163,17 +6178,6 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                         chain_record_constructor.set_distance_right_start(temp_chain_record.distance_right_start);
                         chain_record_constructor.set_distance_left_end(temp_chain_record.distance_left_end);
                         chain_record_constructor.set_distance_right_end(temp_chain_record.distance_right_end);
-                    }
-
-                    //If this chain's parent is a root snarl, then the temporary parent is a snarl but we consider 
-                    //the parent to be the root and the chain to have depth 1
-                    bool is_child_of_root_snarl = false;
-                    if (temp_chain_record.parent.first == TEMP_SNARL) {
-                        const TemporaryDistanceIndex::TemporarySnarlRecord& temp_parent_record =
-                             temp_index->temp_snarl_records[temp_chain_record.parent.second];
-                        if (temp_parent_record.is_root_snarl) {
-                            is_child_of_root_snarl = true;
-                        }
                     }
 
                     //Set the depth of this chain
@@ -6429,8 +6433,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                             temp_index->temp_node_records[temp_chain_record.children[0].second-min_node_id];
 
 
-                    //TODO: I don't think we ever need distances if its a top-level chain distance only index but it doesn't change much
-                    bool ignore_distances = (snarl_size_limit == 0) || (only_top_level_chain_distances && temp_chain_record.tree_depth != 0);
+                    bool ignore_distances = (snarl_size_limit == 0) || only_top_level_chain_distances;
 
                     record_t record_type = ignore_distances ? NODE : DISTANCED_NODE;
                     NodeRecordWriter node_record(snarl_tree_records->size(), 0, record_type, &snarl_tree_records, temp_node_record.node_id);
