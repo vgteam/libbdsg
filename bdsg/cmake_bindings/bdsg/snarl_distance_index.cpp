@@ -6,17 +6,17 @@
 #include <handlegraph/types.hpp>
 #include <ios>
 #include <istream>
+#include <iterator>
 #include <memory>
 #include <ostream>
 #include <sstream> // __str__
 #include <streambuf>
 #include <string>
-#include <string_view>
 #include <tuple>
 #include <utility>
 
-#include <functional>
 #include <pybind11/pybind11.h>
+#include <functional>
 #include <string>
 #include <bdsg/internal/binder_hook_compile.hpp>
 #include <pybind11/stl.h>
@@ -27,373 +27,373 @@
 
 #ifndef BINDER_PYBIND11_TYPE_CASTER
 	#define BINDER_PYBIND11_TYPE_CASTER
-	PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>)
-	PYBIND11_DECLARE_HOLDER_TYPE(T, T*)
-	PYBIND11_MAKE_OPAQUE(std::shared_ptr<void>)
+	PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>);
+	PYBIND11_DECLARE_HOLDER_TYPE(T, T*);
+	PYBIND11_MAKE_OPAQUE(std::shared_ptr<void>);
 #endif
 
 // bdsg::SnarlDistanceIndex file:bdsg/snarl_distance_index.hpp line:148
 struct PyCallBack_bdsg_SnarlDistanceIndex : public bdsg::SnarlDistanceIndex {
 	using bdsg::SnarlDistanceIndex::SnarlDistanceIndex;
 
-	void dissociate() override {
+	void dissociate() override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::SnarlDistanceIndex *>(this), "dissociate");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
 			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
-				static pybind11::detail::override_caster_t<void> caster;
+				static pybind11::detail::overload_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return SnarlDistanceIndex::dissociate();
 	}
-	void serialize(const class std::function<void (const void *, unsigned long)> & a0) const override {
+	void serialize(const class std::function<void (const void *, unsigned long)> & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::SnarlDistanceIndex *>(this), "serialize");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
-				static pybind11::detail::override_caster_t<void> caster;
+				static pybind11::detail::overload_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return SnarlDistanceIndex::serialize(a0);
 	}
-	void serialize(int a0) override {
+	void serialize(int a0) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::SnarlDistanceIndex *>(this), "serialize");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
-				static pybind11::detail::override_caster_t<void> caster;
+				static pybind11::detail::overload_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return SnarlDistanceIndex::serialize(a0);
 	}
-	void deserialize(int a0) override {
+	void deserialize(int a0) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::SnarlDistanceIndex *>(this), "deserialize");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
-				static pybind11::detail::override_caster_t<void> caster;
+				static pybind11::detail::overload_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return SnarlDistanceIndex::deserialize(a0);
 	}
-	unsigned int get_magic_number() const override {
+	unsigned int get_magic_number() const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::SnarlDistanceIndex *>(this), "get_magic_number");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
 			if (pybind11::detail::cast_is_temporary_value_reference<unsigned int>::value) {
-				static pybind11::detail::override_caster_t<unsigned int> caster;
+				static pybind11::detail::overload_caster_t<unsigned int> caster;
 				return pybind11::detail::cast_ref<unsigned int>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<unsigned int>(std::move(o));
 		}
 		return SnarlDistanceIndex::get_magic_number();
 	}
-	struct handlegraph::net_handle_t get_root() const override {
+	struct handlegraph::net_handle_t get_root() const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::SnarlDistanceIndex *>(this), "get_root");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::net_handle_t>::value) {
-				static pybind11::detail::override_caster_t<struct handlegraph::net_handle_t> caster;
+				static pybind11::detail::overload_caster_t<struct handlegraph::net_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::net_handle_t>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<struct handlegraph::net_handle_t>(std::move(o));
 		}
 		return SnarlDistanceIndex::get_root();
 	}
-	bool is_root(const struct handlegraph::net_handle_t & a0) const override {
+	bool is_root(const struct handlegraph::net_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::SnarlDistanceIndex *>(this), "is_root");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::override_caster_t<bool> caster;
+				static pybind11::detail::overload_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return SnarlDistanceIndex::is_root(a0);
 	}
-	bool is_snarl(const struct handlegraph::net_handle_t & a0) const override {
+	bool is_snarl(const struct handlegraph::net_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::SnarlDistanceIndex *>(this), "is_snarl");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::override_caster_t<bool> caster;
+				static pybind11::detail::overload_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return SnarlDistanceIndex::is_snarl(a0);
 	}
-	bool is_chain(const struct handlegraph::net_handle_t & a0) const override {
+	bool is_chain(const struct handlegraph::net_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::SnarlDistanceIndex *>(this), "is_chain");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::override_caster_t<bool> caster;
+				static pybind11::detail::overload_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return SnarlDistanceIndex::is_chain(a0);
 	}
-	bool is_node(const struct handlegraph::net_handle_t & a0) const override {
+	bool is_node(const struct handlegraph::net_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::SnarlDistanceIndex *>(this), "is_node");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::override_caster_t<bool> caster;
+				static pybind11::detail::overload_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return SnarlDistanceIndex::is_node(a0);
 	}
-	bool is_sentinel(const struct handlegraph::net_handle_t & a0) const override {
+	bool is_sentinel(const struct handlegraph::net_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::SnarlDistanceIndex *>(this), "is_sentinel");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::override_caster_t<bool> caster;
+				static pybind11::detail::overload_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return SnarlDistanceIndex::is_sentinel(a0);
 	}
-	struct handlegraph::net_handle_t get_net(const struct handlegraph::handle_t & a0, const class handlegraph::HandleGraph * a1) const override {
+	struct handlegraph::net_handle_t get_net(const struct handlegraph::handle_t & a0, const class handlegraph::HandleGraph * a1) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::SnarlDistanceIndex *>(this), "get_net");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::net_handle_t>::value) {
-				static pybind11::detail::override_caster_t<struct handlegraph::net_handle_t> caster;
+				static pybind11::detail::overload_caster_t<struct handlegraph::net_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::net_handle_t>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<struct handlegraph::net_handle_t>(std::move(o));
 		}
 		return SnarlDistanceIndex::get_net(a0, a1);
 	}
-	struct handlegraph::handle_t get_handle(const struct handlegraph::net_handle_t & a0, const class handlegraph::HandleGraph * a1) const override {
+	struct handlegraph::handle_t get_handle(const struct handlegraph::net_handle_t & a0, const class handlegraph::HandleGraph * a1) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::SnarlDistanceIndex *>(this), "get_handle");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::handle_t>::value) {
-				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
+				static pybind11::detail::overload_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		return SnarlDistanceIndex::get_handle(a0, a1);
 	}
-	struct handlegraph::net_handle_t get_parent(const struct handlegraph::net_handle_t & a0) const override {
+	struct handlegraph::net_handle_t get_parent(const struct handlegraph::net_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::SnarlDistanceIndex *>(this), "get_parent");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::net_handle_t>::value) {
-				static pybind11::detail::override_caster_t<struct handlegraph::net_handle_t> caster;
+				static pybind11::detail::overload_caster_t<struct handlegraph::net_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::net_handle_t>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<struct handlegraph::net_handle_t>(std::move(o));
 		}
 		return SnarlDistanceIndex::get_parent(a0);
 	}
-	struct handlegraph::net_handle_t get_bound(const struct handlegraph::net_handle_t & a0, bool a1, bool a2) const override {
+	struct handlegraph::net_handle_t get_bound(const struct handlegraph::net_handle_t & a0, bool a1, bool a2) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::SnarlDistanceIndex *>(this), "get_bound");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1, a2);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::net_handle_t>::value) {
-				static pybind11::detail::override_caster_t<struct handlegraph::net_handle_t> caster;
+				static pybind11::detail::overload_caster_t<struct handlegraph::net_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::net_handle_t>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<struct handlegraph::net_handle_t>(std::move(o));
 		}
 		return SnarlDistanceIndex::get_bound(a0, a1, a2);
 	}
-	struct handlegraph::net_handle_t flip(const struct handlegraph::net_handle_t & a0) const override {
+	struct handlegraph::net_handle_t flip(const struct handlegraph::net_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::SnarlDistanceIndex *>(this), "flip");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::net_handle_t>::value) {
-				static pybind11::detail::override_caster_t<struct handlegraph::net_handle_t> caster;
+				static pybind11::detail::overload_caster_t<struct handlegraph::net_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::net_handle_t>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<struct handlegraph::net_handle_t>(std::move(o));
 		}
 		return SnarlDistanceIndex::flip(a0);
 	}
-	struct handlegraph::net_handle_t canonical(const struct handlegraph::net_handle_t & a0) const override {
+	struct handlegraph::net_handle_t canonical(const struct handlegraph::net_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::SnarlDistanceIndex *>(this), "canonical");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::net_handle_t>::value) {
-				static pybind11::detail::override_caster_t<struct handlegraph::net_handle_t> caster;
+				static pybind11::detail::overload_caster_t<struct handlegraph::net_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::net_handle_t>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<struct handlegraph::net_handle_t>(std::move(o));
 		}
 		return SnarlDistanceIndex::canonical(a0);
 	}
-	enum handlegraph::SnarlDecomposition::endpoint_t starts_at(const struct handlegraph::net_handle_t & a0) const override {
+	enum handlegraph::SnarlDecomposition::endpoint_t starts_at(const struct handlegraph::net_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::SnarlDistanceIndex *>(this), "starts_at");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<enum handlegraph::SnarlDecomposition::endpoint_t>::value) {
-				static pybind11::detail::override_caster_t<enum handlegraph::SnarlDecomposition::endpoint_t> caster;
+				static pybind11::detail::overload_caster_t<enum handlegraph::SnarlDecomposition::endpoint_t> caster;
 				return pybind11::detail::cast_ref<enum handlegraph::SnarlDecomposition::endpoint_t>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<enum handlegraph::SnarlDecomposition::endpoint_t>(std::move(o));
 		}
 		return SnarlDistanceIndex::starts_at(a0);
 	}
-	enum handlegraph::SnarlDecomposition::endpoint_t ends_at(const struct handlegraph::net_handle_t & a0) const override {
+	enum handlegraph::SnarlDecomposition::endpoint_t ends_at(const struct handlegraph::net_handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::SnarlDistanceIndex *>(this), "ends_at");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<enum handlegraph::SnarlDecomposition::endpoint_t>::value) {
-				static pybind11::detail::override_caster_t<enum handlegraph::SnarlDecomposition::endpoint_t> caster;
+				static pybind11::detail::overload_caster_t<enum handlegraph::SnarlDecomposition::endpoint_t> caster;
 				return pybind11::detail::cast_ref<enum handlegraph::SnarlDecomposition::endpoint_t>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<enum handlegraph::SnarlDecomposition::endpoint_t>(std::move(o));
 		}
 		return SnarlDistanceIndex::ends_at(a0);
 	}
-	bool for_each_child_impl(const struct handlegraph::net_handle_t & a0, const class std::function<bool (const struct handlegraph::net_handle_t &)> & a1) const override {
+	bool for_each_child_impl(const struct handlegraph::net_handle_t & a0, const class std::function<bool (const struct handlegraph::net_handle_t &)> & a1) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::SnarlDistanceIndex *>(this), "for_each_child_impl");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::override_caster_t<bool> caster;
+				static pybind11::detail::overload_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return SnarlDistanceIndex::for_each_child_impl(a0, a1);
 	}
-	bool for_each_traversal_impl(const struct handlegraph::net_handle_t & a0, const class std::function<bool (const struct handlegraph::net_handle_t &)> & a1) const override {
+	bool for_each_traversal_impl(const struct handlegraph::net_handle_t & a0, const class std::function<bool (const struct handlegraph::net_handle_t &)> & a1) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::SnarlDistanceIndex *>(this), "for_each_traversal_impl");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::override_caster_t<bool> caster;
+				static pybind11::detail::overload_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return SnarlDistanceIndex::for_each_traversal_impl(a0, a1);
 	}
-	bool follow_net_edges_impl(const struct handlegraph::net_handle_t & a0, const class handlegraph::HandleGraph * a1, bool a2, const class std::function<bool (const struct handlegraph::net_handle_t &)> & a3) const override {
+	bool follow_net_edges_impl(const struct handlegraph::net_handle_t & a0, const class handlegraph::HandleGraph * a1, bool a2, const class std::function<bool (const struct handlegraph::net_handle_t &)> & a3) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::SnarlDistanceIndex *>(this), "follow_net_edges_impl");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1, a2, a3);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::override_caster_t<bool> caster;
+				static pybind11::detail::overload_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return SnarlDistanceIndex::follow_net_edges_impl(a0, a1, a2, a3);
 	}
-	struct handlegraph::net_handle_t get_parent_traversal(const struct handlegraph::net_handle_t & a0, const struct handlegraph::net_handle_t & a1) const override {
+	struct handlegraph::net_handle_t get_parent_traversal(const struct handlegraph::net_handle_t & a0, const struct handlegraph::net_handle_t & a1) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::SnarlDistanceIndex *>(this), "get_parent_traversal");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::net_handle_t>::value) {
-				static pybind11::detail::override_caster_t<struct handlegraph::net_handle_t> caster;
+				static pybind11::detail::overload_caster_t<struct handlegraph::net_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::net_handle_t>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<struct handlegraph::net_handle_t>(std::move(o));
 		}
 		return SnarlDistanceIndex::get_parent_traversal(a0, a1);
 	}
-	bool for_each_tippy_child_impl(const struct handlegraph::net_handle_t & a0, const class std::function<bool (const struct handlegraph::net_handle_t &)> & a1) const override {
+	bool for_each_tippy_child_impl(const struct handlegraph::net_handle_t & a0, const class std::function<bool (const struct handlegraph::net_handle_t &)> & a1) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::SnarlDistanceIndex *>(this), "for_each_tippy_child_impl");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::override_caster_t<bool> caster;
+				static pybind11::detail::overload_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return SnarlDecomposition::for_each_tippy_child_impl(a0, a1);
 	}
-	bool for_each_traversal_start_impl(const struct handlegraph::net_handle_t & a0, const class std::function<bool (const struct handlegraph::net_handle_t &)> & a1) const override {
+	bool for_each_traversal_start_impl(const struct handlegraph::net_handle_t & a0, const class std::function<bool (const struct handlegraph::net_handle_t &)> & a1) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::SnarlDistanceIndex *>(this), "for_each_traversal_start_impl");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::override_caster_t<bool> caster;
+				static pybind11::detail::overload_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return SnarlDecomposition::for_each_traversal_start_impl(a0, a1);
 	}
-	bool for_each_traversal_end_impl(const struct handlegraph::net_handle_t & a0, const class std::function<bool (const struct handlegraph::net_handle_t &)> & a1) const override {
+	bool for_each_traversal_end_impl(const struct handlegraph::net_handle_t & a0, const class std::function<bool (const struct handlegraph::net_handle_t &)> & a1) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::SnarlDistanceIndex *>(this), "for_each_traversal_end_impl");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::override_caster_t<bool> caster;
+				static pybind11::detail::overload_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return SnarlDecomposition::for_each_traversal_end_impl(a0, a1);
 	}
-	void serialize(const std::string & a0) override {
+	void serialize(const std::string & a0) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::SnarlDistanceIndex *>(this), "serialize");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
-				static pybind11::detail::override_caster_t<void> caster;
+				static pybind11::detail::overload_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return TriviallySerializable::serialize(a0);
 	}
-	void deserialize(const std::string & a0) override {
+	void deserialize(const std::string & a0) override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::SnarlDistanceIndex *>(this), "deserialize");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
-				static pybind11::detail::override_caster_t<void> caster;
+				static pybind11::detail::overload_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<void>(std::move(o));
@@ -406,6 +406,118 @@ void bind_bdsg_snarl_distance_index(std::function< pybind11::module &(std::strin
 {
 	{ // bdsg::SnarlDistanceIndex file:bdsg/snarl_distance_index.hpp line:148
 		pybind11::class_<bdsg::SnarlDistanceIndex, std::shared_ptr<bdsg::SnarlDistanceIndex>, PyCallBack_bdsg_SnarlDistanceIndex, handlegraph::SnarlDecomposition, handlegraph::TriviallySerializable> cl(M("bdsg"), "SnarlDistanceIndex", "The distance index, which also acts as a snarl decomposition.\n\n The distance index provides an interface to traverse the snarl tree and to\n find minimum distances between two sibling nodes in the snarl tree (eg\n between two chains that are children of the same snarl).\n\n It also provides a method for quickly calculating the minimum distance\n between two positions on the graph.\n\n The implementation here is tightly coupled with the filling-in code in vg\n (see vg::fill_in_distance_index()). To make a SnarlDistanceIndex that\n actually works, you have to construct the object, and then call\n get_snarl_tree_records() with zero or more TemporaryDistanceIndex objects\n for connected components, and a graph.\n\n The TemporaryDistanceIndex needs to have a variety of TemporaryRecord\n implementation classes (TemporaryChainRecord, TemporarySnarlRecord,\n TemporaryNodeRecord) set up and added to it; this all has to be done \"by\n hand\", as it were, because no code is in this library to help you do it.\n\n  ");
+		{ // bdsg::SnarlDistanceIndex::TemporaryDistanceIndex file:bdsg/snarl_distance_index.hpp line:1480
+			auto & enclosing_class = cl;
+			pybind11::class_<bdsg::SnarlDistanceIndex::TemporaryDistanceIndex, std::shared_ptr<bdsg::SnarlDistanceIndex::TemporaryDistanceIndex>> cl(enclosing_class, "TemporaryDistanceIndex", "");
+			{ // bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord file:bdsg/snarl_distance_index.hpp line:1498
+				auto & enclosing_class = cl;
+				pybind11::class_<bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord, std::shared_ptr<bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord>> cl(enclosing_class, "TemporaryRecord", "");
+				cl.def( pybind11::init( [](bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord const &o){ return new bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord(o); } ) );
+				cl.def( pybind11::init( [](){ return new bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord(); } ) );
+				cl.def("assign", (struct bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord & (bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord::*)(const struct bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord &)) &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord::operator=, "C++: bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord::operator=(const struct bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord &) --> struct bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord &", pybind11::return_value_policy::automatic, pybind11::arg(""));
+			}
+
+			{ // bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord file:bdsg/snarl_distance_index.hpp line:1500
+				auto & enclosing_class = cl;
+				pybind11::class_<bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord, std::shared_ptr<bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord>, bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord> cl(enclosing_class, "TemporaryChainRecord", "");
+				cl.def( pybind11::init( [](){ return new bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord(); } ) );
+				cl.def( pybind11::init( [](bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord const &o){ return new bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord(o); } ) );
+				cl.def_readwrite("start_node_id", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::start_node_id);
+				cl.def_readwrite("start_node_rev", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::start_node_rev);
+				cl.def_readwrite("end_node_id", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::end_node_id);
+				cl.def_readwrite("end_node_rev", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::end_node_rev);
+				cl.def_readwrite("end_node_length", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::end_node_length);
+				cl.def_readwrite("parent", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::parent);
+				cl.def_readwrite("min_length", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::min_length);
+				cl.def_readwrite("max_length", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::max_length);
+				cl.def_readwrite("children", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::children);
+				cl.def_readwrite("prefix_sum", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::prefix_sum);
+				cl.def_readwrite("max_prefix_sum", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::max_prefix_sum);
+				cl.def_readwrite("forward_loops", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::forward_loops);
+				cl.def_readwrite("backward_loops", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::backward_loops);
+				cl.def_readwrite("chain_components", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::chain_components);
+				cl.def_readwrite("distance_left_start", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::distance_left_start);
+				cl.def_readwrite("distance_right_start", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::distance_right_start);
+				cl.def_readwrite("distance_left_end", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::distance_left_end);
+				cl.def_readwrite("distance_right_end", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::distance_right_end);
+				cl.def_readwrite("rank_in_parent", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::rank_in_parent);
+				cl.def_readwrite("reversed_in_parent", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::reversed_in_parent);
+				cl.def_readwrite("is_trivial", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::is_trivial);
+				cl.def_readwrite("is_tip", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::is_tip);
+				cl.def_readwrite("root_snarl_index", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::root_snarl_index);
+				cl.def_readwrite("loopable", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::loopable);
+				cl.def("get_max_record_length", (unsigned long (bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::*)(bool) const) &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::get_max_record_length, "C++: bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::get_max_record_length(bool) const --> unsigned long", pybind11::arg("include_distances"));
+			}
+
+			{ // bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord file:bdsg/snarl_distance_index.hpp line:1534
+				auto & enclosing_class = cl;
+				pybind11::class_<bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord, std::shared_ptr<bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord>, bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord> cl(enclosing_class, "TemporarySnarlRecord", "");
+				cl.def( pybind11::init( [](){ return new bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord(); } ) );
+				cl.def( pybind11::init( [](bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord const &o){ return new bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord(o); } ) );
+				cl.def_readwrite("start_node_id", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::start_node_id);
+				cl.def_readwrite("start_node_rev", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::start_node_rev);
+				cl.def_readwrite("start_node_length", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::start_node_length);
+				cl.def_readwrite("end_node_id", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::end_node_id);
+				cl.def_readwrite("end_node_rev", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::end_node_rev);
+				cl.def_readwrite("end_node_length", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::end_node_length);
+				cl.def_readwrite("node_count", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::node_count);
+				cl.def_readwrite("min_length", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::min_length);
+				cl.def_readwrite("max_length", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::max_length);
+				cl.def_readwrite("max_distance", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::max_distance);
+				cl.def_readwrite("parent", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::parent);
+				cl.def_readwrite("children", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::children);
+				cl.def_readwrite("tippy_child_ranks", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::tippy_child_ranks);
+				cl.def_readwrite("distances", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::distances);
+				cl.def_readwrite("distance_start_start", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::distance_start_start);
+				cl.def_readwrite("distance_end_end", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::distance_end_end);
+				cl.def_readwrite("rank_in_parent", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::rank_in_parent);
+				cl.def_readwrite("reversed_in_parent", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::reversed_in_parent);
+				cl.def_readwrite("is_trivial", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::is_trivial);
+				cl.def_readwrite("is_simple", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::is_simple);
+				cl.def_readwrite("is_tip", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::is_tip);
+				cl.def_readwrite("is_root_snarl", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::is_root_snarl);
+				cl.def_readwrite("include_distances", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::include_distances);
+				cl.def("get_max_record_length", (unsigned long (bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::*)() const) &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::get_max_record_length, "C++: bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::get_max_record_length() const --> unsigned long");
+				cl.def("assign", (struct bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord & (bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::*)(const struct bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord &)) &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::operator=, "C++: bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::operator=(const struct bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord &) --> struct bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord &", pybind11::return_value_policy::automatic, pybind11::arg(""));
+			}
+
+			{ // bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord file:bdsg/snarl_distance_index.hpp line:1564
+				auto & enclosing_class = cl;
+				pybind11::class_<bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord, std::shared_ptr<bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord>, bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord> cl(enclosing_class, "TemporaryNodeRecord", "");
+				cl.def( pybind11::init( [](){ return new bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord(); } ) );
+				cl.def( pybind11::init( [](bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord const &o){ return new bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord(o); } ) );
+				cl.def_readwrite("node_id", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord::node_id);
+				cl.def_readwrite("parent", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord::parent);
+				cl.def_readwrite("node_length", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord::node_length);
+				cl.def_readwrite("rank_in_parent", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord::rank_in_parent);
+				cl.def_readwrite("reversed_in_parent", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord::reversed_in_parent);
+				cl.def_readwrite("is_tip", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord::is_tip);
+				cl.def_readwrite("root_snarl_index", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord::root_snarl_index);
+				cl.def_readwrite("distance_left_start", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord::distance_left_start);
+				cl.def_readwrite("distance_right_start", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord::distance_right_start);
+				cl.def_readwrite("distance_left_end", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord::distance_left_end);
+				cl.def_readwrite("distance_right_end", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord::distance_right_end);
+				cl.def_static("get_max_record_length", (const unsigned long (*)()) &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord::get_max_record_length, "C++: bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord::get_max_record_length() --> const unsigned long");
+			}
+
+			cl.def( pybind11::init( [](){ return new bdsg::SnarlDistanceIndex::TemporaryDistanceIndex(); } ) );
+			cl.def( pybind11::init( [](bdsg::SnarlDistanceIndex::TemporaryDistanceIndex const &o){ return new bdsg::SnarlDistanceIndex::TemporaryDistanceIndex(o); } ) );
+			cl.def_readwrite("min_node_id", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::min_node_id);
+			cl.def_readwrite("max_node_id", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::max_node_id);
+			cl.def_readwrite("root_structure_count", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::root_structure_count);
+			cl.def_readwrite("max_tree_depth", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::max_tree_depth);
+			cl.def_readwrite("max_index_size", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::max_index_size);
+			cl.def_readwrite("max_distance", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::max_distance);
+			cl.def_readwrite("components", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::components);
+			cl.def_readwrite("root_snarl_components", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::root_snarl_components);
+			cl.def_readwrite("temp_chain_records", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::temp_chain_records);
+			cl.def_readwrite("temp_snarl_records", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::temp_snarl_records);
+			cl.def_readwrite("temp_node_records", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::temp_node_records);
+			cl.def_readwrite("use_oversized_snarls", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::use_oversized_snarls);
+			cl.def("structure_start_end_as_string", (std::string (bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::*)(struct std::pair<enum bdsg::SnarlDistanceIndex::temp_record_t, unsigned long>) const) &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::structure_start_end_as_string, "C++: bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::structure_start_end_as_string(struct std::pair<enum bdsg::SnarlDistanceIndex::temp_record_t, unsigned long>) const --> std::string", pybind11::arg("index"));
+			cl.def("get_max_record_length", (unsigned long (bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::*)() const) &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::get_max_record_length, "C++: bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::get_max_record_length() const --> unsigned long");
+		}
+
 		cl.def( pybind11::init( [](){ return new bdsg::SnarlDistanceIndex(); }, [](){ return new PyCallBack_bdsg_SnarlDistanceIndex(); } ) );
 
 		pybind11::enum_<bdsg::SnarlDistanceIndex::connectivity_t>(cl, "connectivity_t", pybind11::arithmetic(), "The connectivity of a net_handle- this defines the direction that the net_handle is traversed")
@@ -473,6 +585,9 @@ void bind_bdsg_snarl_distance_index(std::function< pybind11::module &(std::strin
 		cl.def("distance_in_parent", [](bdsg::SnarlDistanceIndex const &o, const struct handlegraph::net_handle_t & a0, const struct handlegraph::net_handle_t & a1, const struct handlegraph::net_handle_t & a2) -> unsigned long { return o.distance_in_parent(a0, a1, a2); }, "", pybind11::arg("parent"), pybind11::arg("child1"), pybind11::arg("child2"));
 		cl.def("distance_in_parent", [](bdsg::SnarlDistanceIndex const &o, const struct handlegraph::net_handle_t & a0, const struct handlegraph::net_handle_t & a1, const struct handlegraph::net_handle_t & a2, const class handlegraph::HandleGraph * a3) -> unsigned long { return o.distance_in_parent(a0, a1, a2, a3); }, "", pybind11::arg("parent"), pybind11::arg("child1"), pybind11::arg("child2"), pybind11::arg("graph"));
 		cl.def("distance_in_parent", (unsigned long (bdsg::SnarlDistanceIndex::*)(const struct handlegraph::net_handle_t &, const struct handlegraph::net_handle_t &, const struct handlegraph::net_handle_t &, const class handlegraph::HandleGraph *, unsigned long) const) &bdsg::SnarlDistanceIndex::distance_in_parent, "C++: bdsg::SnarlDistanceIndex::distance_in_parent(const struct handlegraph::net_handle_t &, const struct handlegraph::net_handle_t &, const struct handlegraph::net_handle_t &, const class handlegraph::HandleGraph *, unsigned long) const --> unsigned long", pybind11::arg("parent"), pybind11::arg("child1"), pybind11::arg("child2"), pybind11::arg("graph"), pybind11::arg("distance_limit"));
+		cl.def("distance_in_snarl", [](bdsg::SnarlDistanceIndex const &o, const struct handlegraph::net_handle_t & a0, const unsigned long & a1, const bool & a2, const unsigned long & a3, const bool & a4) -> unsigned long { return o.distance_in_snarl(a0, a1, a2, a3, a4); }, "", pybind11::arg("parent"), pybind11::arg("rank1"), pybind11::arg("right_side1"), pybind11::arg("rank2"), pybind11::arg("right_side2"));
+		cl.def("distance_in_snarl", [](bdsg::SnarlDistanceIndex const &o, const struct handlegraph::net_handle_t & a0, const unsigned long & a1, const bool & a2, const unsigned long & a3, const bool & a4, const class handlegraph::HandleGraph * a5) -> unsigned long { return o.distance_in_snarl(a0, a1, a2, a3, a4, a5); }, "", pybind11::arg("parent"), pybind11::arg("rank1"), pybind11::arg("right_side1"), pybind11::arg("rank2"), pybind11::arg("right_side2"), pybind11::arg("graph"));
+		cl.def("distance_in_snarl", (unsigned long (bdsg::SnarlDistanceIndex::*)(const struct handlegraph::net_handle_t &, const unsigned long &, const bool &, const unsigned long &, const bool &, const class handlegraph::HandleGraph *, unsigned long) const) &bdsg::SnarlDistanceIndex::distance_in_snarl, "C++: bdsg::SnarlDistanceIndex::distance_in_snarl(const struct handlegraph::net_handle_t &, const unsigned long &, const bool &, const unsigned long &, const bool &, const class handlegraph::HandleGraph *, unsigned long) const --> unsigned long", pybind11::arg("parent"), pybind11::arg("rank1"), pybind11::arg("right_side1"), pybind11::arg("rank2"), pybind11::arg("right_side2"), pybind11::arg("graph"), pybind11::arg("distance_limit"));
 		cl.def("max_distance_in_parent", [](bdsg::SnarlDistanceIndex const &o, const struct handlegraph::net_handle_t & a0, const struct handlegraph::net_handle_t & a1, const struct handlegraph::net_handle_t & a2) -> unsigned long { return o.max_distance_in_parent(a0, a1, a2); }, "", pybind11::arg("parent"), pybind11::arg("child1"), pybind11::arg("child2"));
 		cl.def("max_distance_in_parent", [](bdsg::SnarlDistanceIndex const &o, const struct handlegraph::net_handle_t & a0, const struct handlegraph::net_handle_t & a1, const struct handlegraph::net_handle_t & a2, const class handlegraph::HandleGraph * a3) -> unsigned long { return o.max_distance_in_parent(a0, a1, a2, a3); }, "", pybind11::arg("parent"), pybind11::arg("child1"), pybind11::arg("child2"), pybind11::arg("graph"));
 		cl.def("max_distance_in_parent", (unsigned long (bdsg::SnarlDistanceIndex::*)(const struct handlegraph::net_handle_t &, const struct handlegraph::net_handle_t &, const struct handlegraph::net_handle_t &, const class handlegraph::HandleGraph *, unsigned long) const) &bdsg::SnarlDistanceIndex::max_distance_in_parent, "Find the maximum distance between two children in the parent. \nThis is the same as distance_in_parent for everything except children of chains\n\nC++: bdsg::SnarlDistanceIndex::max_distance_in_parent(const struct handlegraph::net_handle_t &, const struct handlegraph::net_handle_t &, const struct handlegraph::net_handle_t &, const class handlegraph::HandleGraph *, unsigned long) const --> unsigned long", pybind11::arg("parent"), pybind11::arg("child1"), pybind11::arg("child2"), pybind11::arg("graph"), pybind11::arg("distance_limit"));
@@ -499,16 +614,20 @@ void bind_bdsg_snarl_distance_index(std::function< pybind11::module &(std::strin
 		cl.def("get_handle_from_connected_component", (struct handlegraph::net_handle_t (bdsg::SnarlDistanceIndex::*)(unsigned long) const) &bdsg::SnarlDistanceIndex::get_handle_from_connected_component, "Given the connected component number (from get_connected_component_number), get the\nroot-level handle pointing to it.\nIf the connected component is a root-level snarl, then this may return a \"root\" handle,\nbut it will actually point to the snarl\n\nC++: bdsg::SnarlDistanceIndex::get_handle_from_connected_component(unsigned long) const --> struct handlegraph::net_handle_t", pybind11::arg("num"));
 		cl.def("has_connectivity", (bool (bdsg::SnarlDistanceIndex::*)(const struct handlegraph::net_handle_t &, enum handlegraph::SnarlDecomposition::endpoint_t, enum handlegraph::SnarlDecomposition::endpoint_t) const) &bdsg::SnarlDistanceIndex::has_connectivity, "Is there a path between the start and end endpoints within the net handle?\n\nC++: bdsg::SnarlDistanceIndex::has_connectivity(const struct handlegraph::net_handle_t &, enum handlegraph::SnarlDecomposition::endpoint_t, enum handlegraph::SnarlDecomposition::endpoint_t) const --> bool", pybind11::arg("net"), pybind11::arg("start"), pybind11::arg("end"));
 		cl.def("has_external_connectivity", (bool (bdsg::SnarlDistanceIndex::*)(const struct handlegraph::net_handle_t &, enum handlegraph::SnarlDecomposition::endpoint_t, enum handlegraph::SnarlDecomposition::endpoint_t) const) &bdsg::SnarlDistanceIndex::has_external_connectivity, "Is there a path between the start and end endpoints outside the net handle?\nThis is used for children of the root\n\nC++: bdsg::SnarlDistanceIndex::has_external_connectivity(const struct handlegraph::net_handle_t &, enum handlegraph::SnarlDecomposition::endpoint_t, enum handlegraph::SnarlDecomposition::endpoint_t) const --> bool", pybind11::arg("net"), pybind11::arg("start"), pybind11::arg("end"));
-		cl.def("get_prefix_sum_value", (unsigned long (bdsg::SnarlDistanceIndex::*)(const struct handlegraph::net_handle_t) const) &bdsg::SnarlDistanceIndex::get_prefix_sum_value, "Get the prefix sum value for a node in a chain.\nFails if the parent of net is not a chain\n\nC++: bdsg::SnarlDistanceIndex::get_prefix_sum_value(const struct handlegraph::net_handle_t) const --> unsigned long", pybind11::arg("net"));
-		cl.def("get_forward_loop_value", (unsigned long (bdsg::SnarlDistanceIndex::*)(const struct handlegraph::net_handle_t) const) &bdsg::SnarlDistanceIndex::get_forward_loop_value, "Get the prefix sum value for a node in a chain.\nFails if the parent of net is not a chain\n\nC++: bdsg::SnarlDistanceIndex::get_forward_loop_value(const struct handlegraph::net_handle_t) const --> unsigned long", pybind11::arg("net"));
-		cl.def("get_reverse_loop_value", (unsigned long (bdsg::SnarlDistanceIndex::*)(const struct handlegraph::net_handle_t) const) &bdsg::SnarlDistanceIndex::get_reverse_loop_value, "Get the prefix sum value for a node in a chain.\nFails if the parent of net is not a chain\n\nC++: bdsg::SnarlDistanceIndex::get_reverse_loop_value(const struct handlegraph::net_handle_t) const --> unsigned long", pybind11::arg("net"));
+		cl.def("get_prefix_sum_value", (unsigned long (bdsg::SnarlDistanceIndex::*)(const struct handlegraph::net_handle_t &) const) &bdsg::SnarlDistanceIndex::get_prefix_sum_value, "Get the prefix sum value for a node in a chain.\nFails if the parent of net is not a chain\n\nC++: bdsg::SnarlDistanceIndex::get_prefix_sum_value(const struct handlegraph::net_handle_t &) const --> unsigned long", pybind11::arg("net"));
+		cl.def("get_max_prefix_sum_value", (unsigned long (bdsg::SnarlDistanceIndex::*)(const struct handlegraph::net_handle_t &) const) &bdsg::SnarlDistanceIndex::get_max_prefix_sum_value, "Get the maximum prefix sum value for a node in a chain.\nFails if the parent of net is not a chain\n\nC++: bdsg::SnarlDistanceIndex::get_max_prefix_sum_value(const struct handlegraph::net_handle_t &) const --> unsigned long", pybind11::arg("net"));
+		cl.def("get_forward_loop_value", (unsigned long (bdsg::SnarlDistanceIndex::*)(const struct handlegraph::net_handle_t &) const) &bdsg::SnarlDistanceIndex::get_forward_loop_value, "Get the forward loop value for a node in a chain.\nFails if the parent of net is not a chain\n\nC++: bdsg::SnarlDistanceIndex::get_forward_loop_value(const struct handlegraph::net_handle_t &) const --> unsigned long", pybind11::arg("net"));
+		cl.def("get_reverse_loop_value", (unsigned long (bdsg::SnarlDistanceIndex::*)(const struct handlegraph::net_handle_t &) const) &bdsg::SnarlDistanceIndex::get_reverse_loop_value, "Get the reverse value for a node in a chain.\nFails if the parent of net is not a chain\n\nC++: bdsg::SnarlDistanceIndex::get_reverse_loop_value(const struct handlegraph::net_handle_t &) const --> unsigned long", pybind11::arg("net"));
 		cl.def("get_chain_component", [](bdsg::SnarlDistanceIndex const &o, const struct handlegraph::net_handle_t & a0) -> unsigned long { return o.get_chain_component(a0); }, "", pybind11::arg("net"));
-		cl.def("get_chain_component", (unsigned long (bdsg::SnarlDistanceIndex::*)(const struct handlegraph::net_handle_t, bool) const) &bdsg::SnarlDistanceIndex::get_chain_component, "C++: bdsg::SnarlDistanceIndex::get_chain_component(const struct handlegraph::net_handle_t, bool) const --> unsigned long", pybind11::arg("net"), pybind11::arg("get_end"));
+		cl.def("get_chain_component", (unsigned long (bdsg::SnarlDistanceIndex::*)(const struct handlegraph::net_handle_t &, bool) const) &bdsg::SnarlDistanceIndex::get_chain_component, "C++: bdsg::SnarlDistanceIndex::get_chain_component(const struct handlegraph::net_handle_t &, bool) const --> unsigned long", pybind11::arg("net"), pybind11::arg("get_end"));
 		cl.def("get_root", (struct handlegraph::net_handle_t (bdsg::SnarlDistanceIndex::*)() const) &bdsg::SnarlDistanceIndex::get_root, "Get a net handle referring to a tip-to-tip traversal of the contents of the root snarl.\n\nC++: bdsg::SnarlDistanceIndex::get_root() const --> struct handlegraph::net_handle_t");
 		cl.def("is_root", (bool (bdsg::SnarlDistanceIndex::*)(const struct handlegraph::net_handle_t &) const) &bdsg::SnarlDistanceIndex::is_root, "Return true if the given handle refers to (a traversal of) the root\nsnarl, and false otherwise.\n\nC++: bdsg::SnarlDistanceIndex::is_root(const struct handlegraph::net_handle_t &) const --> bool", pybind11::arg("net"));
 		cl.def("is_root_snarl", (bool (bdsg::SnarlDistanceIndex::*)(const struct handlegraph::net_handle_t &) const) &bdsg::SnarlDistanceIndex::is_root_snarl, "Return true if the given handle refers to (a traversal of) a snarl of the root,\nwhich is considered to be the root but actually refers to a subset of the children \nof the root that are connected\n\nC++: bdsg::SnarlDistanceIndex::is_root_snarl(const struct handlegraph::net_handle_t &) const --> bool", pybind11::arg("net"));
 		cl.def("is_snarl", (bool (bdsg::SnarlDistanceIndex::*)(const struct handlegraph::net_handle_t &) const) &bdsg::SnarlDistanceIndex::is_snarl, "Returns true if the given net handle refers to (a traversal of) a snarl.\n\nC++: bdsg::SnarlDistanceIndex::is_snarl(const struct handlegraph::net_handle_t &) const --> bool", pybind11::arg("net"));
-		cl.def("is_simple_snarl", (bool (bdsg::SnarlDistanceIndex::*)(const struct handlegraph::net_handle_t &) const) &bdsg::SnarlDistanceIndex::is_simple_snarl, "Returns true if the given net handle refers to (a traversal of) a simple snarl\nA simple snarl is a bubble where each child node can only reach the boundary nodes,\nand each side of a node reaches a different boundary node\n\nC++: bdsg::SnarlDistanceIndex::is_simple_snarl(const struct handlegraph::net_handle_t &) const --> bool", pybind11::arg("net"));
+		cl.def("is_dag", (bool (bdsg::SnarlDistanceIndex::*)(const struct handlegraph::net_handle_t &) const) &bdsg::SnarlDistanceIndex::is_dag, "Return true if the given snarl is a DAG and false otherwise\nReturns true if the given net_handle_t is not a snarl\n\nC++: bdsg::SnarlDistanceIndex::is_dag(const struct handlegraph::net_handle_t &) const --> bool", pybind11::arg("snarl"));
+		cl.def("non_dag_edge_count", (unsigned long (bdsg::SnarlDistanceIndex::*)(const struct handlegraph::net_handle_t &, const class handlegraph::HandleGraph *) const) &bdsg::SnarlDistanceIndex::non_dag_edge_count, "Given a snarl, return the number of non-dag edges it contains\n0 for a dag\n\nC++: bdsg::SnarlDistanceIndex::non_dag_edge_count(const struct handlegraph::net_handle_t &, const class handlegraph::HandleGraph *) const --> unsigned long", pybind11::arg("snarl"), pybind11::arg("graph"));
+		cl.def("is_simple_snarl", (bool (bdsg::SnarlDistanceIndex::*)(const struct handlegraph::net_handle_t &) const) &bdsg::SnarlDistanceIndex::is_simple_snarl, "Returns true if the given net handle refers to (a traversal of) a simple snarl\nA simple snarl is a bubble where each child node can only reach the boundary nodes,\nand each side of a node reaches a different boundary node\nThere may also be an edge connecting the two boundary nodes but no additional \nedges are allowed\n\nC++: bdsg::SnarlDistanceIndex::is_simple_snarl(const struct handlegraph::net_handle_t &) const --> bool", pybind11::arg("net"));
+		cl.def("is_regular_snarl", (bool (bdsg::SnarlDistanceIndex::*)(const struct handlegraph::net_handle_t &) const) &bdsg::SnarlDistanceIndex::is_regular_snarl, "Returns true if the given net handle refers to (a traversal of) a regular snarl\nA regular snarl is the same as a simple snarl, except that the children may be\nnested chains, rather than being restricted to nodes \n\nC++: bdsg::SnarlDistanceIndex::is_regular_snarl(const struct handlegraph::net_handle_t &) const --> bool", pybind11::arg("net"));
 		cl.def("is_chain", (bool (bdsg::SnarlDistanceIndex::*)(const struct handlegraph::net_handle_t &) const) &bdsg::SnarlDistanceIndex::is_chain, "Returns true if the given net handle refers to (a traversal of) a chain.\n\nC++: bdsg::SnarlDistanceIndex::is_chain(const struct handlegraph::net_handle_t &) const --> bool", pybind11::arg("net"));
 		cl.def("is_multicomponent_chain", (bool (bdsg::SnarlDistanceIndex::*)(const struct handlegraph::net_handle_t &) const) &bdsg::SnarlDistanceIndex::is_multicomponent_chain, "Returns true if the given net handle refers to (a traversal of) a chain that is not start-end connected\n\nC++: bdsg::SnarlDistanceIndex::is_multicomponent_chain(const struct handlegraph::net_handle_t &) const --> bool", pybind11::arg("net"));
 		cl.def("is_looping_chain", (bool (bdsg::SnarlDistanceIndex::*)(const struct handlegraph::net_handle_t &) const) &bdsg::SnarlDistanceIndex::is_looping_chain, "Returns true if the given net handle refers to (a traversal of) a chain that loops (a chain where the first and last node are the same).\n\nC++: bdsg::SnarlDistanceIndex::is_looping_chain(const struct handlegraph::net_handle_t &) const --> bool", pybind11::arg("net"));
@@ -527,7 +646,9 @@ void bind_bdsg_snarl_distance_index(std::function< pybind11::module &(std::strin
 		cl.def("ends_at", (enum handlegraph::SnarlDecomposition::endpoint_t (bdsg::SnarlDistanceIndex::*)(const struct handlegraph::net_handle_t &) const) &bdsg::SnarlDistanceIndex::ends_at, "Return the kind of location at which the given traversal ends.\n\nC++: bdsg::SnarlDistanceIndex::ends_at(const struct handlegraph::net_handle_t &) const --> enum handlegraph::SnarlDecomposition::endpoint_t", pybind11::arg("traversal"));
 		cl.def("get_rank_in_parent", (unsigned long (bdsg::SnarlDistanceIndex::*)(const struct handlegraph::net_handle_t &) const) &bdsg::SnarlDistanceIndex::get_rank_in_parent, "For a child of a snarl, the rank is used to calculate the distance\n\nC++: bdsg::SnarlDistanceIndex::get_rank_in_parent(const struct handlegraph::net_handle_t &) const --> unsigned long", pybind11::arg("net"));
 		cl.def("connected_component_count", (unsigned long (bdsg::SnarlDistanceIndex::*)() const) &bdsg::SnarlDistanceIndex::connected_component_count, "How many connected components are in this graph?\nThis returns the number of topological connected components, not necessarily the \nnumber of nodes in the top-level snarl \n\nC++: bdsg::SnarlDistanceIndex::connected_component_count() const --> unsigned long");
+		cl.def("get_snarl_child_from_rank", (struct handlegraph::net_handle_t (bdsg::SnarlDistanceIndex::*)(const struct handlegraph::net_handle_t &, const unsigned long &) const) &bdsg::SnarlDistanceIndex::get_snarl_child_from_rank, "Get the child of a snarl from its rank. This shouldn't be exposed to the public interface but I need it\nPlease don't use it\nFor 0 or 1, returns the sentinel facing in. Otherwise return the child as a chain going START_END\n\nC++: bdsg::SnarlDistanceIndex::get_snarl_child_from_rank(const struct handlegraph::net_handle_t &, const unsigned long &) const --> struct handlegraph::net_handle_t", pybind11::arg("snarl"), pybind11::arg("rank"));
 		cl.def("get_parent_traversal", (struct handlegraph::net_handle_t (bdsg::SnarlDistanceIndex::*)(const struct handlegraph::net_handle_t &, const struct handlegraph::net_handle_t &) const) &bdsg::SnarlDistanceIndex::get_parent_traversal, "Get a net handle for traversals of a snarl or chain that contains\nthe given oriented bounding node traversals or sentinels. Given two\nsentinels for a snarl, produces a net handle to a start-to-end,\nend-to-end, end-to-start, or start-to-start traversal of that snarl.\nGiven handles to traversals of the bounding nodes of a chain, similarly\nproduces a net handle to a traversal of the chain.\n\nFor a chain, either or both handles can also be a snarl containing tips,\nfor a tip-to-start, tip-to-end, start-to-tip, end-to-tip, or tip-to-tip\ntraversal. Similarly, for a snarl, either or both handles can be a chain\nin the snarl that contains internal tips, or that has no edges on the\nappropriate end.\n\nMay only be called if a path actually exists between the given start\nand end.\n\nC++: bdsg::SnarlDistanceIndex::get_parent_traversal(const struct handlegraph::net_handle_t &, const struct handlegraph::net_handle_t &) const --> struct handlegraph::net_handle_t", pybind11::arg("traversal_start"), pybind11::arg("traversal_end"));
+		cl.def_static("has_distances", (const bool (*)(enum bdsg::SnarlDistanceIndex::record_t)) &bdsg::SnarlDistanceIndex::has_distances, "C++: bdsg::SnarlDistanceIndex::has_distances(enum bdsg::SnarlDistanceIndex::record_t) --> const bool", pybind11::arg("type"));
 		cl.def_static("get_record_handle_type", (const enum bdsg::SnarlDistanceIndex::net_handle_record_t (*)(enum bdsg::SnarlDistanceIndex::record_t)) &bdsg::SnarlDistanceIndex::get_record_handle_type, "Given the type of the record, return the handle type. Some record types can represent multiple things,\nfor example a simple snarl record is used to represent a snarl, and the nodes/trivial chains in it.\nThis will return whatever is higher on the snarl tree. A simple snarl will be considered a snarl,\na root snarl will be considered a root, etc\n\nC++: bdsg::SnarlDistanceIndex::get_record_handle_type(enum bdsg::SnarlDistanceIndex::record_t) --> const enum bdsg::SnarlDistanceIndex::net_handle_record_t", pybind11::arg("type"));
 		cl.def_static("get_record_offset", (const unsigned long (*)(const struct handlegraph::net_handle_t &)) &bdsg::SnarlDistanceIndex::get_record_offset, "The offset into records that this handle points to\n\nC++: bdsg::SnarlDistanceIndex::get_record_offset(const struct handlegraph::net_handle_t &) --> const unsigned long", pybind11::arg("net_handle"));
 		cl.def_static("get_node_record_offset", (const unsigned long (*)(const struct handlegraph::net_handle_t &)) &bdsg::SnarlDistanceIndex::get_node_record_offset, "The offset of a node in a trivial snarl (0 if it isn't a node in a trivial snarl)\n\nC++: bdsg::SnarlDistanceIndex::get_node_record_offset(const struct handlegraph::net_handle_t &) --> const unsigned long", pybind11::arg("net_handle"));
@@ -545,6 +666,7 @@ void bind_bdsg_snarl_distance_index(std::function< pybind11::module &(std::strin
 		cl.def_static("get_end_endpoint", (const enum handlegraph::SnarlDecomposition::endpoint_t (*)(const struct handlegraph::net_handle_t &)) &bdsg::SnarlDistanceIndex::get_end_endpoint, "C++: bdsg::SnarlDistanceIndex::get_end_endpoint(const struct handlegraph::net_handle_t &) --> const enum handlegraph::SnarlDecomposition::endpoint_t", pybind11::arg("net"));
 		cl.def_static("connectivity_to_endpoints", (const struct std::pair<enum handlegraph::SnarlDecomposition::endpoint_t, enum handlegraph::SnarlDecomposition::endpoint_t> (*)(const enum bdsg::SnarlDistanceIndex::connectivity_t &)) &bdsg::SnarlDistanceIndex::connectivity_to_endpoints, "C++: bdsg::SnarlDistanceIndex::connectivity_to_endpoints(const enum bdsg::SnarlDistanceIndex::connectivity_t &) --> const struct std::pair<enum handlegraph::SnarlDecomposition::endpoint_t, enum handlegraph::SnarlDecomposition::endpoint_t>", pybind11::arg("connectivity"));
 		cl.def("set_snarl_size_limit", (void (bdsg::SnarlDistanceIndex::*)(unsigned long)) &bdsg::SnarlDistanceIndex::set_snarl_size_limit, "C++: bdsg::SnarlDistanceIndex::set_snarl_size_limit(unsigned long) --> void", pybind11::arg("size"));
+		cl.def("set_only_top_level_chain_distances", (void (bdsg::SnarlDistanceIndex::*)(bool)) &bdsg::SnarlDistanceIndex::set_only_top_level_chain_distances, "C++: bdsg::SnarlDistanceIndex::set_only_top_level_chain_distances(bool) --> void", pybind11::arg("only_chain"));
 		cl.def("net_handle_as_string", (std::string (bdsg::SnarlDistanceIndex::*)(const struct handlegraph::net_handle_t &) const) &bdsg::SnarlDistanceIndex::net_handle_as_string, "C++: bdsg::SnarlDistanceIndex::net_handle_as_string(const struct handlegraph::net_handle_t &) const --> std::string", pybind11::arg("net"));
 		cl.def("traverse_decomposition", (bool (bdsg::SnarlDistanceIndex::*)(const class std::function<bool (const struct handlegraph::net_handle_t &)> &, const class std::function<bool (const struct handlegraph::net_handle_t &)> &, const class std::function<bool (const struct handlegraph::net_handle_t &)> &) const) &bdsg::SnarlDistanceIndex::traverse_decomposition, "C++: bdsg::SnarlDistanceIndex::traverse_decomposition(const class std::function<bool (const struct handlegraph::net_handle_t &)> &, const class std::function<bool (const struct handlegraph::net_handle_t &)> &, const class std::function<bool (const struct handlegraph::net_handle_t &)> &) const --> bool", pybind11::arg("snarl_iteratee"), pybind11::arg("chain_iteratee"), pybind11::arg("node_iteratee"));
 		cl.def("traverse_decomposition_helper", (bool (bdsg::SnarlDistanceIndex::*)(const struct handlegraph::net_handle_t &, const class std::function<bool (const struct handlegraph::net_handle_t &)> &, const class std::function<bool (const struct handlegraph::net_handle_t &)> &, const class std::function<bool (const struct handlegraph::net_handle_t &)> &) const) &bdsg::SnarlDistanceIndex::traverse_decomposition_helper, "C++: bdsg::SnarlDistanceIndex::traverse_decomposition_helper(const struct handlegraph::net_handle_t &, const class std::function<bool (const struct handlegraph::net_handle_t &)> &, const class std::function<bool (const struct handlegraph::net_handle_t &)> &, const class std::function<bool (const struct handlegraph::net_handle_t &)> &) const --> bool", pybind11::arg("net"), pybind11::arg("snarl_iteratee"), pybind11::arg("chain_iteratee"), pybind11::arg("node_iteratee"));
@@ -561,123 +683,5 @@ void bind_bdsg_snarl_distance_index(std::function< pybind11::module &(std::strin
 		cl.def_static("maximum", (unsigned long (*)(unsigned long, unsigned long)) &bdsg::SnarlDistanceIndex::maximum, "C++: bdsg::SnarlDistanceIndex::maximum(unsigned long, unsigned long) --> unsigned long", pybind11::arg("x"), pybind11::arg("y"));
 		cl.def_static("bit_width", (unsigned long (*)(unsigned long)) &bdsg::SnarlDistanceIndex::bit_width, "C++: bdsg::SnarlDistanceIndex::bit_width(unsigned long) --> unsigned long", pybind11::arg("value"));
 		cl.def("time_accesses", (void (bdsg::SnarlDistanceIndex::*)()) &bdsg::SnarlDistanceIndex::time_accesses, "C++: bdsg::SnarlDistanceIndex::time_accesses() --> void");
-
-		{ // bdsg::SnarlDistanceIndex::TemporaryDistanceIndex file:bdsg/snarl_distance_index.hpp line:1430
-			auto & enclosing_class = cl;
-			pybind11::class_<bdsg::SnarlDistanceIndex::TemporaryDistanceIndex, std::shared_ptr<bdsg::SnarlDistanceIndex::TemporaryDistanceIndex>> cl(enclosing_class, "TemporaryDistanceIndex", "");
-			cl.def( pybind11::init( [](){ return new bdsg::SnarlDistanceIndex::TemporaryDistanceIndex(); } ) );
-			cl.def( pybind11::init( [](bdsg::SnarlDistanceIndex::TemporaryDistanceIndex const &o){ return new bdsg::SnarlDistanceIndex::TemporaryDistanceIndex(o); } ) );
-			cl.def_readwrite("min_node_id", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::min_node_id);
-			cl.def_readwrite("max_node_id", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::max_node_id);
-			cl.def_readwrite("root_structure_count", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::root_structure_count);
-			cl.def_readwrite("max_tree_depth", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::max_tree_depth);
-			cl.def_readwrite("max_index_size", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::max_index_size);
-			cl.def_readwrite("max_distance", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::max_distance);
-			cl.def_readwrite("components", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::components);
-			cl.def_readwrite("root_snarl_components", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::root_snarl_components);
-			cl.def_readwrite("temp_chain_records", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::temp_chain_records);
-			cl.def_readwrite("temp_snarl_records", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::temp_snarl_records);
-			cl.def_readwrite("temp_node_records", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::temp_node_records);
-			cl.def_readwrite("use_oversized_snarls", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::use_oversized_snarls);
-			cl.def("structure_start_end_as_string", (std::string (bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::*)(struct std::pair<enum bdsg::SnarlDistanceIndex::temp_record_t, unsigned long>) const) &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::structure_start_end_as_string, "C++: bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::structure_start_end_as_string(struct std::pair<enum bdsg::SnarlDistanceIndex::temp_record_t, unsigned long>) const --> std::string", pybind11::arg("index"));
-			cl.def("get_max_record_length", (unsigned long (bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::*)() const) &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::get_max_record_length, "C++: bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::get_max_record_length() const --> unsigned long");
-			cl.def("assign", (class bdsg::SnarlDistanceIndex::TemporaryDistanceIndex & (bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::*)(const class bdsg::SnarlDistanceIndex::TemporaryDistanceIndex &)) &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::operator=, "C++: bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::operator=(const class bdsg::SnarlDistanceIndex::TemporaryDistanceIndex &) --> class bdsg::SnarlDistanceIndex::TemporaryDistanceIndex &", pybind11::return_value_policy::automatic, pybind11::arg(""));
-
-			{ // bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord file:bdsg/snarl_distance_index.hpp line:1448
-				auto & enclosing_class = cl;
-				pybind11::class_<bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord, std::shared_ptr<bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord>> cl(enclosing_class, "TemporaryRecord", "");
-				cl.def( pybind11::init( [](bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord const &o){ return new bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord(o); } ) );
-				cl.def( pybind11::init( [](){ return new bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord(); } ) );
-				cl.def("assign", (struct bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord & (bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord::*)(const struct bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord &)) &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord::operator=, "C++: bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord::operator=(const struct bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord &) --> struct bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord &", pybind11::return_value_policy::automatic, pybind11::arg(""));
-			}
-
-			{ // bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord file:bdsg/snarl_distance_index.hpp line:1450
-				auto & enclosing_class = cl;
-				pybind11::class_<bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord, std::shared_ptr<bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord>, bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord> cl(enclosing_class, "TemporaryChainRecord", "");
-				cl.def( pybind11::init( [](){ return new bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord(); } ) );
-				cl.def( pybind11::init( [](bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord const &o){ return new bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord(o); } ) );
-				cl.def_readwrite("start_node_id", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::start_node_id);
-				cl.def_readwrite("start_node_rev", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::start_node_rev);
-				cl.def_readwrite("end_node_id", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::end_node_id);
-				cl.def_readwrite("end_node_rev", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::end_node_rev);
-				cl.def_readwrite("end_node_length", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::end_node_length);
-				cl.def_readwrite("tree_depth", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::tree_depth);
-				cl.def_readwrite("parent", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::parent);
-				cl.def_readwrite("min_length", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::min_length);
-				cl.def_readwrite("max_length", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::max_length);
-				cl.def_readwrite("children", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::children);
-				cl.def_readwrite("prefix_sum", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::prefix_sum);
-				cl.def_readwrite("max_prefix_sum", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::max_prefix_sum);
-				cl.def_readwrite("forward_loops", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::forward_loops);
-				cl.def_readwrite("backward_loops", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::backward_loops);
-				cl.def_readwrite("chain_components", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::chain_components);
-				cl.def_readwrite("distance_left_start", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::distance_left_start);
-				cl.def_readwrite("distance_right_start", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::distance_right_start);
-				cl.def_readwrite("distance_left_end", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::distance_left_end);
-				cl.def_readwrite("distance_right_end", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::distance_right_end);
-				cl.def_readwrite("rank_in_parent", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::rank_in_parent);
-				cl.def_readwrite("reversed_in_parent", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::reversed_in_parent);
-				cl.def_readwrite("is_trivial", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::is_trivial);
-				cl.def_readwrite("is_tip", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::is_tip);
-				cl.def_readwrite("root_snarl_index", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::root_snarl_index);
-				cl.def_readwrite("loopable", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::loopable);
-				cl.def("get_max_record_length", (unsigned long (bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::*)() const) &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::get_max_record_length, "C++: bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::get_max_record_length() const --> unsigned long");
-				cl.def("assign", (struct bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord & (bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::*)(const struct bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord &)) &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::operator=, "C++: bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::operator=(const struct bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord &) --> struct bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord &", pybind11::return_value_policy::automatic, pybind11::arg(""));
-			}
-
-			{ // bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord file:bdsg/snarl_distance_index.hpp line:1485
-				auto & enclosing_class = cl;
-				pybind11::class_<bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord, std::shared_ptr<bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord>, bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord> cl(enclosing_class, "TemporarySnarlRecord", "");
-				cl.def( pybind11::init( [](){ return new bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord(); } ) );
-				cl.def( pybind11::init( [](bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord const &o){ return new bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord(o); } ) );
-				cl.def_readwrite("start_node_id", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::start_node_id);
-				cl.def_readwrite("start_node_rev", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::start_node_rev);
-				cl.def_readwrite("start_node_length", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::start_node_length);
-				cl.def_readwrite("end_node_id", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::end_node_id);
-				cl.def_readwrite("end_node_rev", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::end_node_rev);
-				cl.def_readwrite("end_node_length", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::end_node_length);
-				cl.def_readwrite("node_count", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::node_count);
-				cl.def_readwrite("min_length", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::min_length);
-				cl.def_readwrite("max_length", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::max_length);
-				cl.def_readwrite("max_distance", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::max_distance);
-				cl.def_readwrite("tree_depth", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::tree_depth);
-				cl.def_readwrite("parent", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::parent);
-				cl.def_readwrite("children", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::children);
-				cl.def_readwrite("tippy_child_ranks", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::tippy_child_ranks);
-				cl.def_readwrite("distances", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::distances);
-				cl.def_readwrite("distance_start_start", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::distance_start_start);
-				cl.def_readwrite("distance_end_end", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::distance_end_end);
-				cl.def_readwrite("rank_in_parent", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::rank_in_parent);
-				cl.def_readwrite("reversed_in_parent", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::reversed_in_parent);
-				cl.def_readwrite("is_trivial", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::is_trivial);
-				cl.def_readwrite("is_simple", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::is_simple);
-				cl.def_readwrite("is_tip", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::is_tip);
-				cl.def_readwrite("is_root_snarl", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::is_root_snarl);
-				cl.def("get_max_record_length", (unsigned long (bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::*)() const) &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::get_max_record_length, "C++: bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::get_max_record_length() const --> unsigned long");
-				cl.def("assign", (struct bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord & (bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::*)(const struct bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord &)) &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::operator=, "C++: bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::operator=(const struct bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord &) --> struct bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord &", pybind11::return_value_policy::automatic, pybind11::arg(""));
-			}
-
-			{ // bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord file:bdsg/snarl_distance_index.hpp line:1515
-				auto & enclosing_class = cl;
-				pybind11::class_<bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord, std::shared_ptr<bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord>, bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord> cl(enclosing_class, "TemporaryNodeRecord", "");
-				cl.def( pybind11::init( [](){ return new bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord(); } ) );
-				cl.def( pybind11::init( [](bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord const &o){ return new bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord(o); } ) );
-				cl.def_readwrite("node_id", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord::node_id);
-				cl.def_readwrite("parent", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord::parent);
-				cl.def_readwrite("node_length", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord::node_length);
-				cl.def_readwrite("rank_in_parent", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord::rank_in_parent);
-				cl.def_readwrite("reversed_in_parent", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord::reversed_in_parent);
-				cl.def_readwrite("is_tip", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord::is_tip);
-				cl.def_readwrite("root_snarl_index", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord::root_snarl_index);
-				cl.def_readwrite("distance_left_start", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord::distance_left_start);
-				cl.def_readwrite("distance_right_start", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord::distance_right_start);
-				cl.def_readwrite("distance_left_end", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord::distance_left_end);
-				cl.def_readwrite("distance_right_end", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord::distance_right_end);
-				cl.def_static("get_max_record_length", (const unsigned long (*)()) &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord::get_max_record_length, "C++: bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord::get_max_record_length() --> const unsigned long");
-				cl.def("assign", (struct bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord & (bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord::*)(const struct bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord &)) &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord::operator=, "C++: bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord::operator=(const struct bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord &) --> struct bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord &", pybind11::return_value_policy::automatic, pybind11::arg(""));
-			}
-
-		}
-
 	}
 }

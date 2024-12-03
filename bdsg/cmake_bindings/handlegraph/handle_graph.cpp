@@ -1,14 +1,14 @@
 #include <functional>
 #include <handlegraph/handle_graph.hpp>
 #include <handlegraph/types.hpp>
+#include <iterator>
 #include <memory>
 #include <sstream> // __str__
 #include <string>
-#include <string_view>
 #include <utility>
 
-#include <functional>
 #include <pybind11/pybind11.h>
+#include <functional>
 #include <string>
 #include <bdsg/internal/binder_hook_compile.hpp>
 #include <pybind11/stl.h>
@@ -19,243 +19,243 @@
 
 #ifndef BINDER_PYBIND11_TYPE_CASTER
 	#define BINDER_PYBIND11_TYPE_CASTER
-	PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>)
-	PYBIND11_DECLARE_HOLDER_TYPE(T, T*)
-	PYBIND11_MAKE_OPAQUE(std::shared_ptr<void>)
+	PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>);
+	PYBIND11_DECLARE_HOLDER_TYPE(T, T*);
+	PYBIND11_MAKE_OPAQUE(std::shared_ptr<void>);
 #endif
 
 // handlegraph::HandleGraph file:handlegraph/handle_graph.hpp line:22
 struct PyCallBack_handlegraph_HandleGraph : public handlegraph::HandleGraph {
 	using handlegraph::HandleGraph::HandleGraph;
 
-	bool has_node(long long a0) const override {
+	bool has_node(long long a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::HandleGraph *>(this), "has_node");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::override_caster_t<bool> caster;
+				static pybind11::detail::overload_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::has_node\"");
 	}
-	struct handlegraph::handle_t get_handle(const long long & a0, bool a1) const override {
+	struct handlegraph::handle_t get_handle(const long long & a0, bool a1) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::HandleGraph *>(this), "get_handle");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::handle_t>::value) {
-				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
+				static pybind11::detail::overload_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::get_handle\"");
 	}
-	long long get_id(const struct handlegraph::handle_t & a0) const override {
+	long long get_id(const struct handlegraph::handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::HandleGraph *>(this), "get_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
-				static pybind11::detail::override_caster_t<long long> caster;
+				static pybind11::detail::overload_caster_t<long long> caster;
 				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::get_id\"");
 	}
-	bool get_is_reverse(const struct handlegraph::handle_t & a0) const override {
+	bool get_is_reverse(const struct handlegraph::handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::HandleGraph *>(this), "get_is_reverse");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::override_caster_t<bool> caster;
+				static pybind11::detail::overload_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::get_is_reverse\"");
 	}
-	struct handlegraph::handle_t flip(const struct handlegraph::handle_t & a0) const override {
+	struct handlegraph::handle_t flip(const struct handlegraph::handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::HandleGraph *>(this), "flip");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::handle_t>::value) {
-				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
+				static pybind11::detail::overload_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::flip\"");
 	}
-	unsigned long get_length(const struct handlegraph::handle_t & a0) const override {
+	unsigned long get_length(const struct handlegraph::handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::HandleGraph *>(this), "get_length");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
-				static pybind11::detail::override_caster_t<unsigned long> caster;
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::get_length\"");
 	}
-	std::string get_sequence(const struct handlegraph::handle_t & a0) const override {
+	std::string get_sequence(const struct handlegraph::handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::HandleGraph *>(this), "get_sequence");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<std::string>::value) {
-				static pybind11::detail::override_caster_t<std::string> caster;
+				static pybind11::detail::overload_caster_t<std::string> caster;
 				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::get_sequence\"");
 	}
-	unsigned long get_node_count() const override {
+	unsigned long get_node_count() const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::HandleGraph *>(this), "get_node_count");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
 			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
-				static pybind11::detail::override_caster_t<unsigned long> caster;
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::get_node_count\"");
 	}
-	long long min_node_id() const override {
+	long long min_node_id() const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::HandleGraph *>(this), "min_node_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
 			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
-				static pybind11::detail::override_caster_t<long long> caster;
+				static pybind11::detail::overload_caster_t<long long> caster;
 				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::min_node_id\"");
 	}
-	long long max_node_id() const override {
+	long long max_node_id() const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::HandleGraph *>(this), "max_node_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
 			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
-				static pybind11::detail::override_caster_t<long long> caster;
+				static pybind11::detail::overload_caster_t<long long> caster;
 				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::max_node_id\"");
 	}
-	unsigned long get_degree(const struct handlegraph::handle_t & a0, bool a1) const override {
+	unsigned long get_degree(const struct handlegraph::handle_t & a0, bool a1) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::HandleGraph *>(this), "get_degree");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
-				static pybind11::detail::override_caster_t<unsigned long> caster;
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return HandleGraph::get_degree(a0, a1);
 	}
-	bool has_edge(const struct handlegraph::handle_t & a0, const struct handlegraph::handle_t & a1) const override {
+	bool has_edge(const struct handlegraph::handle_t & a0, const struct handlegraph::handle_t & a1) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::HandleGraph *>(this), "has_edge");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::override_caster_t<bool> caster;
+				static pybind11::detail::overload_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return HandleGraph::has_edge(a0, a1);
 	}
-	unsigned long get_edge_count() const override {
+	unsigned long get_edge_count() const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::HandleGraph *>(this), "get_edge_count");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
 			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
-				static pybind11::detail::override_caster_t<unsigned long> caster;
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return HandleGraph::get_edge_count();
 	}
-	unsigned long get_total_length() const override {
+	unsigned long get_total_length() const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::HandleGraph *>(this), "get_total_length");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
 			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
-				static pybind11::detail::override_caster_t<unsigned long> caster;
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return HandleGraph::get_total_length();
 	}
-	char get_base(const struct handlegraph::handle_t & a0, unsigned long a1) const override {
+	char get_base(const struct handlegraph::handle_t & a0, unsigned long a1) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::HandleGraph *>(this), "get_base");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<char>::value) {
-				static pybind11::detail::override_caster_t<char> caster;
+				static pybind11::detail::overload_caster_t<char> caster;
 				return pybind11::detail::cast_ref<char>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<char>(std::move(o));
 		}
 		return HandleGraph::get_base(a0, a1);
 	}
-	std::string get_subsequence(const struct handlegraph::handle_t & a0, unsigned long a1, unsigned long a2) const override {
+	std::string get_subsequence(const struct handlegraph::handle_t & a0, unsigned long a1, unsigned long a2) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::HandleGraph *>(this), "get_subsequence");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1, a2);
 			if (pybind11::detail::cast_is_temporary_value_reference<std::string>::value) {
-				static pybind11::detail::override_caster_t<std::string> caster;
+				static pybind11::detail::overload_caster_t<std::string> caster;
 				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		return HandleGraph::get_subsequence(a0, a1, a2);
 	}
-	bool follow_edges_impl(const struct handlegraph::handle_t & a0, bool a1, const class std::function<bool (const struct handlegraph::handle_t &)> & a2) const override {
+	bool follow_edges_impl(const struct handlegraph::handle_t & a0, bool a1, const class std::function<bool (const struct handlegraph::handle_t &)> & a2) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::HandleGraph *>(this), "follow_edges_impl");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1, a2);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::override_caster_t<bool> caster;
+				static pybind11::detail::overload_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::follow_edges_impl\"");
 	}
-	bool for_each_handle_impl(const class std::function<bool (const struct handlegraph::handle_t &)> & a0, bool a1) const override {
+	bool for_each_handle_impl(const class std::function<bool (const struct handlegraph::handle_t &)> & a0, bool a1) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::HandleGraph *>(this), "for_each_handle_impl");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::override_caster_t<bool> caster;
+				static pybind11::detail::overload_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<bool>(std::move(o));
@@ -268,286 +268,286 @@ struct PyCallBack_handlegraph_HandleGraph : public handlegraph::HandleGraph {
 struct PyCallBack_handlegraph_RankedHandleGraph : public handlegraph::RankedHandleGraph {
 	using handlegraph::RankedHandleGraph::RankedHandleGraph;
 
-	unsigned long id_to_rank(const long long & a0) const override {
+	unsigned long id_to_rank(const long long & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::RankedHandleGraph *>(this), "id_to_rank");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
-				static pybind11::detail::override_caster_t<unsigned long> caster;
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"RankedHandleGraph::id_to_rank\"");
 	}
-	long long rank_to_id(const unsigned long & a0) const override {
+	long long rank_to_id(const unsigned long & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::RankedHandleGraph *>(this), "rank_to_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
-				static pybind11::detail::override_caster_t<long long> caster;
+				static pybind11::detail::overload_caster_t<long long> caster;
 				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"RankedHandleGraph::rank_to_id\"");
 	}
-	unsigned long handle_to_rank(const struct handlegraph::handle_t & a0) const override {
+	unsigned long handle_to_rank(const struct handlegraph::handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::RankedHandleGraph *>(this), "handle_to_rank");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
-				static pybind11::detail::override_caster_t<unsigned long> caster;
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return RankedHandleGraph::handle_to_rank(a0);
 	}
-	struct handlegraph::handle_t rank_to_handle(const unsigned long & a0) const override {
+	struct handlegraph::handle_t rank_to_handle(const unsigned long & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::RankedHandleGraph *>(this), "rank_to_handle");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::handle_t>::value) {
-				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
+				static pybind11::detail::overload_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		return RankedHandleGraph::rank_to_handle(a0);
 	}
-	bool has_node(long long a0) const override {
+	bool has_node(long long a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::RankedHandleGraph *>(this), "has_node");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::override_caster_t<bool> caster;
+				static pybind11::detail::overload_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::has_node\"");
 	}
-	struct handlegraph::handle_t get_handle(const long long & a0, bool a1) const override {
+	struct handlegraph::handle_t get_handle(const long long & a0, bool a1) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::RankedHandleGraph *>(this), "get_handle");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::handle_t>::value) {
-				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
+				static pybind11::detail::overload_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::get_handle\"");
 	}
-	long long get_id(const struct handlegraph::handle_t & a0) const override {
+	long long get_id(const struct handlegraph::handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::RankedHandleGraph *>(this), "get_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
-				static pybind11::detail::override_caster_t<long long> caster;
+				static pybind11::detail::overload_caster_t<long long> caster;
 				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::get_id\"");
 	}
-	bool get_is_reverse(const struct handlegraph::handle_t & a0) const override {
+	bool get_is_reverse(const struct handlegraph::handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::RankedHandleGraph *>(this), "get_is_reverse");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::override_caster_t<bool> caster;
+				static pybind11::detail::overload_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::get_is_reverse\"");
 	}
-	struct handlegraph::handle_t flip(const struct handlegraph::handle_t & a0) const override {
+	struct handlegraph::handle_t flip(const struct handlegraph::handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::RankedHandleGraph *>(this), "flip");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::handle_t>::value) {
-				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
+				static pybind11::detail::overload_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::flip\"");
 	}
-	unsigned long get_length(const struct handlegraph::handle_t & a0) const override {
+	unsigned long get_length(const struct handlegraph::handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::RankedHandleGraph *>(this), "get_length");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
-				static pybind11::detail::override_caster_t<unsigned long> caster;
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::get_length\"");
 	}
-	std::string get_sequence(const struct handlegraph::handle_t & a0) const override {
+	std::string get_sequence(const struct handlegraph::handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::RankedHandleGraph *>(this), "get_sequence");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<std::string>::value) {
-				static pybind11::detail::override_caster_t<std::string> caster;
+				static pybind11::detail::overload_caster_t<std::string> caster;
 				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::get_sequence\"");
 	}
-	unsigned long get_node_count() const override {
+	unsigned long get_node_count() const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::RankedHandleGraph *>(this), "get_node_count");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
 			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
-				static pybind11::detail::override_caster_t<unsigned long> caster;
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::get_node_count\"");
 	}
-	long long min_node_id() const override {
+	long long min_node_id() const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::RankedHandleGraph *>(this), "min_node_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
 			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
-				static pybind11::detail::override_caster_t<long long> caster;
+				static pybind11::detail::overload_caster_t<long long> caster;
 				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::min_node_id\"");
 	}
-	long long max_node_id() const override {
+	long long max_node_id() const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::RankedHandleGraph *>(this), "max_node_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
 			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
-				static pybind11::detail::override_caster_t<long long> caster;
+				static pybind11::detail::overload_caster_t<long long> caster;
 				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::max_node_id\"");
 	}
-	unsigned long get_degree(const struct handlegraph::handle_t & a0, bool a1) const override {
+	unsigned long get_degree(const struct handlegraph::handle_t & a0, bool a1) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::RankedHandleGraph *>(this), "get_degree");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
-				static pybind11::detail::override_caster_t<unsigned long> caster;
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return HandleGraph::get_degree(a0, a1);
 	}
-	bool has_edge(const struct handlegraph::handle_t & a0, const struct handlegraph::handle_t & a1) const override {
+	bool has_edge(const struct handlegraph::handle_t & a0, const struct handlegraph::handle_t & a1) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::RankedHandleGraph *>(this), "has_edge");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::override_caster_t<bool> caster;
+				static pybind11::detail::overload_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return HandleGraph::has_edge(a0, a1);
 	}
-	unsigned long get_edge_count() const override {
+	unsigned long get_edge_count() const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::RankedHandleGraph *>(this), "get_edge_count");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
 			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
-				static pybind11::detail::override_caster_t<unsigned long> caster;
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return HandleGraph::get_edge_count();
 	}
-	unsigned long get_total_length() const override {
+	unsigned long get_total_length() const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::RankedHandleGraph *>(this), "get_total_length");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
 			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
-				static pybind11::detail::override_caster_t<unsigned long> caster;
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return HandleGraph::get_total_length();
 	}
-	char get_base(const struct handlegraph::handle_t & a0, unsigned long a1) const override {
+	char get_base(const struct handlegraph::handle_t & a0, unsigned long a1) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::RankedHandleGraph *>(this), "get_base");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<char>::value) {
-				static pybind11::detail::override_caster_t<char> caster;
+				static pybind11::detail::overload_caster_t<char> caster;
 				return pybind11::detail::cast_ref<char>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<char>(std::move(o));
 		}
 		return HandleGraph::get_base(a0, a1);
 	}
-	std::string get_subsequence(const struct handlegraph::handle_t & a0, unsigned long a1, unsigned long a2) const override {
+	std::string get_subsequence(const struct handlegraph::handle_t & a0, unsigned long a1, unsigned long a2) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::RankedHandleGraph *>(this), "get_subsequence");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1, a2);
 			if (pybind11::detail::cast_is_temporary_value_reference<std::string>::value) {
-				static pybind11::detail::override_caster_t<std::string> caster;
+				static pybind11::detail::overload_caster_t<std::string> caster;
 				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		return HandleGraph::get_subsequence(a0, a1, a2);
 	}
-	bool follow_edges_impl(const struct handlegraph::handle_t & a0, bool a1, const class std::function<bool (const struct handlegraph::handle_t &)> & a2) const override {
+	bool follow_edges_impl(const struct handlegraph::handle_t & a0, bool a1, const class std::function<bool (const struct handlegraph::handle_t &)> & a2) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::RankedHandleGraph *>(this), "follow_edges_impl");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1, a2);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::override_caster_t<bool> caster;
+				static pybind11::detail::overload_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::follow_edges_impl\"");
 	}
-	bool for_each_handle_impl(const class std::function<bool (const struct handlegraph::handle_t &)> & a0, bool a1) const override {
+	bool for_each_handle_impl(const class std::function<bool (const struct handlegraph::handle_t &)> & a0, bool a1) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::RankedHandleGraph *>(this), "for_each_handle_impl");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::override_caster_t<bool> caster;
+				static pybind11::detail::overload_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<bool>(std::move(o));
@@ -560,325 +560,325 @@ struct PyCallBack_handlegraph_RankedHandleGraph : public handlegraph::RankedHand
 struct PyCallBack_handlegraph_VectorizableHandleGraph : public handlegraph::VectorizableHandleGraph {
 	using handlegraph::VectorizableHandleGraph::VectorizableHandleGraph;
 
-	unsigned long node_vector_offset(const long long & a0) const override {
+	unsigned long node_vector_offset(const long long & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::VectorizableHandleGraph *>(this), "node_vector_offset");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
-				static pybind11::detail::override_caster_t<unsigned long> caster;
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"VectorizableHandleGraph::node_vector_offset\"");
 	}
-	long long node_at_vector_offset(const unsigned long & a0) const override {
+	long long node_at_vector_offset(const unsigned long & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::VectorizableHandleGraph *>(this), "node_at_vector_offset");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
-				static pybind11::detail::override_caster_t<long long> caster;
+				static pybind11::detail::overload_caster_t<long long> caster;
 				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"VectorizableHandleGraph::node_at_vector_offset\"");
 	}
-	unsigned long edge_index(const struct std::pair<struct handlegraph::handle_t, struct handlegraph::handle_t> & a0) const override {
+	unsigned long edge_index(const struct std::pair<struct handlegraph::handle_t, struct handlegraph::handle_t> & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::VectorizableHandleGraph *>(this), "edge_index");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
-				static pybind11::detail::override_caster_t<unsigned long> caster;
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"VectorizableHandleGraph::edge_index\"");
 	}
-	unsigned long id_to_rank(const long long & a0) const override {
+	unsigned long id_to_rank(const long long & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::VectorizableHandleGraph *>(this), "id_to_rank");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
-				static pybind11::detail::override_caster_t<unsigned long> caster;
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"RankedHandleGraph::id_to_rank\"");
 	}
-	long long rank_to_id(const unsigned long & a0) const override {
+	long long rank_to_id(const unsigned long & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::VectorizableHandleGraph *>(this), "rank_to_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
-				static pybind11::detail::override_caster_t<long long> caster;
+				static pybind11::detail::overload_caster_t<long long> caster;
 				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"RankedHandleGraph::rank_to_id\"");
 	}
-	unsigned long handle_to_rank(const struct handlegraph::handle_t & a0) const override {
+	unsigned long handle_to_rank(const struct handlegraph::handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::VectorizableHandleGraph *>(this), "handle_to_rank");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
-				static pybind11::detail::override_caster_t<unsigned long> caster;
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return RankedHandleGraph::handle_to_rank(a0);
 	}
-	struct handlegraph::handle_t rank_to_handle(const unsigned long & a0) const override {
+	struct handlegraph::handle_t rank_to_handle(const unsigned long & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::VectorizableHandleGraph *>(this), "rank_to_handle");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::handle_t>::value) {
-				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
+				static pybind11::detail::overload_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		return RankedHandleGraph::rank_to_handle(a0);
 	}
-	bool has_node(long long a0) const override {
+	bool has_node(long long a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::VectorizableHandleGraph *>(this), "has_node");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::override_caster_t<bool> caster;
+				static pybind11::detail::overload_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::has_node\"");
 	}
-	struct handlegraph::handle_t get_handle(const long long & a0, bool a1) const override {
+	struct handlegraph::handle_t get_handle(const long long & a0, bool a1) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::VectorizableHandleGraph *>(this), "get_handle");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::handle_t>::value) {
-				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
+				static pybind11::detail::overload_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::get_handle\"");
 	}
-	long long get_id(const struct handlegraph::handle_t & a0) const override {
+	long long get_id(const struct handlegraph::handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::VectorizableHandleGraph *>(this), "get_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
-				static pybind11::detail::override_caster_t<long long> caster;
+				static pybind11::detail::overload_caster_t<long long> caster;
 				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::get_id\"");
 	}
-	bool get_is_reverse(const struct handlegraph::handle_t & a0) const override {
+	bool get_is_reverse(const struct handlegraph::handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::VectorizableHandleGraph *>(this), "get_is_reverse");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::override_caster_t<bool> caster;
+				static pybind11::detail::overload_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::get_is_reverse\"");
 	}
-	struct handlegraph::handle_t flip(const struct handlegraph::handle_t & a0) const override {
+	struct handlegraph::handle_t flip(const struct handlegraph::handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::VectorizableHandleGraph *>(this), "flip");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::handle_t>::value) {
-				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
+				static pybind11::detail::overload_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::flip\"");
 	}
-	unsigned long get_length(const struct handlegraph::handle_t & a0) const override {
+	unsigned long get_length(const struct handlegraph::handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::VectorizableHandleGraph *>(this), "get_length");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
-				static pybind11::detail::override_caster_t<unsigned long> caster;
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::get_length\"");
 	}
-	std::string get_sequence(const struct handlegraph::handle_t & a0) const override {
+	std::string get_sequence(const struct handlegraph::handle_t & a0) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::VectorizableHandleGraph *>(this), "get_sequence");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
 			if (pybind11::detail::cast_is_temporary_value_reference<std::string>::value) {
-				static pybind11::detail::override_caster_t<std::string> caster;
+				static pybind11::detail::overload_caster_t<std::string> caster;
 				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::get_sequence\"");
 	}
-	unsigned long get_node_count() const override {
+	unsigned long get_node_count() const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::VectorizableHandleGraph *>(this), "get_node_count");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
 			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
-				static pybind11::detail::override_caster_t<unsigned long> caster;
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::get_node_count\"");
 	}
-	long long min_node_id() const override {
+	long long min_node_id() const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::VectorizableHandleGraph *>(this), "min_node_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
 			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
-				static pybind11::detail::override_caster_t<long long> caster;
+				static pybind11::detail::overload_caster_t<long long> caster;
 				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::min_node_id\"");
 	}
-	long long max_node_id() const override {
+	long long max_node_id() const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::VectorizableHandleGraph *>(this), "max_node_id");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
 			if (pybind11::detail::cast_is_temporary_value_reference<long long>::value) {
-				static pybind11::detail::override_caster_t<long long> caster;
+				static pybind11::detail::overload_caster_t<long long> caster;
 				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::max_node_id\"");
 	}
-	unsigned long get_degree(const struct handlegraph::handle_t & a0, bool a1) const override {
+	unsigned long get_degree(const struct handlegraph::handle_t & a0, bool a1) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::VectorizableHandleGraph *>(this), "get_degree");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
-				static pybind11::detail::override_caster_t<unsigned long> caster;
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return HandleGraph::get_degree(a0, a1);
 	}
-	bool has_edge(const struct handlegraph::handle_t & a0, const struct handlegraph::handle_t & a1) const override {
+	bool has_edge(const struct handlegraph::handle_t & a0, const struct handlegraph::handle_t & a1) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::VectorizableHandleGraph *>(this), "has_edge");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::override_caster_t<bool> caster;
+				static pybind11::detail::overload_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return HandleGraph::has_edge(a0, a1);
 	}
-	unsigned long get_edge_count() const override {
+	unsigned long get_edge_count() const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::VectorizableHandleGraph *>(this), "get_edge_count");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
 			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
-				static pybind11::detail::override_caster_t<unsigned long> caster;
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return HandleGraph::get_edge_count();
 	}
-	unsigned long get_total_length() const override {
+	unsigned long get_total_length() const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::VectorizableHandleGraph *>(this), "get_total_length");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>();
 			if (pybind11::detail::cast_is_temporary_value_reference<unsigned long>::value) {
-				static pybind11::detail::override_caster_t<unsigned long> caster;
+				static pybind11::detail::overload_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return HandleGraph::get_total_length();
 	}
-	char get_base(const struct handlegraph::handle_t & a0, unsigned long a1) const override {
+	char get_base(const struct handlegraph::handle_t & a0, unsigned long a1) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::VectorizableHandleGraph *>(this), "get_base");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<char>::value) {
-				static pybind11::detail::override_caster_t<char> caster;
+				static pybind11::detail::overload_caster_t<char> caster;
 				return pybind11::detail::cast_ref<char>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<char>(std::move(o));
 		}
 		return HandleGraph::get_base(a0, a1);
 	}
-	std::string get_subsequence(const struct handlegraph::handle_t & a0, unsigned long a1, unsigned long a2) const override {
+	std::string get_subsequence(const struct handlegraph::handle_t & a0, unsigned long a1, unsigned long a2) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::VectorizableHandleGraph *>(this), "get_subsequence");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1, a2);
 			if (pybind11::detail::cast_is_temporary_value_reference<std::string>::value) {
-				static pybind11::detail::override_caster_t<std::string> caster;
+				static pybind11::detail::overload_caster_t<std::string> caster;
 				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		return HandleGraph::get_subsequence(a0, a1, a2);
 	}
-	bool follow_edges_impl(const struct handlegraph::handle_t & a0, bool a1, const class std::function<bool (const struct handlegraph::handle_t &)> & a2) const override {
+	bool follow_edges_impl(const struct handlegraph::handle_t & a0, bool a1, const class std::function<bool (const struct handlegraph::handle_t &)> & a2) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::VectorizableHandleGraph *>(this), "follow_edges_impl");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1, a2);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::override_caster_t<bool> caster;
+				static pybind11::detail::overload_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::follow_edges_impl\"");
 	}
-	bool for_each_handle_impl(const class std::function<bool (const struct handlegraph::handle_t &)> & a0, bool a1) const override {
+	bool for_each_handle_impl(const class std::function<bool (const struct handlegraph::handle_t &)> & a0, bool a1) const override { 
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::VectorizableHandleGraph *>(this), "for_each_handle_impl");
 		if (overload) {
 			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
 			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
-				static pybind11::detail::override_caster_t<bool> caster;
+				static pybind11::detail::overload_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
 			else return pybind11::detail::cast_safe<bool>(std::move(o));
