@@ -3183,7 +3183,7 @@ size_t SnarlDistanceIndex::chain_minimum_length(const net_handle_t& net) const {
     assert(is_chain(net));
 #endif
     if (is_trivial_chain(net)) {
-        return NodeRecord(net, &snarl_tree_records).get_node_length();
+        return minimum_length(net);
     } else {
         return ChainRecord(net, &snarl_tree_records).get_min_length();
     }

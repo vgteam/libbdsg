@@ -18,12 +18,15 @@ help:
 # So we link it to something predictable.
 # Also make sure the CMake build will run Doxygen for us.
 ../../lib/bdsg.module:
-	cd ../.. && mkdir -p build && cd build && cmake .. -DPYTHON_EXECUTABLE=$(shell which python3) -DRUN_DOXYGEN=ON && $(MAKE)
+	cd ../.. && rm -f lib/bdsg.cpython-*.*
+	cd ../.. && mkdir -p build
+	cd ../../build && cmake .. -DPYTHON_EXECUTABLE=$(shell which python3) -DRUN_DOXYGEN=ON
+	cd ../../build && $(MAKE)
 	cd ../.. && ln lib/bdsg.cpython-*.* lib/bdsg.module
 
 # Make sure we are ready to run Sphinx
 sphinxprep: ../../lib/bdsg.module
-	python3 -c 'import sphinx ; import breathe' || pip3 install -r requirements.txt --use-feature=2020-resolver
+	python3 -c 'import sphinx ; import breathe' || pip install -r requirements.txt
 
 clean:
 	rm -Rf $(BUILDDIR)
