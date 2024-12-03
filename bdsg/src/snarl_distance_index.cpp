@@ -51,7 +51,7 @@ string SnarlDistanceIndex::TemporaryDistanceIndex::structure_start_end_as_string
     }
 }
 //The max record length of this chain
-size_t SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::get_max_record_length() const {
+size_t SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::get_max_record_length(bool include_distances) const {
     if (is_trivial) {
         return NODE_RECORD_SIZE;
     } else { 
@@ -82,7 +82,9 @@ size_t SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::get_max
         //The size of the chain record + the size of all the trivial snarls in the chain
         // + the size of the nodes in the trivial snarls + the sizes of all
         // the snarls in the chain
-        return CHAIN_RECORD_SIZE + (DISTANCED_TRIVIAL_SNARL_RECORD_SIZE*trivial_snarl_count) + (total_node_count * 2) + ((trivial_snarl_count + nontrivial_snarl_count) * 2) - 1;
+        return CHAIN_RECORD_SIZE + ((include_distances ? DISTANCED_TRIVIAL_SNARL_RECORD_SIZE : DISTANCELESS_TRIVIAL_SNARL_RECORD_SIZE) *trivial_snarl_count) 
+                                 + (total_node_count * (include_distances ? 2 : 1)) 
+                                 + ((trivial_snarl_count + nontrivial_snarl_count) * 2) - 1;
     }
 }
 //The max record length of the root
@@ -95,12 +97,12 @@ size_t SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::get_max
     if (is_trivial) {
         return 0;
     } else if (is_simple) {
-        return SimpleSnarlRecord::record_size(node_count); 
+        return SimpleSnarlRecord::record_size(node_count, include_distances); 
     } else {
          if (parent.first == TEMP_ROOT) {
-             return SnarlRecord::record_size(DISTANCED_ROOT_SNARL, node_count) + node_count;
+             return SnarlRecord::record_size(include_distances ? DISTANCED_ROOT_SNARL : ROOT_SNARL, node_count) + node_count;
          } else {
-            return SnarlRecord::record_size(DISTANCED_SNARL, node_count) + node_count;
+            return SnarlRecord::record_size(include_distances ? DISTANCED_SNARL : SNARL, node_count) + node_count;
          }
     }
 }

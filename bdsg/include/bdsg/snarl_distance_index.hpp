@@ -1258,7 +1258,7 @@ private:
         SimpleSnarlRecord (net_handle_t net, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records);
 
         //How big is the entire snarl record?
-        const static size_t record_size(size_t node_count) {return SIMPLE_SNARL_RECORD_SIZE + (node_count*2);}
+        const static size_t record_size(size_t node_count, bool include_distances) {return SIMPLE_SNARL_RECORD_SIZE + (node_count*2);}
         size_t record_size() ;
 
         //Get and set the distances between two node sides in the graph
@@ -1529,7 +1529,7 @@ public:
             //What is the index of this record in root_snarl_components
             size_t root_snarl_index = std::numeric_limits<size_t>::max();
             bool loopable = true; //If this is a looping snarl, this is false if the last snarl is not start-end connected
-            size_t get_max_record_length() const;
+            size_t get_max_record_length(bool include_distances) const;
         };
         struct TemporarySnarlRecord : TemporaryRecord{
             handlegraph::nid_t start_node_id;
@@ -1557,6 +1557,7 @@ public:
             bool is_simple;
             bool is_tip = false;
             bool is_root_snarl = false;
+            bool include_distances = true;
 
             size_t get_max_record_length() const ;
         };
