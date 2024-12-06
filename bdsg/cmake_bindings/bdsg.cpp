@@ -1,8 +1,7 @@
 #include <map>
-#include <algorithm>
-#include <functional>
 #include <memory>
 #include <stdexcept>
+#include <functional>
 #include <string>
 
 #include <pybind11/pybind11.h>
@@ -21,12 +20,11 @@ void bind_bdsg_graph_proxy_1(std::function< pybind11::module &(std::string const
 void bind_bdsg_internal_wang_hash(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_internal_mapped_structs(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_internal_mapped_structs_1(std::function< pybind11::module &(std::string const &namespace_) > &M);
-void bind_bdsg_internal_hash_map(std::function< pybind11::module &(std::string const &namespace_) > &M);
+void bind_bdsg_internal_utility(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_handlegraph_expanding_overlay_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_overlays_strand_split_overlay(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_internal_is_single_stranded(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_internal_eades_algorithm(std::function< pybind11::module &(std::string const &namespace_) > &M);
-void bind_bdsg_internal_base_packed_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_handlegraph_path_position_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_overlays_packed_path_position_overlay(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_overlays_packed_path_position_overlay_1(std::function< pybind11::module &(std::string const &namespace_) > &M);
@@ -51,22 +49,13 @@ PYBIND11_MODULE(bdsg, root_module) {
 
 	modules[""] = root_module;
 
-	static std::vector<std::string> const reserved_python_words {"nonlocal", "global", };
-
-	auto mangle_namespace_name(
-		[](std::string const &ns) -> std::string {
-			if ( std::find(reserved_python_words.begin(), reserved_python_words.end(), ns) == reserved_python_words.end() ) return ns;
-			else return ns+'_';
-		}
-	);
-
 	std::vector< std::pair<std::string, std::string> > sub_modules {
 		{"", "bdsg"},
 		{"bdsg", "algorithms"},
 		{"", "handlegraph"},
 		{"", "std"},
 	};
-	for(auto &p : sub_modules ) modules[p.first.size() ? p.first+"::"+p.second : p.second] = modules[p.first].def_submodule( mangle_namespace_name(p.second).c_str(), ("Bindings for " + p.first + "::" + p.second + " namespace").c_str() );
+	for(auto &p : sub_modules ) modules[p.first.size() ? p.first+"::"+p.second : p.second] = modules[p.first].def_submodule(p.second.c_str(), ("Bindings for " + p.first + "::" + p.second + " namespace").c_str() );
 
 	//pybind11::class_<std::shared_ptr<void>>(M(""), "_encapsulated_data_");
 
@@ -82,12 +71,11 @@ PYBIND11_MODULE(bdsg, root_module) {
 	bind_bdsg_internal_wang_hash(M);
 	bind_bdsg_internal_mapped_structs(M);
 	bind_bdsg_internal_mapped_structs_1(M);
-	bind_bdsg_internal_hash_map(M);
+	bind_bdsg_internal_utility(M);
 	bind_handlegraph_expanding_overlay_graph(M);
 	bind_bdsg_overlays_strand_split_overlay(M);
 	bind_bdsg_internal_is_single_stranded(M);
 	bind_bdsg_internal_eades_algorithm(M);
-	bind_bdsg_internal_base_packed_graph(M);
 	bind_handlegraph_path_position_handle_graph(M);
 	bind_bdsg_overlays_packed_path_position_overlay(M);
 	bind_bdsg_overlays_packed_path_position_overlay_1(M);
