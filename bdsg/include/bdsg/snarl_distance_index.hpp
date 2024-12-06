@@ -1503,6 +1503,7 @@ public:
             handlegraph::nid_t end_node_id;
             bool end_node_rev;
             size_t end_node_length=0;
+            size_t tree_depth=0;
             //Type of the parent and offset into the appropriate vector
             //(TEMP_ROOT, 0) if this is a root level chain
             pair<temp_record_t, size_t> parent;
@@ -1542,6 +1543,7 @@ public:
             size_t min_length = std::numeric_limits<size_t>::max(); //Not including boundary nodes
             size_t max_length = 0;
             size_t max_distance = 0;
+            size_t tree_depth = 0;
             pair<temp_record_t, size_t> parent;
             vector<pair<temp_record_t, size_t>> children; //All children, nodes and chains, in arbitrary order
             unordered_set<size_t> tippy_child_ranks; //The ranks of children that are tips
