@@ -1527,13 +1527,16 @@ public:
             bool loopable = true; //If this is a looping snarl, this is false if the last snarl is not start-end connected
 
             vector<pair<temp_record_t, size_t>> children; //All children, both nodes and snarls, in order
+
             //Distances for the chain, one entry per node
-            //TODO This would probably be more efficient as a vector of a struct of five ints
-            vector<size_t> prefix_sum;
-            vector<size_t> max_prefix_sum;
-            vector<size_t> forward_loops;
-            vector<size_t> backward_loops;
-            vector<size_t> chain_components;//Which component does each node belong to, usually all 0s
+            struct chain_distances_t {
+                size_t prefix_sum;
+                size_t max_prefix_sum;
+                size_t forward_loop;
+                size_t backward_loop;
+                size_t chain_component;//Which component does each node belong to, usually all 0s
+            };
+            vector<chain_distances_t> per_node_distances;
 
             size_t get_max_record_length(bool include_distances) const;
         };
