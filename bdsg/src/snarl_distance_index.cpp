@@ -6164,14 +6164,14 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
 
                     ChainRecordWriter chain_record_constructor;
 
-                    if (temp_chain_record.per_node_distances.back().chain_component == 0 || ignore_distances) {
+                    if (temp_chain_record.chain_components.back() == 0 || ignore_distances) {
                         record_t record_type = ignore_distances ? CHAIN : DISTANCED_CHAIN;
                         chain_record_constructor = ChainRecordWriter(snarl_tree_records->size(), record_type,
-                                                               temp_chain_record.per_node_distances.size(), &snarl_tree_records);
+                                                               temp_chain_record.prefix_sum.size(), &snarl_tree_records);
                         chain_record_constructor.set_start_end_connected();
                     } else {
                         chain_record_constructor = ChainRecordWriter(snarl_tree_records->size(), MULTICOMPONENT_CHAIN,
-                                                               temp_chain_record.per_node_distances.size(), &snarl_tree_records);
+                                                               temp_chain_record.prefix_sum.size(), &snarl_tree_records);
                     }
                     chain_record_constructor.set_parent_record_offset(
                             record_to_offset[make_pair(temp_index_i, temp_chain_record.parent)]);
@@ -6231,15 +6231,15 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                                 //Make a new node record
                                 size_t new_offset = chain_record_constructor.add_node(
                                         temp_node_record.node_id, temp_node_record.node_length, temp_node_record.reversed_in_parent,
-                                        temp_chain_record.per_node_distances[chain_node_i].prefix_sum, temp_chain_record.per_node_distances[chain_node_i].forward_loop,
-                                        temp_chain_record.per_node_distances[chain_node_i].backward_loop, temp_chain_record.per_node_distances[chain_node_i].chain_component,
-                                        temp_chain_record.per_node_distances[chain_node_i].max_prefix_sum,
+                                        temp_chain_record.prefix_sum[chain_node_i], temp_chain_record.forward_loops[chain_node_i],
+                                        temp_chain_record.backward_loops[chain_node_i], temp_chain_record.chain_components[chain_node_i],
+                                        temp_chain_record.max_prefix_sum[chain_node_i],
                                         last_child_offset.first, last_child_was_nontrivial_snarl,
                                         !ignore_distances);
 
                                 //Remember this node as the last thing in the chain
                                 last_child_offset = make_pair(new_offset, false);
-                                if (temp_chain_record.per_node_distances[chain_node_i].forward_loop == 0) {
+                                if (temp_chain_record.forward_loops[chain_node_i] == 0) {
                                     last_child_was_nontrivial_snarl = true;
                                 } else {
                                     last_child_was_nontrivial_snarl = false;
