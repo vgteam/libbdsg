@@ -1499,9 +1499,7 @@ public:
         };
         struct TemporaryChainRecord : TemporaryRecord {
             handlegraph::nid_t start_node_id;
-            bool start_node_rev;
             handlegraph::nid_t end_node_id;
-            bool end_node_rev;
             size_t end_node_length=0;
             size_t tree_depth=0; //TODO: This isn't used but I left it because I couldn't get the python bindings to build when I changed it
             //Type of the parent and offset into the appropriate vector
@@ -1509,13 +1507,6 @@ public:
             pair<temp_record_t, size_t> parent;
             size_t min_length=0;//Including boundary nodes
             size_t max_length = 0;
-            vector<pair<temp_record_t, size_t>> children; //All children, both nodes and snarls, in order
-            //Distances for the chain, one entry per node
-            vector<size_t> prefix_sum;
-            vector<size_t> max_prefix_sum;
-            vector<size_t> forward_loops;
-            vector<size_t> backward_loops;
-            vector<size_t> chain_components;//Which component does each node belong to, usually all 0s
 
             //Distances from the left/right of the node to the start/end of the parent snarl
             size_t distance_left_start = std::numeric_limits<size_t>::max();
@@ -1524,42 +1515,57 @@ public:
             size_t distance_right_end = std::numeric_limits<size_t>::max();
 
             size_t rank_in_parent=0;
+
+            //What is the index of this record in root_snarl_components
+            size_t root_snarl_index = std::numeric_limits<size_t>::max();
+
+            bool start_node_rev;
+            bool end_node_rev;
             bool reversed_in_parent;
             bool is_trivial;
             bool is_tip = false;
-            //What is the index of this record in root_snarl_components
-            size_t root_snarl_index = std::numeric_limits<size_t>::max();
             bool loopable = true; //If this is a looping snarl, this is false if the last snarl is not start-end connected
+
+            vector<pair<temp_record_t, size_t>> children; //All children, both nodes and snarls, in order
+            //Distances for the chain, one entry per node
+            //TODO This would probably be more efficient as a vector of a struct of five ints
+            vector<size_t> prefix_sum;
+            vector<size_t> max_prefix_sum;
+            vector<size_t> forward_loops;
+            vector<size_t> backward_loops;
+            vector<size_t> chain_components;//Which component does each node belong to, usually all 0s
+
             size_t get_max_record_length(bool include_distances) const;
         };
         struct TemporarySnarlRecord : TemporaryRecord{
+            pair<temp_record_t, size_t> parent;
             handlegraph::nid_t start_node_id;
-            bool start_node_rev;
             size_t start_node_length=0;
             handlegraph::nid_t end_node_id;
-            bool end_node_rev;
             size_t end_node_length=0;
             size_t node_count=0;
             size_t min_length = std::numeric_limits<size_t>::max(); //Not including boundary nodes
             size_t max_length = 0;
             size_t max_distance = 0;
             size_t tree_depth = 0; //TODO: This isn't used but I left it because I couldn't get the python bindings to build when I changed it
-            pair<temp_record_t, size_t> parent;
-            vector<pair<temp_record_t, size_t>> children; //All children, nodes and chains, in arbitrary order
-            unordered_set<size_t> tippy_child_ranks; //The ranks of children that are tips
-            //vector<tuple<pair<size_t, bool>, pair<size_t, bool>, size_t>> distances;
-            unordered_map<pair<pair<size_t, bool>, pair<size_t, bool>>, size_t> distances;
 
             size_t distance_start_start = std::numeric_limits<size_t>::max();
             size_t distance_end_end = std::numeric_limits<size_t>::max();
 
             size_t rank_in_parent=0;
+
             bool reversed_in_parent;
+            bool start_node_rev;
+            bool end_node_rev;
             bool is_trivial;
             bool is_simple;
             bool is_tip = false;
             bool is_root_snarl = false;
             bool include_distances = true;
+            vector<pair<temp_record_t, size_t>> children; //All children, nodes and chains, in arbitrary order
+            unordered_set<size_t> tippy_child_ranks; //The ranks of children that are tips
+            //vector<tuple<pair<size_t, bool>, pair<size_t, bool>, size_t>> distances;
+            unordered_map<pair<pair<size_t, bool>, pair<size_t, bool>>, size_t> distances;
 
             size_t get_max_record_length() const ;
         };
@@ -1572,14 +1578,15 @@ public:
             pair<temp_record_t, size_t> parent;
             size_t node_length=0;
             size_t rank_in_parent=0;
-            bool reversed_in_parent;
-            bool is_tip = false;
             size_t root_snarl_index = std::numeric_limits<size_t>::max();
             //Distances from the left/right of the node to the start/end of the parent snarl
             size_t distance_left_start = std::numeric_limits<size_t>::max();
             size_t distance_right_start = std::numeric_limits<size_t>::max();
             size_t distance_left_end = std::numeric_limits<size_t>::max();
             size_t distance_right_end = std::numeric_limits<size_t>::max();
+
+            bool reversed_in_parent;
+            bool is_tip = false;
 
 
             const static size_t get_max_record_length() {
