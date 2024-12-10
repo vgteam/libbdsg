@@ -50,5 +50,8 @@ void bind_handlegraph_types(std::function< pybind11::module &(std::string const 
 		pybind11::class_<handlegraph::net_handle_t, std::shared_ptr<handlegraph::net_handle_t>> cl(M("handlegraph"), "net_handle_t", "A net handle is an opaque reference to a category of traversals of a single\n node, a chain, or the interior of a snarl, in the snarl decomposition of a\n graph.\n\n Snarls and chains are bounded by two particular points, but the traversal\n may not visit both or any of them (as is the case for traversals between\n internal tips).\n\n The handle refers to the snarl or chain itself and also a particular\n category of traversals of it. Each of the start and end of the traversal can\n be the start of the snarl/chain, the end of the snarl/chain, or some\n internal tip, for 6 distinct combinations.\n\n For single nodes, we only have forward and reverse.");
 		cl.def( pybind11::init( [](){ return new handlegraph::net_handle_t(); } ) );
 		cl.def( pybind11::init( [](handlegraph::net_handle_t const &o){ return new handlegraph::net_handle_t(o); } ) );
+        cl.def( pybind11::self == pybind11::self);
+        cl.def( pybind11::self != pybind11::self);
+        cl.def( hash(pybind11::self));
 	}
 }
