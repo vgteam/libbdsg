@@ -132,7 +132,12 @@ public:
     /// May **NOT** be called during iteration over paths, if it would destroy a path.
     /// May **NOT** be called during iteration along a path, if it would destroy that path.
     void destroy_handle(const handle_t& handle);
-    
+        
+    /// Change the sequence of handle to a new sequence. Returns a (possibly alterered)
+    /// handle to the node with the new sequence. May invalidate the existing handle. Updates
+    /// paths if called through an inheriting MutablePath interface.
+    handle_t change_sequence(const handle_t& handle, const std::string& sequence);
+
     /// Create an edge connecting the given handles in the given order and orientations.
     /// Ignores existing edges.
     void create_edge(const handle_t& left, const handle_t& right);
