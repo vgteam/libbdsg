@@ -18,6 +18,14 @@ using namespace handlegraph;
 /*
  * An overlay that adds fast access to paths in addition to allowing path
  * position queries on them.
+ *
+ * TODO: Won't work properly with paths hidden from for_each_path_handle on the
+ * backing graph, since they won't be indexed but we also won't pass any kind
+ * of queries through to the backign graph for queries we expect to be able to
+ * fulfil from the index. Unkike in PackedPositionOverlay, we now expect the
+ * index to have some path data in it, not just offset tables that we wouldn't
+ * expect to use for hidden (i,e, haplotype) paths. We should make the overlay
+ * transparent so hidden paths work properly, or remove hidden paths.
  */
 class PackedReferencePathOverlay : public PackedPositionOverlay {
         
@@ -29,11 +37,11 @@ public:
 
     /// Make a PackedReferencePathOverlay. Do the indexing and compute the
     /// additional indexes that the base class doesn't have.
-    PackedReferencePathOverlay(const PathHandleGraph* graph, size_t steps_per_index = 1000000);
+    PackedReferencePathOverlay(const PathHandleGraph* graph, size_t steps_per_index = 20000000);
     
     // We assume that tracing out a path is fast in the backing graph, but
     // finding visits on nodes is slow. We override the reverse lookups to go
-    // fron graph nodes to paths.
+    // from graph nodes to paths.
 
     /// overload this to use the cache 
     virtual path_handle_t get_path_handle_of_step(const step_handle_t& step_handle) const;

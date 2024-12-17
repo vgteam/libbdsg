@@ -104,6 +104,13 @@ public:
     virtual void destroy_path(const path_handle_t& path) {
         this->get()->destroy_path(path);
     }
+    
+    /**
+     * Destroy the given paths. Invalidates handles to the paths and their steps.
+     */
+    virtual void destroy_paths(const std::vector<path_handle_t>& paths) {
+        this->get()->destroy_paths(paths);
+    }
 
     /**
      * Create a path with the given name. The caller must ensure that no path
@@ -193,6 +200,14 @@ public:
     /// May invalid stored paths.
     virtual handle_t truncate_handle(const handle_t& handle, bool trunc_left, size_t offset) {
         return this->get()->truncate_handle(handle, trunc_left, offset);
+    }
+    
+        
+    /// Change the sequence of handle's forward orientation to a new sequence. Returns a (possibly
+    /// handle to the node with the new sequence. May invalidate the existing handle. Updates
+    /// alterered) paths if called through a class inheriting a MutablePathHandleGraph interface.
+    virtual handle_t change_sequence(const handle_t& handle, const std::string& sequence) {
+        return this->get()->change_sequence(handle, sequence);
     }
     
     /// Remove all nodes and edges. May also remove all paths, if applicable.

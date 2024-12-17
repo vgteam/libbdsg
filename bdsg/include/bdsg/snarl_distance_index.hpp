@@ -232,6 +232,13 @@ public:
     //Distance limit is the distance after which we give up if we're doing a traversal.
     size_t distance_in_parent(const net_handle_t& parent, const net_handle_t& child1, const net_handle_t& child2, const HandleGraph* graph=nullptr, size_t distance_limit = std::numeric_limits<size_t>::max()) const;
 
+    //Distance_in_parent for distances in a snarl given the rank and orientation instead of a handle
+    //You should use distance in parent unless you're sure the ranks are correct - this shouldn't
+    //be exposed to the public interface but I needed it
+    size_t distance_in_snarl(const net_handle_t& parent, const size_t& rank1, const bool& right_side1, 
+            const size_t& rank2, const bool& right_side2, const HandleGraph* graph=nullptr, 
+            size_t distance_limit = std::numeric_limits<size_t>::max()) const;
+
     ///Find the maximum distance between two children in the parent. 
     ///This is the same as distance_in_parent for everything except children of chains
     size_t max_distance_in_parent(const net_handle_t& parent, const net_handle_t& child1, const net_handle_t& child2, const HandleGraph* graph=nullptr, size_t distance_limit = std::numeric_limits<size_t>::max()) const;
@@ -256,6 +263,7 @@ public:
     bool is_externally_start_end_connected(const net_handle_t net) const {return is_externally_start_end_connected(snarl_tree_records->at(get_record_offset(net)));}
     bool is_externally_start_start_connected(const net_handle_t net) const {return is_externally_start_start_connected(snarl_tree_records->at(get_record_offset(net)));}
     bool is_externally_end_end_connected(const net_handle_t net) const {return is_externally_end_end_connected(snarl_tree_records->at(get_record_offset(net)));}
+
 
     ///For two net handles, get a net handle lowest common ancestor.
     ///If the lowest common ancestor is the root, then the two handles may be in
@@ -325,21 +333,25 @@ public:
 
     ///Get the prefix sum value for a node in a chain.
     ///Fails if the parent of net is not a chain
-    size_t get_prefix_sum_value(const net_handle_t net) const;
+    size_t get_prefix_sum_value(const net_handle_t& net) const;
 
-    ///Get the prefix sum value for a node in a chain.
+    ///Get the maximum prefix sum value for a node in a chain.
     ///Fails if the parent of net is not a chain
-    size_t get_forward_loop_value(const net_handle_t net) const;
+    size_t get_max_prefix_sum_value(const net_handle_t& net) const;
 
-    ///Get the prefix sum value for a node in a chain.
+    ///Get the forward loop value for a node in a chain.
     ///Fails if the parent of net is not a chain
-    size_t get_reverse_loop_value(const net_handle_t net) const;
+    size_t get_forward_loop_value(const net_handle_t& net) const;
+
+    ///Get the reverse value for a node in a chain.
+    ///Fails if the parent of net is not a chain
+    size_t get_reverse_loop_value(const net_handle_t& net) const;
 
     //If get_end is true, then get the second component of the last node in a looping chain.
     //If the chain loops, then the first and last node are the same.
     //If it is also a multicomponent, chain, then it is in two different components.
     //If get_end is true, then get the larger of the two components.
-    size_t get_chain_component(const net_handle_t net, bool get_end = false) const;
+    size_t get_chain_component(const net_handle_t& net, bool get_end = false) const;
 
 
 
@@ -363,10 +375,25 @@ public:
     ///Returns true if the given net handle refers to (a traversal of) a snarl.
     bool is_snarl(const net_handle_t& net) const;
 
+    ///Return true if the given snarl is a DAG and false otherwise
+    ///Returns true if the given net_handle_t is not a snarl
+    bool is_dag(const net_handle_t& snarl) const;
+
+    ///Given a snarl, return the number of non-dag edges it contains
+    ///0 for a dag
+    size_t non_dag_edge_count(const net_handle_t& snarl, const HandleGraph* graph) const;
+
     ///Returns true if the given net handle refers to (a traversal of) a simple snarl
     ///A simple snarl is a bubble where each child node can only reach the boundary nodes,
     ///and each side of a node reaches a different boundary node
+    ///There may also be an edge connecting the two boundary nodes but no additional 
+    ///edges are allowed
     bool is_simple_snarl(const net_handle_t& net) const;
+
+    ///Returns true if the given net handle refers to (a traversal of) a regular snarl
+    ///A regular snarl is the same as a simple snarl, except that the children may be
+    ///nested chains, rather than being restricted to nodes 
+    bool is_regular_snarl(const net_handle_t& net) const;
 
     ///Returns true if the given net handle refers to (a traversal of) a chain.
     bool is_chain(const net_handle_t& net) const;
@@ -471,6 +498,11 @@ public:
     ///number of nodes in the top-level snarl 
     size_t connected_component_count() const;
 
+    ///Get the child of a snarl from its rank. This shouldn't be exposed to the public interface but I need it
+    ///Please don't use it
+    ///For 0 or 1, returns the sentinel facing in. Otherwise return the child as a chain going START_END
+    net_handle_t get_snarl_child_from_rank(const net_handle_t& snarl, const size_t& rank) const;
+
 protected:
     ///Internal implementation for for_each_child.
     bool for_each_child_impl(const net_handle_t& traversal, const std::function<bool(const net_handle_t&)>& iteratee) const;
@@ -553,6 +585,11 @@ public:
                    ROOT_SNARL, DISTANCED_ROOT_SNARL,
                    CHAIN, DISTANCED_CHAIN, MULTICOMPONENT_CHAIN,
                    CHILDREN};
+    const static bool has_distances(record_t type) {
+        return type == DISTANCED_NODE || type == DISTANCED_TRIVIAL_SNARL || type == DISTANCED_SIMPLE_SNARL
+            || type == DISTANCED_SNARL || type == OVERSIZED_SNARL || type == DISTANCED_ROOT_SNARL 
+            || type == DISTANCED_CHAIN || type == MULTICOMPONENT_CHAIN;
+    }
 
 
     
@@ -784,14 +821,16 @@ private:
      *   [trivial snarl tag, pointer to parent, node count, prefix sum, fd loop, rev loop, component]
 
      * The record is followed by [node id+orientation, right prefix sum] for each node in the trivial snarl
-     * So the total length of the trivial snarl is 8+2*#nodes
+     * So the total length of the distanced trivial snarl is 8+2*#nodes, and the length of a distanceless
+     * trivial snarl is 8+#nodes
      * The right prefix sum is the sum from the start of the trivial chain to the right side of the node (relative to the chain)
      * The node_record_offset in a net_handle_t to a trivial snarl points to a node in the trivial snarl
  
      */
     const static size_t BITS_FOR_TRIVIAL_NODE_OFFSET = 8;
     const static size_t MAX_TRIVIAL_SNARL_NODE_COUNT =  (1 << BITS_FOR_TRIVIAL_NODE_OFFSET) -1;
-    const static size_t TRIVIAL_SNARL_RECORD_SIZE = 8;
+    const static size_t DISTANCED_TRIVIAL_SNARL_RECORD_SIZE = 8;
+    const static size_t DISTANCELESS_TRIVIAL_SNARL_RECORD_SIZE = 3;
     const static size_t TRIVIAL_SNARL_PARENT_OFFSET = 1;
     const static size_t TRIVIAL_SNARL_NODE_COUNT_OFFSET = 2;
     const static size_t TRIVIAL_SNARL_PREFIX_SUM_OFFSET = 3;
@@ -856,12 +895,18 @@ private:
      * that include boundary nodes (OVERSIZED_SNARL)
      */
     size_t snarl_size_limit = 5000;
+
+    //If this is true, then only store distance along top-level chains. Everything still needs its minimum lengths to get
+    //the distances along top-level chains but don't store internal distances in snarls or in nested chains
+    //This overrides snarl_size_limit
+    bool only_top_level_chain_distances=false;
     static const int max_num_size_limit_warnings = 100;
     std::atomic<int> size_limit_warnings{0};
     static const uint32_t magic_number = 1738636486;
     
 public:
     void set_snarl_size_limit (size_t size) {snarl_size_limit=size;}
+    void set_only_top_level_chain_distances (bool only_chain) {only_top_level_chain_distances=only_chain;}
 
 
 
@@ -1107,7 +1152,9 @@ private:
         bool get_is_reversed_in_parent(size_t node_rank) const; //is the node_rank-th node reversed
 
         size_t get_record_size() { 
-            return TRIVIAL_SNARL_RECORD_SIZE + (get_node_count() * 2);
+            return get_record_type() == DISTANCED_TRIVIAL_SNARL
+                   ? DISTANCED_TRIVIAL_SNARL_RECORD_SIZE + (get_node_count() * 2)
+                   : DISTANCELESS_TRIVIAL_SNARL_RECORD_SIZE + get_node_count();
         }
         TrivialSnarlRecord (size_t offset, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records);
     };
@@ -1165,6 +1212,7 @@ private:
 
         size_t get_node_count() const;
 
+        //Get the offset of the list of children
         size_t get_child_record_pointer() const;
 
         bool for_each_child(const std::function<bool(const net_handle_t&)>& iteratee) const;
@@ -1210,7 +1258,7 @@ private:
         SimpleSnarlRecord (net_handle_t net, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records);
 
         //How big is the entire snarl record?
-        const static size_t record_size(size_t node_count) {return SIMPLE_SNARL_RECORD_SIZE + (node_count*2);}
+        const static size_t record_size(size_t node_count, bool include_distances) {return SIMPLE_SNARL_RECORD_SIZE + (node_count*2);}
         size_t record_size() ;
 
         //Get and set the distances between two node sides in the graph
@@ -1223,6 +1271,8 @@ private:
         size_t get_node_length(size_t rank = std::numeric_limits<size_t>::max()) const;
         bool get_node_is_reversed(size_t rank = std::numeric_limits<size_t>::max()) const;
 
+
+        net_handle_t get_child_from_rank(const size_t& rank) const;
         bool for_each_child(const std::function<bool(const net_handle_t&)>& iteratee) const;
 
     };
@@ -1355,7 +1405,7 @@ private:
         //If new_record is true, make a new trivial snarl record for the node
         size_t add_node(nid_t node_id, size_t node_length, bool is_reversed_in_parent,
                 size_t prefix_sum, size_t forward_loop, size_t reverse_loop, size_t component, 
-                size_t max_prefix_sum, size_t previous_child_offset, bool new_record);
+                size_t max_prefix_sum, size_t previous_child_offset, bool new_record, bool include_distances);
 
     };
 
@@ -1449,23 +1499,14 @@ public:
         };
         struct TemporaryChainRecord : TemporaryRecord {
             handlegraph::nid_t start_node_id;
-            bool start_node_rev;
             handlegraph::nid_t end_node_id;
-            bool end_node_rev;
-            size_t end_node_length;
-            size_t tree_depth = 0;
+            size_t end_node_length=0;
+            size_t tree_depth=0; //TODO: This isn't used but I left it because I couldn't get the python bindings to build when I changed it
             //Type of the parent and offset into the appropriate vector
             //(TEMP_ROOT, 0) if this is a root level chain
             pair<temp_record_t, size_t> parent;
-            size_t min_length;//Including boundary nodes
+            size_t min_length=0;//Including boundary nodes
             size_t max_length = 0;
-            vector<pair<temp_record_t, size_t>> children; //All children, both nodes and snarls, in order
-            //Distances for the chain, one entry per node
-            vector<size_t> prefix_sum;
-            vector<size_t> max_prefix_sum;
-            vector<size_t> forward_loops;
-            vector<size_t> backward_loops;
-            vector<size_t> chain_components;//Which component does each node belong to, usually all 0s
 
             //Distances from the left/right of the node to the start/end of the parent snarl
             size_t distance_left_start = std::numeric_limits<size_t>::max();
@@ -1473,42 +1514,58 @@ public:
             size_t distance_left_end = std::numeric_limits<size_t>::max();
             size_t distance_right_end = std::numeric_limits<size_t>::max();
 
-            size_t rank_in_parent;
+            size_t rank_in_parent=0;
+
+            //What is the index of this record in root_snarl_components
+            size_t root_snarl_index = std::numeric_limits<size_t>::max();
+
+            bool start_node_rev;
+            bool end_node_rev;
             bool reversed_in_parent;
             bool is_trivial;
             bool is_tip = false;
-            //What is the index of this record in root_snarl_components
-            size_t root_snarl_index = std::numeric_limits<size_t>::max();
             bool loopable = true; //If this is a looping snarl, this is false if the last snarl is not start-end connected
-            size_t get_max_record_length() const;
+
+            vector<pair<temp_record_t, size_t>> children; //All children, both nodes and snarls, in order
+            //Distances for the chain, one entry per node
+            //TODO This would probably be more efficient as a vector of a struct of five ints
+            vector<size_t> prefix_sum;
+            vector<size_t> max_prefix_sum;
+            vector<size_t> forward_loops;
+            vector<size_t> backward_loops;
+            vector<size_t> chain_components;//Which component does each node belong to, usually all 0s
+
+            size_t get_max_record_length(bool include_distances) const;
         };
         struct TemporarySnarlRecord : TemporaryRecord{
+            pair<temp_record_t, size_t> parent;
             handlegraph::nid_t start_node_id;
-            bool start_node_rev;
-            size_t start_node_length;
+            size_t start_node_length=0;
             handlegraph::nid_t end_node_id;
-            bool end_node_rev;
-            size_t end_node_length;
-            size_t node_count;
+            size_t end_node_length=0;
+            size_t node_count=0;
             size_t min_length = std::numeric_limits<size_t>::max(); //Not including boundary nodes
             size_t max_length = 0;
             size_t max_distance = 0;
-            size_t tree_depth = 0;
-            pair<temp_record_t, size_t> parent;
-            vector<pair<temp_record_t, size_t>> children; //All children, nodes and chains, in arbitrary order
-            unordered_set<size_t> tippy_child_ranks; //The ranks of children that are tips
-            //vector<tuple<pair<size_t, bool>, pair<size_t, bool>, size_t>> distances;
-            unordered_map<pair<pair<size_t, bool>, pair<size_t, bool>>, size_t> distances;
+            size_t tree_depth = 0; //TODO: This isn't used but I left it because I couldn't get the python bindings to build when I changed it
 
             size_t distance_start_start = std::numeric_limits<size_t>::max();
             size_t distance_end_end = std::numeric_limits<size_t>::max();
 
-            size_t rank_in_parent;
+            size_t rank_in_parent=0;
+
             bool reversed_in_parent;
+            bool start_node_rev;
+            bool end_node_rev;
             bool is_trivial;
             bool is_simple;
             bool is_tip = false;
             bool is_root_snarl = false;
+            bool include_distances = true;
+            vector<pair<temp_record_t, size_t>> children; //All children, nodes and chains, in arbitrary order
+            unordered_set<size_t> tippy_child_ranks; //The ranks of children that are tips
+            //vector<tuple<pair<size_t, bool>, pair<size_t, bool>, size_t>> distances;
+            unordered_map<pair<pair<size_t, bool>, pair<size_t, bool>>, size_t> distances;
 
             size_t get_max_record_length() const ;
         };
@@ -1519,16 +1576,17 @@ public:
             }
             handlegraph::nid_t node_id;
             pair<temp_record_t, size_t> parent;
-            size_t node_length;
-            size_t rank_in_parent;
-            bool reversed_in_parent;
-            bool is_tip = false;
+            size_t node_length=0;
+            size_t rank_in_parent=0;
             size_t root_snarl_index = std::numeric_limits<size_t>::max();
             //Distances from the left/right of the node to the start/end of the parent snarl
             size_t distance_left_start = std::numeric_limits<size_t>::max();
             size_t distance_right_start = std::numeric_limits<size_t>::max();
             size_t distance_left_end = std::numeric_limits<size_t>::max();
             size_t distance_right_end = std::numeric_limits<size_t>::max();
+
+            bool reversed_in_parent;
+            bool is_tip = false;
 
 
             const static size_t get_max_record_length() {

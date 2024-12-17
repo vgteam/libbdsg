@@ -180,6 +180,11 @@ public:
     /// May **NOT** be called during iteration along a path, if it would destroy that path.
     void destroy_handle(const handle_t& handle);
     
+    /// Change the sequence of handle to a new sequence. Returns a (possibly alterered)
+    /// handle to the node with the new sequence. May invalidate the existing handle. Updates
+    /// paths if called through an inheriting MutablePath interface.
+    handle_t change_sequence(const handle_t& handle, const std::string& sequence);
+    
     /// Shorten a node by truncating either the left or right side of the node, relative to the orientation
     /// of the handle, starting from a given offset along the nodes sequence. Any edges on the truncated
     /// end of the node are deleted. Returns a (possibly altered) handle to the truncated node.
@@ -333,6 +338,11 @@ public:
      * Destroy the given path. Invalidates handles to the path and its node steps.
      */
     void destroy_path(const path_handle_t& path);
+    
+    /**
+     * Destroy the given set of paths. Invalidates handles to all the paths and their steps.
+     */
+    void destroy_paths(const std::vector<path_handle_t>& paths);
 
     /**
      * Create a path with the given name. The caller must ensure that no path
@@ -1191,10 +1201,6 @@ handle_t BasePackedGraph<Backend>::create_handle(const string& sequence) {
 template<typename Backend>
 handle_t BasePackedGraph<Backend>::create_handle(const string& sequence, const nid_t& id) {
     
-    if (sequence.empty()) {
-        throw std::runtime_error("error:[BasePackedGraph] tried to create an empty node with ID " + std::to_string(id));
-    }
-    
     if (id <= 0) {
         throw std::runtime_error("error:[BasePackedGraph] tried to create a node with non-positive ID " + std::to_string(id));
     }
@@ -1749,6 +1755,37 @@ void BasePackedGraph<Backend>::destroy_handle(const handle_t& handle) {
     
     // maybe reallocate to address fragmentation
     defragment(get_node_count() == 0);
+}
+
+template<typename Backend>
+handle_t BasePackedGraph<Backend>::change_sequence(const handle_t& handle, const std::string& sequence) {
+
+    size_t g_iv_index = graph_iv_index(handle);
+    size_t seq_start = seq_start_iv.get(graph_index_to_seq_start_index(g_iv_index));
+    size_t seq_len = seq_length_iv.get(graph_index_to_seq_len_index(g_iv_index));
+    if (seq_len >= sequence.size()) {
+        // we can fit the new sequence in the same location
+        for (size_t i = 0; i < sequence.size(); ++i) {
+            seq_iv.set(seq_start + i, encode_nucleotide(sequence[i]));
+        }
+        deleted_bases += (seq_len - sequence.size());
+    }
+    else {
+        // the new sequence doesn't fit, add it at the end
+        seq_start_iv.set(graph_index_to_seq_start_index(g_iv_index), seq_iv.size());
+        for (size_t i = 0; i < sequence.size(); ++i) {
+            seq_iv.append(encode_nucleotide(sequence[i]));
+        }
+        deleted_bases += seq_len;
+    }
+    seq_length_iv.set(graph_index_to_seq_len_index(g_iv_index), sequence.size());
+    
+    // FIXME: disabling since deleting bases can't currently trigger a defrag
+    //if (seq_len != sequence.size()) {
+    //    defragment();
+    //}
+    
+    return handle;
 }
 
 template<typename Backend>
@@ -2607,51 +2644,80 @@ string BasePackedGraph<Backend>::decode_path_name(const int64_t& path_idx) const
 
 template<typename Backend>
 void BasePackedGraph<Backend>::destroy_path(const path_handle_t& path) {
+    destroy_paths({path});
+}
+
+template<typename Backend>
+void BasePackedGraph<Backend>::destroy_paths(const std::vector<path_handle_t>& paths) {
     
-    PackedPath& packed_path = paths.at(as_integer(path));
-    
-    // remove node membership records corresponding to this path
-    bool first_iter = true;
-    for (uint64_t step_offset = path_head_iv.get(as_integer(path));
-         step_offset != 0 && (step_offset != path_head_iv.get(as_integer(path)) || first_iter);
-         step_offset = get_step_next(packed_path, step_offset)) {
-        
-        uint64_t trav = get_step_trav(packed_path, step_offset);
-        size_t node_member_idx = graph_index_to_node_member_index(graph_iv_index(decode_traversal(trav)));
-        
-        // find a membership record for this path
-        size_t prev = 0;
-        size_t here = path_membership_node_iv.get(node_member_idx);
-        while (as_path_handle(get_membership_path(here)) != path) {
-            prev = here;
-            here = get_next_membership(here);
-            // note: we don't need to be careful about getting the exact corresponding step since this node
-            // should try to delete a membership record exactly as many times as it occurs on this path -- all of
-            // the records will get deleted
-        }
-        
-        if (prev == 0) {
-            // this was the first record, set following one to be the head
-            path_membership_node_iv.set(node_member_idx, get_next_membership(here));
-        }
-        else {
-            // make the link from the previous record skip over the current one
-            set_next_membership(prev, get_next_membership(here));
-        }
-        
-        ++deleted_membership_records;
-        
-        first_iter = false;
+    std::unordered_set<path_handle_t> paths_set(paths.begin(), paths.end());
+    path_handle_t first_path = as_path_handle(-1);
+    if (paths.size() == 1) {
+        first_path = paths.front();
     }
     
-    path_id.erase(extract_encoded_path_name(as_integer(path)));
+    PackedSet<Backend> nodes_visited;
     
-    path_is_deleted_iv.set(as_integer(path), true);
-    packed_path.steps_iv.clear();
-    packed_path.links_iv.clear();
-    path_head_iv.set(as_integer(path), 0);
-    path_tail_iv.set(as_integer(path), 0);
-    path_deleted_steps_iv.set(as_integer(path), 0);
+    for (const auto& path : paths) {
+        
+        PackedPath& packed_path = this->paths.at(as_integer(path));
+        
+        // remove node membership records corresponding to this path
+        bool first_iter = true;
+        for (uint64_t step_offset = path_head_iv.get(as_integer(path));
+             step_offset != 0 && (step_offset != path_head_iv.get(as_integer(path)) || first_iter);
+             step_offset = get_step_next(packed_path, step_offset)) {
+            
+            uint64_t trav = get_step_trav(packed_path, step_offset);
+            // if there are multiple paths, we check for whether we've gone over the same
+            // node multiple times (which would be wasteful)
+            if (paths.size() > 1) {
+                nid_t node_id = get_id(decode_traversal(trav));
+                if (nodes_visited.find(node_id)) {
+                    continue;
+                }
+                nodes_visited.insert(node_id);
+            }
+            
+            size_t node_member_idx = graph_index_to_node_member_index(graph_iv_index(decode_traversal(trav)));
+            
+            // find a membership record for this path
+            size_t prev = 0;
+            size_t here = path_membership_node_iv.get(node_member_idx);
+            while (here) {
+                auto path_here = as_path_handle(get_membership_path(here));
+                if (paths.size() == 1 ? path_here == first_path : paths_set.count(path_here)) {
+                    // this is a membership record for a path that we're deleting
+                    if (prev == 0) {
+                        // this was the first record, set following one to be the head
+                        path_membership_node_iv.set(node_member_idx, get_next_membership(here));
+                    }
+                    else {
+                        // make the link from the previous record skip over the current one
+                        set_next_membership(prev, get_next_membership(here));
+                    }
+                    
+                    ++deleted_membership_records;
+                }
+                else {
+                    prev = here;
+                }
+                
+                here = get_next_membership(here);
+            }
+            
+            first_iter = false;
+        }
+        
+        path_id.erase(extract_encoded_path_name(as_integer(path)));
+        
+        path_is_deleted_iv.set(as_integer(path), true);
+        packed_path.steps_iv.clear();
+        packed_path.links_iv.clear();
+        path_head_iv.set(as_integer(path), 0);
+        path_tail_iv.set(as_integer(path), 0);
+        path_deleted_steps_iv.set(as_integer(path), 0);
+    }
     
     defragment();
 }

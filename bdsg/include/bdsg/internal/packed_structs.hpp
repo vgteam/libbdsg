@@ -1370,9 +1370,6 @@ inline uint64_t PackedSet<Backend>::optimal_anchor() const {
 
 template<typename Backend>
 inline void PackedSet<Backend>::rehash(bool shrink) {
-    // Keeping the RNG state in the class isn't bvery portable, so we make one
-    // per thread in thread storage.
-    static thread_local default_random_engine gen(random_device{}());
     
     // move to the next size in the schedule
     if (shrink) {
@@ -1390,6 +1387,10 @@ inline void PackedSet<Backend>::rehash(bool shrink) {
     PackedVec new_table;
     new_table.resize(bdsg_packed_set_size_schedule[schedule_val]);
     
+    // we use random-at-coding-time linear congruential generator to get a pseudo-random seed
+    // that makes the coefficients in a deterministic, system-independent way
+    uint64_t seed = 17340519333326003581ull * (schedule_val + 14057138822558802453ull) + 6918838906415272680ull;
+    std::mt19937_64 gen(seed);
     std::uniform_int_distribution<uint64_t> distr(0, new_table.size() - 1);
     for (size_t i = 0; i < 5; ++i) {
         coefs[i] = distr(gen);
@@ -1511,9 +1512,6 @@ inline void PackedSet<Backend>::set_load_factors(double min_load_factor, double 
     assert(max_load_factor < 1.0);
     min_load = min_load_factor;
     max_load = max_load_factor;
-    assert(max_load > min_load);
-    assert(min_load >= 0.0);
-    assert(max_load < 1.0);
     if (table.size() > 0) {
         while (num_items <= min_load * table.size()) {
             rehash(true);
