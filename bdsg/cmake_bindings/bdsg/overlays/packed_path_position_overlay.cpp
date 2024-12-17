@@ -5,10 +5,10 @@
 #include <handlegraph/path_metadata.hpp>
 #include <handlegraph/path_position_handle_graph.hpp>
 #include <handlegraph/types.hpp>
+#include <iterator>
 #include <memory>
 #include <sstream> // __str__
 #include <string>
-#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -29,7 +29,7 @@
 	PYBIND11_MAKE_OPAQUE(std::shared_ptr<void>)
 #endif
 
-// bdsg::PackedPositionOverlay file:bdsg/overlays/packed_path_position_overlay.hpp line:30
+// bdsg::PackedPositionOverlay file:bdsg/overlays/packed_path_position_overlay.hpp line:33
 struct PyCallBack_bdsg_PackedPositionOverlay : public bdsg::PackedPositionOverlay {
 	using bdsg::PackedPositionOverlay::PackedPositionOverlay;
 
@@ -727,7 +727,7 @@ struct PyCallBack_bdsg_PackedPositionOverlay : public bdsg::PackedPositionOverla
 
 void bind_bdsg_overlays_packed_path_position_overlay(std::function< pybind11::module &(std::string const &namespace_) > &M)
 {
-	{ // bdsg::PackedPositionOverlay file:bdsg/overlays/packed_path_position_overlay.hpp line:30
+	{ // bdsg::PackedPositionOverlay file:bdsg/overlays/packed_path_position_overlay.hpp line:33
 		pybind11::class_<bdsg::PackedPositionOverlay, std::shared_ptr<bdsg::PackedPositionOverlay>, PyCallBack_bdsg_PackedPositionOverlay, handlegraph::PathPositionHandleGraph, handlegraph::ExpandingOverlayGraph> cl(M("bdsg"), "PackedPositionOverlay", "");
 		cl.def( pybind11::init( [](const class handlegraph::PathHandleGraph * a0){ return new bdsg::PackedPositionOverlay(a0); }, [](const class handlegraph::PathHandleGraph * a0){ return new PyCallBack_bdsg_PackedPositionOverlay(a0); } ), "doc");
 		cl.def( pybind11::init<const class handlegraph::PathHandleGraph *, unsigned long>(), pybind11::arg("graph"), pybind11::arg("steps_per_index") );

@@ -2,12 +2,12 @@
 #include <handlegraph/trivially_serializable.hpp>
 #include <ios>
 #include <istream>
+#include <iterator>
 #include <memory>
 #include <ostream>
 #include <sstream> // __str__
 #include <streambuf>
 #include <string>
-#include <string_view>
 
 #include <functional>
 #include <pybind11/pybind11.h>
