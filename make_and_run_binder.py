@@ -23,19 +23,31 @@ this_project_namespace_to_bind = 'bdsg'
 python_module_name = 'bdsg'
 
 # We have one global notion of what an include looks like
-INCLUDE_REGEX = re.compile('^\s*#include\s+(["<])(.*)([">])')
+INCLUDE_REGEX = re.compile(r'^\s*#include\s+(["<])(.*)([">])')
 # We have one master list of source code extensions
 SOURCE_EXTENSIONS = ['hpp', 'cpp', 'h', 'cc', 'c']
 
 def clone_repos():
-    ''' download the most recent copy of binder from git '''
+    ''' download the most correct binder and pybind11 from git '''
     if not glob.glob("binder"):
         print("Binder not found, cloning repo...")
-        subprocess.check_call(['git', 'clone', 'https://github.com/RosettaCommons/binder.git', 'binder'])
+        subprocess.check_call(['git', 'clone', 'https://github.com/adamnovak/binder.git', 'binder'])
         parent = os.getcwd()
         os.chdir('binder')
-        subprocess.check_call(['git', 'checkout', 'ee2ecff151d125c3add072a7765aebad6f42a70d'])
+        # See also: Binder commit defined in CMakeLists.txt for header files.
+        subprocess.check_call(['git', 'checkout', 'a1f81c86b75075aea2a7aab2c02f45f95fd5fe84'])
         os.chdir(parent)
+    if not glob.glob("binder/build/pybind11"):
+        print("pybind11 not found, cloning repo...")
+        parent = os.getcwd()
+        os.chdir('binder')
+        os.makedirs('build', exist_ok=True)
+        subprocess.check_call(['git', 'clone', 'https://github.com/RosettaCommons/pybind11.git', 'build/pybind11'])
+        os.chdir('build/pybind11')
+        # See also: pybind11 commit defined in CMakeLists.txt
+        subprocess.check_call(['git', 'checkout', '5b0a6fc2017fcc176545afe3e09c9f9885283242'])
+        os.chdir(parent)
+
 
 def build_binder():
     '''
@@ -46,10 +58,19 @@ def build_binder():
     '''
     if not glob.glob("./build/*/*/bin/*"):
         print("Binder not compiled, using packaged build.py...")
-        # Make Binder use out pybind11 version
-        subprocess.check_call(['sed', '-i', "s/^_pybind11_version_ = .*/_pybind11_version_ = '5b0a6fc2017fcc176545afe3e09c9f9885283242'/g", 'build.py'])
         # TODO: Use CPU counting that accounts for container quotas?
-        subprocess.check_call([sys.executable, 'build.py', '--jobs', str(multiprocessing.cpu_count())])
+        subprocess.check_call(
+            [
+                sys.executable,
+                'build.py',
+                '--compiler',
+                'clang' if platform.system() == 'Darwin' else 'gcc',
+                '--jobs',
+                str(multiprocessing.cpu_count()),
+                '--pybind11',
+                os.path.join(os.getcwd(), 'build/pybind11')
+            ]
+        )
     return "binder/" + glob.glob('./build/*/*/bin/')[0] + "binder"
 
 def all_sources_and_headers(include_deps=False):
