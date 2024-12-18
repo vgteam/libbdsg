@@ -257,8 +257,8 @@ def make_bindings_code(all_includes_fn, binder_executable):
         compiler_version = int(subprocess.check_output(["gcc", "-dumpversion"]).decode('utf-8').split('.')[0])
         compiler_triple = subprocess.check_output(["gcc", "-dumpmachine"]).decode('utf-8').strip()
         command.append('-I' + f"/usr/lib/gcc/{compiler_triple}/{compiler_version}/include")
-        # TODO: It also can't *parse* the GCC13 omp.h once it finds it, due to https://github.com/llvm/llvm-project/issues/51607
-        # But it seems to generate bindings anyway?
+        # We rely on macro hacks in binder_hook_bind.hpp to translate the file
+        # into something Binder can understand.
 
     # Find Jansson
     jansson_flags = subprocess.check_output(['pkg-config', '--cflags', 'jansson']).decode('utf-8').strip().split(' ')

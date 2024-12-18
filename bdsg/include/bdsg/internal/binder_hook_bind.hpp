@@ -4,6 +4,14 @@
 // Components needed at binding generation time to make pybind11/Binder work for the library.
 // Forced to be used as a source for things to bind, even though nothing includes it.
 
+// We need to include the OpenMP header with compiler attribute support
+// disabled, because Binder can't understand the malloc attribute used in GCC
+// 13's omp.h. See <https://github.com/llvm/llvm-project/issues/51607>.
+// Do this before anything else can use omp.h.
+#define __attribute__(...)
+#include <omp.h>
+#undef __attribute__
+
 #include <string.h>
 
 #include <vector>
