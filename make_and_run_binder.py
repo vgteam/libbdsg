@@ -35,7 +35,7 @@ def clone_repos():
         parent = os.getcwd()
         os.chdir('binder')
         # See also: Binder commit defined in CMakeLists.txt for header files.
-        subprocess.check_call(['git', 'checkout', 'd5ef611f80cc91848db1fbd09d26b97013aa4db5'])
+        subprocess.check_call(['git', 'checkout', 'b6cac94c78ade6c6ffcbda629ffa520561a31788'])
         os.chdir(parent)
     if not glob.glob("binder/build/pybind11"):
         print("pybind11 not found, cloning repo...")
