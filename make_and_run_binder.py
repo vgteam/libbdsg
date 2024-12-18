@@ -35,7 +35,7 @@ def clone_repos():
         parent = os.getcwd()
         os.chdir('binder')
         # See also: Binder commit defined in CMakeLists.txt for header files.
-        subprocess.check_call(['git', 'checkout', 'a270d8f8e8b2e0a9638bcf80b16e466e70ac8dc0'])
+        subprocess.check_call(['git', 'checkout', 'd5ef611f80cc91848db1fbd09d26b97013aa4db5'])
         os.chdir(parent)
     if not glob.glob("binder/build/pybind11"):
         print("pybind11 not found, cloning repo...")
@@ -249,6 +249,16 @@ def make_bindings_code(all_includes_fn, binder_executable):
         # Also make sure to look for libomp from macports or homebrew, like CMakeLists.txt does
         command.append('-I/opt/local/include/libomp')
         command.append('-I/usr/local/include')
+    else:
+        # With current GCC, Clang can't find the multiarch-specific *and*
+        # GCC-version-specific include path where the OpenMP headers live.
+        # So help it out.
+        # TODO: We're assuming we're using GCC.
+        compiler_version = int(subprocess.check_output(["gcc", "-dumpversion"]).decode('utf-8').split('.')[0])
+        compiler_triple = subprocess.check_output(["gcc", "-dumpmachine"]).decode('utf-8').strip()
+        command.append('-I' + f"/usr/lib/gcc/{compiler_triple}/{compiler_version}/include")
+        # TODO: It also can't *parse* the GCC13 omp.h once it finds it, due to https://github.com/llvm/llvm-project/issues/51607
+        # But it seems to generate bindings anyway?
 
     # Find Jansson
     jansson_flags = subprocess.check_output(['pkg-config', '--cflags', 'jansson']).decode('utf-8').strip().split(' ')
