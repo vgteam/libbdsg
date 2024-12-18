@@ -13,6 +13,39 @@
 #include <numeric>
 #include <atomic>
 #include <arpa/inet.h>
+
+/*
+TODO
+For making a new method for finding distances in a snarl:
+
+The distance index itself is just a vector of integers. The vector is split up into "records" that store information for each snarl, node, and chain.
+There are different types of records depending on what information they store. Each record starts with a record_t to define what type of record it is.
+The SnarlTreeRecord class can interpret a record given its index in the distance index and its record type.
+
+To make a new method for storing distances in a snarl, you'll need to create a new type of record_t that defines your new structure
+There are three components that I use to define a record 
+
+- The static variables defining the size of the record and the offsets of each value in the record. eg. SNARL_RECORD_SIZE, SNARL_NODE_COUNT_OFFSET
+- The SnarlTreeRecord(Writer) struct that can interpret the static variables to write the record and get information out of it
+- The TemporaryRecord that gets filled in with all the values in the distance index before writing it in the final format
+
+The easiest way to incorporate a new snarl record with the existing code is probably to add code to SnarlRecord and SnarlRecordWriter to be able to
+write and get distances from a new type of record_t.
+The difference between the current snarl record and the new one will probably only be the distance vector at the end, so you can probably just keep the 
+existing static variables defining the record and rely on the record_t it stores to know how to interpret the distances.
+
+You'll also need to add to or make a new TemporarySnarlRecord
+I didn't optimize the TemporaryRecords at all so they are just structs with all possible values that might be needed by the real distance index.
+They get filled by the "populate_snarl_index" function in vg: vg/src/snarl_distance_index.hpp/cpp
+
+I currently have an "oversized snarl" implementation where the snarl just doesn't store the distances if it has more than a user-specified maximum
+number of children. You can just use the same limit and build the new type of snarl instead of the oversized snarl. You might need to make sure the
+distance index doesn't throw any errors when making the index though 
+
+Be careful with the get_max_record_length function. This predicts the length of the record in the distance index for reserving memory for building
+the final index. It shouldn't change the accuracy if you get it wrong but it does affect the memory use and runtime of index building 
+*/
+
  /**
   * This defines the distance index, which also serves as a snarl tree that implements libhandlegraph's 
   * SnarlDecomposition interface
@@ -201,7 +234,7 @@ public:
     ///The distance includes one of the positions; the distance from one position to itself is 0.
     ///Returns std::numeric_limits<size_t>::max() if there is no path between the two positions.
     ///
-    ///distance_traceback are is helping to find actual distance path. For each of the nodes, keep a vector of the ancestors of the node
+    ///distance_traceback is helping to find actual distance path. For each of the nodes, keep a vector of the ancestors of the node
     ///and the distance and direction (as + or - values of the distance) taken in the minimum distance path to get to the start and end of the parent.
     ///
     ///For example, if the first node is traversed forward and only reaches the end node of its parent chain, then the values stored will be <inf, +distance>.
@@ -378,10 +411,6 @@ public:
     ///Return true if the given snarl is a DAG and false otherwise
     ///Returns true if the given net_handle_t is not a snarl
     bool is_dag(const net_handle_t& snarl) const;
-
-    ///Given a snarl, return the number of non-dag edges it contains
-    ///0 for a dag
-    size_t non_dag_edge_count(const net_handle_t& snarl, const HandleGraph* graph) const;
 
     ///Returns true if the given net handle refers to (a traversal of) a simple snarl
     ///A simple snarl is a bubble where each child node can only reach the boundary nodes,
@@ -567,9 +596,13 @@ private:
 public:
 
     ///A record_t is the type of structure that a record can be.
+    /// The actual distance index is stored as a series of "records" for each snarl/node/chain. 
+    /// The record type defines what is stored in a record
     ///
     ///NODE, SNARL, and CHAIN indicate that they don't store distances.
-    ///SIMPLE_SNARL is a snarl with all children connecting only to the boundary nodes in one direction.
+    ///SIMPLE_SNARL is a snarl with all children connecting only to the boundary nodes in one direction (ie, a bubble).
+    ///TRIVIAL_SNARL represents consecutive nodes in a chain. 
+    ///NODE represents a node that is a trivial chain. A node can only be the child of a snarl.
     ///OVERSIZED_SNARL only stores distances to the boundaries.
     ///ROOT_SNARL represents a connected component of the root. It has no start or end node so 
     ///   its children technically belong to the root.
@@ -771,9 +804,9 @@ private:
     const static size_t MAX_TREE_DEPTH_OFFSET = 4;
 
     /*Node record
-     * - A node record for nodes in snarls/roots
+     * - A node record for nodes in snarls/roots. These are interpreted as either trivial chains or nodes.
      *   These will be interspersed between chains more or less based on where they are in the snarl tree
-     *   [node tag, node id, pointer to parent, node length, rank in parent]
+     *   [node tag, node id, pointer to parent, node length, rank in parent, distances to snarl bounds(x4)]
      */
     const static size_t NODE_RECORD_SIZE = 9;
     const static size_t NODE_ID_OFFSET = 1;
@@ -789,11 +822,12 @@ private:
  
     /*Chain record
 
-     * - A chain record for each chain, which is interspersed node and snarl records:
+     * - A chain record for each chain, which contains interspersed node and snarl records:
      *   The nodes are all stored in a "TrivialSnarl", which is a bunch of nodes with no snarls between them
-     *   [chain tag, #nodes, pointer to parent, min length, max length, rank in parent, start, end, pointer to last child
-     *       [ (trivial nodes), (snarl record),] x N] 
+     *   [chain tag, #nodes, pointer to parent, min length, max length, rank in parent, start, end, pointer to last child, depth, distances to snarl bounds (x4),
+     *       [ (trivial nodes), trivial_nodes_size, snarl_record_size, (snarl record),] x N] 
      *    snarl_record_size is the number of things in the snarl record (so 0 if there is no snarl there)
+     *    It is necessary for traversing the chain, so we know how many entries to skip when looking for the next child
      *    start/end include the orientations
      *
      * If this is a multicomponent chain, then the actual min length is 0, but this will store the length of the last component 
@@ -817,6 +851,7 @@ private:
 
     /*Trivial snarl record (which occurs within a chain) representing nodes in a chain
      * These contain up to 128 nodes with nothing between them
+     * TODO: There isn't really a good reason why they only contain up to 128 nodes- it's just because I was having unrelated problems when I wrote it and I thought it might help and never undid it
 
      *   [trivial snarl tag, pointer to parent, node count, prefix sum, fd loop, rev loop, component]
 
@@ -850,6 +885,7 @@ private:
      *   Each node side in the actual distance matrix will be 2*(rank-1) for the left side, and 
      *   2rank+1 for the right side, and 0 for the start, 1 for the end, where we only keep the 
      *   inner node side of the start and end
+     *   Distances to the bounds of the snarl are stored by the children themselves, not the snarl.
      *   Node count is the number of nodes, not including boundary nodes
      */
     const static size_t SNARL_RECORD_SIZE = 8;
@@ -867,12 +903,16 @@ private:
     const static size_t SIMPLE_SNARL_RECORD_SIZE = 3;
     //This one stores the node count and min and max lengths of the snarl
     //It'll take 26 bits: 11 for each length
+    //TODO: This is only for nodes, so it assumes a maximum node length of 1024
     const static size_t SIMPLE_SNARL_NODE_COUNT_AND_LENGTHS_OFFSET = 1;
     const static size_t SIMPLE_SNARL_PARENT_OFFSET = 2;
 
      /*  At the end is the (single) child vector, listing children in snarls
      *   [child vector tag, (pointer to records) x N
      *   Each snarl will have a pointer into here, and will also know how many children it has
+     *   This is at the end of the index because it is only really used when looking for all children
+     *   of a snarl. This isn't done that often, and will probably be pretty slow anyways,
+     *   so I didn't want to waste space in the actual snarl record.
      */ 
 
 private:
@@ -972,7 +1012,7 @@ private:
         record_t get_record_type() const {return SnarlDistanceIndex::get_record_type((*records)->at(record_offset));}
 
         //The name is a bit misleading, it is the handle type that the record thinks it is, 
-        //not necessarily the record type of the net_handle_t that was used to produce itused to produce it
+        //not necessarily the record type of the net_handle_t that was used to produce it
         net_handle_record_t get_record_handle_type() const {
             return SnarlDistanceIndex::get_record_handle_type(get_record_type());
         }
@@ -995,19 +1035,19 @@ private:
         bool has_connectivity(connectivity_t connectivity) const;
         bool has_connectivity(endpoint_t start, endpoint_t end);
 
-        //Get and set a pointer to this node's parent, including its orientation
+        //Get a pointer to this node's parent, including its orientation
         size_t get_parent_record_offset() const;
 
-        //Get and set the minimum length (distance from start to end, including boundaries for 
+        //Get the minimum length (distance from start to end, including boundaries for 
         // chains but not snarls, just node length for nodes)
         size_t get_min_length() const;
         
-        //Get and set this node's maximum length.
+        //Get this node's maximum length.
         //This isn't actually a maximum, it's the maximum among minimum distance paths 
         //through each node in the snarl/chain
         size_t get_max_length() const;
 
-        //Get and set this structure's rank in its parent.
+        //Get this structure's rank in its parent.
         //For children of snarls, this means the actual rank.
         //For children of chains, it points to the node in the chain
         size_t get_rank_in_parent() const;
@@ -1136,15 +1176,19 @@ private:
         TrivialSnarlRecord() {};
 
         size_t get_node_count() const;
+
         //Returns the prefix sum, forward loop, reverse loop, and component.
         //The component will be 0 for the first/last node of a looping chain
-
         //Node ranks are from get_node_record_offset(net_handle_T)
         tuple<size_t, size_t, size_t, size_t> get_chain_values(size_t node_rank) const;
         size_t get_prefix_sum(size_t node_rank) const;
         size_t get_max_prefix_sum(size_t node_rank) const;
         size_t get_forward_loop(size_t node_rank) const ;
         size_t get_reverse_loop(size_t node_rank) const;
+
+        //If the chain loops, then the first and last node are the same.
+        //If it is also a multicomponent, chain, then it is in two different components.
+        //If get_end is true, then get the larger of the two components.
         size_t get_chain_component(size_t node_rank, bool get_end=false) const;
         nid_t get_node_id(size_t node_rank) const; 
         size_t get_node_length(size_t node_rank) const; 
@@ -1203,7 +1247,7 @@ private:
         size_t get_distance_vector_offset(size_t rank1, bool right_side1, 
                 size_t rank2, bool right_side2) const;
 
-        //Get and set the distances between two node sides in the graph
+        //Get the distances between two node sides in the graph
         //Ranks identify which node, sides indicate node side: false for left, true for right
         size_t get_distance(size_t rank1, bool right_side1, size_t rank2, bool right_side2) const;
 
@@ -1261,7 +1305,7 @@ private:
         const static size_t record_size(size_t node_count, bool include_distances) {return SIMPLE_SNARL_RECORD_SIZE + (node_count*2);}
         size_t record_size() ;
 
-        //Get and set the distances between two node sides in the graph
+        //Get the distances between two node sides in the graph
         //Ranks identify which node, sides indicate node side: false for left, true for right
         size_t get_distance(size_t rank1, bool right_side1, size_t rank2, bool right_side2) const;
 
@@ -1491,6 +1535,8 @@ public:
         size_t max_tree_depth = 0;
         size_t max_index_size= 0;
         size_t max_distance = 0;
+
+        //How long is the record going to be in the distance index?
         size_t get_max_record_length() const; 
 
         //This will actually store each individual record separately, and each 
@@ -1535,6 +1581,8 @@ public:
             vector<size_t> backward_loops;
             vector<size_t> chain_components;//Which component does each node belong to, usually all 0s
 
+
+            //How long is the record going to be in the distance index?
             size_t get_max_record_length(bool include_distances) const;
         };
         struct TemporarySnarlRecord : TemporaryRecord{
@@ -1566,7 +1614,8 @@ public:
             unordered_set<size_t> tippy_child_ranks; //The ranks of children that are tips
             //vector<tuple<pair<size_t, bool>, pair<size_t, bool>, size_t>> distances;
             unordered_map<pair<pair<size_t, bool>, pair<size_t, bool>>, size_t> distances;
-
+                     
+            //How long is the record going to be in the distance index?
             size_t get_max_record_length() const ;
         };
         struct TemporaryNodeRecord : TemporaryRecord{
@@ -1589,6 +1638,7 @@ public:
             bool is_tip = false;
 
 
+            //How long is the record going to be in the distance index?
             const static size_t get_max_record_length() {
                 return NODE_RECORD_SIZE;} 
         };
