@@ -412,10 +412,6 @@ public:
     ///Returns true if the given net_handle_t is not a snarl
     bool is_dag(const net_handle_t& snarl) const;
 
-    ///Given a snarl, return the number of non-dag edges it contains
-    ///0 for a dag
-    size_t non_dag_edge_count(const net_handle_t& snarl, const HandleGraph* graph) const;
-
     ///Returns true if the given net handle refers to (a traversal of) a simple snarl
     ///A simple snarl is a bubble where each child node can only reach the boundary nodes,
     ///and each side of a node reaches a different boundary node
