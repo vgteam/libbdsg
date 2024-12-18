@@ -180,6 +180,11 @@ public:
     /// May **NOT** be called during iteration along a path, if it would destroy that path.
     void destroy_handle(const handle_t& handle);
     
+    /// Change the sequence of handle to a new sequence. Returns a (possibly alterered)
+    /// handle to the node with the new sequence. May invalidate the existing handle. Updates
+    /// paths if called through an inheriting MutablePath interface.
+    handle_t change_sequence(const handle_t& handle, const std::string& sequence);
+    
     /// Shorten a node by truncating either the left or right side of the node, relative to the orientation
     /// of the handle, starting from a given offset along the nodes sequence. Any edges on the truncated
     /// end of the node are deleted. Returns a (possibly altered) handle to the truncated node.
@@ -1750,6 +1755,37 @@ void BasePackedGraph<Backend>::destroy_handle(const handle_t& handle) {
     
     // maybe reallocate to address fragmentation
     defragment(get_node_count() == 0);
+}
+
+template<typename Backend>
+handle_t BasePackedGraph<Backend>::change_sequence(const handle_t& handle, const std::string& sequence) {
+
+    size_t g_iv_index = graph_iv_index(handle);
+    size_t seq_start = seq_start_iv.get(graph_index_to_seq_start_index(g_iv_index));
+    size_t seq_len = seq_length_iv.get(graph_index_to_seq_len_index(g_iv_index));
+    if (seq_len >= sequence.size()) {
+        // we can fit the new sequence in the same location
+        for (size_t i = 0; i < sequence.size(); ++i) {
+            seq_iv.set(seq_start + i, encode_nucleotide(sequence[i]));
+        }
+        deleted_bases += (seq_len - sequence.size());
+    }
+    else {
+        // the new sequence doesn't fit, add it at the end
+        seq_start_iv.set(graph_index_to_seq_start_index(g_iv_index), seq_iv.size());
+        for (size_t i = 0; i < sequence.size(); ++i) {
+            seq_iv.append(encode_nucleotide(sequence[i]));
+        }
+        deleted_bases += seq_len;
+    }
+    seq_length_iv.set(graph_index_to_seq_len_index(g_iv_index), sequence.size());
+    
+    // FIXME: disabling since deleting bases can't currently trigger a defrag
+    //if (seq_len != sequence.size()) {
+    //    defragment();
+    //}
+    
+    return handle;
 }
 
 template<typename Backend>

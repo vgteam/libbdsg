@@ -398,6 +398,13 @@ namespace bdsg {
         // remove this node from the relevant indexes
         graph.erase(get_id(handle));
     }
+
+    handle_t HashGraph::change_sequence(const handle_t& handle, const std::string& sequence) {
+        
+        graph[get_id(handle)].sequence = sequence;
+        
+        return handle;
+    }
     
     void HashGraph::destroy_edge(const handle_t& left, const handle_t& right) {
         

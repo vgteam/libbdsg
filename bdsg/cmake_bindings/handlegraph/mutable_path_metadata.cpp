@@ -6,10 +6,10 @@
 #include <handlegraph/path_handle_graph.hpp>
 #include <handlegraph/path_metadata.hpp>
 #include <handlegraph/types.hpp>
+#include <iterator>
 #include <memory>
 #include <sstream> // __str__
 #include <string>
-#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -222,6 +222,19 @@ struct PyCallBack_handlegraph_MutablePathHandleGraph : public handlegraph::Mutab
 			else return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"MutablePathHandleGraph::destroy_path\"");
+	}
+	void destroy_paths(const class std::vector<handlegraph::path_handle_t> & a0) override {
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathHandleGraph *>(this), "destroy_paths");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
+				static pybind11::detail::override_caster_t<void> caster;
+				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<void>(std::move(o));
+		}
+		return MutablePathHandleGraph::destroy_paths(a0);
 	}
 	struct handlegraph::path_handle_t create_path_handle(const std::string & a0, bool a1) override {
 		pybind11::gil_scoped_acquire gil;
@@ -1340,6 +1353,7 @@ void bind_handlegraph_mutable_path_metadata(std::function< pybind11::module &(st
 		cl.def( pybind11::init( [](){ return new PyCallBack_handlegraph_MutablePathHandleGraph(); } ) );
 		cl.def(pybind11::init<PyCallBack_handlegraph_MutablePathHandleGraph const &>());
 		cl.def("destroy_path", (void (handlegraph::MutablePathHandleGraph::*)(const struct handlegraph::path_handle_t &)) &handlegraph::MutablePathHandleGraph::destroy_path, "Destroy the given path. Invalidates handles to the path and its steps.\n\nC++: handlegraph::MutablePathHandleGraph::destroy_path(const struct handlegraph::path_handle_t &) --> void", pybind11::arg("path_handle"));
+		cl.def("destroy_paths", (void (handlegraph::MutablePathHandleGraph::*)(const class std::vector<handlegraph::path_handle_t> &)) &handlegraph::MutablePathHandleGraph::destroy_paths, "Destroy the given set of paths. Invalidates handles to all the paths and their steps.\n\nC++: handlegraph::MutablePathHandleGraph::destroy_paths(const class std::vector<handlegraph::path_handle_t> &) --> void", pybind11::arg("paths"));
 		cl.def("create_path_handle", [](handlegraph::MutablePathHandleGraph &o, const std::string & a0) -> handlegraph::path_handle_t { return o.create_path_handle(a0); }, "", pybind11::arg("name"));
 		cl.def("create_path_handle", (struct handlegraph::path_handle_t (handlegraph::MutablePathHandleGraph::*)(const std::string &, bool)) &handlegraph::MutablePathHandleGraph::create_path_handle, "Create a path with the given name. The caller must ensure that no path\n with the given name exists already, or the behavior is undefined.\n Returns a handle to the created empty path. Handles to other paths must\n remain valid.\n\nC++: handlegraph::MutablePathHandleGraph::create_path_handle(const std::string &, bool) --> struct handlegraph::path_handle_t", pybind11::arg("name"), pybind11::arg("is_circular"));
 		cl.def("rename_path", (struct handlegraph::path_handle_t (handlegraph::MutablePathHandleGraph::*)(const struct handlegraph::path_handle_t &, const std::string &)) &handlegraph::MutablePathHandleGraph::rename_path, "Renames a path. Existing path_handle_t's may become invalidated..\n\nC++: handlegraph::MutablePathHandleGraph::rename_path(const struct handlegraph::path_handle_t &, const std::string &) --> struct handlegraph::path_handle_t", pybind11::arg("path_handle"), pybind11::arg("new_name"));

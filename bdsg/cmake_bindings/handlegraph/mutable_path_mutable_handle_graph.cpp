@@ -13,12 +13,12 @@
 #include <handlegraph/types.hpp>
 #include <ios>
 #include <istream>
+#include <iterator>
 #include <memory>
 #include <ostream>
 #include <sstream> // __str__
 #include <streambuf>
 #include <string>
-#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -55,6 +55,19 @@ struct PyCallBack_handlegraph_MutablePathMutableHandleGraph : public handlegraph
 			else return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"MutablePathHandleGraph::destroy_path\"");
+	}
+	void destroy_paths(const class std::vector<handlegraph::path_handle_t> & a0) override {
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathMutableHandleGraph *>(this), "destroy_paths");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
+				static pybind11::detail::override_caster_t<void> caster;
+				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<void>(std::move(o));
+		}
+		return MutablePathHandleGraph::destroy_paths(a0);
 	}
 	struct handlegraph::path_handle_t create_path_handle(const std::string & a0, bool a1) override {
 		pybind11::gil_scoped_acquire gil;
@@ -1370,6 +1383,19 @@ struct PyCallBack_handlegraph_MutablePathDeletableHandleGraph : public handlegra
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"MutablePathHandleGraph::destroy_path\"");
 	}
+	void destroy_paths(const class std::vector<handlegraph::path_handle_t> & a0) override {
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "destroy_paths");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
+				static pybind11::detail::override_caster_t<void> caster;
+				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<void>(std::move(o));
+		}
+		return MutablePathHandleGraph::destroy_paths(a0);
+	}
 	struct handlegraph::path_handle_t create_path_handle(const std::string & a0, bool a1) override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const handlegraph::MutablePathDeletableHandleGraph *>(this), "create_path_handle");
@@ -2309,7 +2335,7 @@ void bind_handlegraph_mutable_path_mutable_handle_graph(std::function< pybind11:
 		cl.def(pybind11::init<PyCallBack_handlegraph_MutablePathDeletableHandleGraph const &>());
 		cl.def("assign", (class handlegraph::MutablePathDeletableHandleGraph & (handlegraph::MutablePathDeletableHandleGraph::*)(const class handlegraph::MutablePathDeletableHandleGraph &)) &handlegraph::MutablePathDeletableHandleGraph::operator=, "C++: handlegraph::MutablePathDeletableHandleGraph::operator=(const class handlegraph::MutablePathDeletableHandleGraph &) --> class handlegraph::MutablePathDeletableHandleGraph &", pybind11::return_value_policy::automatic, pybind11::arg(""));
 	}
-	{ // handlegraph::Serializable file:handlegraph/serializable.hpp line:20
+	{ // handlegraph::Serializable file:handlegraph/serializable.hpp line:22
 		pybind11::class_<handlegraph::Serializable, std::shared_ptr<handlegraph::Serializable>> cl(M("handlegraph"), "Serializable", "");
 		cl.def("get_magic_number", (unsigned int (handlegraph::Serializable::*)() const) &handlegraph::Serializable::get_magic_number, "Returns a number that is specific to the serialized implementation for type\n checking. Does not depend on the contents of any particular instantiation\n (i.e. behaves as if static, but cannot be static and virtual).\n\nC++: handlegraph::Serializable::get_magic_number() const --> unsigned int");
 		cl.def("deserialize", (void (handlegraph::Serializable::*)(const std::string &)) &handlegraph::Serializable::deserialize, "Sets the contents of this object to the contents of a serialized object\n from a file. The serialized object must be from the same implementation\n of this interface as is calling deserialize(). Can only be called on an\n empty object.\n\nC++: handlegraph::Serializable::deserialize(const std::string &) --> void", pybind11::arg("filename"));

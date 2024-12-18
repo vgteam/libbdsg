@@ -1781,6 +1781,13 @@ void test_deletable_handle_graphs() {
             assert(graph.get_degree(h7, false) == 0);
             assert(graph.get_degree(h6, false) == 0);
             assert(graph.get_degree(h8, true) == 0);
+            
+            h6 = graph.change_sequence(h6, "AAAT");
+            h7 = graph.change_sequence(h7, "G");
+            assert(graph.get_sequence(h6) == "AAAT");
+            assert(graph.get_sequence(graph.flip(h6)) == "ATTT");
+            assert(graph.get_sequence(h7) == "G");
+            assert(graph.get_sequence(graph.flip(h7)) == "C");
         }
     }
 
@@ -4685,8 +4692,8 @@ int main(void) {
     test_paged_vector<PagedVector<5, MappedBackend>>();
     test_packed_deque();
     test_packed_set();
-    test_deletable_handle_graphs();
     test_mutable_path_handle_graphs();
+    test_deletable_handle_graphs();
     test_serializable_handle_graphs();
     test_packed_graph();
     test_path_position_overlays();

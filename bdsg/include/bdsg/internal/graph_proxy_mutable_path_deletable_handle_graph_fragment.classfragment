@@ -202,6 +202,14 @@ public:
         return this->get()->truncate_handle(handle, trunc_left, offset);
     }
     
+        
+    /// Change the sequence of handle's forward orientation to a new sequence. Returns a (possibly
+    /// handle to the node with the new sequence. May invalidate the existing handle. Updates
+    /// alterered) paths if called through a class inheriting a MutablePathHandleGraph interface.
+    virtual handle_t change_sequence(const handle_t& handle, const std::string& sequence) {
+        return this->get()->change_sequence(handle, sequence);
+    }
+    
     /// Remove all nodes and edges. May also remove all paths, if applicable.
     virtual void clear() {
         this->get()->clear();
