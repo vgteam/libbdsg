@@ -189,10 +189,13 @@ target_include_directories(sparsepp INTERFACE "${bdsg_DIR}/deps/sparsepp/")
 add_subdirectory("${bdsg_DIR}/deps/mio")
 
 if (BUILD_PYTHON_BINDINGS)
+
     # Binder (because some generated bindings depend on headers packaged with Binder)
+    # See also: Binder commit defined in make_and_run_binder.py which actually generates bindings.
+    set(BINDER_COMMIT b6cac94c78ade6c6ffcbda629ffa520561a31788)
     ExternalProject_Add(binder
-      GIT_REPOSITORY "https://github.com/RosettaCommons/binder.git"
-      GIT_TAG "ee2ecff151d125c3add072a7765aebad6f42a70d"
+      GIT_REPOSITORY "https://github.com/adamnovak/binder.git"
+      GIT_TAG "${BINDER_COMMIT}"
       # we don't actually build or install Binder via its CMake because we just need its headers
       #CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_DIR}
       CONFIGURE_COMMAND ""
@@ -202,6 +205,8 @@ if (BUILD_PYTHON_BINDINGS)
     set(binder_INCLUDE "${INSTALL_DIR}/${CMAKE_INSTALL_INCLUDEDIR}")
 
     # pybind11
+    # See also: pybind11 commit defined in make_and_run_binder.py.
+    set(PYBIND11_COMMIT 5b0a6fc2017fcc176545afe3e09c9f9885283242)
     if (CMAKE_MAJOR_VERSION EQUAL "3" AND CMAKE_MINOR_VERSION EQUAL "10")
         # We need pybind11 installed in ./pybind11 *before* CMake can finish processing this file.
         # On CMake 3.11+ we can do that with FetchContent
@@ -209,7 +214,7 @@ if (BUILD_PYTHON_BINDINGS)
         if (NOT EXISTS "${PROJECT_SOURCE_DIR}/pybind11")
             message(WARNING "Running on CMake without FetchContent_Declare; attempting to download pybind11 manually")
             execute_process(COMMAND git clone https://github.com/RosettaCommons/pybind11.git "${PROJECT_SOURCE_DIR}/pybind11")
-            execute_process(COMMAND git checkout 5b0a6fc2017fcc176545afe3e09c9f9885283242
+            execute_process(COMMAND git checkout "${PYBIND11_COMMIT}"
                             WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/pybind11")
         endif()
         
@@ -225,7 +230,7 @@ if (BUILD_PYTHON_BINDINGS)
         FetchContent_Declare(
             pybind11
             GIT_REPOSITORY https://github.com/RosettaCommons/pybind11.git
-            GIT_TAG 5b0a6fc2017fcc176545afe3e09c9f9885283242
+            GIT_TAG "${PYBIND11_COMMIT}"
         )
         FetchContent_GetProperties(pybind11)
         if (NOT pybind11_POPULATED)
