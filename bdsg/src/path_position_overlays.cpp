@@ -157,6 +157,10 @@ namespace bdsg {
                                                        const function<bool(const step_handle_t&)>& iteratee) const {
         return get_graph()->for_each_step_on_handle(handle, iteratee);
     }
+
+    bool PositionOverlay::for_each_step_of_sense_impl(const handle_t& visited, const PathSense& sense, const std::function<bool(const step_handle_t&)>& iteratee) const {
+        return get_graph()->for_each_step_of_sense(visited, sense, iteratee);
+    }
     
     size_t PositionOverlay::get_path_length(const path_handle_t& path_handle) const {
         const auto& path_step_by_position = step_by_position.at(path_handle);

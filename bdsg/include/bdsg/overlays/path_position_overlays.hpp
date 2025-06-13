@@ -192,6 +192,9 @@ private:
     /// Calls the given function for each step of the given handle on a path.
     bool for_each_step_on_handle_impl(const handle_t& handle,
                                       const function<bool(const step_handle_t&)>& iteratee) const;
+
+    /// Calls the given function for each step of the given sense on the given handle on a path.
+    bool for_each_step_of_sense_impl(const handle_t& visited, const PathSense& sense, const std::function<bool(const step_handle_t&)>& iteratee) const;
     
 public:
     
