@@ -145,6 +145,13 @@ namespace bdsg {
     bool PositionOverlay::for_each_path_handle_impl(const std::function<bool(const path_handle_t&)>& iteratee) const {
         return get_graph()->for_each_path_handle(iteratee);
     }
+
+    bool PositionOverlay::for_each_path_matching_impl(const std::unordered_set<PathSense>* senses,
+                                                      const std::unordered_set<std::string>* samples,
+                                                      const std::unordered_set<std::string>* loci,
+                                                      const std::function<bool(const path_handle_t&)>& iteratee) const {
+        return get_graph()->for_each_path_matching(senses, samples, loci, iteratee);
+    }
     
     bool PositionOverlay::for_each_step_on_handle_impl(const handle_t& handle,
                                                        const function<bool(const step_handle_t&)>& iteratee) const {

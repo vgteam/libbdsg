@@ -179,6 +179,13 @@ public:
     path_handle_t get_path_handle_of_step(const step_handle_t& step_handle) const;
     
 private:
+
+    /// Execute a function on each path in the graph that match the given senses, samples, and loci
+    bool for_each_path_matching_impl(const std::unordered_set<PathSense>* senses,
+                                     const std::unordered_set<std::string>* samples,
+                                     const std::unordered_set<std::string>* loci,
+                                     const std::function<bool(const path_handle_t&)>& iteratee) const
+
     /// Execute a function on each path in the graph
     bool for_each_path_handle_impl(const std::function<bool(const path_handle_t&)>& iteratee) const;
     
