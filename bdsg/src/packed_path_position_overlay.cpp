@@ -3,7 +3,7 @@
 
 #include <omp.h> // BINDER_IGNORE because Binder can't find this
 
-#define debug
+//#define debug
 
 namespace bdsg {
 
@@ -229,7 +229,7 @@ void PackedPositionOverlay::index_path_positions() {
     // locals. So first we'll collect all the path handles.
     // TODO: deduplicate with BBHashHelper's copy of all the path handles?
     std::vector<path_handle_t> path_handles;
-    for_each_path_matching(nullptr, nullptr, nullptr, [&](const path_handle_t& path_handle) {
+    for_each_path_handle([&](const path_handle_t& path_handle) {
         path_handles.push_back(path_handle);
     });
     
