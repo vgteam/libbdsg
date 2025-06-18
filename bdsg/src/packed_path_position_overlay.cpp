@@ -3,7 +3,7 @@
 
 #include <omp.h> // BINDER_IGNORE because Binder can't find this
 
-//#define debug
+#define debug
 
 namespace bdsg {
 
