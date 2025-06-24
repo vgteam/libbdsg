@@ -3760,6 +3760,8 @@ void test_path_position_overlays() {
                 assert(overlay.get_step_at_position(p1, 7) == s3);
                 assert(overlay.get_step_at_position(p1, 8) == s3);
                 assert(overlay.get_step_at_position(p1, 9) == overlay.path_end(p1));
+                assert(overlay.get_step_at_position(p1, 10) == overlay.path_end(p1));
+                assert(overlay.get_step_at_position(p1, 1000) == overlay.path_end(p1));
             }
         }
         
@@ -3784,6 +3786,8 @@ void test_path_position_overlays() {
             assert(overlay.get_step_at_position(p1, 11) == s4);
             assert(overlay.get_step_at_position(p1, 12) == s4);
             assert(overlay.get_step_at_position(p1, 13) == overlay.path_end(p1));
+            assert(overlay.get_step_at_position(p1, 14) == overlay.path_end(p1));
+            assert(overlay.get_step_at_position(p1, 1000) == overlay.path_end(p1));
             
             step_handle_t s5 = overlay.append_step(p1, h5);
             
@@ -3796,6 +3800,8 @@ void test_path_position_overlays() {
             assert(overlay.get_step_at_position(p1, 15) == s5);
             assert(overlay.get_step_at_position(p1, 16) == s5);
             assert(overlay.get_step_at_position(p1, 17) == overlay.path_end(p1));
+            assert(overlay.get_step_at_position(p1, 18) == overlay.path_end(p1));
+            assert(overlay.get_step_at_position(p1, 1000) == overlay.path_end(p1));
             
             path_handle_t p2 = overlay.create_path_handle("p2");
             
@@ -3809,6 +3815,8 @@ void test_path_position_overlays() {
             
             assert(overlay.get_step_at_position(p2, 0) == s6);
             assert(overlay.get_step_at_position(p2, 1) == overlay.path_end(p2));
+            assert(overlay.get_step_at_position(p2, 2) == overlay.path_end(p2));
+            assert(overlay.get_step_at_position(p2, 1000) == overlay.path_end(p2));
             
             step_handle_t s7 = overlay.prepend_step(p2, h1);
             
@@ -3822,6 +3830,8 @@ void test_path_position_overlays() {
             assert(overlay.get_step_at_position(p2, 2) == s7);
             assert(overlay.get_step_at_position(p2, 3) == s6);
             assert(overlay.get_step_at_position(p2, 4) == overlay.path_end(p2));
+            assert(overlay.get_step_at_position(p2, 5) == overlay.path_end(p2));
+            assert(overlay.get_step_at_position(p2, 1000) == overlay.path_end(p2));
             
             handle_t h2_flip = overlay.apply_orientation(overlay.flip(h2));
             assert(overlay.get_handle_of_step(overlay.get_step_at_position(p1, 3)) == overlay.flip(h2_flip));
@@ -3849,6 +3859,8 @@ void test_path_position_overlays() {
             assert(overlay.get_handle_of_step(overlay.get_step_at_position(p1, 15)) == parts_2[1]);
             assert(overlay.get_handle_of_step(overlay.get_step_at_position(p1, 16)) == parts_2[2]);
             assert(overlay.get_step_at_position(p1, 17) == overlay.path_end(p1));
+            assert(overlay.get_step_at_position(p1, 18) == overlay.path_end(p1));
+            assert(overlay.get_step_at_position(p1, 1000) == overlay.path_end(p1));
         }
     }
     cerr << "PathPositionOverlay tests successful!" << endl;
@@ -3911,6 +3923,8 @@ void test_packed_reference_path_overlay() {
             assert(overlay.get_step_at_position(p1, 7) == s3);
             assert(overlay.get_step_at_position(p1, 8) == s3);
             assert(overlay.get_step_at_position(p1, 9) == overlay.path_end(p1));
+            assert(overlay.get_step_at_position(p1, 10) == overlay.path_end(p1));
+            assert(overlay.get_step_at_position(p1, 1000) == overlay.path_end(p1));
             
             bool found1 = false;
             bool found2 = false;
@@ -4052,15 +4066,18 @@ void test_reference_path_overlay() {
             assert(ref_overlay.get_position_of_step(os2) == 4);
             assert(ref_overlay.get_position_of_step(os3) == 6);
             
-            for (size_t i = 0; i < 12; ++i) {
+            for (size_t i = 0; i < 25; ++i) {
                 if (i < 4) {
                     assert(ref_overlay.get_step_at_position(p, i) == os1);
                 }
                 else if (i < 6) {
                     assert(ref_overlay.get_step_at_position(p, i) == os2);
                 }
-                else {
+                else if (i < 12) {
                     assert(ref_overlay.get_step_at_position(p, i) == os3);
+                }
+                else {
+                    assert(ref_overlay.get_step_at_position(p, i) == ref_overlay.path_end(p));
                 }
             }
             
