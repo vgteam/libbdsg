@@ -491,7 +491,8 @@ step_handle_t ReferencePathOverlay::get_step_at_position(const path_handle_t& pa
                                                          const size_t& position) const {
     step_handle_t step;
     handlegraph::as_integers(step)[0] = handlegraph::as_integer(path);
-    handlegraph::as_integers(step)[1] = reference_paths.at(path).offsets_rank(position);
+    auto& ref_path = reference_paths.at(path);
+    handlegraph::as_integers(step)[1] = position < ref_path.offsets.size() ? ref_path.offsets_rank(position) : ref_path.steps.size();
     return step;
 }
 
