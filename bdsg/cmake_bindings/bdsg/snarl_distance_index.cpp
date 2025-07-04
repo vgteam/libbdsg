@@ -27,8 +27,8 @@
 
 #ifndef BINDER_PYBIND11_TYPE_CASTER
 	#define BINDER_PYBIND11_TYPE_CASTER
-	PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>)
-	PYBIND11_DECLARE_HOLDER_TYPE(T, T*)
+	PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>, false)
+	PYBIND11_DECLARE_HOLDER_TYPE(T, T*, false)
 	PYBIND11_MAKE_OPAQUE(std::shared_ptr<void>)
 #endif
 
@@ -45,7 +45,7 @@ struct PyCallBack_bdsg_SnarlDistanceIndex : public bdsg::SnarlDistanceIndex {
 				static pybind11::detail::override_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<void>(std::move(o));
+			return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return SnarlDistanceIndex::dissociate();
 	}
@@ -58,7 +58,7 @@ struct PyCallBack_bdsg_SnarlDistanceIndex : public bdsg::SnarlDistanceIndex {
 				static pybind11::detail::override_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<void>(std::move(o));
+			return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return SnarlDistanceIndex::serialize(a0);
 	}
@@ -71,7 +71,7 @@ struct PyCallBack_bdsg_SnarlDistanceIndex : public bdsg::SnarlDistanceIndex {
 				static pybind11::detail::override_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<void>(std::move(o));
+			return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return SnarlDistanceIndex::serialize(a0);
 	}
@@ -84,7 +84,7 @@ struct PyCallBack_bdsg_SnarlDistanceIndex : public bdsg::SnarlDistanceIndex {
 				static pybind11::detail::override_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<void>(std::move(o));
+			return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return SnarlDistanceIndex::deserialize(a0);
 	}
@@ -97,7 +97,7 @@ struct PyCallBack_bdsg_SnarlDistanceIndex : public bdsg::SnarlDistanceIndex {
 				static pybind11::detail::override_caster_t<unsigned int> caster;
 				return pybind11::detail::cast_ref<unsigned int>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned int>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned int>(std::move(o));
 		}
 		return SnarlDistanceIndex::get_magic_number();
 	}
@@ -110,7 +110,7 @@ struct PyCallBack_bdsg_SnarlDistanceIndex : public bdsg::SnarlDistanceIndex {
 				static pybind11::detail::override_caster_t<struct handlegraph::net_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::net_handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::net_handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::net_handle_t>(std::move(o));
 		}
 		return SnarlDistanceIndex::get_root();
 	}
@@ -123,7 +123,7 @@ struct PyCallBack_bdsg_SnarlDistanceIndex : public bdsg::SnarlDistanceIndex {
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return SnarlDistanceIndex::is_root(a0);
 	}
@@ -136,7 +136,7 @@ struct PyCallBack_bdsg_SnarlDistanceIndex : public bdsg::SnarlDistanceIndex {
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return SnarlDistanceIndex::is_snarl(a0);
 	}
@@ -149,7 +149,7 @@ struct PyCallBack_bdsg_SnarlDistanceIndex : public bdsg::SnarlDistanceIndex {
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return SnarlDistanceIndex::is_chain(a0);
 	}
@@ -162,7 +162,7 @@ struct PyCallBack_bdsg_SnarlDistanceIndex : public bdsg::SnarlDistanceIndex {
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return SnarlDistanceIndex::is_node(a0);
 	}
@@ -175,7 +175,7 @@ struct PyCallBack_bdsg_SnarlDistanceIndex : public bdsg::SnarlDistanceIndex {
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return SnarlDistanceIndex::is_sentinel(a0);
 	}
@@ -188,7 +188,7 @@ struct PyCallBack_bdsg_SnarlDistanceIndex : public bdsg::SnarlDistanceIndex {
 				static pybind11::detail::override_caster_t<struct handlegraph::net_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::net_handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::net_handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::net_handle_t>(std::move(o));
 		}
 		return SnarlDistanceIndex::get_net(a0, a1);
 	}
@@ -201,7 +201,7 @@ struct PyCallBack_bdsg_SnarlDistanceIndex : public bdsg::SnarlDistanceIndex {
 				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		return SnarlDistanceIndex::get_handle(a0, a1);
 	}
@@ -214,7 +214,7 @@ struct PyCallBack_bdsg_SnarlDistanceIndex : public bdsg::SnarlDistanceIndex {
 				static pybind11::detail::override_caster_t<struct handlegraph::net_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::net_handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::net_handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::net_handle_t>(std::move(o));
 		}
 		return SnarlDistanceIndex::get_parent(a0);
 	}
@@ -227,7 +227,7 @@ struct PyCallBack_bdsg_SnarlDistanceIndex : public bdsg::SnarlDistanceIndex {
 				static pybind11::detail::override_caster_t<struct handlegraph::net_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::net_handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::net_handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::net_handle_t>(std::move(o));
 		}
 		return SnarlDistanceIndex::get_bound(a0, a1, a2);
 	}
@@ -240,7 +240,7 @@ struct PyCallBack_bdsg_SnarlDistanceIndex : public bdsg::SnarlDistanceIndex {
 				static pybind11::detail::override_caster_t<struct handlegraph::net_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::net_handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::net_handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::net_handle_t>(std::move(o));
 		}
 		return SnarlDistanceIndex::flip(a0);
 	}
@@ -253,7 +253,7 @@ struct PyCallBack_bdsg_SnarlDistanceIndex : public bdsg::SnarlDistanceIndex {
 				static pybind11::detail::override_caster_t<struct handlegraph::net_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::net_handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::net_handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::net_handle_t>(std::move(o));
 		}
 		return SnarlDistanceIndex::canonical(a0);
 	}
@@ -266,7 +266,7 @@ struct PyCallBack_bdsg_SnarlDistanceIndex : public bdsg::SnarlDistanceIndex {
 				static pybind11::detail::override_caster_t<enum handlegraph::SnarlDecomposition::endpoint_t> caster;
 				return pybind11::detail::cast_ref<enum handlegraph::SnarlDecomposition::endpoint_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<enum handlegraph::SnarlDecomposition::endpoint_t>(std::move(o));
+			return pybind11::detail::cast_safe<enum handlegraph::SnarlDecomposition::endpoint_t>(std::move(o));
 		}
 		return SnarlDistanceIndex::starts_at(a0);
 	}
@@ -279,7 +279,7 @@ struct PyCallBack_bdsg_SnarlDistanceIndex : public bdsg::SnarlDistanceIndex {
 				static pybind11::detail::override_caster_t<enum handlegraph::SnarlDecomposition::endpoint_t> caster;
 				return pybind11::detail::cast_ref<enum handlegraph::SnarlDecomposition::endpoint_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<enum handlegraph::SnarlDecomposition::endpoint_t>(std::move(o));
+			return pybind11::detail::cast_safe<enum handlegraph::SnarlDecomposition::endpoint_t>(std::move(o));
 		}
 		return SnarlDistanceIndex::ends_at(a0);
 	}
@@ -292,7 +292,7 @@ struct PyCallBack_bdsg_SnarlDistanceIndex : public bdsg::SnarlDistanceIndex {
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return SnarlDistanceIndex::for_each_child_impl(a0, a1);
 	}
@@ -305,7 +305,7 @@ struct PyCallBack_bdsg_SnarlDistanceIndex : public bdsg::SnarlDistanceIndex {
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return SnarlDistanceIndex::for_each_traversal_impl(a0, a1);
 	}
@@ -318,7 +318,7 @@ struct PyCallBack_bdsg_SnarlDistanceIndex : public bdsg::SnarlDistanceIndex {
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return SnarlDistanceIndex::follow_net_edges_impl(a0, a1, a2, a3);
 	}
@@ -331,7 +331,7 @@ struct PyCallBack_bdsg_SnarlDistanceIndex : public bdsg::SnarlDistanceIndex {
 				static pybind11::detail::override_caster_t<struct handlegraph::net_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::net_handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::net_handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::net_handle_t>(std::move(o));
 		}
 		return SnarlDistanceIndex::get_parent_traversal(a0, a1);
 	}
@@ -344,7 +344,7 @@ struct PyCallBack_bdsg_SnarlDistanceIndex : public bdsg::SnarlDistanceIndex {
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return SnarlDecomposition::for_each_tippy_child_impl(a0, a1);
 	}
@@ -357,7 +357,7 @@ struct PyCallBack_bdsg_SnarlDistanceIndex : public bdsg::SnarlDistanceIndex {
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return SnarlDecomposition::for_each_traversal_start_impl(a0, a1);
 	}
@@ -370,7 +370,7 @@ struct PyCallBack_bdsg_SnarlDistanceIndex : public bdsg::SnarlDistanceIndex {
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return SnarlDecomposition::for_each_traversal_end_impl(a0, a1);
 	}
@@ -383,7 +383,7 @@ struct PyCallBack_bdsg_SnarlDistanceIndex : public bdsg::SnarlDistanceIndex {
 				static pybind11::detail::override_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<void>(std::move(o));
+			return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return TriviallySerializable::serialize(a0);
 	}
@@ -396,7 +396,7 @@ struct PyCallBack_bdsg_SnarlDistanceIndex : public bdsg::SnarlDistanceIndex {
 				static pybind11::detail::override_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<void>(std::move(o));
+			return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return TriviallySerializable::deserialize(a0);
 	}
