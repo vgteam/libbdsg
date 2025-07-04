@@ -25,7 +25,10 @@ using namespace handlegraph;
 
 /*
  * An overlay that adds the PathPositionHandleGraph interface to a static PathHandleGraph
- * by augmenting it with compressed index data structures
+ * by augmenting it with compressed index data structures.
+ *
+ * TODO: Make the overlay transparent so that paths hidden in the base graph
+ * remain accessible through the path metadata queries. 
  */
 class PackedPositionOverlay : public PathPositionHandleGraph, public ExpandingOverlayGraph {
         
@@ -34,7 +37,7 @@ public:
     /// Make a new PackedPositionOverlay, on the given graph. Glom short paths
     /// together to make internal indexes each over at least the given number
     /// of steps.
-    PackedPositionOverlay(const PathHandleGraph* graph, size_t steps_per_index = 1000000);
+    PackedPositionOverlay(const PathHandleGraph* graph, size_t steps_per_index = 20000000);
     PackedPositionOverlay() = default;
     PackedPositionOverlay(const PackedPositionOverlay& other) = default;
     PackedPositionOverlay(PackedPositionOverlay&& other) = default;
@@ -186,12 +189,24 @@ public:
     path_handle_t get_path_handle_of_step(const step_handle_t& step_handle) const;
     
 protected:
+
+
+    /// Execute a function on each path in the graph that matches the given sense, samples, and loci
+    bool for_each_path_matching_impl(const std::unordered_set<PathSense>* senses,
+                                     const std::unordered_set<std::string>* samples,
+                                     const std::unordered_set<std::string>* loci,
+                                     const std::function<bool(const path_handle_t&)>& iteratee) const;
+
     /// Execute a function on each path in the graph
     bool for_each_path_handle_impl(const std::function<bool(const path_handle_t&)>& iteratee) const;
     
     /// Calls the given function for each step of the given handle on a path.
     bool for_each_step_on_handle_impl(const handle_t& handle,
                                       const function<bool(const step_handle_t&)>& iteratee) const;
+
+    /// Calls the given function for each step of the given sense on the given handle on a path.
+    bool for_each_step_of_sense_impl(const handle_t& visited, const PathSense& sense, const std::function<bool(const step_handle_t&)>& iteratee) const;
+
     
 public:
     

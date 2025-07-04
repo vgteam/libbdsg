@@ -143,10 +143,23 @@ bool PackedPositionOverlay::for_each_path_handle_impl(const std::function<bool(c
     return graph->for_each_path_handle(iteratee);
 }
 
+bool PackedPositionOverlay::for_each_path_matching_impl(const std::unordered_set<PathSense>* senses,
+                                                  const std::unordered_set<std::string>* samples,
+                                                  const std::unordered_set<std::string>* loci,
+                                                  const std::function<bool(const path_handle_t&)>& iteratee) const {
+    return graph->for_each_path_matching(senses, samples, loci, iteratee);
+}
+
 bool PackedPositionOverlay::for_each_step_on_handle_impl(const handle_t& handle,
                                                          const function<bool(const step_handle_t&)>& iteratee) const {
     return graph->for_each_step_on_handle(handle, iteratee);
 }
+
+bool PackedPositionOverlay::for_each_step_of_sense_impl(const handle_t& visited, const PathSense& sense,
+                                                  const std::function<bool(const step_handle_t&)>& iteratee) const {
+    return graph->for_each_step_of_sense(visited, sense, iteratee);
+}
+
 
 size_t PackedPositionOverlay::get_path_length(const path_handle_t& path_handle) const {
     const auto& range = path_range.at(as_integer(path_handle));
@@ -252,6 +265,7 @@ void PackedPositionOverlay::index_path_positions() {
     
     // And this will be the cumulative path length of all the paths in each collection.
     std::vector<size_t> path_set_steps;
+    size_t total_length = 0;
     size_t accumulated_length = 0;
     for (size_t i = 0; i < path_handles.size(); i++) {
         if (accumulated_length >= steps_per_index) {
@@ -264,6 +278,7 @@ void PackedPositionOverlay::index_path_positions() {
 #endif
             
             path_set_steps.push_back(accumulated_length);
+            total_length += accumulated_length;
             accumulated_length = 0;
         }
         // Remember that this path's steps went into this index.
@@ -271,13 +286,14 @@ void PackedPositionOverlay::index_path_positions() {
     }
     bounds.push_back(path_handles.size());
     path_set_steps.push_back(accumulated_length);
+    total_length += accumulated_length;
     
     // Now we know how many indexes we need
     this->set_index_count(path_set_steps.size());
             
 #ifdef debug
         #pragma omp critical (cerr)
-        std::cerr << "Using " << indexes.size() << " indexes" << std::endl;
+        std::cerr << "Using " << indexes.size() << " indexes for " << total_length << " total steps" << std::endl;
 #endif
     
     #pragma omp parallel for
@@ -427,9 +443,12 @@ step_handle_t BBHashHelper::iterator::operator*() const {
 bool BBHashHelper::iterator::operator==(const BBHashHelper::iterator& other) const {
     // on the end iterator, we don't care what the step is, only that we're past-the-last
     // path handle
-    return (iteratee == other.iteratee
-            && path_handle_idx == other.path_handle_idx
-            && (step == other.step || path_handle_idx == iteratee->path_handles.size()));
+    if (iteratee == other.iteratee && path_handle_idx == other.path_handle_idx) {
+        if (path_handle_idx == iteratee->path_handles.size() || step == other.step) {
+            return true;
+        }
+    }
+    return false;
 }
 
 bool BBHashHelper::iterator::operator!=(const BBHashHelper::iterator& other) const {

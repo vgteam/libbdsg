@@ -31,6 +31,7 @@
 #include "bdsg/overlays/packed_reference_path_overlay.hpp"
 #include "bdsg/overlays/vectorizable_overlays.hpp"
 #include "bdsg/overlays/packed_subgraph_overlay.hpp"
+#include "bdsg/overlays/reference_path_overlay.hpp"
 
 
 using namespace bdsg;
@@ -1780,6 +1781,13 @@ void test_deletable_handle_graphs() {
             assert(graph.get_degree(h7, false) == 0);
             assert(graph.get_degree(h6, false) == 0);
             assert(graph.get_degree(h8, true) == 0);
+            
+            h6 = graph.change_sequence(h6, "AAAT");
+            h7 = graph.change_sequence(h7, "G");
+            assert(graph.get_sequence(h6) == "AAAT");
+            assert(graph.get_sequence(graph.flip(h6)) == "ATTT");
+            assert(graph.get_sequence(h7) == "G");
+            assert(graph.get_sequence(graph.flip(h7)) == "C");
         }
     }
 
@@ -2282,6 +2290,73 @@ void test_deletable_handle_graphs() {
             assert(graph->get_edge_count() == count_edges(*graph));
             graph->destroy_handle(h10);
             assert(graph->get_edge_count() == count_edges(*graph));
+        }
+    }
+    
+    // batch deletion of paths works as expected
+    {
+        vector<MutablePathDeletableHandleGraph*> implementations;
+        
+        // Add implementations
+        
+        PackedGraph pg;
+        implementations.push_back(&pg);
+        
+        HashGraph hg;
+        implementations.push_back(&hg);
+        
+        MappedPackedGraph mpg;
+        implementations.push_back(&mpg);
+        
+        for (int imp = 0; imp < implementations.size(); ++imp) {
+            
+            MutablePathDeletableHandleGraph& graph = *implementations[imp];
+            
+            auto h1 = graph.create_handle("A");
+            auto h2 = graph.create_handle("A");
+            auto h3 = graph.create_handle("A");
+            
+            graph.create_edge(h1, h2);
+            graph.create_edge(h2, h3);
+            
+            auto p1 = graph.create_path_handle("1");
+            auto p2 = graph.create_path_handle("2");
+            auto p3 = graph.create_path_handle("3");
+            auto p4 = graph.create_path_handle("4");
+            auto p5 = graph.create_path_handle("5");
+            
+            for (const auto& p : {p1, p2, p3, p4, p5}) {
+                for (auto h : {h1, h2, h3}) {
+                    graph.append_step(p, h);
+                }
+            }
+            
+            graph.destroy_paths({p1, p3, p4});
+            
+            set<path_handle_t> paths_seen;
+            set<path_handle_t> paths_expected{p2, p5};
+            graph.for_each_path_handle([&](const path_handle_t& path) {
+                assert(!paths_seen.count(path));
+                paths_seen.insert(path);
+                std::vector<handle_t> handles;
+                std::vector<handle_t> handles_expected{h1, h2, h3};
+                for (auto h : graph.scan_path(path)) {
+                    handles.push_back(h);
+                }
+                assert(handles == handles_expected);
+            });
+            
+            assert(paths_seen == paths_expected);
+            
+            graph.for_each_handle([&](const handle_t& h) {
+                set<path_handle_t> paths;
+                graph.for_each_step_on_handle(h, [&](const step_handle_t& step) {
+                    auto p = graph.get_path_handle_of_step(step);
+                    assert(!paths.count(p));
+                    paths.insert(p);
+                });
+                assert(paths_seen == paths_expected);
+            });
         }
     }
     
@@ -3685,6 +3760,8 @@ void test_path_position_overlays() {
                 assert(overlay.get_step_at_position(p1, 7) == s3);
                 assert(overlay.get_step_at_position(p1, 8) == s3);
                 assert(overlay.get_step_at_position(p1, 9) == overlay.path_end(p1));
+                assert(overlay.get_step_at_position(p1, 10) == overlay.path_end(p1));
+                assert(overlay.get_step_at_position(p1, 1000) == overlay.path_end(p1));
             }
         }
         
@@ -3709,6 +3786,8 @@ void test_path_position_overlays() {
             assert(overlay.get_step_at_position(p1, 11) == s4);
             assert(overlay.get_step_at_position(p1, 12) == s4);
             assert(overlay.get_step_at_position(p1, 13) == overlay.path_end(p1));
+            assert(overlay.get_step_at_position(p1, 14) == overlay.path_end(p1));
+            assert(overlay.get_step_at_position(p1, 1000) == overlay.path_end(p1));
             
             step_handle_t s5 = overlay.append_step(p1, h5);
             
@@ -3721,6 +3800,8 @@ void test_path_position_overlays() {
             assert(overlay.get_step_at_position(p1, 15) == s5);
             assert(overlay.get_step_at_position(p1, 16) == s5);
             assert(overlay.get_step_at_position(p1, 17) == overlay.path_end(p1));
+            assert(overlay.get_step_at_position(p1, 18) == overlay.path_end(p1));
+            assert(overlay.get_step_at_position(p1, 1000) == overlay.path_end(p1));
             
             path_handle_t p2 = overlay.create_path_handle("p2");
             
@@ -3734,6 +3815,8 @@ void test_path_position_overlays() {
             
             assert(overlay.get_step_at_position(p2, 0) == s6);
             assert(overlay.get_step_at_position(p2, 1) == overlay.path_end(p2));
+            assert(overlay.get_step_at_position(p2, 2) == overlay.path_end(p2));
+            assert(overlay.get_step_at_position(p2, 1000) == overlay.path_end(p2));
             
             step_handle_t s7 = overlay.prepend_step(p2, h1);
             
@@ -3747,6 +3830,8 @@ void test_path_position_overlays() {
             assert(overlay.get_step_at_position(p2, 2) == s7);
             assert(overlay.get_step_at_position(p2, 3) == s6);
             assert(overlay.get_step_at_position(p2, 4) == overlay.path_end(p2));
+            assert(overlay.get_step_at_position(p2, 5) == overlay.path_end(p2));
+            assert(overlay.get_step_at_position(p2, 1000) == overlay.path_end(p2));
             
             handle_t h2_flip = overlay.apply_orientation(overlay.flip(h2));
             assert(overlay.get_handle_of_step(overlay.get_step_at_position(p1, 3)) == overlay.flip(h2_flip));
@@ -3774,6 +3859,8 @@ void test_path_position_overlays() {
             assert(overlay.get_handle_of_step(overlay.get_step_at_position(p1, 15)) == parts_2[1]);
             assert(overlay.get_handle_of_step(overlay.get_step_at_position(p1, 16)) == parts_2[2]);
             assert(overlay.get_step_at_position(p1, 17) == overlay.path_end(p1));
+            assert(overlay.get_step_at_position(p1, 18) == overlay.path_end(p1));
+            assert(overlay.get_step_at_position(p1, 1000) == overlay.path_end(p1));
         }
     }
     cerr << "PathPositionOverlay tests successful!" << endl;
@@ -3836,6 +3923,8 @@ void test_packed_reference_path_overlay() {
             assert(overlay.get_step_at_position(p1, 7) == s3);
             assert(overlay.get_step_at_position(p1, 8) == s3);
             assert(overlay.get_step_at_position(p1, 9) == overlay.path_end(p1));
+            assert(overlay.get_step_at_position(p1, 10) == overlay.path_end(p1));
+            assert(overlay.get_step_at_position(p1, 1000) == overlay.path_end(p1));
             
             bool found1 = false;
             bool found2 = false;
@@ -3910,6 +3999,200 @@ void test_packed_reference_path_overlay() {
         }
     }
     cerr << "PackedReferencePathOverlay tests successful!" << endl;
+}
+
+void test_reference_path_overlay() {
+    
+    vector<MutablePathDeletableHandleGraph*> implementations;
+    
+    HashGraph hg;
+    implementations.push_back(&hg);
+    
+    PackedGraph pg;
+    implementations.push_back(&pg);
+    
+    MappedPackedGraph mpg;
+    implementations.push_back(&mpg);
+    
+    for (MutablePathDeletableHandleGraph* implementation : implementations) {
+        
+        MutablePathDeletableHandleGraph& graph = *implementation;
+        
+        auto h1 = graph.create_handle("AAAA");
+        auto h2 = graph.create_handle("AA");
+        auto h3 = graph.create_handle("A");
+        auto h4 = graph.create_handle("AAAAAA");
+        
+        graph.create_edge(h1, h2);
+        graph.create_edge(h1, h3);
+        graph.create_edge(h2, h4);
+        graph.create_edge(h3, h4);
+        
+        auto p = graph.create_path_handle("p");
+        auto s1 = graph.append_step(p, h1);
+        auto s2 = graph.append_step(p, h2);
+        auto s3 = graph.append_step(p, h4);
+        
+        {
+            ReferencePathOverlay ref_overlay(&graph);
+            
+            auto os1 = ref_overlay.path_begin(p);
+            auto os2 = ref_overlay.get_next_step(os1);
+            auto os3 = ref_overlay.get_next_step(os2);
+            
+            assert(ref_overlay.get_next_step(os3) == ref_overlay.path_end(p));
+            assert(ref_overlay.get_previous_step(os1) == ref_overlay.path_front_end(p));
+            
+            assert(ref_overlay.has_next_step(os1));
+            assert(ref_overlay.has_next_step(os2));
+            assert(!ref_overlay.has_next_step(os3));
+            
+            assert(!ref_overlay.has_previous_step(os1));
+            assert(ref_overlay.has_previous_step(os2));
+            assert(ref_overlay.has_previous_step(os3));
+            
+            assert(ref_overlay.get_next_step(os1) == os2);
+            assert(ref_overlay.get_next_step(os2) == os3);
+            assert(ref_overlay.get_next_step(os3) == ref_overlay.path_end(p));
+            assert(ref_overlay.get_previous_step(os1) == ref_overlay.path_front_end(p));
+            assert(ref_overlay.get_previous_step(os2) == os1);
+            assert(ref_overlay.get_previous_step(os3) == os2);
+            
+            assert(ref_overlay.get_step_count(p) == 3);
+            
+            assert(ref_overlay.get_path_length(p) == 12);
+            
+            assert(ref_overlay.get_position_of_step(os1) == 0);
+            assert(ref_overlay.get_position_of_step(os2) == 4);
+            assert(ref_overlay.get_position_of_step(os3) == 6);
+            
+            for (size_t i = 0; i < 25; ++i) {
+                if (i < 4) {
+                    assert(ref_overlay.get_step_at_position(p, i) == os1);
+                }
+                else if (i < 6) {
+                    assert(ref_overlay.get_step_at_position(p, i) == os2);
+                }
+                else if (i < 12) {
+                    assert(ref_overlay.get_step_at_position(p, i) == os3);
+                }
+                else {
+                    assert(ref_overlay.get_step_at_position(p, i) == ref_overlay.path_end(p));
+                }
+            }
+            
+            int count = 0;
+            ref_overlay.for_each_step_on_handle(h1, [&](const step_handle_t& s) {
+                assert(s == os1);
+                ++count;
+            });
+            assert(count == 1);
+            count = 0;
+            ref_overlay.for_each_step_on_handle(h2, [&](const step_handle_t& s) {
+                assert(s == os2);
+                ++count;
+            });
+            assert(count == 1);
+            count = 0;
+            ref_overlay.for_each_step_on_handle(h3, [&](const step_handle_t& s) {
+                ++count;
+            });
+            assert(count == 0);
+            count = 0;
+            ref_overlay.for_each_step_on_handle(h4, [&](const step_handle_t& s) {
+                assert(s == os3);
+                ++count;
+            });
+            assert(count == 1);
+        }
+        
+        random_device rd;
+        default_random_engine prng(12261988);//(rd());
+        
+        uniform_int_distribution<size_t> node_len_distr(1, 5);
+        
+        vector<path_handle_t> paths(1, p);
+        
+        paths.push_back(graph.create_path_handle(std::to_string(paths.size())));
+        paths.push_back(graph.create_path_handle(std::to_string(paths.size())));
+        
+        uniform_int_distribution<size_t> path_distr(0, paths.size() - 1);
+        
+        std::vector<handle_t> handles;
+        
+        // add enough nodes to stress test the parallel code
+        for (size_t i = 0; i < 200000; ++i) {
+            auto p = paths[path_distr(prng)];
+            string seq(node_len_distr(prng), 'A');
+            auto h = graph.create_handle(seq);
+            handles.push_back(h);
+            if (graph.get_step_count(p) != 0) {
+                graph.create_edge(graph.get_handle_of_step(graph.path_back(p)), h);
+            }
+            graph.append_step(p, h);
+        }
+        
+        uniform_int_distribution<size_t> handle_distr(0, handles.size() - 1);
+        
+        // add enough path steps that some nodes will have >= 3 path coverage
+        for (size_t i = 0; i < 100000; ++i) {
+            auto p = paths[path_distr(prng)];
+            auto h1 = graph.get_handle_of_step(graph.path_back(p));
+            auto h2 = handles[handle_distr(prng)];
+            graph.create_edge(h1, h2);
+            graph.append_step(p, h2);
+        }
+        
+        {
+            ReferencePathOverlay ref_overlay(&graph);
+            
+            assert(ref_overlay.get_path_count() == paths.size());
+            
+            std::unordered_map<handle_t, std::vector<step_handle_t>> steps_on_handle;
+            
+            ref_overlay.for_each_path_handle([&](const path_handle_t& path) {
+                size_t walked_len = 0;
+                for (auto s = ref_overlay.path_begin(path), end = ref_overlay.path_end(path); s != end; s = ref_overlay.get_next_step(s)) {
+                    assert(ref_overlay.get_path_handle_of_step(s) == path);
+                    assert(ref_overlay.get_position_of_step(s) == walked_len);
+                    auto h = ref_overlay.get_handle_of_step(s);
+                    size_t len = ref_overlay.get_length(h);
+                    for (size_t i = 0; i < len; ++i) {
+                        auto s2 = ref_overlay.get_step_at_position(path, walked_len + i);
+                        assert(s2 == s);
+                    }
+                    steps_on_handle[h].push_back(s);
+                    walked_len += len;
+                }
+                assert(ref_overlay.get_path_length(path) == walked_len);
+            });
+            
+            ref_overlay.for_each_handle([&](const handle_t& handle) {
+//                std::cerr << "check handles on " << ref_overlay.get_id(handle) << '\n';
+                auto& direct = steps_on_handle[handle];
+                std::sort(direct.begin(), direct.end());
+                vector<step_handle_t> indexed;
+                ref_overlay.for_each_step_on_handle(handle, [&](const step_handle_t& step) {
+                    indexed.push_back(step);
+                });
+                std::sort(indexed.begin(), indexed.end());
+                if (direct != indexed) {
+                    std::cerr << "error on node " << ref_overlay.get_id(handle) << '\n';
+                    std::cerr << "direct\n";
+                    for (auto s : direct) {
+                        std::cerr << '\t' << handlegraph::as_integers(s)[0] << '\t' << handlegraph::as_integers(s)[1] << '\t' <<  handlegraph::as_integer(ref_overlay.get_path_handle_of_step(s)) << '\t' << ref_overlay.get_id(ref_overlay.get_handle_of_step(s)) << '\n';
+                    }
+                    std::cerr << "indexed\n";
+                    for (auto s : indexed) {
+                        std::cerr << '\t' << handlegraph::as_integers(s)[0] << '\t' << handlegraph::as_integers(s)[1] << '\t' <<  handlegraph::as_integer(ref_overlay.get_path_handle_of_step(s)) << '\t' << ref_overlay.get_id(ref_overlay.get_handle_of_step(s)) << '\n';
+                    }
+                }
+                assert(direct == indexed);
+            });
+        }
+    }
+    
+    cerr << "ReferencePathOverlay tests successful!" << endl;
 }
 
 void test_vectorizable_overlays() {
@@ -4410,9 +4693,10 @@ void test_snarl_distance_index() {
 }
 
 int main(void) {
+    test_reference_path_overlay();
     test_bit_packing();
     test_mapped_structs();
-    test_int_vector(); 
+    test_int_vector();
     test_packed_vector<PackedVector<>>();
     test_packed_vector<PackedVector<CompatBackend>>();
     test_packed_vector<PackedVector<MappedBackend>>();
@@ -4425,8 +4709,8 @@ int main(void) {
     test_paged_vector<PagedVector<5, MappedBackend>>();
     test_packed_deque();
     test_packed_set();
-    test_deletable_handle_graphs();
     test_mutable_path_handle_graphs();
+    test_deletable_handle_graphs();
     test_serializable_handle_graphs();
     test_packed_graph();
     test_path_position_overlays();

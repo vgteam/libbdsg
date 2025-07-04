@@ -1,4 +1,5 @@
 #include <handlegraph/types.hpp>
+#include <iterator>
 #include <memory>
 #include <sstream> // __str__
 #include <stl_binders.hpp>
@@ -28,6 +29,9 @@ void bind_std_bdsg_internal_binder_hook_bind(std::function< pybind11::module &(s
 
 	// std::vector file:bdsg/internal/binder_hook_bind.hpp line:30
 	binder::vector_binder<handlegraph::handle_t,std::allocator<handlegraph::handle_t>>(M("std"), "handlegraph_handle_t", "std_allocator_handlegraph_handle_t_t");
+
+	// std::vector file:bdsg/internal/binder_hook_bind.hpp line:31
+	binder::vector_binder<handlegraph::path_handle_t,std::allocator<handlegraph::path_handle_t>>(M("std"), "handlegraph_path_handle_t", "std_allocator_handlegraph_path_handle_t_t");
 
 	// std::vector file:bdsg/internal/binder_hook_bind.hpp line:32
 	binder::vector_binder<handlegraph::step_handle_t,std::allocator<handlegraph::step_handle_t>>(M("std"), "handlegraph_step_handle_t", "std_allocator_handlegraph_step_handle_t_t");

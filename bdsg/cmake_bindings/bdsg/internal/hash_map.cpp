@@ -13,11 +13,11 @@
 #include <handlegraph/types.hpp>
 #include <ios>
 #include <istream>
+#include <iterator>
 #include <memory>
 #include <sstream> // __str__
 #include <streambuf>
 #include <string>
-#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -627,6 +627,19 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 		}
 		return HashGraph::destroy_path(a0);
 	}
+	void destroy_paths(const class std::vector<handlegraph::path_handle_t> & a0) override {
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "destroy_paths");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0);
+			if (pybind11::detail::cast_is_temporary_value_reference<void>::value) {
+				static pybind11::detail::override_caster_t<void> caster;
+				return pybind11::detail::cast_ref<void>(std::move(o), caster);
+			}
+			else return pybind11::detail::cast_safe<void>(std::move(o));
+		}
+		return HashGraph::destroy_paths(a0);
+	}
 	struct handlegraph::path_handle_t create_path_handle(const std::string & a0, bool a1) override {
 		pybind11::gil_scoped_acquire gil;
 		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "create_path_handle");
@@ -1013,14 +1026,20 @@ void bind_bdsg_internal_hash_map(std::function< pybind11::module &(std::string c
 	{ // bdsg::wang_hash file:bdsg/internal/hash_map.hpp line:120
 		pybind11::class_<bdsg::wang_hash<long long,void>, std::shared_ptr<bdsg::wang_hash<long long,void>>> cl(M("bdsg"), "wang_hash_long_long_void_t", "");
 		cl.def( pybind11::init( [](){ return new bdsg::wang_hash<long long,void>(); } ) );
-		cl.def("__call__", (unsigned long (bdsg::wang_hash<long long,void>::*)(const long long &) const) &bdsg::wang_hash<long long>::operator(), "C++: bdsg::wang_hash<long long>::operator()(const long long &) const --> unsigned long", pybind11::arg("x"));
-		cl.def("assign", (struct bdsg::wang_hash<long long> & (bdsg::wang_hash<long long,void>::*)(const struct bdsg::wang_hash<long long> &)) &bdsg::wang_hash<long long>::operator=, "C++: bdsg::wang_hash<long long>::operator=(const struct bdsg::wang_hash<long long> &) --> struct bdsg::wang_hash<long long> &", pybind11::return_value_policy::automatic, pybind11::arg(""));
+		cl.def("__call__", (unsigned long (bdsg::wang_hash<long long,void>::*)(const long long &) const) &bdsg::wang_hash<long long, void>::operator(), "C++: bdsg::wang_hash<long long, void>::operator()(const long long &) const --> unsigned long", pybind11::arg("x"));
+		cl.def("assign", (struct bdsg::wang_hash<long long, void> & (bdsg::wang_hash<long long,void>::*)(const struct bdsg::wang_hash<long long, void> &)) &bdsg::wang_hash<long long, void>::operator=, "C++: bdsg::wang_hash<long long, void>::operator=(const struct bdsg::wang_hash<long long, void> &) --> struct bdsg::wang_hash<long long, void> &", pybind11::return_value_policy::automatic, pybind11::arg(""));
+	}
+	{ // bdsg::wang_hash file:bdsg/internal/hash_map.hpp line:120
+		pybind11::class_<bdsg::wang_hash<long,void>, std::shared_ptr<bdsg::wang_hash<long,void>>> cl(M("bdsg"), "wang_hash_long_void_t", "");
+		cl.def( pybind11::init( [](){ return new bdsg::wang_hash<long,void>(); } ) );
+		cl.def("__call__", (unsigned long (bdsg::wang_hash<long,void>::*)(const long &) const) &bdsg::wang_hash<long, void>::operator(), "C++: bdsg::wang_hash<long, void>::operator()(const long &) const --> unsigned long", pybind11::arg("x"));
+		cl.def("assign", (struct bdsg::wang_hash<long, void> & (bdsg::wang_hash<long,void>::*)(const struct bdsg::wang_hash<long, void> &)) &bdsg::wang_hash<long, void>::operator=, "C++: bdsg::wang_hash<long, void>::operator=(const struct bdsg::wang_hash<long, void> &) --> struct bdsg::wang_hash<long, void> &", pybind11::return_value_policy::automatic, pybind11::arg(""));
 	}
 	{ // bdsg::wang_hash file:bdsg/internal/hash_map.hpp line:120
 		pybind11::class_<bdsg::wang_hash<char,void>, std::shared_ptr<bdsg::wang_hash<char,void>>> cl(M("bdsg"), "wang_hash_char_void_t", "");
 		cl.def( pybind11::init( [](){ return new bdsg::wang_hash<char,void>(); } ) );
-		cl.def("__call__", (unsigned long (bdsg::wang_hash<char,void>::*)(const char &) const) &bdsg::wang_hash<char>::operator(), "C++: bdsg::wang_hash<char>::operator()(const char &) const --> unsigned long", pybind11::arg("x"));
-		cl.def("assign", (struct bdsg::wang_hash<char> & (bdsg::wang_hash<char,void>::*)(const struct bdsg::wang_hash<char> &)) &bdsg::wang_hash<char>::operator=, "C++: bdsg::wang_hash<char>::operator=(const struct bdsg::wang_hash<char> &) --> struct bdsg::wang_hash<char> &", pybind11::return_value_policy::automatic, pybind11::arg(""));
+		cl.def("__call__", (unsigned long (bdsg::wang_hash<char,void>::*)(const char &) const) &bdsg::wang_hash<char, void>::operator(), "C++: bdsg::wang_hash<char, void>::operator()(const char &) const --> unsigned long", pybind11::arg("x"));
+		cl.def("assign", (struct bdsg::wang_hash<char, void> & (bdsg::wang_hash<char,void>::*)(const struct bdsg::wang_hash<char, void> &)) &bdsg::wang_hash<char, void>::operator=, "C++: bdsg::wang_hash<char, void>::operator=(const struct bdsg::wang_hash<char, void> &) --> struct bdsg::wang_hash<char, void> &", pybind11::return_value_policy::automatic, pybind11::arg(""));
 	}
 	{ // bdsg::StringHashMapFor file:bdsg/internal/hash_map.hpp line:212
 		pybind11::class_<bdsg::StringHashMapFor<bdsg::STLBackend>, std::shared_ptr<bdsg::StringHashMapFor<bdsg::STLBackend>>> cl(M("bdsg"), "StringHashMapFor_bdsg_STLBackend_t", "");
@@ -1111,6 +1130,7 @@ void bind_bdsg_internal_hash_map(std::function< pybind11::module &(std::string c
 		cl.def("create_handle", (struct handlegraph::handle_t (bdsg::HashGraph::*)(const std::string &)) &bdsg::HashGraph::create_handle, "Create a new node with the given sequence and return the handle.\n The sequence may not be empty.\n\nC++: bdsg::HashGraph::create_handle(const std::string &) --> struct handlegraph::handle_t", pybind11::arg("sequence"));
 		cl.def("create_handle", (struct handlegraph::handle_t (bdsg::HashGraph::*)(const std::string &, const long long &)) &bdsg::HashGraph::create_handle, "Create a new node with the given id and sequence, then return the handle.\n The sequence may not be empty.\n The ID must be strictly greater than 0.\n\nC++: bdsg::HashGraph::create_handle(const std::string &, const long long &) --> struct handlegraph::handle_t", pybind11::arg("sequence"), pybind11::arg("id"));
 		cl.def("destroy_handle", (void (bdsg::HashGraph::*)(const struct handlegraph::handle_t &)) &bdsg::HashGraph::destroy_handle, "Remove the node belonging to the given handle and all of its edges.\n Destroys any paths in which the node participates.\n Invalidates the destroyed handle.\n May be called during serial for_each_handle iteration **ONLY** on the node being iterated.\n May **NOT** be called during parallel for_each_handle iteration.\n May **NOT** be called on the node from which edges are being followed during follow_edges.\n May **NOT** be called during iteration over paths, if it would destroy a path.\n May **NOT** be called during iteration along a path, if it would destroy that path.\n\nC++: bdsg::HashGraph::destroy_handle(const struct handlegraph::handle_t &) --> void", pybind11::arg("handle"));
+		cl.def("change_sequence", (struct handlegraph::handle_t (bdsg::HashGraph::*)(const struct handlegraph::handle_t &, const std::string &)) &bdsg::HashGraph::change_sequence, "Change the sequence of handle to a new sequence. Returns a (possibly alterered)\n handle to the node with the new sequence. May invalidate the existing handle. Updates\n paths if called through an inheriting MutablePath interface.\n\nC++: bdsg::HashGraph::change_sequence(const struct handlegraph::handle_t &, const std::string &) --> struct handlegraph::handle_t", pybind11::arg("handle"), pybind11::arg("sequence"));
 		cl.def("create_edge", (void (bdsg::HashGraph::*)(const struct handlegraph::handle_t &, const struct handlegraph::handle_t &)) &bdsg::HashGraph::create_edge, "Create an edge connecting the given handles in the given order and orientations.\n Ignores existing edges.\n\nC++: bdsg::HashGraph::create_edge(const struct handlegraph::handle_t &, const struct handlegraph::handle_t &) --> void", pybind11::arg("left"), pybind11::arg("right"));
 		cl.def("destroy_edge", (void (bdsg::HashGraph::*)(const struct handlegraph::handle_t &, const struct handlegraph::handle_t &)) &bdsg::HashGraph::destroy_edge, "Remove the edge connecting the given handles in the given order and orientations.\n Ignores nonexistent edges.\n Does not update any stored paths.\n\nC++: bdsg::HashGraph::destroy_edge(const struct handlegraph::handle_t &, const struct handlegraph::handle_t &) --> void", pybind11::arg("left"), pybind11::arg("right"));
 		cl.def("truncate_handle", (struct handlegraph::handle_t (bdsg::HashGraph::*)(const struct handlegraph::handle_t &, bool, unsigned long)) &bdsg::HashGraph::truncate_handle, "Shorten a node by truncating either the left or right side of the node, relative to the orientation\n of the handle, starting from a given offset along the nodes sequence. Any edges on the truncated\n end of the node are deleted. Returns a (possibly altered) handle to the truncated node.\n May invalid stored paths.\n\nC++: bdsg::HashGraph::truncate_handle(const struct handlegraph::handle_t &, bool, unsigned long) --> struct handlegraph::handle_t", pybind11::arg("handle"), pybind11::arg("trunc_left"), pybind11::arg("offset"));
@@ -1140,6 +1160,7 @@ void bind_bdsg_internal_hash_map(std::function< pybind11::module &(std::string c
 		cl.def("for_each_path_handle_impl", (bool (bdsg::HashGraph::*)(const class std::function<bool (const struct handlegraph::path_handle_t &)> &) const) &bdsg::HashGraph::for_each_path_handle_impl, "Execute a function on each path in the graph\n\nC++: bdsg::HashGraph::for_each_path_handle_impl(const class std::function<bool (const struct handlegraph::path_handle_t &)> &) const --> bool", pybind11::arg("iteratee"));
 		cl.def("for_each_step_on_handle_impl", (bool (bdsg::HashGraph::*)(const struct handlegraph::handle_t &, const class std::function<bool (const struct handlegraph::step_handle_t &)> &) const) &bdsg::HashGraph::for_each_step_on_handle_impl, "Calls a function with all steps of a node on paths.\n\nC++: bdsg::HashGraph::for_each_step_on_handle_impl(const struct handlegraph::handle_t &, const class std::function<bool (const struct handlegraph::step_handle_t &)> &) const --> bool", pybind11::arg("handle"), pybind11::arg("iteratee"));
 		cl.def("destroy_path", (void (bdsg::HashGraph::*)(const struct handlegraph::path_handle_t &)) &bdsg::HashGraph::destroy_path, "Destroy the given path. Invalidates handles to the path and its node steps.\n\nC++: bdsg::HashGraph::destroy_path(const struct handlegraph::path_handle_t &) --> void", pybind11::arg("path"));
+		cl.def("destroy_paths", (void (bdsg::HashGraph::*)(const class std::vector<handlegraph::path_handle_t> &)) &bdsg::HashGraph::destroy_paths, "Destroy the given set of paths. Invalidates handles to all the paths and their steps.\n\nC++: bdsg::HashGraph::destroy_paths(const class std::vector<handlegraph::path_handle_t> &) --> void", pybind11::arg("paths"));
 		cl.def("create_path_handle", [](bdsg::HashGraph &o, const std::string & a0) -> handlegraph::path_handle_t { return o.create_path_handle(a0); }, "", pybind11::arg("name"));
 		cl.def("create_path_handle", (struct handlegraph::path_handle_t (bdsg::HashGraph::*)(const std::string &, bool)) &bdsg::HashGraph::create_path_handle, "Create a path with the given name. The caller must ensure that no path\n with the given name exists already, or the behavior is undefined.\n Returns a handle to the created empty path. Handles to other paths must\n remain valid.\n\nC++: bdsg::HashGraph::create_path_handle(const std::string &, bool) --> struct handlegraph::path_handle_t", pybind11::arg("name"), pybind11::arg("is_circular"));
 		cl.def("append_step", (struct handlegraph::step_handle_t (bdsg::HashGraph::*)(const struct handlegraph::path_handle_t &, const struct handlegraph::handle_t &)) &bdsg::HashGraph::append_step, "Append a visit to a node to the given path. Returns a handle to the new\n final step on the path which is appended. If the path is cirular, the new\n step is placed between the steps considered \"last\" and \"first\" by the\n method path_begin. Handles to prior steps on the path, and to other paths,\n must remain valid.\n\nC++: bdsg::HashGraph::append_step(const struct handlegraph::path_handle_t &, const struct handlegraph::handle_t &) --> struct handlegraph::step_handle_t", pybind11::arg("path"), pybind11::arg("to_append"));
