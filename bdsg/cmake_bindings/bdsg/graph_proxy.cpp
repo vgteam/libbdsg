@@ -31,8 +31,8 @@
 
 #ifndef BINDER_PYBIND11_TYPE_CASTER
 	#define BINDER_PYBIND11_TYPE_CASTER
-	PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>)
-	PYBIND11_DECLARE_HOLDER_TYPE(T, T*)
+	PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>, false)
+	PYBIND11_DECLARE_HOLDER_TYPE(T, T*, false)
 	PYBIND11_MAKE_OPAQUE(std::shared_ptr<void>)
 #endif
 
@@ -115,6 +115,7 @@ void bind_bdsg_graph_proxy(std::function< pybind11::module &(std::string const &
 		cl.def("deserialize", (void (bdsg::GraphProxy<bdsg::BasePackedGraph<bdsg::STLBackend>>::*)(const std::string &)) &bdsg::GraphProxy<bdsg::BasePackedGraph<bdsg::STLBackend> >::deserialize, "C++: bdsg::GraphProxy<bdsg::BasePackedGraph<bdsg::STLBackend> >::deserialize(const std::string &) --> void", pybind11::arg("filename"));
 		cl.def("serialize", (void (bdsg::GraphProxy<bdsg::BasePackedGraph<bdsg::STLBackend>>::*)(const std::string &)) &bdsg::GraphProxy<bdsg::BasePackedGraph<bdsg::STLBackend> >::serialize, "C++: bdsg::GraphProxy<bdsg::BasePackedGraph<bdsg::STLBackend> >::serialize(const std::string &) --> void", pybind11::arg("filename"));
 		cl.def("assign", (struct bdsg::GraphProxy<class bdsg::BasePackedGraph<struct bdsg::STLBackend> > & (bdsg::GraphProxy<bdsg::BasePackedGraph<bdsg::STLBackend>>::*)(const struct bdsg::GraphProxy<class bdsg::BasePackedGraph<struct bdsg::STLBackend> > &)) &bdsg::GraphProxy<bdsg::BasePackedGraph<bdsg::STLBackend> >::operator=, "C++: bdsg::GraphProxy<bdsg::BasePackedGraph<bdsg::STLBackend> >::operator=(const struct bdsg::GraphProxy<class bdsg::BasePackedGraph<struct bdsg::STLBackend> > &) --> struct bdsg::GraphProxy<class bdsg::BasePackedGraph<struct bdsg::STLBackend> > &", pybind11::return_value_policy::automatic, pybind11::arg(""));
+		cl.def("change_sequence", (struct handlegraph::handle_t (handlegraph::MutablePathDeletableHandleGraph::*)(const struct handlegraph::handle_t &, const std::string &)) &handlegraph::MutablePathDeletableHandleGraph::change_sequence, "C++: handlegraph::MutablePathDeletableHandleGraph::change_sequence(const struct handlegraph::handle_t &, const std::string &) --> struct handlegraph::handle_t", pybind11::arg("handle"), pybind11::arg("sequence"));
 		cl.def("assign", (class handlegraph::MutablePathDeletableHandleGraph & (handlegraph::MutablePathDeletableHandleGraph::*)(const class handlegraph::MutablePathDeletableHandleGraph &)) &handlegraph::MutablePathDeletableHandleGraph::operator=, "C++: handlegraph::MutablePathDeletableHandleGraph::operator=(const class handlegraph::MutablePathDeletableHandleGraph &) --> class handlegraph::MutablePathDeletableHandleGraph &", pybind11::return_value_policy::automatic, pybind11::arg(""));
 		cl.def("assign", (class handlegraph::SerializableHandleGraph & (handlegraph::SerializableHandleGraph::*)(const class handlegraph::SerializableHandleGraph &)) &handlegraph::SerializableHandleGraph::operator=, "C++: handlegraph::SerializableHandleGraph::operator=(const class handlegraph::SerializableHandleGraph &) --> class handlegraph::SerializableHandleGraph &", pybind11::return_value_policy::automatic, pybind11::arg(""));
 	}

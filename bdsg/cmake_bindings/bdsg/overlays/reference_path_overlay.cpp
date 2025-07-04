@@ -27,8 +27,8 @@
 
 #ifndef BINDER_PYBIND11_TYPE_CASTER
 	#define BINDER_PYBIND11_TYPE_CASTER
-	PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>)
-	PYBIND11_DECLARE_HOLDER_TYPE(T, T*)
+	PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>, false)
+	PYBIND11_DECLARE_HOLDER_TYPE(T, T*, false)
 	PYBIND11_MAKE_OPAQUE(std::shared_ptr<void>)
 #endif
 
@@ -45,7 +45,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return ReferencePathOverlay::has_node(a0);
 	}
@@ -58,7 +58,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		return ReferencePathOverlay::get_handle(a0, a1);
 	}
@@ -71,7 +71,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<long long> caster;
 				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long long>(std::move(o));
+			return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return ReferencePathOverlay::get_id(a0);
 	}
@@ -84,7 +84,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return ReferencePathOverlay::get_is_reverse(a0);
 	}
@@ -97,7 +97,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		return ReferencePathOverlay::flip(a0);
 	}
@@ -110,7 +110,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return ReferencePathOverlay::get_length(a0);
 	}
@@ -123,7 +123,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<std::string> caster;
 				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<std::string>(std::move(o));
+			return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		return ReferencePathOverlay::get_sequence(a0);
 	}
@@ -136,7 +136,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return ReferencePathOverlay::get_node_count();
 	}
@@ -149,7 +149,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<long long> caster;
 				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long long>(std::move(o));
+			return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return ReferencePathOverlay::min_node_id();
 	}
@@ -162,7 +162,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<long long> caster;
 				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long long>(std::move(o));
+			return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return ReferencePathOverlay::max_node_id();
 	}
@@ -175,7 +175,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return ReferencePathOverlay::get_degree(a0, a1);
 	}
@@ -188,7 +188,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return ReferencePathOverlay::has_edge(a0, a1);
 	}
@@ -201,7 +201,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return ReferencePathOverlay::get_edge_count();
 	}
@@ -214,7 +214,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return ReferencePathOverlay::get_total_length();
 	}
@@ -227,7 +227,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<char> caster;
 				return pybind11::detail::cast_ref<char>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<char>(std::move(o));
+			return pybind11::detail::cast_safe<char>(std::move(o));
 		}
 		return ReferencePathOverlay::get_base(a0, a1);
 	}
@@ -240,7 +240,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<std::string> caster;
 				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<std::string>(std::move(o));
+			return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		return ReferencePathOverlay::get_subsequence(a0, a1, a2);
 	}
@@ -253,7 +253,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return ReferencePathOverlay::get_path_count();
 	}
@@ -266,7 +266,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return ReferencePathOverlay::has_path(a0);
 	}
@@ -279,7 +279,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<struct handlegraph::path_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::path_handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::path_handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::path_handle_t>(std::move(o));
 		}
 		return ReferencePathOverlay::get_path_handle(a0);
 	}
@@ -292,7 +292,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<std::string> caster;
 				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<std::string>(std::move(o));
+			return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		return ReferencePathOverlay::get_path_name(a0);
 	}
@@ -305,7 +305,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return ReferencePathOverlay::get_is_circular(a0);
 	}
@@ -318,7 +318,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return ReferencePathOverlay::get_step_count(a0);
 	}
@@ -331,7 +331,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		return ReferencePathOverlay::get_handle_of_step(a0);
 	}
@@ -344,7 +344,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<struct handlegraph::path_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::path_handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::path_handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::path_handle_t>(std::move(o));
 		}
 		return ReferencePathOverlay::get_path_handle_of_step(a0);
 	}
@@ -357,7 +357,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<struct handlegraph::step_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::step_handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::step_handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::step_handle_t>(std::move(o));
 		}
 		return ReferencePathOverlay::path_begin(a0);
 	}
@@ -370,7 +370,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<struct handlegraph::step_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::step_handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::step_handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::step_handle_t>(std::move(o));
 		}
 		return ReferencePathOverlay::path_end(a0);
 	}
@@ -383,7 +383,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<struct handlegraph::step_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::step_handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::step_handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::step_handle_t>(std::move(o));
 		}
 		return ReferencePathOverlay::path_back(a0);
 	}
@@ -396,7 +396,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<struct handlegraph::step_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::step_handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::step_handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::step_handle_t>(std::move(o));
 		}
 		return ReferencePathOverlay::path_front_end(a0);
 	}
@@ -409,7 +409,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return ReferencePathOverlay::has_next_step(a0);
 	}
@@ -422,7 +422,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return ReferencePathOverlay::has_previous_step(a0);
 	}
@@ -435,7 +435,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<struct handlegraph::step_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::step_handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::step_handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::step_handle_t>(std::move(o));
 		}
 		return ReferencePathOverlay::get_next_step(a0);
 	}
@@ -448,7 +448,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<struct handlegraph::step_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::step_handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::step_handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::step_handle_t>(std::move(o));
 		}
 		return ReferencePathOverlay::get_previous_step(a0);
 	}
@@ -461,7 +461,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return ReferencePathOverlay::get_path_length(a0);
 	}
@@ -474,7 +474,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return ReferencePathOverlay::get_position_of_step(a0);
 	}
@@ -487,7 +487,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<struct handlegraph::step_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::step_handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::step_handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::step_handle_t>(std::move(o));
 		}
 		return ReferencePathOverlay::get_step_at_position(a0, a1);
 	}
@@ -500,7 +500,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return ReferencePathOverlay::follow_edges_impl(a0, a1, a2);
 	}
@@ -513,7 +513,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return ReferencePathOverlay::for_each_handle_impl(a0, a1);
 	}
@@ -526,7 +526,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return ReferencePathOverlay::for_each_path_handle_impl(a0);
 	}
@@ -539,7 +539,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return ReferencePathOverlay::for_each_step_on_handle_impl(a0, a1);
 	}
@@ -552,7 +552,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return PathPositionHandleGraph::for_each_step_position_on_handle(a0, a1);
 	}
@@ -565,7 +565,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return PathHandleGraph::get_step_count(a0);
 	}
@@ -578,7 +578,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<class std::vector<handlegraph::step_handle_t>> caster;
 				return pybind11::detail::cast_ref<class std::vector<handlegraph::step_handle_t>>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<class std::vector<handlegraph::step_handle_t>>(std::move(o));
+			return pybind11::detail::cast_safe<class std::vector<handlegraph::step_handle_t>>(std::move(o));
 		}
 		return PathHandleGraph::steps_of_handle(a0, a1);
 	}
@@ -591,7 +591,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return PathHandleGraph::is_empty(a0);
 	}
@@ -604,7 +604,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<enum handlegraph::PathSense> caster;
 				return pybind11::detail::cast_ref<enum handlegraph::PathSense>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<enum handlegraph::PathSense>(std::move(o));
+			return pybind11::detail::cast_safe<enum handlegraph::PathSense>(std::move(o));
 		}
 		return PathMetadata::get_sense(a0);
 	}
@@ -617,7 +617,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<std::string> caster;
 				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<std::string>(std::move(o));
+			return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		return PathMetadata::get_sample_name(a0);
 	}
@@ -630,7 +630,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<std::string> caster;
 				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<std::string>(std::move(o));
+			return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		return PathMetadata::get_locus_name(a0);
 	}
@@ -643,7 +643,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return PathMetadata::get_haplotype(a0);
 	}
@@ -656,7 +656,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return PathMetadata::get_phase_block(a0);
 	}
@@ -670,7 +670,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<_binder_ret_0> caster;
 				return pybind11::detail::cast_ref<_binder_ret_0>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<_binder_ret_0>(std::move(o));
+			return pybind11::detail::cast_safe<_binder_ret_0>(std::move(o));
 		}
 		return PathMetadata::get_subrange(a0);
 	}
@@ -683,7 +683,7 @@ struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay 
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return PathMetadata::for_each_step_of_sense_impl(a0, a1, a2);
 	}
@@ -702,7 +702,7 @@ struct PyCallBack_bdsg_VectorizableOverlay : public bdsg::VectorizableOverlay {
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return VectorizableOverlay::has_node(a0);
 	}
@@ -715,7 +715,7 @@ struct PyCallBack_bdsg_VectorizableOverlay : public bdsg::VectorizableOverlay {
 				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		return VectorizableOverlay::get_handle(a0, a1);
 	}
@@ -728,7 +728,7 @@ struct PyCallBack_bdsg_VectorizableOverlay : public bdsg::VectorizableOverlay {
 				static pybind11::detail::override_caster_t<long long> caster;
 				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long long>(std::move(o));
+			return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return VectorizableOverlay::get_id(a0);
 	}
@@ -741,7 +741,7 @@ struct PyCallBack_bdsg_VectorizableOverlay : public bdsg::VectorizableOverlay {
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return VectorizableOverlay::get_is_reverse(a0);
 	}
@@ -754,7 +754,7 @@ struct PyCallBack_bdsg_VectorizableOverlay : public bdsg::VectorizableOverlay {
 				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		return VectorizableOverlay::flip(a0);
 	}
@@ -767,7 +767,7 @@ struct PyCallBack_bdsg_VectorizableOverlay : public bdsg::VectorizableOverlay {
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return VectorizableOverlay::get_length(a0);
 	}
@@ -780,7 +780,7 @@ struct PyCallBack_bdsg_VectorizableOverlay : public bdsg::VectorizableOverlay {
 				static pybind11::detail::override_caster_t<std::string> caster;
 				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<std::string>(std::move(o));
+			return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		return VectorizableOverlay::get_sequence(a0);
 	}
@@ -793,7 +793,7 @@ struct PyCallBack_bdsg_VectorizableOverlay : public bdsg::VectorizableOverlay {
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return VectorizableOverlay::get_degree(a0, a1);
 	}
@@ -806,7 +806,7 @@ struct PyCallBack_bdsg_VectorizableOverlay : public bdsg::VectorizableOverlay {
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return VectorizableOverlay::has_edge(a0, a1);
 	}
@@ -819,7 +819,7 @@ struct PyCallBack_bdsg_VectorizableOverlay : public bdsg::VectorizableOverlay {
 				static pybind11::detail::override_caster_t<char> caster;
 				return pybind11::detail::cast_ref<char>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<char>(std::move(o));
+			return pybind11::detail::cast_safe<char>(std::move(o));
 		}
 		return VectorizableOverlay::get_base(a0, a1);
 	}
@@ -832,7 +832,7 @@ struct PyCallBack_bdsg_VectorizableOverlay : public bdsg::VectorizableOverlay {
 				static pybind11::detail::override_caster_t<std::string> caster;
 				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<std::string>(std::move(o));
+			return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		return VectorizableOverlay::get_subsequence(a0, a1, a2);
 	}
@@ -845,7 +845,7 @@ struct PyCallBack_bdsg_VectorizableOverlay : public bdsg::VectorizableOverlay {
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return VectorizableOverlay::get_node_count();
 	}
@@ -858,7 +858,7 @@ struct PyCallBack_bdsg_VectorizableOverlay : public bdsg::VectorizableOverlay {
 				static pybind11::detail::override_caster_t<long long> caster;
 				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long long>(std::move(o));
+			return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return VectorizableOverlay::min_node_id();
 	}
@@ -871,7 +871,7 @@ struct PyCallBack_bdsg_VectorizableOverlay : public bdsg::VectorizableOverlay {
 				static pybind11::detail::override_caster_t<long long> caster;
 				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long long>(std::move(o));
+			return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return VectorizableOverlay::max_node_id();
 	}
@@ -884,7 +884,7 @@ struct PyCallBack_bdsg_VectorizableOverlay : public bdsg::VectorizableOverlay {
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return VectorizableOverlay::node_vector_offset(a0);
 	}
@@ -897,7 +897,7 @@ struct PyCallBack_bdsg_VectorizableOverlay : public bdsg::VectorizableOverlay {
 				static pybind11::detail::override_caster_t<long long> caster;
 				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long long>(std::move(o));
+			return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return VectorizableOverlay::node_at_vector_offset(a0);
 	}
@@ -910,7 +910,7 @@ struct PyCallBack_bdsg_VectorizableOverlay : public bdsg::VectorizableOverlay {
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return VectorizableOverlay::edge_index(a0);
 	}
@@ -923,7 +923,7 @@ struct PyCallBack_bdsg_VectorizableOverlay : public bdsg::VectorizableOverlay {
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return VectorizableOverlay::id_to_rank(a0);
 	}
@@ -936,7 +936,7 @@ struct PyCallBack_bdsg_VectorizableOverlay : public bdsg::VectorizableOverlay {
 				static pybind11::detail::override_caster_t<long long> caster;
 				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long long>(std::move(o));
+			return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return VectorizableOverlay::rank_to_id(a0);
 	}
@@ -949,7 +949,7 @@ struct PyCallBack_bdsg_VectorizableOverlay : public bdsg::VectorizableOverlay {
 				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		return VectorizableOverlay::get_underlying_handle(a0);
 	}
@@ -962,7 +962,7 @@ struct PyCallBack_bdsg_VectorizableOverlay : public bdsg::VectorizableOverlay {
 				static pybind11::detail::override_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<void>(std::move(o));
+			return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return VectorizableOverlay::index_nodes_and_edges();
 	}
@@ -975,7 +975,7 @@ struct PyCallBack_bdsg_VectorizableOverlay : public bdsg::VectorizableOverlay {
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return RankedHandleGraph::handle_to_rank(a0);
 	}
@@ -988,7 +988,7 @@ struct PyCallBack_bdsg_VectorizableOverlay : public bdsg::VectorizableOverlay {
 				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		return RankedHandleGraph::rank_to_handle(a0);
 	}
@@ -1001,7 +1001,7 @@ struct PyCallBack_bdsg_VectorizableOverlay : public bdsg::VectorizableOverlay {
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return HandleGraph::get_edge_count();
 	}
@@ -1014,7 +1014,7 @@ struct PyCallBack_bdsg_VectorizableOverlay : public bdsg::VectorizableOverlay {
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return HandleGraph::get_total_length();
 	}
@@ -1027,7 +1027,7 @@ struct PyCallBack_bdsg_VectorizableOverlay : public bdsg::VectorizableOverlay {
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::follow_edges_impl\"");
 	}
@@ -1040,7 +1040,7 @@ struct PyCallBack_bdsg_VectorizableOverlay : public bdsg::VectorizableOverlay {
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::for_each_handle_impl\"");
 	}

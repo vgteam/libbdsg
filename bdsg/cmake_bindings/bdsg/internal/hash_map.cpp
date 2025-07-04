@@ -33,8 +33,8 @@
 
 #ifndef BINDER_PYBIND11_TYPE_CASTER
 	#define BINDER_PYBIND11_TYPE_CASTER
-	PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>)
-	PYBIND11_DECLARE_HOLDER_TYPE(T, T*)
+	PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>, false)
+	PYBIND11_DECLARE_HOLDER_TYPE(T, T*, false)
 	PYBIND11_MAKE_OPAQUE(std::shared_ptr<void>)
 #endif
 
@@ -51,7 +51,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return HashGraph::has_node(a0);
 	}
@@ -64,7 +64,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		return HashGraph::get_handle(a0, a1);
 	}
@@ -77,7 +77,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<long long> caster;
 				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long long>(std::move(o));
+			return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return HashGraph::get_id(a0);
 	}
@@ -90,7 +90,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return HashGraph::get_is_reverse(a0);
 	}
@@ -103,7 +103,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		return HashGraph::flip(a0);
 	}
@@ -116,7 +116,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return HashGraph::get_length(a0);
 	}
@@ -129,7 +129,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<std::string> caster;
 				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<std::string>(std::move(o));
+			return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		return HashGraph::get_sequence(a0);
 	}
@@ -142,7 +142,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return HashGraph::follow_edges_impl(a0, a1, a2);
 	}
@@ -155,7 +155,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return HashGraph::for_each_handle_impl(a0, a1);
 	}
@@ -168,7 +168,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return HashGraph::get_node_count();
 	}
@@ -181,7 +181,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<long long> caster;
 				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long long>(std::move(o));
+			return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return HashGraph::min_node_id();
 	}
@@ -194,7 +194,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<long long> caster;
 				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long long>(std::move(o));
+			return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return HashGraph::max_node_id();
 	}
@@ -207,7 +207,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return HashGraph::get_degree(a0, a1);
 	}
@@ -220,7 +220,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<char> caster;
 				return pybind11::detail::cast_ref<char>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<char>(std::move(o));
+			return pybind11::detail::cast_safe<char>(std::move(o));
 		}
 		return HashGraph::get_base(a0, a1);
 	}
@@ -233,7 +233,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<std::string> caster;
 				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<std::string>(std::move(o));
+			return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		return HashGraph::get_subsequence(a0, a1, a2);
 	}
@@ -246,7 +246,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		return HashGraph::create_handle(a0);
 	}
@@ -259,7 +259,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		return HashGraph::create_handle(a0, a1);
 	}
@@ -272,9 +272,22 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<void>(std::move(o));
+			return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return HashGraph::destroy_handle(a0);
+	}
+	struct handlegraph::handle_t change_sequence(const struct handlegraph::handle_t & a0, const std::string & a1) override {
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "change_sequence");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1);
+			if (pybind11::detail::cast_is_temporary_value_reference<struct handlegraph::handle_t>::value) {
+				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
+				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
+			}
+			return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
+		}
+		return HashGraph::change_sequence(a0, a1);
 	}
 	void create_edge(const struct handlegraph::handle_t & a0, const struct handlegraph::handle_t & a1) override {
 		pybind11::gil_scoped_acquire gil;
@@ -285,7 +298,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<void>(std::move(o));
+			return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return HashGraph::create_edge(a0, a1);
 	}
@@ -298,7 +311,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<void>(std::move(o));
+			return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return HashGraph::destroy_edge(a0, a1);
 	}
@@ -311,7 +324,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		return HashGraph::truncate_handle(a0, a1, a2);
 	}
@@ -324,7 +337,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<void>(std::move(o));
+			return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return HashGraph::clear();
 	}
@@ -337,7 +350,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		return HashGraph::apply_orientation(a0);
 	}
@@ -350,7 +363,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<class std::vector<handlegraph::handle_t>> caster;
 				return pybind11::detail::cast_ref<class std::vector<handlegraph::handle_t>>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<class std::vector<handlegraph::handle_t>>(std::move(o));
+			return pybind11::detail::cast_safe<class std::vector<handlegraph::handle_t>>(std::move(o));
 		}
 		return HashGraph::divide_handle(a0, a1);
 	}
@@ -363,7 +376,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<void>(std::move(o));
+			return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return HashGraph::optimize(a0);
 	}
@@ -376,7 +389,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return HashGraph::apply_ordering(a0, a1);
 	}
@@ -389,7 +402,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return HashGraph::get_path_count();
 	}
@@ -402,7 +415,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return HashGraph::has_path(a0);
 	}
@@ -415,7 +428,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<struct handlegraph::path_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::path_handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::path_handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::path_handle_t>(std::move(o));
 		}
 		return HashGraph::get_path_handle(a0);
 	}
@@ -428,7 +441,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<std::string> caster;
 				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<std::string>(std::move(o));
+			return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		return HashGraph::get_path_name(a0);
 	}
@@ -441,7 +454,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return HashGraph::get_is_circular(a0);
 	}
@@ -454,7 +467,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return HashGraph::get_step_count(a0);
 	}
@@ -467,7 +480,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		return HashGraph::get_handle_of_step(a0);
 	}
@@ -480,7 +493,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<struct handlegraph::path_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::path_handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::path_handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::path_handle_t>(std::move(o));
 		}
 		return HashGraph::get_path_handle_of_step(a0);
 	}
@@ -493,7 +506,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<struct handlegraph::step_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::step_handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::step_handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::step_handle_t>(std::move(o));
 		}
 		return HashGraph::path_begin(a0);
 	}
@@ -506,7 +519,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<struct handlegraph::step_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::step_handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::step_handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::step_handle_t>(std::move(o));
 		}
 		return HashGraph::path_end(a0);
 	}
@@ -519,7 +532,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<struct handlegraph::step_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::step_handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::step_handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::step_handle_t>(std::move(o));
 		}
 		return HashGraph::path_back(a0);
 	}
@@ -532,7 +545,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<struct handlegraph::step_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::step_handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::step_handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::step_handle_t>(std::move(o));
 		}
 		return HashGraph::path_front_end(a0);
 	}
@@ -545,7 +558,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return HashGraph::has_next_step(a0);
 	}
@@ -558,7 +571,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return HashGraph::has_previous_step(a0);
 	}
@@ -571,7 +584,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<struct handlegraph::step_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::step_handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::step_handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::step_handle_t>(std::move(o));
 		}
 		return HashGraph::get_next_step(a0);
 	}
@@ -584,7 +597,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<struct handlegraph::step_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::step_handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::step_handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::step_handle_t>(std::move(o));
 		}
 		return HashGraph::get_previous_step(a0);
 	}
@@ -597,7 +610,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return HashGraph::for_each_path_handle_impl(a0);
 	}
@@ -610,7 +623,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return HashGraph::for_each_step_on_handle_impl(a0, a1);
 	}
@@ -623,7 +636,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<void>(std::move(o));
+			return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return HashGraph::destroy_path(a0);
 	}
@@ -636,7 +649,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<void>(std::move(o));
+			return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return HashGraph::destroy_paths(a0);
 	}
@@ -649,7 +662,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<struct handlegraph::path_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::path_handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::path_handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::path_handle_t>(std::move(o));
 		}
 		return HashGraph::create_path_handle(a0, a1);
 	}
@@ -662,7 +675,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<struct handlegraph::step_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::step_handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::step_handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::step_handle_t>(std::move(o));
 		}
 		return HashGraph::append_step(a0, a1);
 	}
@@ -675,7 +688,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<struct handlegraph::step_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::step_handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::step_handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::step_handle_t>(std::move(o));
 		}
 		return HashGraph::prepend_step(a0, a1);
 	}
@@ -689,7 +702,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<_binder_ret_0> caster;
 				return pybind11::detail::cast_ref<_binder_ret_0>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<_binder_ret_0>(std::move(o));
+			return pybind11::detail::cast_safe<_binder_ret_0>(std::move(o));
 		}
 		return HashGraph::rewrite_segment(a0, a1, a2);
 	}
@@ -702,7 +715,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<void>(std::move(o));
+			return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return HashGraph::set_circularity(a0, a1);
 	}
@@ -715,7 +728,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<void>(std::move(o));
+			return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return HashGraph::set_id_increment(a0);
 	}
@@ -728,7 +741,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<void>(std::move(o));
+			return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return HashGraph::increment_node_ids(a0);
 	}
@@ -741,7 +754,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<void>(std::move(o));
+			return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return HashGraph::reassign_node_ids(a0);
 	}
@@ -754,7 +767,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<unsigned int> caster;
 				return pybind11::detail::cast_ref<unsigned int>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned int>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned int>(std::move(o));
 		}
 		return HashGraph::get_magic_number();
 	}
@@ -767,7 +780,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<struct handlegraph::path_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::path_handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::path_handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::path_handle_t>(std::move(o));
 		}
 		return MutablePathHandleGraph::rename_path(a0, a1);
 	}
@@ -780,7 +793,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<void>(std::move(o));
+			return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return MutablePathHandleGraph::pop_front_step(a0);
 	}
@@ -793,7 +806,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<void>(std::move(o));
+			return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return MutablePathHandleGraph::pop_back_step(a0);
 	}
@@ -806,7 +819,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return PathHandleGraph::get_step_count(a0);
 	}
@@ -819,7 +832,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<class std::vector<handlegraph::step_handle_t>> caster;
 				return pybind11::detail::cast_ref<class std::vector<handlegraph::step_handle_t>>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<class std::vector<handlegraph::step_handle_t>>(std::move(o));
+			return pybind11::detail::cast_safe<class std::vector<handlegraph::step_handle_t>>(std::move(o));
 		}
 		return PathHandleGraph::steps_of_handle(a0, a1);
 	}
@@ -832,7 +845,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return PathHandleGraph::is_empty(a0);
 	}
@@ -845,7 +858,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return HandleGraph::has_edge(a0, a1);
 	}
@@ -858,7 +871,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return HandleGraph::get_edge_count();
 	}
@@ -871,7 +884,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return HandleGraph::get_total_length();
 	}
@@ -884,7 +897,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<enum handlegraph::PathSense> caster;
 				return pybind11::detail::cast_ref<enum handlegraph::PathSense>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<enum handlegraph::PathSense>(std::move(o));
+			return pybind11::detail::cast_safe<enum handlegraph::PathSense>(std::move(o));
 		}
 		return PathMetadata::get_sense(a0);
 	}
@@ -897,7 +910,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<std::string> caster;
 				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<std::string>(std::move(o));
+			return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		return PathMetadata::get_sample_name(a0);
 	}
@@ -910,7 +923,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<std::string> caster;
 				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<std::string>(std::move(o));
+			return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		return PathMetadata::get_locus_name(a0);
 	}
@@ -923,7 +936,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return PathMetadata::get_haplotype(a0);
 	}
@@ -936,7 +949,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return PathMetadata::get_phase_block(a0);
 	}
@@ -950,7 +963,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<_binder_ret_1> caster;
 				return pybind11::detail::cast_ref<_binder_ret_1>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<_binder_ret_1>(std::move(o));
+			return pybind11::detail::cast_safe<_binder_ret_1>(std::move(o));
 		}
 		return PathMetadata::get_subrange(a0);
 	}
@@ -963,7 +976,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return PathMetadata::for_each_step_of_sense_impl(a0, a1, a2);
 	}
@@ -976,7 +989,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<struct handlegraph::path_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::path_handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::path_handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::path_handle_t>(std::move(o));
 		}
 		return MutablePathMetadata::create_path(a0, a1, a2, a3, a4, a5, a6);
 	}
@@ -989,7 +1002,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<void>(std::move(o));
+			return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return MutableHandleGraph::increment_node_ids(a0);
 	}
@@ -1002,7 +1015,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<void>(std::move(o));
+			return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return Serializable::deserialize(a0);
 	}
@@ -1015,7 +1028,7 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 				static pybind11::detail::override_caster_t<void> caster;
 				return pybind11::detail::cast_ref<void>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<void>(std::move(o));
+			return pybind11::detail::cast_safe<void>(std::move(o));
 		}
 		return Serializable::serialize(a0);
 	}

@@ -20,8 +20,8 @@
 
 #ifndef BINDER_PYBIND11_TYPE_CASTER
 	#define BINDER_PYBIND11_TYPE_CASTER
-	PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>)
-	PYBIND11_DECLARE_HOLDER_TYPE(T, T*)
+	PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>, false)
+	PYBIND11_DECLARE_HOLDER_TYPE(T, T*, false)
 	PYBIND11_MAKE_OPAQUE(std::shared_ptr<void>)
 #endif
 
@@ -38,7 +38,7 @@ struct PyCallBack_bdsg_StrandSplitOverlay : public bdsg::StrandSplitOverlay {
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return StrandSplitOverlay::has_node(a0);
 	}
@@ -51,7 +51,7 @@ struct PyCallBack_bdsg_StrandSplitOverlay : public bdsg::StrandSplitOverlay {
 				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		return StrandSplitOverlay::get_handle(a0, a1);
 	}
@@ -64,7 +64,7 @@ struct PyCallBack_bdsg_StrandSplitOverlay : public bdsg::StrandSplitOverlay {
 				static pybind11::detail::override_caster_t<long long> caster;
 				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long long>(std::move(o));
+			return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return StrandSplitOverlay::get_id(a0);
 	}
@@ -77,7 +77,7 @@ struct PyCallBack_bdsg_StrandSplitOverlay : public bdsg::StrandSplitOverlay {
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return StrandSplitOverlay::get_is_reverse(a0);
 	}
@@ -90,7 +90,7 @@ struct PyCallBack_bdsg_StrandSplitOverlay : public bdsg::StrandSplitOverlay {
 				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		return StrandSplitOverlay::flip(a0);
 	}
@@ -103,7 +103,7 @@ struct PyCallBack_bdsg_StrandSplitOverlay : public bdsg::StrandSplitOverlay {
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return StrandSplitOverlay::get_length(a0);
 	}
@@ -116,7 +116,7 @@ struct PyCallBack_bdsg_StrandSplitOverlay : public bdsg::StrandSplitOverlay {
 				static pybind11::detail::override_caster_t<std::string> caster;
 				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<std::string>(std::move(o));
+			return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		return StrandSplitOverlay::get_sequence(a0);
 	}
@@ -129,7 +129,7 @@ struct PyCallBack_bdsg_StrandSplitOverlay : public bdsg::StrandSplitOverlay {
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return StrandSplitOverlay::follow_edges_impl(a0, a1, a2);
 	}
@@ -142,7 +142,7 @@ struct PyCallBack_bdsg_StrandSplitOverlay : public bdsg::StrandSplitOverlay {
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return StrandSplitOverlay::for_each_handle_impl(a0, a1);
 	}
@@ -155,7 +155,7 @@ struct PyCallBack_bdsg_StrandSplitOverlay : public bdsg::StrandSplitOverlay {
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return StrandSplitOverlay::get_node_count();
 	}
@@ -168,7 +168,7 @@ struct PyCallBack_bdsg_StrandSplitOverlay : public bdsg::StrandSplitOverlay {
 				static pybind11::detail::override_caster_t<long long> caster;
 				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long long>(std::move(o));
+			return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return StrandSplitOverlay::min_node_id();
 	}
@@ -181,7 +181,7 @@ struct PyCallBack_bdsg_StrandSplitOverlay : public bdsg::StrandSplitOverlay {
 				static pybind11::detail::override_caster_t<long long> caster;
 				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long long>(std::move(o));
+			return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		return StrandSplitOverlay::max_node_id();
 	}
@@ -194,7 +194,7 @@ struct PyCallBack_bdsg_StrandSplitOverlay : public bdsg::StrandSplitOverlay {
 				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		return StrandSplitOverlay::get_underlying_handle(a0);
 	}
@@ -207,7 +207,7 @@ struct PyCallBack_bdsg_StrandSplitOverlay : public bdsg::StrandSplitOverlay {
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return HandleGraph::get_degree(a0, a1);
 	}
@@ -220,7 +220,7 @@ struct PyCallBack_bdsg_StrandSplitOverlay : public bdsg::StrandSplitOverlay {
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return HandleGraph::has_edge(a0, a1);
 	}
@@ -233,7 +233,7 @@ struct PyCallBack_bdsg_StrandSplitOverlay : public bdsg::StrandSplitOverlay {
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return HandleGraph::get_edge_count();
 	}
@@ -246,7 +246,7 @@ struct PyCallBack_bdsg_StrandSplitOverlay : public bdsg::StrandSplitOverlay {
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return HandleGraph::get_total_length();
 	}
@@ -259,7 +259,7 @@ struct PyCallBack_bdsg_StrandSplitOverlay : public bdsg::StrandSplitOverlay {
 				static pybind11::detail::override_caster_t<char> caster;
 				return pybind11::detail::cast_ref<char>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<char>(std::move(o));
+			return pybind11::detail::cast_safe<char>(std::move(o));
 		}
 		return HandleGraph::get_base(a0, a1);
 	}
@@ -272,7 +272,7 @@ struct PyCallBack_bdsg_StrandSplitOverlay : public bdsg::StrandSplitOverlay {
 				static pybind11::detail::override_caster_t<std::string> caster;
 				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<std::string>(std::move(o));
+			return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		return HandleGraph::get_subsequence(a0, a1, a2);
 	}

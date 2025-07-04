@@ -21,8 +21,8 @@
 
 #ifndef BINDER_PYBIND11_TYPE_CASTER
 	#define BINDER_PYBIND11_TYPE_CASTER
-	PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>)
-	PYBIND11_DECLARE_HOLDER_TYPE(T, T*)
+	PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>, false)
+	PYBIND11_DECLARE_HOLDER_TYPE(T, T*, false)
 	PYBIND11_MAKE_OPAQUE(std::shared_ptr<void>)
 #endif
 
@@ -39,7 +39,7 @@ struct PyCallBack_handlegraph_SnarlDecomposition : public handlegraph::SnarlDeco
 				static pybind11::detail::override_caster_t<struct handlegraph::net_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::net_handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::net_handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::net_handle_t>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"SnarlDecomposition::get_root\"");
 	}
@@ -52,7 +52,7 @@ struct PyCallBack_handlegraph_SnarlDecomposition : public handlegraph::SnarlDeco
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"SnarlDecomposition::is_root\"");
 	}
@@ -65,7 +65,7 @@ struct PyCallBack_handlegraph_SnarlDecomposition : public handlegraph::SnarlDeco
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"SnarlDecomposition::is_snarl\"");
 	}
@@ -78,7 +78,7 @@ struct PyCallBack_handlegraph_SnarlDecomposition : public handlegraph::SnarlDeco
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"SnarlDecomposition::is_chain\"");
 	}
@@ -91,7 +91,7 @@ struct PyCallBack_handlegraph_SnarlDecomposition : public handlegraph::SnarlDeco
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"SnarlDecomposition::is_node\"");
 	}
@@ -104,7 +104,7 @@ struct PyCallBack_handlegraph_SnarlDecomposition : public handlegraph::SnarlDeco
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"SnarlDecomposition::is_sentinel\"");
 	}
@@ -117,7 +117,7 @@ struct PyCallBack_handlegraph_SnarlDecomposition : public handlegraph::SnarlDeco
 				static pybind11::detail::override_caster_t<struct handlegraph::net_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::net_handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::net_handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::net_handle_t>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"SnarlDecomposition::get_net\"");
 	}
@@ -130,7 +130,7 @@ struct PyCallBack_handlegraph_SnarlDecomposition : public handlegraph::SnarlDeco
 				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"SnarlDecomposition::get_handle\"");
 	}
@@ -143,7 +143,7 @@ struct PyCallBack_handlegraph_SnarlDecomposition : public handlegraph::SnarlDeco
 				static pybind11::detail::override_caster_t<struct handlegraph::net_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::net_handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::net_handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::net_handle_t>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"SnarlDecomposition::get_parent\"");
 	}
@@ -156,7 +156,7 @@ struct PyCallBack_handlegraph_SnarlDecomposition : public handlegraph::SnarlDeco
 				static pybind11::detail::override_caster_t<struct handlegraph::net_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::net_handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::net_handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::net_handle_t>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"SnarlDecomposition::get_bound\"");
 	}
@@ -169,7 +169,7 @@ struct PyCallBack_handlegraph_SnarlDecomposition : public handlegraph::SnarlDeco
 				static pybind11::detail::override_caster_t<struct handlegraph::net_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::net_handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::net_handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::net_handle_t>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"SnarlDecomposition::flip\"");
 	}
@@ -182,7 +182,7 @@ struct PyCallBack_handlegraph_SnarlDecomposition : public handlegraph::SnarlDeco
 				static pybind11::detail::override_caster_t<struct handlegraph::net_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::net_handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::net_handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::net_handle_t>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"SnarlDecomposition::canonical\"");
 	}
@@ -195,7 +195,7 @@ struct PyCallBack_handlegraph_SnarlDecomposition : public handlegraph::SnarlDeco
 				static pybind11::detail::override_caster_t<enum handlegraph::SnarlDecomposition::endpoint_t> caster;
 				return pybind11::detail::cast_ref<enum handlegraph::SnarlDecomposition::endpoint_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<enum handlegraph::SnarlDecomposition::endpoint_t>(std::move(o));
+			return pybind11::detail::cast_safe<enum handlegraph::SnarlDecomposition::endpoint_t>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"SnarlDecomposition::starts_at\"");
 	}
@@ -208,7 +208,7 @@ struct PyCallBack_handlegraph_SnarlDecomposition : public handlegraph::SnarlDeco
 				static pybind11::detail::override_caster_t<enum handlegraph::SnarlDecomposition::endpoint_t> caster;
 				return pybind11::detail::cast_ref<enum handlegraph::SnarlDecomposition::endpoint_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<enum handlegraph::SnarlDecomposition::endpoint_t>(std::move(o));
+			return pybind11::detail::cast_safe<enum handlegraph::SnarlDecomposition::endpoint_t>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"SnarlDecomposition::ends_at\"");
 	}
@@ -221,7 +221,7 @@ struct PyCallBack_handlegraph_SnarlDecomposition : public handlegraph::SnarlDeco
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"SnarlDecomposition::for_each_child_impl\"");
 	}
@@ -234,7 +234,7 @@ struct PyCallBack_handlegraph_SnarlDecomposition : public handlegraph::SnarlDeco
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"SnarlDecomposition::for_each_traversal_impl\"");
 	}
@@ -247,7 +247,7 @@ struct PyCallBack_handlegraph_SnarlDecomposition : public handlegraph::SnarlDeco
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"SnarlDecomposition::follow_net_edges_impl\"");
 	}
@@ -260,7 +260,7 @@ struct PyCallBack_handlegraph_SnarlDecomposition : public handlegraph::SnarlDeco
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return SnarlDecomposition::for_each_tippy_child_impl(a0, a1);
 	}
@@ -273,7 +273,7 @@ struct PyCallBack_handlegraph_SnarlDecomposition : public handlegraph::SnarlDeco
 				static pybind11::detail::override_caster_t<struct handlegraph::net_handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::net_handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::net_handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::net_handle_t>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"SnarlDecomposition::get_parent_traversal\"");
 	}
@@ -286,7 +286,7 @@ struct PyCallBack_handlegraph_SnarlDecomposition : public handlegraph::SnarlDeco
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return SnarlDecomposition::for_each_traversal_start_impl(a0, a1);
 	}
@@ -299,7 +299,7 @@ struct PyCallBack_handlegraph_SnarlDecomposition : public handlegraph::SnarlDeco
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return SnarlDecomposition::for_each_traversal_end_impl(a0, a1);
 	}
