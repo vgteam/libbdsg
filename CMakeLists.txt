@@ -192,9 +192,9 @@ if (BUILD_PYTHON_BINDINGS)
 
     # Binder (because some generated bindings depend on headers packaged with Binder)
     # See also: Binder commit defined in make_and_run_binder.py which actually generates bindings.
-    set(BINDER_COMMIT b6cac94c78ade6c6ffcbda629ffa520561a31788)
+    set(BINDER_COMMIT 46ec0e88137d368eeedafecfa123004f8ad028d1)
     ExternalProject_Add(binder
-      GIT_REPOSITORY "https://github.com/adamnovak/binder.git"
+      GIT_REPOSITORY "https://github.com/RosettaCommons/binder.git"
       GIT_TAG "${BINDER_COMMIT}"
       # we don't actually build or install Binder via its CMake because we just need its headers
       #CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_DIR}

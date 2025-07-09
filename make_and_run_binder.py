@@ -31,11 +31,11 @@ def clone_repos():
     ''' download the most correct binder and pybind11 from git '''
     if not glob.glob("binder"):
         print("Binder not found, cloning repo...")
-        subprocess.check_call(['git', 'clone', 'https://github.com/adamnovak/binder.git', 'binder'])
+        subprocess.check_call(['git', 'clone', 'https://github.com/RosettaCommons/binder.git', 'binder'])
         parent = os.getcwd()
         os.chdir('binder')
         # See also: Binder commit defined in CMakeLists.txt for header files.
-        subprocess.check_call(['git', 'checkout', 'b6cac94c78ade6c6ffcbda629ffa520561a31788'])
+        subprocess.check_call(['git', 'checkout', '46ec0e88137d368eeedafecfa123004f8ad028d1'])
         os.chdir(parent)
     if not glob.glob("binder/build/pybind11"):
         print("pybind11 not found, cloning repo...")
@@ -69,7 +69,7 @@ def build_binder():
                 str(multiprocessing.cpu_count()),
                 '--pybind11',
                 os.path.join(os.getcwd(), 'build/pybind11')
-            ]
+            ] + ['--llvm-version', '14.0.5'] if platform.system() == 'Darwin' else []
         )
     return "binder/" + glob.glob('./build/*/*/bin/')[0] + "binder"
 
