@@ -31,7 +31,9 @@ class PositionOverlay : public PathPositionHandleGraph, public ExpandingOverlayG
         
 public:
     
-    PositionOverlay(PathHandleGraph* graph);
+    /// Make a postion overlay on the graph. Indexes any hidden paths that
+    /// appear in extra_path_names.
+    PositionOverlay(PathHandleGraph* graph, const std::unordered_set<std::string>& extra_path_names = {});
     PositionOverlay();
     ~PositionOverlay();
 
@@ -228,8 +230,9 @@ public:
     
 protected:
     
-    /// Construct the index over path positions
-    void index_path_positions();
+    /// Construct the index over path positions.
+    /// Always includes paths with names in the given set, even if they are hidden.
+    void index_path_positions(const std::unordered_set<std::string>& extra_path_names = {});
     
     /// The graph we're overlaying
     PathHandleGraph* graph = nullptr;

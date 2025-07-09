@@ -54,7 +54,7 @@ typedef PairOverlayHelper<PathPositionHandleGraph, PackedPositionOverlay, PathHa
 VectorizableHandleGraph, PathPositionVectorizableOverlay, PathPositionHandleGraph> PathPositionVectorizableOverlayHelper;
 
 /// Helper to ensure that a PathHandleGraph has the VectorizableHandleGraph and PathPositionHandleGraph interfaces,
-/// But ising the GBZ-optimized ReferencePath Overlay instead of the vanilla PathPosition Overlay
+/// But using the GBZ-optimized ReferencePath Overlay instead of the vanilla PathPosition Overlay
 typedef PairOverlayHelper<PathPositionHandleGraph, PackedReferencePathOverlay, PathHandleGraph,
 VectorizableHandleGraph, PathPositionVectorizableOverlay, PathPositionHandleGraph> ReferencePathVectorizableOverlayHelper;
 
@@ -102,18 +102,20 @@ protected:
 /// Implementation of overlay helper functionality for when multiple overlays need to be stacked.
 // There must be a way to generalize with variadic templates
 // (I had trouble chaining the output of the nested overlays together and getting the types right when trying)
-// TODO: Add support for passing overlay constructor arguments through.
+// TODO: Add support for passing overlay constructor arguments through to the second overlay.
 template<typename T1, typename U1, typename V1, typename T2, typename U2, typename V2>
 class PairOverlayHelper {
 public:
-    T2* apply(V1* input_graph){
-        T1* g1 = overlay1.apply(input_graph);
+    template <typename ...Params>
+    T2* apply(V1* input_graph, Params&&... params){
+        T1* g1 = overlay1.apply(input_graph, std::forward<Params>(params)...);
         T2* g2 = overlay2.apply(dynamic_cast<V2*>(g1));
         return g2;
     }
-
-    const T2* apply(const V1* input_graph){
-        const T1* g1 = overlay1.apply(input_graph);
+    
+    template <typename ...Params>
+    const T2* apply(const V1* input_graph, Params&&... params){
+        const T1* g1 = overlay1.apply(input_graph, std::forward<Params>(params)...);
         const T2* g2 = overlay2.apply(dynamic_cast<const V2*>(g1));
         return g2;
     }
