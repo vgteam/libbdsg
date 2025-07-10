@@ -3666,7 +3666,7 @@ void test_multithreaded_overlay_construction() {
         omp_set_num_threads(thread_count);
         
         // Make an overlay with this many threads for construction
-        PackedPositionOverlay overlay(&graph, steps_per_index);
+        PackedPositionOverlay overlay(&graph, {}, steps_per_index);
         
         // Make sure it is right
         for (auto& path_name : paths) {
