@@ -67,10 +67,10 @@ def build_binder():
             '--jobs',
             str(multiprocessing.cpu_count()),
             '--pybind11',
-            os.path.join(os.getcwd(), 'build/pybind11')
+            os.path.join(os.getcwd(), 'build/pybind11'),
+            '--llvm-version',
+            '14.0.5'
         ]
-        if platform.system() == 'Darwin':
-            build_command.extend(['--llvm-version', '14.0.5'])
         subprocess.check_call(build_command)
     return "binder/" + glob.glob('./build/*/*/bin/')[0] + "binder"
 
