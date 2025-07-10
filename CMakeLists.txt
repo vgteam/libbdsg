@@ -100,11 +100,13 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   endif()
   
   set (OpenMP_C "${CMAKE_C_COMPILER}")
-  set (OpenMP_C_FLAGS " -Xpreprocessor -fopenmp ${OMP_INCLUDE_FLAGS} ${OMP_LIB_FLAGS}")
+  set (OpenMP_C_FLAGS " -Xpreprocessor -fopenmp ${OMP_INCLUDE_FLAGS}")
   set (OpenMP_C_LIB_NAMES "libomp" "libgomp" "libiomp5")
   set (OpenMP_CXX "${CMAKE_CXX_COMPILER}")
-  set (OpenMP_CXX_FLAGS " -Xpreprocessor -fopenmp ${OMP_INCLUDE_FLAGS} ${OMP_LIB_FLAGS}")
+  set (OpenMP_CXX_FLAGS " -Xpreprocessor -fopenmp ${OMP_INCLUDE_FLAGS}")
   set (OpenMP_CXX_LIB_NAMES "libomp" "libgomp" "libiomp5")
+  set (OpenMP_EXE_LINKER_FLAGS "${OMP_LIB_FLAGS}")
+  set (OpenMP_SHARED_LINKER_FLAGS "${OMP_LIB_FLAGS}")
   set (OpenMP_libomp_LIBRARY "omp")
   set (OpenMP_libgomp_LIBRARY "gomp")
   set (OpenMP_libiomp5_LIBRARY "iomp5")
@@ -113,6 +115,7 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
   set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
   set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS} -lomp")
+  set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_SHARED_LINKER_FLAGS} -lomp")
   
   # Mac needs libomp when linking the library and a hint on where to look for them
   # Mac doesn't have $ORIGIN for RPaths. We might not be able to produce a working Mac wheel for Python bindings.
