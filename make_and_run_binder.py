@@ -59,18 +59,19 @@ def build_binder():
     if not glob.glob("./build/*/*/bin/*"):
         print("Binder not compiled, using packaged build.py...")
         # TODO: Use CPU counting that accounts for container quotas?
-        subprocess.check_call(
-            [
-                sys.executable,
-                'build.py',
-                '--compiler',
-                'clang' if platform.system() == 'Darwin' else 'gcc',
-                '--jobs',
-                str(multiprocessing.cpu_count()),
-                '--pybind11',
-                os.path.join(os.getcwd(), 'build/pybind11')
-            ] + ['--llvm-version', '14.0.5'] if platform.system() == 'Darwin' else []
-        )
+        build_command = [
+            sys.executable,
+            'build.py',
+            '--compiler',
+            'clang' if platform.system() == 'Darwin' else 'gcc',
+            '--jobs',
+            str(multiprocessing.cpu_count()),
+            '--pybind11',
+            os.path.join(os.getcwd(), 'build/pybind11')
+        ]
+        if platform.system() == 'Darwin':
+            build_command.extend(['--llvm-version', '14.0.5'])
+        subprocess.check_call(build_command)
     return "binder/" + glob.glob('./build/*/*/bin/')[0] + "binder"
 
 def all_sources_and_headers(include_deps=False):
