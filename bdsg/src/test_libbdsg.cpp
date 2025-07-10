@@ -4616,8 +4616,8 @@ void test_hash_graph() {
     HashGraph g_copy_3(g);
     HashGraph g_copy_4(g);
     
-    HashGraph g_move_1 = move(g_copy_3);
-    HashGraph g_move_2(move(g_copy_4));
+    HashGraph g_move_1 = std::move(g_copy_3);
+    HashGraph g_move_2(std::move(g_copy_4));
     
     assert(handlegraph::algorithms::are_equivalent_with_paths(&g, &g_copy_1, true));
     assert(handlegraph::algorithms::are_equivalent_with_paths(&g, &g_copy_2, true));
