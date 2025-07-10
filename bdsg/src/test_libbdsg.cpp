@@ -3666,7 +3666,7 @@ void test_multithreaded_overlay_construction() {
         omp_set_num_threads(thread_count);
         
         // Make an overlay with this many threads for construction
-        PackedPositionOverlay overlay(&graph, steps_per_index);
+        PackedPositionOverlay overlay(&graph, {}, steps_per_index);
         
         // Make sure it is right
         for (auto& path_name : paths) {
@@ -3988,7 +3988,7 @@ void test_packed_reference_path_overlay() {
             }
             
             // Split the paths up agross many indexes for testing
-            PackedReferencePathOverlay overlay(&graph, 10);
+            PackedReferencePathOverlay overlay(&graph, {}, 10);
             
             std::unordered_set<std::string> seen_paths;
             overlay.for_each_step_on_handle(h1, [&](const step_handle_t& s) {
@@ -4616,8 +4616,8 @@ void test_hash_graph() {
     HashGraph g_copy_3(g);
     HashGraph g_copy_4(g);
     
-    HashGraph g_move_1 = move(g_copy_3);
-    HashGraph g_move_2(move(g_copy_4));
+    HashGraph g_move_1 = std::move(g_copy_3);
+    HashGraph g_move_2(std::move(g_copy_4));
     
     assert(handlegraph::algorithms::are_equivalent_with_paths(&g, &g_copy_1, true));
     assert(handlegraph::algorithms::are_equivalent_with_paths(&g, &g_copy_2, true));

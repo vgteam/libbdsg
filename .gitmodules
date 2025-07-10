@@ -15,7 +15,7 @@
 	url = https://github.com/vgteam/BBHash.git
 [submodule "deps/sparsepp"]
 	path = bdsg/deps/sparsepp
-	url = https://github.com/edawson/sparsepp.git
+	url = https://github.com/greg7mdp/sparsepp.git
 [submodule "deps/pybind11"]
 	path = bdsg/deps/pybind11
 	url = https://github.com/pybind/pybind11.git

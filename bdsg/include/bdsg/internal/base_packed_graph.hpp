@@ -1901,8 +1901,8 @@ void BasePackedGraph<Backend>::defragment_path(const int64_t& path_idx, bool for
                 new_links_iv.set(PATH_PREV_OFFSET, new_links_iv.size() / PATH_RECORD_SIZE);
             }
             
-            path.links_iv = move(new_links_iv);
-            path.steps_iv = move(new_steps_iv);
+            path.links_iv = std::move(new_links_iv);
+            path.steps_iv = std::move(new_steps_iv);
             
             // update the head and tail of the newly allocated path
             path_head_iv.set(path_idx, 1);
@@ -2038,7 +2038,7 @@ void BasePackedGraph<Backend>::eject_deleted_paths() {
         }
         
         // replace the old path names vector
-        path_names_iv = move(new_path_names_iv);
+        path_names_iv = std::move(new_path_names_iv);
         
         // TODO: should I reassign the char to int mapping in case entire chars where ejected?
     }
@@ -2050,49 +2050,49 @@ void BasePackedGraph<Backend>::eject_deleted_paths() {
     for (size_t i = 0; i < paths.size(); ++i) {
         new_path_name_start_iv.append(path_name_start_iv.get(i));
     }
-    path_name_start_iv = move(new_path_name_start_iv);
+    path_name_start_iv = std::move(new_path_name_start_iv);
     
     PackedVector<> new_path_name_length_iv;
     new_path_name_length_iv.reserve(paths.size());
     for (size_t i = 0; i < paths.size(); ++i) {
         new_path_name_length_iv.append(path_name_length_iv.get(i));
     }
-    path_name_length_iv = move(new_path_name_length_iv);
+    path_name_length_iv = std::move(new_path_name_length_iv);
     
     PackedVector<> new_path_is_deleted_iv;
     new_path_is_deleted_iv.reserve(paths.size());
     for (size_t i = 0; i < paths.size(); ++i) {
         new_path_is_deleted_iv.append(path_is_deleted_iv.get(i));
     }
-    path_is_deleted_iv = move(new_path_is_deleted_iv);
+    path_is_deleted_iv = std::move(new_path_is_deleted_iv);
     
     PackedVector<> new_path_is_circular_iv;
     new_path_is_circular_iv.reserve(paths.size());
     for (size_t i = 0; i < paths.size(); ++i) {
         new_path_is_circular_iv.append(path_is_circular_iv.get(i));
     }
-    path_is_circular_iv = move(new_path_is_circular_iv);
+    path_is_circular_iv = std::move(new_path_is_circular_iv);
     
     decltype(path_head_iv) new_path_head_iv;
     new_path_head_iv.reserve(paths.size());
     for (size_t i = 0; i < paths.size(); ++i) {
         new_path_head_iv.append(path_head_iv.get(i));
     }
-    path_head_iv = move(new_path_head_iv);
+    path_head_iv = std::move(new_path_head_iv);
     
     decltype(path_tail_iv) new_path_tail_iv;
     new_path_tail_iv.reserve(paths.size());
     for (size_t i = 0; i < paths.size(); ++i) {
         new_path_tail_iv.append(path_tail_iv.get(i));
     }
-    path_tail_iv = move(new_path_tail_iv);
+    path_tail_iv = std::move(new_path_tail_iv);
     
     PackedVector<> new_path_deleted_steps_iv;
     new_path_deleted_steps_iv.reserve(paths.size());
     for (size_t i = 0; i < paths.size(); ++i) {
         new_path_deleted_steps_iv.append(path_deleted_steps_iv.get(i));
     }
-    path_deleted_steps_iv = move(new_path_deleted_steps_iv);
+    path_deleted_steps_iv = std::move(new_path_deleted_steps_iv);
     
     // TODO: unless paths have been deleted, path_names_iv doesn't get a tight allocation...
 }
@@ -3107,7 +3107,7 @@ void BasePackedGraph<Backend>::reassign_node_ids(const std::function<nid_t(const
     // replace the old ID variables
     min_id = new_min_id;
     max_id = new_max_id;
-    nid_to_graph_iv = move(new_nid_to_graph_iv);
+    nid_to_graph_iv = std::move(new_nid_to_graph_iv);
 }
 
 template<typename Backend>

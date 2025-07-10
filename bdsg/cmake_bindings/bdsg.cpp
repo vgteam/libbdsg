@@ -7,7 +7,7 @@
 
 #include <pybind11/pybind11.h>
 
-typedef std::function< pybind11::module & (std::string const &) > ModuleGetter;
+using ModuleGetter = std::function< pybind11::module & (std::string const &) >;
 
 void bind_handlegraph_types(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_handlegraph_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
@@ -29,7 +29,7 @@ void bind_bdsg_internal_eades_algorithm(std::function< pybind11::module &(std::s
 void bind_bdsg_internal_base_packed_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_handlegraph_path_position_handle_graph(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_overlays_packed_path_position_overlay(std::function< pybind11::module &(std::string const &namespace_) > &M);
-void bind_bdsg_overlays_packed_path_position_overlay_1(std::function< pybind11::module &(std::string const &namespace_) > &M);
+void bind_bdsg_overlays_packed_reference_path_overlay(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_overlays_path_position_overlays(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_overlays_path_subgraph_overlay(std::function< pybind11::module &(std::string const &namespace_) > &M);
 void bind_bdsg_overlays_reference_path_overlay(std::function< pybind11::module &(std::string const &namespace_) > &M);
@@ -56,7 +56,7 @@ PYBIND11_MODULE(bdsg, root_module) {
 	auto mangle_namespace_name(
 		[](std::string const &ns) -> std::string {
 			if ( std::find(reserved_python_words.begin(), reserved_python_words.end(), ns) == reserved_python_words.end() ) return ns;
-			else return ns+'_';
+			return ns+'_';
 		}
 	);
 
@@ -66,7 +66,7 @@ PYBIND11_MODULE(bdsg, root_module) {
 		{"", "handlegraph"},
 		{"", "std"},
 	};
-	for(auto &p : sub_modules ) modules[p.first.size() ? p.first+"::"+p.second : p.second] = modules[p.first].def_submodule( mangle_namespace_name(p.second).c_str(), ("Bindings for " + p.first + "::" + p.second + " namespace").c_str() );
+	for(auto &p : sub_modules ) modules[ p.first.empty() ? p.second :  p.first+"::"+p.second ] = modules[p.first].def_submodule( mangle_namespace_name(p.second).c_str(), ("Bindings for " + p.first + "::" + p.second + " namespace").c_str() );
 
 	//pybind11::class_<std::shared_ptr<void>>(M(""), "_encapsulated_data_");
 
@@ -90,7 +90,7 @@ PYBIND11_MODULE(bdsg, root_module) {
 	bind_bdsg_internal_base_packed_graph(M);
 	bind_handlegraph_path_position_handle_graph(M);
 	bind_bdsg_overlays_packed_path_position_overlay(M);
-	bind_bdsg_overlays_packed_path_position_overlay_1(M);
+	bind_bdsg_overlays_packed_reference_path_overlay(M);
 	bind_bdsg_overlays_path_position_overlays(M);
 	bind_bdsg_overlays_path_subgraph_overlay(M);
 	bind_bdsg_overlays_reference_path_overlay(M);

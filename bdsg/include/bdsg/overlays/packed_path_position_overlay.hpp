@@ -31,14 +31,16 @@ using namespace handlegraph;
  * remain accessible through the path metadata queries. 
  */
 class PackedPositionOverlay : public PathPositionHandleGraph, public ExpandingOverlayGraph {
-        
+
+protected:
+    PackedPositionOverlay() = default;
+
 public:
     
     /// Make a new PackedPositionOverlay, on the given graph. Glom short paths
     /// together to make internal indexes each over at least the given number
-    /// of steps.
-    PackedPositionOverlay(const PathHandleGraph* graph, size_t steps_per_index = 20000000);
-    PackedPositionOverlay() = default;
+    /// of steps. Indexes any hidden paths that appear in extra_path_names.
+    PackedPositionOverlay(const PathHandleGraph* graph, const std::unordered_set<std::string>& extra_path_names = {}, size_t steps_per_index = 20000000);
     PackedPositionOverlay(const PackedPositionOverlay& other) = default;
     PackedPositionOverlay(PackedPositionOverlay&& other) = default;
     ~PackedPositionOverlay() = default;
@@ -246,8 +248,9 @@ protected:
         uint64_t operator()(const step_handle_t& step, uint64_t seed = 0xAAAAAAAA55555555ULL) const;
     };
     
-    /// Construct the index over path positions
-    void index_path_positions();
+    /// Construct the index over path positions.
+    /// Always includes paths with names in the given set, even if they are hidden.
+    void index_path_positions(const std::unordered_set<std::string>& extra_path_names = {});
     
     /// Get the length in steps of the given path. Also do any scanning necessary for the path to generate per-path user data.
     virtual size_t scan_path(const path_handle_t& path_handle, void*& user_data);

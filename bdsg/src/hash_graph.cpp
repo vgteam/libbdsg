@@ -24,7 +24,7 @@ namespace bdsg {
     }
 
     HashGraph::HashGraph(HashGraph&& other) {
-        *this = move(other);
+        *this = std::move(other);
     }
 
     HashGraph& HashGraph::operator=(const HashGraph& other) {
@@ -63,9 +63,9 @@ namespace bdsg {
     HashGraph& HashGraph::operator=(HashGraph&& other) {
         max_id = other.max_id;
         min_id = other.min_id;
-        graph = move(other.graph);
-        path_id = move(other.path_id);
-        paths = move(other.paths);
+        graph = std::move(other.graph);
+        path_id = std::move(other.path_id);
+        paths = std::move(other.paths);
         next_path_id = other.next_path_id;
         return *this;
     }
@@ -293,7 +293,7 @@ namespace bdsg {
         // move the edges out the end of the node to the final one
         node_t& final_node = graph[get_id(return_val.back())];
         node_t& orig_node = graph[get_id(handle)];
-        final_node.right_edges = move(orig_node.right_edges);
+        final_node.right_edges = std::move(orig_node.right_edges);
         orig_node.right_edges.clear();
 
         // update the backwards references back onto this node
@@ -822,7 +822,7 @@ namespace bdsg {
         
     }
     
-    HashGraph::path_t::path_t(path_t&& other) : head(other.head), tail(other.tail), path_id(other.path_id), count(other.count), name(move(other.name)), is_circular(other.is_circular) {
+    HashGraph::path_t::path_t(path_t&& other) : head(other.head), tail(other.tail), path_id(other.path_id), count(other.count), name(std::move(other.name)), is_circular(other.is_circular) {
         // we grabbed the data in the initializer, now make sure the other one is in a valid state
         other.head = nullptr;
         other.tail = nullptr;
@@ -841,7 +841,7 @@ namespace bdsg {
             other.head = nullptr;
             other.tail = nullptr;
             
-            name = move(other.name);
+            name = std::move(other.name);
             
             is_circular = other.is_circular;
             
@@ -1186,7 +1186,7 @@ namespace bdsg {
             path_t path;
             path.deserialize(in);
             path_id[path.name] = path.path_id;
-            paths[path.path_id] = move(path);
+            paths[path.path_id] = std::move(path);
         }
         
         // we need to rebuild the occurrences of node mapping, which is not

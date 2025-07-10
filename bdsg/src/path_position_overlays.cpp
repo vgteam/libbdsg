@@ -2,8 +2,8 @@
 
 namespace bdsg {
 
-    PositionOverlay::PositionOverlay(PathHandleGraph* graph) : graph(graph) {
-        index_path_positions();
+    PositionOverlay::PositionOverlay(PathHandleGraph* graph, const std::unordered_set<std::string>& extra_path_names) : graph(graph) {
+        index_path_positions(extra_path_names);
     }
 
     PositionOverlay::PositionOverlay() {
@@ -205,9 +205,9 @@ namespace bdsg {
         return handle;
     }
     
-    void PositionOverlay::index_path_positions() {
+    void PositionOverlay::index_path_positions(const std::unordered_set<std::string>& extra_path_names) {
         
-        get_graph()->for_each_path_handle([&](const path_handle_t& path) {
+        auto visit_path = [&](const path_handle_t& path) {
             int64_t offset = 0;
             min_path_offset[path] = offset;
             auto& path_step_by_position = step_by_position[path];
@@ -216,7 +216,17 @@ namespace bdsg {
                 path_step_by_position[offset] = step;
                 offset += get_graph()->get_length(get_graph()->get_handle_of_step(step));
             });
-        });
+        };
+
+        get_graph()->for_each_path_handle(visit_path);
+
+        for (auto& name : extra_path_names) {
+            path_handle_t path = get_graph()->get_path_handle(name);
+            if (!min_path_offset.count(path)) {
+                // We haven't already visited this path
+                visit_path(path);
+            }
+        }
     }
     
     MutablePositionOverlay::MutablePositionOverlay(MutablePathDeletableHandleGraph* graph) : PositionOverlay(graph), mutable_graph(graph) {

@@ -31,11 +31,11 @@ def clone_repos():
     ''' download the most correct binder and pybind11 from git '''
     if not glob.glob("binder"):
         print("Binder not found, cloning repo...")
-        subprocess.check_call(['git', 'clone', 'https://github.com/adamnovak/binder.git', 'binder'])
+        subprocess.check_call(['git', 'clone', 'https://github.com/RosettaCommons/binder.git', 'binder'])
         parent = os.getcwd()
         os.chdir('binder')
         # See also: Binder commit defined in CMakeLists.txt for header files.
-        subprocess.check_call(['git', 'checkout', 'b6cac94c78ade6c6ffcbda629ffa520561a31788'])
+        subprocess.check_call(['git', 'checkout', '46ec0e88137d368eeedafecfa123004f8ad028d1'])
         os.chdir(parent)
     if not glob.glob("binder/build/pybind11"):
         print("pybind11 not found, cloning repo...")
@@ -59,18 +59,19 @@ def build_binder():
     if not glob.glob("./build/*/*/bin/*"):
         print("Binder not compiled, using packaged build.py...")
         # TODO: Use CPU counting that accounts for container quotas?
-        subprocess.check_call(
-            [
-                sys.executable,
-                'build.py',
-                '--compiler',
-                'clang' if platform.system() == 'Darwin' else 'gcc',
-                '--jobs',
-                str(multiprocessing.cpu_count()),
-                '--pybind11',
-                os.path.join(os.getcwd(), 'build/pybind11')
-            ]
-        )
+        build_command = [
+            sys.executable,
+            'build.py',
+            '--compiler',
+            'clang' if platform.system() == 'Darwin' else 'gcc',
+            '--jobs',
+            str(multiprocessing.cpu_count()),
+            '--pybind11',
+            os.path.join(os.getcwd(), 'build/pybind11'),
+            '--llvm-version',
+            '14.0.5'
+        ]
+        subprocess.check_call(build_command)
     return "binder/" + glob.glob('./build/*/*/bin/')[0] + "binder"
 
 def all_sources_and_headers(include_deps=False):
@@ -247,8 +248,17 @@ def make_bindings_code(all_includes_fn, binder_executable):
         sdk_path=subprocess.check_output(['xcrun', '-sdk', 'macosx', '--show-sdk-path']).decode('utf8').strip()
         command.append('-isysroot' + sdk_path)
         # Also make sure to look for libomp from macports or homebrew, like CMakeLists.txt does
+        homebrew_prefix = os.environ.get('HOMEBREW_PREFIX', '/opt/homebrew')
+        try:
+            homebrew_prefix = subprocess.check_output(['brew', '--prefix']).decode('utf-8').strip('\n')
+        except subprocess.CalledProcessError:
+            pass
+        except FileNotFoundError:
+            pass
+        command.append(f'-I{homebrew_prefix}/opt/libomp/include')
         command.append('-I/opt/local/include/libomp')
         command.append('-I/usr/local/include')
+        print(command)
     else:
         # With current GCC, Clang can't find the multiarch-specific *and*
         # GCC-version-specific include path where the OpenMP headers live.
