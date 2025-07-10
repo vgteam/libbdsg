@@ -5,11 +5,11 @@
 
 #include <omp.h> // BINDER_IGNORE because Binder can't find this
 
-//#define debug
+#define debug
 
 namespace bdsg {
 
-PackedReferencePathOverlay::PackedReferencePathOverlay(const PathHandleGraph* graph, size_t steps_per_index) : PackedPositionOverlay() {
+PackedReferencePathOverlay::PackedReferencePathOverlay(const PathHandleGraph* graph, const std::unordered_set<std::string>& extra_path_names, size_t steps_per_index) : PackedPositionOverlay() {
     // We can't just chain to the base class constructor with these arguments
     // because we need virtual methods in this class to be available before the
     // index build starts.
@@ -17,7 +17,7 @@ PackedReferencePathOverlay::PackedReferencePathOverlay(const PathHandleGraph* gr
     this->steps_per_index = steps_per_index;
 
     // Now do the index build
-    index_path_positions();
+    index_path_positions(extra_path_names);
 
     // initialize the index cache
     this->last_step_to_path_idx.resize(get_thread_count(), 0);

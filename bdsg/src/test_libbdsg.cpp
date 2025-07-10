@@ -3988,7 +3988,7 @@ void test_packed_reference_path_overlay() {
             }
             
             // Split the paths up agross many indexes for testing
-            PackedReferencePathOverlay overlay(&graph, 10);
+            PackedReferencePathOverlay overlay(&graph, {}, 10);
             
             std::unordered_set<std::string> seen_paths;
             overlay.for_each_step_on_handle(h1, [&](const step_handle_t& s) {

@@ -31,14 +31,16 @@ using namespace handlegraph;
  * remain accessible through the path metadata queries. 
  */
 class PackedPositionOverlay : public PathPositionHandleGraph, public ExpandingOverlayGraph {
-        
+
+protected:
+    PackedPositionOverlay() = default;
+
 public:
     
     /// Make a new PackedPositionOverlay, on the given graph. Glom short paths
     /// together to make internal indexes each over at least the given number
     /// of steps. Indexes any hidden paths that appear in extra_path_names.
     PackedPositionOverlay(const PathHandleGraph* graph, const std::unordered_set<std::string>& extra_path_names = {}, size_t steps_per_index = 20000000);
-    PackedPositionOverlay() = default;
     PackedPositionOverlay(const PackedPositionOverlay& other) = default;
     PackedPositionOverlay(PackedPositionOverlay&& other) = default;
     ~PackedPositionOverlay() = default;
