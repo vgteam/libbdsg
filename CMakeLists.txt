@@ -175,7 +175,10 @@ target_link_libraries(dynamic INTERFACE tsl::hopscotch_map)
 
 # libhandlegraph (full build using its cmake config)
 # Produces handlegraph_shared and handlegraph_static targets (as well as handlegraph_objs)
-add_subdirectory("${bdsg_DIR}/deps/libhandlegraph")
+if (NOT TARGET handlegraph_objs)
+    # If handlegraph has not already been built by something else
+    add_subdirectory("${bdsg_DIR}/deps/libhandlegraph")
+endif()
 
 # BBHash perfect hasher (header only)
 # Does not ship its own install step or define a target, so we make our own target
