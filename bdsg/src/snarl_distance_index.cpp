@@ -626,6 +626,10 @@ net_handle_t SnarlDistanceIndex::get_snarl_child_from_rank(const net_handle_t& s
     }
 }
 
+bool SnarlDistanceIndex::has_distances(const net_handle_t& net) const {
+    return has_distances(SnarlTreeRecord(net, &snarl_tree_records).get_record_type()); 
+}
+
 bool SnarlDistanceIndex::for_each_child_impl(const net_handle_t& traversal, const std::function<bool(const net_handle_t&)>& iteratee) const {
 #ifdef debug_snarl_traversal
     cerr << "Go through children of " << net_handle_as_string(traversal) << endl;
