@@ -534,6 +534,8 @@ public:
 
     /// Does this net handle store distances?
     bool has_distances(const net_handle_t& net) const;
+    /// Does the distance index in general store distances?
+    bool has_distances() const;
 
 protected:
     ///Internal implementation for for_each_child.
