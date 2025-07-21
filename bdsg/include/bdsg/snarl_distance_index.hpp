@@ -532,6 +532,11 @@ public:
     ///For 0 or 1, returns the sentinel facing in. Otherwise return the child as a chain going START_END
     net_handle_t get_snarl_child_from_rank(const net_handle_t& snarl, const size_t& rank) const;
 
+    /// Does this net handle store distances?
+    bool has_distances(const net_handle_t& net) const;
+    /// Does the distance index in general store distances?
+    bool has_distances() const;
+
 protected:
     ///Internal implementation for for_each_child.
     bool for_each_child_impl(const net_handle_t& traversal, const std::function<bool(const net_handle_t&)>& iteratee) const;
