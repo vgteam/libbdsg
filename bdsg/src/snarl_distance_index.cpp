@@ -233,7 +233,8 @@ if(get_handle_type(net) == SNARL_HANDLE){
     if (record_type == DISTANCED_SNARL) {
         if (distance_in_parent(net, start_in, start_in) != std::numeric_limits<size_t>::max() || 
             distance_in_parent(net, end_in, end_in) != std::numeric_limits<size_t>::max()) {
-        return false;
+            return false;
+        }
     } else if (record_type != DISTANCED_SNARL) {
         if (graph->has_edge( get_handle(flip(start_in), graph), get_handle(flip(start_in), graph)) ||
             graph->has_edge( get_handle(flip(end_in), graph), get_handle(flip(end_in), graph))) {
