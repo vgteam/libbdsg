@@ -422,7 +422,8 @@ public:
     ///Returns true if the given net handle refers to (a traversal of) a regular snarl
     ///A regular snarl is the same as a simple snarl, except that the children may be
     ///nested chains, rather than being restricted to nodes 
-    bool is_regular_snarl(const net_handle_t& net) const;
+    // If the distance index doesn't store distances then this needs a graph to check edges
+    bool is_regular_snarl(const net_handle_t& net, const handlegraph::HandleGraph* graph = nullptr) const;
 
     ///Returns true if the given net handle refers to (a traversal of) a chain.
     bool is_chain(const net_handle_t& net) const;
