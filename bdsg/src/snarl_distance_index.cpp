@@ -222,15 +222,23 @@ if(get_handle_type(net) == SNARL_HANDLE){
         // All simple snarls are regular
         return true;
     }
+    if ((record_type == SNARL || record_type == OVERSIZED_SNARL) && graph == nullptr) {
+        throw runtime_error("error: is_regular_snarl requires a graph if the distance index doesn't contain distances");
+    }
 
     //If there is any edge from the boundary nodes to themselves, then it cannot be regular
+    // How we check this depends on if we have distances or not
     net_handle_t start_in = get_bound(net, false, true);
     net_handle_t end_in = get_bound(net, true, true);
-    if (distance_in_parent(net, start_in, start_in) != std::numeric_limits<size_t>::max()) {
+    if (record_type == DISTANCED_SNARL) {
+        if (distance_in_parent(net, start_in, start_in) != std::numeric_limits<size_t>::max() || 
+            distance_in_parent(net, end_in, end_in) != std::numeric_limits<size_t>::max()) {
         return false;
-    }
-    if (distance_in_parent(net, end_in, end_in) != std::numeric_limits<size_t>::max()) {
-        return false;
+    } else if (record_type != DISTANCED_SNARL) {
+        if (graph->has_edge( get_handle(flip(start_in), graph), get_handle(flip(start_in), graph)) ||
+            graph->has_edge( get_handle(flip(end_in), graph), get_handle(flip(end_in), graph))) {
+            return false;
+        }
     }
     bool is_regular = true;
 
