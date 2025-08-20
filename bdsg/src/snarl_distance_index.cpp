@@ -231,8 +231,8 @@ if(get_handle_type(net) == SNARL_HANDLE){
     net_handle_t start_in = get_bound(net, false, true);
     net_handle_t end_in = get_bound(net, true, true);
     if (record_type == DISTANCED_SNARL) {
-        if (distance_in_parent(net, start_in, start_in) != std::numeric_limits<size_t>::max() || 
-            distance_in_parent(net, end_in, end_in) != std::numeric_limits<size_t>::max()) {
+        if (distance_in_parent(net, start_in, start_in) == 0 || 
+            distance_in_parent(net, end_in, end_in) == 0) {
             return false;
         }
     } else if (record_type != DISTANCED_SNARL) {
@@ -260,10 +260,10 @@ if(get_handle_type(net) == SNARL_HANDLE){
 
         if (record_type == DISTANCED_SNARL || record_type == OVERSIZED_SNARL) {
             // If the distance index has distances, then check the distances
-            start_right = distance_in_parent(net, start_in, child) != std::numeric_limits<size_t>::max();
-            start_left = distance_in_parent(net, start_in, flip(child)) != std::numeric_limits<size_t>::max();
-            end_right = distance_in_parent(net, end_in, child) != std::numeric_limits<size_t>::max();
-            end_left = distance_in_parent(net, end_in, flip(child)) != std::numeric_limits<size_t>::max();
+            start_right = distance_in_parent(net, start_in, child) == 0;
+            start_left = distance_in_parent(net, start_in, flip(child)) == 0;
+            end_right = distance_in_parent(net, end_in, child) == 0;
+            end_left = distance_in_parent(net, end_in, flip(child)) == 0;
         } else {
             // If the snarl doesn't store distances then check the edges in the graph
             child_start_in = is_node(child) ? get_handle(child, graph) : get_handle(get_bound(child, false, true), graph);
