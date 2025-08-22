@@ -206,7 +206,7 @@ if(get_handle_type(net) == SNARL_HANDLE){
     return get_handle_type(net) == SNARL_HANDLE && get_node_record_offset(net) == 1;
 }
 
-bool SnarlDistanceIndex::is_regular_snarl(const net_handle_t& net) const {
+bool SnarlDistanceIndex::is_regular_snarl(const net_handle_t& net, bool allow_internal_loops, const handlegraph::HandleGraph* graph) const {
 #ifdef debug_distances
 if(get_handle_type(net) == SNARL_HANDLE){
     assert(SnarlTreeRecord(net, &snarl_tree_records).get_record_handle_type() == SNARL_HANDLE ||
@@ -215,24 +215,82 @@ if(get_handle_type(net) == SNARL_HANDLE){
 }
 #endif
 
+    // Helper function to check if an edge exists based on the distance in the distance index
+    // Depends on if we allow internal distances or not
+    auto has_edge = [&] (const net_handle_t& n1, const net_handle_t& n2) {
+        size_t dist = distance_in_parent(net, n1, n2);
+        if (allow_internal_loops) {
+            // If we allow internal loops, then we only check if the edge in the snarl netgraph exists
+            return dist == 0;
+        } else {
+            // If we don't allow internal loops, then check the distance itself
+            return dist != std::numeric_limits<size_t>::max();
+        }
+    };
+
+
+    record_t record_type = SnarlTreeRecord(net, &snarl_tree_records).get_record_type();
+    if (record_type == ROOT_SNARL || record_type == DISTANCED_ROOT_SNARL) {
+        // Root snarls are not regular
+        return false;
+    } else if (record_type == SIMPLE_SNARL || record_type == DISTANCED_SIMPLE_SNARL) {
+        // All simple snarls are regular
+        return true;
+    }
+    if ((record_type == SNARL || record_type == OVERSIZED_SNARL) && graph == nullptr) {
+        throw runtime_error("error: is_regular_snarl requires a graph if the distance index doesn't contain distances");
+    }
+    if ((record_type == SNARL || record_type == OVERSIZED_SNARL) && !allow_internal_loops) {
+        throw runtime_error("error: is_regular_snarl requires distances in the distance index to verify that there are no internal loops");
+    }
+
     //If there is any edge from the boundary nodes to themselves, then it cannot be regular
+    // How we check this depends on if we have distances or not
     net_handle_t start_in = get_bound(net, false, true);
     net_handle_t end_in = get_bound(net, true, true);
-    if (distance_in_parent(net, start_in, start_in) != std::numeric_limits<size_t>::max()) {
-        return false;
-    }
-    if (distance_in_parent(net, end_in, end_in) != std::numeric_limits<size_t>::max()) {
-        return false;
+    if (record_type == DISTANCED_SNARL) {
+        if (has_edge(start_in, start_in) || 
+            has_edge(end_in, end_in)) {
+            return false;
+        }
+    } else if (record_type != DISTANCED_SNARL) {
+        if (graph->has_edge( get_handle(flip(start_in), graph), get_handle(flip(start_in), graph)) ||
+            graph->has_edge( get_handle(flip(end_in), graph), get_handle(flip(end_in), graph))) {
+            return false;
+        }
     }
     bool is_regular = true;
+
 
     for_each_child(net, [&](const net_handle_t& child) {
         //If there isn't a path through the snarl that passes through the child 
         //or there's an extra path through the child then it is irregular
-        bool start_right = distance_in_parent(net, start_in, child) != std::numeric_limits<size_t>::max();
-        bool start_left = distance_in_parent(net, start_in, flip(child)) != std::numeric_limits<size_t>::max();
-        bool end_right = distance_in_parent(net, end_in, child) != std::numeric_limits<size_t>::max();
-        bool end_left = distance_in_parent(net, end_in, flip(child)) != std::numeric_limits<size_t>::max();
+
+        // Graph handles for the left/right sides of the child, filled in if necessary
+        handlegraph::handle_t child_start_in;
+        handlegraph::handle_t child_end_in;
+
+        // First check that each child is connected to the two bounds by one possible traversal
+        bool start_right;
+        bool start_left; 
+        bool end_right;
+        bool end_left;
+
+        if (record_type == DISTANCED_SNARL || record_type == OVERSIZED_SNARL) {
+            // If the distance index has distances, then check the distances
+            start_right = has_edge(start_in, child);
+            start_left = has_edge(start_in, flip(child));
+            end_right = has_edge(end_in, child);
+            end_left = has_edge(end_in, flip(child));
+        } else {
+            // If the snarl doesn't store distances then check the edges in the graph
+            child_start_in = is_node(child) ? get_handle(child, graph) : get_handle(get_bound(child, false, true), graph);
+            child_end_in = is_node(child) ? get_handle(flip(child), graph) : get_handle(get_bound(child, true, true), graph);
+            start_left = graph->has_edge(get_handle(start_in, graph), child_start_in);
+            start_right = graph->has_edge(get_handle(start_in, graph), child_end_in);
+            end_left = graph->has_edge(get_handle(end_in, graph), child_start_in);
+            end_right = graph->has_edge(get_handle(end_in, graph), child_end_in);
+        }
 
         if (start_right && end_left) {
             if (start_left || end_right) {
@@ -250,18 +308,36 @@ if(get_handle_type(net) == SNARL_HANDLE){
             return false;
         }
 
-        //If there is an edge to any other child, then it is irregular 
+
+        //Next, if there is an edge to any other child, then it is irregular 
         for_each_child(net, [&](const net_handle_t& child2) {
-            if (distance_in_parent(net, child, child2) != std::numeric_limits<size_t>::max() ||
-                distance_in_parent(net, child, flip(child2)) != std::numeric_limits<size_t>::max() ||
-                distance_in_parent(net, flip(child), child2) != std::numeric_limits<size_t>::max() ||
-                distance_in_parent(net, flip(child), flip(child2)) != std::numeric_limits<size_t>::max()) {
-                is_regular = false;
+            if (record_type == DISTANCED_SNARL) {
+                if (has_edge(child, child2) ||
+                    has_edge(child, flip(child2)) ||
+                    has_edge(flip(child), child2) ||
+                    has_edge(flip(child), flip(child2))) {
+                    is_regular = false;
+                    return false;
+                }
+                //Return true to continue traversing
+                return true;
+            } else {
+
+                //This may not have been filled in for an oversized snarl
+                child_start_in = is_node(child) ? get_handle(child, graph) : get_handle(get_bound(child, false, true), graph);
+                child_end_in = is_node(child) ? get_handle(flip(child), graph) : get_handle(get_bound(child, true, true), graph);
+                handlegraph::handle_t child2_start_in = is_node(child2) ? get_handle(child2, graph) : get_handle(get_bound(child2, false, true), graph);
+                handlegraph::handle_t child2_end_in = is_node(child2) ? get_handle(flip(child2), graph) : get_handle(get_bound(child2, true, true), graph);
+                if (graph->has_edge(child_start_in, child2_start_in) ||
+                    graph->has_edge(child_start_in, child2_end_in) ||
+                    graph->has_edge(child_end_in, child2_start_in) ||
+                    graph->has_edge(child_end_in, child2_end_in)) {
+                    is_regular = false;
+                }
                 return false;
             }
-            //Return true to continue traversing
-            return true;
         });
+
         //Return true to continue traversing
         return true;
     });
