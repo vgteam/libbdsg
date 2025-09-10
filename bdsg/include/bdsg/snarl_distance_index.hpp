@@ -533,9 +533,9 @@ public:
     net_handle_t get_snarl_child_from_rank(const net_handle_t& snarl, const size_t& rank) const;
 
     /// Does this net handle store distances?
-    bool has_distances(const net_handle_t& net) const;
+    bool net_has_distances(const net_handle_t& net) const;
     /// Does the distance index in general store distances?
-    bool has_distances() const;
+    bool graph_has_distances() const;
 
 protected:
     ///Internal implementation for for_each_child.
