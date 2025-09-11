@@ -422,7 +422,15 @@ public:
     ///Returns true if the given net handle refers to (a traversal of) a regular snarl
     ///A regular snarl is the same as a simple snarl, except that the children may be
     ///nested chains, rather than being restricted to nodes 
-    bool is_regular_snarl(const net_handle_t& net) const;
+    // If the distance index doesn't store distances then this needs a graph to check edges
+    // If allow_internal_loops is true, then a snarl can still be considered a regular snarl if one of 
+    // its children allows a path to change direction inside of it. For example, if a path leaving 
+    // the start node can reach the start node again, but not by taking any edges contained within  
+    // the netgraph of the snarl, then this snarl would be considered regular with allow_internal_loops=true,
+    // but irregular with allow_internal_loops=false 
+    // If there are not distances in the distance index, then it is computationally very expensive to check for internal loops,
+    // so this will throw an error if allow_internal_loops is false and there are no distances
+    bool is_regular_snarl(const net_handle_t& net, bool allow_internal_loops=false, const handlegraph::HandleGraph* graph = nullptr) const;
 
     ///Returns true if the given net handle refers to (a traversal of) a chain.
     bool is_chain(const net_handle_t& net) const;
