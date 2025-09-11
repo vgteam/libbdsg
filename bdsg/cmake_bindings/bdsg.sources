@@ -19,7 +19,7 @@ bdsg/internal/eades_algorithm.cpp
 bdsg/internal/base_packed_graph.cpp
 handlegraph/path_position_handle_graph.cpp
 bdsg/overlays/packed_path_position_overlay.cpp
-bdsg/overlays/packed_path_position_overlay_1.cpp
+bdsg/overlays/packed_reference_path_overlay.cpp
 bdsg/overlays/path_position_overlays.cpp
 bdsg/overlays/path_subgraph_overlay.cpp
 bdsg/overlays/reference_path_overlay.cpp

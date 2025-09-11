@@ -7,8 +7,8 @@
 
 namespace bdsg {
 
-PackedPositionOverlay::PackedPositionOverlay(const PathHandleGraph* graph, size_t steps_per_index) : graph(graph), steps_per_index(steps_per_index) {
-    index_path_positions();
+PackedPositionOverlay::PackedPositionOverlay(const PathHandleGraph* graph, const std::unordered_set<std::string>& extra_path_names, size_t steps_per_index) : graph(graph), steps_per_index(steps_per_index) {
+    index_path_positions(extra_path_names);
 }
 
 bool PackedPositionOverlay::has_node(nid_t node_id) const {
@@ -222,7 +222,7 @@ handle_t PackedPositionOverlay::get_underlying_handle(const handle_t& handle) co
     return handle;
 }
 
-void PackedPositionOverlay::index_path_positions() {
+void PackedPositionOverlay::index_path_positions(const std::unordered_set<std::string>& extra_path_names) {
     
     // I'm not sure how to pass handles to OMP tasks by value, when we'd return
     // out of the functions that created the tasks and are holding the tasks'
@@ -232,6 +232,17 @@ void PackedPositionOverlay::index_path_positions() {
     for_each_path_matching(nullptr, nullptr, nullptr, [&](const path_handle_t& path_handle) {
         path_handles.push_back(path_handle);
     });
+    if (!extra_path_names.empty()) {
+        // Skip any named paths we already visited
+        std::unordered_set<path_handle_t> seen(path_handles.begin(), path_handles.end());
+        for (auto& name : extra_path_names) {
+            path_handle_t path = get_path_handle(name);
+            if (!seen.count(path)) {
+                // But remember to visit any we haven't yet.
+                path_handles.push_back(path);
+            }
+        }
+    }
     
     // Then get the lengths of all the paths
     std::vector<size_t> path_lengths(path_handles.size(), 0);

@@ -19,8 +19,8 @@
 
 #ifndef BINDER_PYBIND11_TYPE_CASTER
 	#define BINDER_PYBIND11_TYPE_CASTER
-	PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>)
-	PYBIND11_DECLARE_HOLDER_TYPE(T, T*)
+	PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>, false)
+	PYBIND11_DECLARE_HOLDER_TYPE(T, T*, false)
 	PYBIND11_MAKE_OPAQUE(std::shared_ptr<void>)
 #endif
 
@@ -37,7 +37,7 @@ struct PyCallBack_handlegraph_HandleGraph : public handlegraph::HandleGraph {
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::has_node\"");
 	}
@@ -50,7 +50,7 @@ struct PyCallBack_handlegraph_HandleGraph : public handlegraph::HandleGraph {
 				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::get_handle\"");
 	}
@@ -63,7 +63,7 @@ struct PyCallBack_handlegraph_HandleGraph : public handlegraph::HandleGraph {
 				static pybind11::detail::override_caster_t<long long> caster;
 				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long long>(std::move(o));
+			return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::get_id\"");
 	}
@@ -76,7 +76,7 @@ struct PyCallBack_handlegraph_HandleGraph : public handlegraph::HandleGraph {
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::get_is_reverse\"");
 	}
@@ -89,7 +89,7 @@ struct PyCallBack_handlegraph_HandleGraph : public handlegraph::HandleGraph {
 				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::flip\"");
 	}
@@ -102,7 +102,7 @@ struct PyCallBack_handlegraph_HandleGraph : public handlegraph::HandleGraph {
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::get_length\"");
 	}
@@ -115,7 +115,7 @@ struct PyCallBack_handlegraph_HandleGraph : public handlegraph::HandleGraph {
 				static pybind11::detail::override_caster_t<std::string> caster;
 				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<std::string>(std::move(o));
+			return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::get_sequence\"");
 	}
@@ -128,7 +128,7 @@ struct PyCallBack_handlegraph_HandleGraph : public handlegraph::HandleGraph {
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::get_node_count\"");
 	}
@@ -141,7 +141,7 @@ struct PyCallBack_handlegraph_HandleGraph : public handlegraph::HandleGraph {
 				static pybind11::detail::override_caster_t<long long> caster;
 				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long long>(std::move(o));
+			return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::min_node_id\"");
 	}
@@ -154,7 +154,7 @@ struct PyCallBack_handlegraph_HandleGraph : public handlegraph::HandleGraph {
 				static pybind11::detail::override_caster_t<long long> caster;
 				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long long>(std::move(o));
+			return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::max_node_id\"");
 	}
@@ -167,7 +167,7 @@ struct PyCallBack_handlegraph_HandleGraph : public handlegraph::HandleGraph {
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return HandleGraph::get_degree(a0, a1);
 	}
@@ -180,7 +180,7 @@ struct PyCallBack_handlegraph_HandleGraph : public handlegraph::HandleGraph {
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return HandleGraph::has_edge(a0, a1);
 	}
@@ -193,7 +193,7 @@ struct PyCallBack_handlegraph_HandleGraph : public handlegraph::HandleGraph {
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return HandleGraph::get_edge_count();
 	}
@@ -206,7 +206,7 @@ struct PyCallBack_handlegraph_HandleGraph : public handlegraph::HandleGraph {
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return HandleGraph::get_total_length();
 	}
@@ -219,7 +219,7 @@ struct PyCallBack_handlegraph_HandleGraph : public handlegraph::HandleGraph {
 				static pybind11::detail::override_caster_t<char> caster;
 				return pybind11::detail::cast_ref<char>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<char>(std::move(o));
+			return pybind11::detail::cast_safe<char>(std::move(o));
 		}
 		return HandleGraph::get_base(a0, a1);
 	}
@@ -232,7 +232,7 @@ struct PyCallBack_handlegraph_HandleGraph : public handlegraph::HandleGraph {
 				static pybind11::detail::override_caster_t<std::string> caster;
 				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<std::string>(std::move(o));
+			return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		return HandleGraph::get_subsequence(a0, a1, a2);
 	}
@@ -245,7 +245,7 @@ struct PyCallBack_handlegraph_HandleGraph : public handlegraph::HandleGraph {
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::follow_edges_impl\"");
 	}
@@ -258,7 +258,7 @@ struct PyCallBack_handlegraph_HandleGraph : public handlegraph::HandleGraph {
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::for_each_handle_impl\"");
 	}
@@ -277,7 +277,7 @@ struct PyCallBack_handlegraph_RankedHandleGraph : public handlegraph::RankedHand
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"RankedHandleGraph::id_to_rank\"");
 	}
@@ -290,7 +290,7 @@ struct PyCallBack_handlegraph_RankedHandleGraph : public handlegraph::RankedHand
 				static pybind11::detail::override_caster_t<long long> caster;
 				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long long>(std::move(o));
+			return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"RankedHandleGraph::rank_to_id\"");
 	}
@@ -303,7 +303,7 @@ struct PyCallBack_handlegraph_RankedHandleGraph : public handlegraph::RankedHand
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return RankedHandleGraph::handle_to_rank(a0);
 	}
@@ -316,7 +316,7 @@ struct PyCallBack_handlegraph_RankedHandleGraph : public handlegraph::RankedHand
 				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		return RankedHandleGraph::rank_to_handle(a0);
 	}
@@ -329,7 +329,7 @@ struct PyCallBack_handlegraph_RankedHandleGraph : public handlegraph::RankedHand
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::has_node\"");
 	}
@@ -342,7 +342,7 @@ struct PyCallBack_handlegraph_RankedHandleGraph : public handlegraph::RankedHand
 				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::get_handle\"");
 	}
@@ -355,7 +355,7 @@ struct PyCallBack_handlegraph_RankedHandleGraph : public handlegraph::RankedHand
 				static pybind11::detail::override_caster_t<long long> caster;
 				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long long>(std::move(o));
+			return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::get_id\"");
 	}
@@ -368,7 +368,7 @@ struct PyCallBack_handlegraph_RankedHandleGraph : public handlegraph::RankedHand
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::get_is_reverse\"");
 	}
@@ -381,7 +381,7 @@ struct PyCallBack_handlegraph_RankedHandleGraph : public handlegraph::RankedHand
 				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::flip\"");
 	}
@@ -394,7 +394,7 @@ struct PyCallBack_handlegraph_RankedHandleGraph : public handlegraph::RankedHand
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::get_length\"");
 	}
@@ -407,7 +407,7 @@ struct PyCallBack_handlegraph_RankedHandleGraph : public handlegraph::RankedHand
 				static pybind11::detail::override_caster_t<std::string> caster;
 				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<std::string>(std::move(o));
+			return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::get_sequence\"");
 	}
@@ -420,7 +420,7 @@ struct PyCallBack_handlegraph_RankedHandleGraph : public handlegraph::RankedHand
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::get_node_count\"");
 	}
@@ -433,7 +433,7 @@ struct PyCallBack_handlegraph_RankedHandleGraph : public handlegraph::RankedHand
 				static pybind11::detail::override_caster_t<long long> caster;
 				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long long>(std::move(o));
+			return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::min_node_id\"");
 	}
@@ -446,7 +446,7 @@ struct PyCallBack_handlegraph_RankedHandleGraph : public handlegraph::RankedHand
 				static pybind11::detail::override_caster_t<long long> caster;
 				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long long>(std::move(o));
+			return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::max_node_id\"");
 	}
@@ -459,7 +459,7 @@ struct PyCallBack_handlegraph_RankedHandleGraph : public handlegraph::RankedHand
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return HandleGraph::get_degree(a0, a1);
 	}
@@ -472,7 +472,7 @@ struct PyCallBack_handlegraph_RankedHandleGraph : public handlegraph::RankedHand
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return HandleGraph::has_edge(a0, a1);
 	}
@@ -485,7 +485,7 @@ struct PyCallBack_handlegraph_RankedHandleGraph : public handlegraph::RankedHand
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return HandleGraph::get_edge_count();
 	}
@@ -498,7 +498,7 @@ struct PyCallBack_handlegraph_RankedHandleGraph : public handlegraph::RankedHand
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return HandleGraph::get_total_length();
 	}
@@ -511,7 +511,7 @@ struct PyCallBack_handlegraph_RankedHandleGraph : public handlegraph::RankedHand
 				static pybind11::detail::override_caster_t<char> caster;
 				return pybind11::detail::cast_ref<char>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<char>(std::move(o));
+			return pybind11::detail::cast_safe<char>(std::move(o));
 		}
 		return HandleGraph::get_base(a0, a1);
 	}
@@ -524,7 +524,7 @@ struct PyCallBack_handlegraph_RankedHandleGraph : public handlegraph::RankedHand
 				static pybind11::detail::override_caster_t<std::string> caster;
 				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<std::string>(std::move(o));
+			return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		return HandleGraph::get_subsequence(a0, a1, a2);
 	}
@@ -537,7 +537,7 @@ struct PyCallBack_handlegraph_RankedHandleGraph : public handlegraph::RankedHand
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::follow_edges_impl\"");
 	}
@@ -550,7 +550,7 @@ struct PyCallBack_handlegraph_RankedHandleGraph : public handlegraph::RankedHand
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::for_each_handle_impl\"");
 	}
@@ -569,7 +569,7 @@ struct PyCallBack_handlegraph_VectorizableHandleGraph : public handlegraph::Vect
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"VectorizableHandleGraph::node_vector_offset\"");
 	}
@@ -582,7 +582,7 @@ struct PyCallBack_handlegraph_VectorizableHandleGraph : public handlegraph::Vect
 				static pybind11::detail::override_caster_t<long long> caster;
 				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long long>(std::move(o));
+			return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"VectorizableHandleGraph::node_at_vector_offset\"");
 	}
@@ -595,7 +595,7 @@ struct PyCallBack_handlegraph_VectorizableHandleGraph : public handlegraph::Vect
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"VectorizableHandleGraph::edge_index\"");
 	}
@@ -608,7 +608,7 @@ struct PyCallBack_handlegraph_VectorizableHandleGraph : public handlegraph::Vect
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"RankedHandleGraph::id_to_rank\"");
 	}
@@ -621,7 +621,7 @@ struct PyCallBack_handlegraph_VectorizableHandleGraph : public handlegraph::Vect
 				static pybind11::detail::override_caster_t<long long> caster;
 				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long long>(std::move(o));
+			return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"RankedHandleGraph::rank_to_id\"");
 	}
@@ -634,7 +634,7 @@ struct PyCallBack_handlegraph_VectorizableHandleGraph : public handlegraph::Vect
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return RankedHandleGraph::handle_to_rank(a0);
 	}
@@ -647,7 +647,7 @@ struct PyCallBack_handlegraph_VectorizableHandleGraph : public handlegraph::Vect
 				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		return RankedHandleGraph::rank_to_handle(a0);
 	}
@@ -660,7 +660,7 @@ struct PyCallBack_handlegraph_VectorizableHandleGraph : public handlegraph::Vect
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::has_node\"");
 	}
@@ -673,7 +673,7 @@ struct PyCallBack_handlegraph_VectorizableHandleGraph : public handlegraph::Vect
 				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::get_handle\"");
 	}
@@ -686,7 +686,7 @@ struct PyCallBack_handlegraph_VectorizableHandleGraph : public handlegraph::Vect
 				static pybind11::detail::override_caster_t<long long> caster;
 				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long long>(std::move(o));
+			return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::get_id\"");
 	}
@@ -699,7 +699,7 @@ struct PyCallBack_handlegraph_VectorizableHandleGraph : public handlegraph::Vect
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::get_is_reverse\"");
 	}
@@ -712,7 +712,7 @@ struct PyCallBack_handlegraph_VectorizableHandleGraph : public handlegraph::Vect
 				static pybind11::detail::override_caster_t<struct handlegraph::handle_t> caster;
 				return pybind11::detail::cast_ref<struct handlegraph::handle_t>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
+			return pybind11::detail::cast_safe<struct handlegraph::handle_t>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::flip\"");
 	}
@@ -725,7 +725,7 @@ struct PyCallBack_handlegraph_VectorizableHandleGraph : public handlegraph::Vect
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::get_length\"");
 	}
@@ -738,7 +738,7 @@ struct PyCallBack_handlegraph_VectorizableHandleGraph : public handlegraph::Vect
 				static pybind11::detail::override_caster_t<std::string> caster;
 				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<std::string>(std::move(o));
+			return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::get_sequence\"");
 	}
@@ -751,7 +751,7 @@ struct PyCallBack_handlegraph_VectorizableHandleGraph : public handlegraph::Vect
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::get_node_count\"");
 	}
@@ -764,7 +764,7 @@ struct PyCallBack_handlegraph_VectorizableHandleGraph : public handlegraph::Vect
 				static pybind11::detail::override_caster_t<long long> caster;
 				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long long>(std::move(o));
+			return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::min_node_id\"");
 	}
@@ -777,7 +777,7 @@ struct PyCallBack_handlegraph_VectorizableHandleGraph : public handlegraph::Vect
 				static pybind11::detail::override_caster_t<long long> caster;
 				return pybind11::detail::cast_ref<long long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<long long>(std::move(o));
+			return pybind11::detail::cast_safe<long long>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::max_node_id\"");
 	}
@@ -790,7 +790,7 @@ struct PyCallBack_handlegraph_VectorizableHandleGraph : public handlegraph::Vect
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return HandleGraph::get_degree(a0, a1);
 	}
@@ -803,7 +803,7 @@ struct PyCallBack_handlegraph_VectorizableHandleGraph : public handlegraph::Vect
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		return HandleGraph::has_edge(a0, a1);
 	}
@@ -816,7 +816,7 @@ struct PyCallBack_handlegraph_VectorizableHandleGraph : public handlegraph::Vect
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return HandleGraph::get_edge_count();
 	}
@@ -829,7 +829,7 @@ struct PyCallBack_handlegraph_VectorizableHandleGraph : public handlegraph::Vect
 				static pybind11::detail::override_caster_t<unsigned long> caster;
 				return pybind11::detail::cast_ref<unsigned long>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<unsigned long>(std::move(o));
+			return pybind11::detail::cast_safe<unsigned long>(std::move(o));
 		}
 		return HandleGraph::get_total_length();
 	}
@@ -842,7 +842,7 @@ struct PyCallBack_handlegraph_VectorizableHandleGraph : public handlegraph::Vect
 				static pybind11::detail::override_caster_t<char> caster;
 				return pybind11::detail::cast_ref<char>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<char>(std::move(o));
+			return pybind11::detail::cast_safe<char>(std::move(o));
 		}
 		return HandleGraph::get_base(a0, a1);
 	}
@@ -855,7 +855,7 @@ struct PyCallBack_handlegraph_VectorizableHandleGraph : public handlegraph::Vect
 				static pybind11::detail::override_caster_t<std::string> caster;
 				return pybind11::detail::cast_ref<std::string>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<std::string>(std::move(o));
+			return pybind11::detail::cast_safe<std::string>(std::move(o));
 		}
 		return HandleGraph::get_subsequence(a0, a1, a2);
 	}
@@ -868,7 +868,7 @@ struct PyCallBack_handlegraph_VectorizableHandleGraph : public handlegraph::Vect
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::follow_edges_impl\"");
 	}
@@ -881,7 +881,7 @@ struct PyCallBack_handlegraph_VectorizableHandleGraph : public handlegraph::Vect
 				static pybind11::detail::override_caster_t<bool> caster;
 				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
 			}
-			else return pybind11::detail::cast_safe<bool>(std::move(o));
+			return pybind11::detail::cast_safe<bool>(std::move(o));
 		}
 		pybind11::pybind11_fail("Tried to call pure virtual function \"HandleGraph::for_each_handle_impl\"");
 	}

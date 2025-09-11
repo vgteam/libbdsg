@@ -13,6 +13,7 @@ project(bdsg)
 option(RUN_DOXYGEN "Build Doxygen files required for Breathe-based docs" ON)
 option(BUILD_PYTHON_BINDINGS "Compile the bdsg Python module" ON)
 option(OPTIMIZE "Build with optimization" ON)
+OPTION(USE_INSTALLED_LIBHANDLEGRAPH "Use the version of libhandlegraph installed on the system, if it exists, instead of the bundled version [default: off]" OFF)
 
 # TODO: We can only do out-of-source builds!
 # TODO: How do we error out meaningfully on in-source builds?
@@ -100,11 +101,13 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   endif()
   
   set (OpenMP_C "${CMAKE_C_COMPILER}")
-  set (OpenMP_C_FLAGS " -Xpreprocessor -fopenmp ${OMP_INCLUDE_FLAGS} ${OMP_LIB_FLAGS}")
+  set (OpenMP_C_FLAGS " -Xpreprocessor -fopenmp ${OMP_INCLUDE_FLAGS}")
   set (OpenMP_C_LIB_NAMES "libomp" "libgomp" "libiomp5")
   set (OpenMP_CXX "${CMAKE_CXX_COMPILER}")
-  set (OpenMP_CXX_FLAGS " -Xpreprocessor -fopenmp ${OMP_INCLUDE_FLAGS} ${OMP_LIB_FLAGS}")
+  set (OpenMP_CXX_FLAGS " -Xpreprocessor -fopenmp ${OMP_INCLUDE_FLAGS}")
   set (OpenMP_CXX_LIB_NAMES "libomp" "libgomp" "libiomp5")
+  set (OpenMP_EXE_LINKER_FLAGS "${OMP_LIB_FLAGS}")
+  set (OpenMP_SHARED_LINKER_FLAGS "${OMP_LIB_FLAGS}")
   set (OpenMP_libomp_LIBRARY "omp")
   set (OpenMP_libgomp_LIBRARY "gomp")
   set (OpenMP_libiomp5_LIBRARY "iomp5")
@@ -113,6 +116,7 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
   set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
   set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS} -lomp")
+  set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_SHARED_LINKER_FLAGS} -lomp")
   
   # Mac needs libomp when linking the library and a hint on where to look for them
   # Mac doesn't have $ORIGIN for RPaths. We might not be able to produce a working Mac wheel for Python bindings.
@@ -172,7 +176,18 @@ target_link_libraries(dynamic INTERFACE tsl::hopscotch_map)
 
 # libhandlegraph (full build using its cmake config)
 # Produces handlegraph_shared and handlegraph_static targets (as well as handlegraph_objs)
-add_subdirectory("${bdsg_DIR}/deps/libhandlegraph")
+if (USE_INSTALLED_LIBHANDLEGRAPH)
+    find_package(libhandlegraph)
+endif()
+if (${libhandlegraph_FOUND})
+    message("Using installed libhandlegraph")
+elseif (TARGET handlegraph_objs)
+    message("Using libhandlegraph built by another CMake")
+else ()
+    message("Using bundled libhandlegraph")
+    add_subdirectory("${bdsg_DIR}/deps/libhandlegraph")
+endif()
+
 
 # BBHash perfect hasher (header only)
 # Does not ship its own install step or define a target, so we make our own target
@@ -192,9 +207,9 @@ if (BUILD_PYTHON_BINDINGS)
 
     # Binder (because some generated bindings depend on headers packaged with Binder)
     # See also: Binder commit defined in make_and_run_binder.py which actually generates bindings.
-    set(BINDER_COMMIT b6cac94c78ade6c6ffcbda629ffa520561a31788)
+    set(BINDER_COMMIT 46ec0e88137d368eeedafecfa123004f8ad028d1)
     ExternalProject_Add(binder
-      GIT_REPOSITORY "https://github.com/adamnovak/binder.git"
+      GIT_REPOSITORY "https://github.com/RosettaCommons/binder.git"
       GIT_TAG "${BINDER_COMMIT}"
       # we don't actually build or install Binder via its CMake because we just need its headers
       #CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_DIR}
