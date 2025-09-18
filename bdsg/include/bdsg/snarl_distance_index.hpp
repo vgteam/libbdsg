@@ -541,7 +541,7 @@ public:
     net_handle_t get_snarl_child_from_rank(const net_handle_t& snarl, const size_t& rank) const;
 
     /// Does this net handle store distances?
-    bool has_distances_net(const net_handle_t& net) const;
+    bool has_distances(const net_handle_t& net) const;
     /// Does the distance index in general store distances?
     bool has_distances() const;
 
@@ -631,7 +631,7 @@ public:
                    ROOT_SNARL, DISTANCED_ROOT_SNARL,
                    CHAIN, DISTANCED_CHAIN, MULTICOMPONENT_CHAIN,
                    CHILDREN};
-    const static bool has_distances(record_t type) {
+    const static bool record_has_distances(record_t type) {
         return type == DISTANCED_NODE || type == DISTANCED_TRIVIAL_SNARL || type == DISTANCED_SIMPLE_SNARL
             || type == DISTANCED_SNARL || type == OVERSIZED_SNARL || type == DISTANCED_ROOT_SNARL 
             || type == DISTANCED_CHAIN || type == MULTICOMPONENT_CHAIN;

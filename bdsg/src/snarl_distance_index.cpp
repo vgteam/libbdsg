@@ -702,8 +702,8 @@ net_handle_t SnarlDistanceIndex::get_snarl_child_from_rank(const net_handle_t& s
     }
 }
 
-bool SnarlDistanceIndex::has_distances_net(const net_handle_t& net) const {
-    return has_distances(SnarlTreeRecord(net, &snarl_tree_records).get_record_type()); 
+bool SnarlDistanceIndex::has_distances(const net_handle_t& net) const {
+    return record_has_distances(SnarlTreeRecord(net, &snarl_tree_records).get_record_type()); 
 }
 
 bool SnarlDistanceIndex::has_distances() const {
@@ -3246,7 +3246,7 @@ size_t SnarlDistanceIndex::node_length(const net_handle_t& net) const {
 
 size_t SnarlDistanceIndex::minimum_length(const net_handle_t& net) const {
     auto record_type = SnarlTreeRecord(net, &snarl_tree_records).get_record_type();
-    if (!has_distances(record_type)) {
+    if (!record_has_distances(record_type)) {
         throw runtime_error("error: trying to access get distance in a distanceless index");
     } else if (record_type == DISTANCED_TRIVIAL_SNARL) {
         return TrivialSnarlRecord(get_record_offset(net), &snarl_tree_records).get_node_length(get_node_record_offset(net));
@@ -3275,7 +3275,7 @@ size_t SnarlDistanceIndex::chain_minimum_length(const net_handle_t& net) const {
 }
 size_t SnarlDistanceIndex::maximum_length(const net_handle_t& net) const {
     auto record_type = SnarlTreeRecord(net, &snarl_tree_records).get_record_type();
-    if (!has_distances(record_type)) {
+    if (!record_has_distances(record_type)) {
         throw runtime_error("error: trying to access get distance in a distanceless index");
     } else if (record_type == DISTANCED_TRIVIAL_SNARL &&
         get_node_record_offset(net) != 0) {
@@ -4195,14 +4195,14 @@ size_t SnarlDistanceIndex::SnarlRecord::record_size() {
 }
 
 size_t SnarlDistanceIndex::SnarlRecord::get_distance_start_start() const {
-    if (!has_distances(get_record_type())) {
+    if (!record_has_distances(get_record_type())) {
         throw runtime_error("error: trying to access get distance in a distanceless index");
     }
     size_t stored_value = (*records)->at(record_offset + SNARL_DISTANCE_START_START_OFFSET);
     return stored_value == 0 ? std::numeric_limits<size_t>::max() : stored_value - 1;
 }
 size_t SnarlDistanceIndex::SnarlRecord::get_distance_end_end() const {
-    if (!has_distances(get_record_type())) {
+    if (!record_has_distances(get_record_type())) {
         throw runtime_error("error: trying to access get distance in a distanceless index");
     }
     size_t stored_value = (*records)->at(record_offset + SNARL_DISTANCE_END_END_OFFSET);
@@ -4347,7 +4347,7 @@ void SnarlDistanceIndex::SnarlRecordWriter::set_distance(size_t rank1, bool righ
 }
 
 size_t SnarlDistanceIndex::SnarlRecord::get_distance(size_t rank1, bool right_side1, size_t rank2, bool right_side2) const {
-    if (!has_distances(get_record_type())) {
+    if (!record_has_distances(get_record_type())) {
         throw runtime_error("error: trying to access get distance in a distanceless index");
     }
     if (get_record_type() == OVERSIZED_SNARL) {
@@ -4490,7 +4490,7 @@ nid_t SnarlDistanceIndex::SimpleSnarlRecord::get_node_id(size_t rank) const {
     return (*records)->at(record_offset + SIMPLE_SNARL_RECORD_SIZE + ((rank-2)*2));
 }
 size_t SnarlDistanceIndex::SimpleSnarlRecord::get_node_length(size_t rank) const {
-    if (!has_distances(get_record_type())) {
+    if (!record_has_distances(get_record_type())) {
         throw runtime_error("error: trying to access get distance in a distanceless index");
     }
     rank = rank == std::numeric_limits<size_t>::max() ? node_rank : rank;
@@ -4505,7 +4505,7 @@ bool SnarlDistanceIndex::SimpleSnarlRecord::get_node_is_reversed(size_t rank) co
     return (*records)->at(record_offset + SIMPLE_SNARL_RECORD_SIZE + ((rank-2)*2) + 1) & 1;
 }
 size_t SnarlDistanceIndex::SimpleSnarlRecord::get_distance(size_t rank1, bool right_side1, size_t rank2, bool right_side2) const {
-    if (!has_distances(get_record_type())) {
+    if (!record_has_distances(get_record_type())) {
         throw runtime_error("error: trying to access get distance in a distanceless index");
     }
     if (rank1 > rank2) {
@@ -4606,7 +4606,7 @@ nid_t SnarlDistanceIndex::NodeRecord::get_node_id() const {
     return (*records)->at(record_offset + NODE_ID_OFFSET);
 }
 size_t SnarlDistanceIndex::NodeRecord::get_node_length() const {
-    if (!has_distances(get_record_type())) {
+    if (!record_has_distances(get_record_type())) {
         throw runtime_error("error: trying to access get distance in a distanceless index");
     }
     return get_min_length();
@@ -4622,28 +4622,28 @@ size_t SnarlDistanceIndex::NodeRecord::get_node_length() const {
     //}
 }
 size_t SnarlDistanceIndex::NodeRecord::get_distance_left_start() {
-    if (!has_distances(get_record_type())) {
+    if (!record_has_distances(get_record_type())) {
         throw runtime_error("error: trying to access get distance in a distanceless index");
     }
     size_t stored_value = (*records)->at(record_offset + NODE_DISTANCE_LEFT_START_OFFSET);
     return stored_value == 0 ? std::numeric_limits<size_t>::max() : stored_value - 1;
 }
 size_t SnarlDistanceIndex::NodeRecord::get_distance_right_start() {
-    if (!has_distances(get_record_type())) {
+    if (!record_has_distances(get_record_type())) {
         throw runtime_error("error: trying to access get distance in a distanceless index");
     }
     size_t stored_value = (*records)->at(record_offset + NODE_DISTANCE_RIGHT_START_OFFSET);
     return stored_value == 0 ? std::numeric_limits<size_t>::max() : stored_value - 1;
 }
 size_t SnarlDistanceIndex::NodeRecord::get_distance_left_end() {
-    if (!has_distances(get_record_type())) {
+    if (!record_has_distances(get_record_type())) {
         throw runtime_error("error: trying to access get distance in a distanceless index");
     }
     size_t stored_value = (*records)->at(record_offset + NODE_DISTANCE_LEFT_END_OFFSET);
     return stored_value == 0 ? std::numeric_limits<size_t>::max() : stored_value - 1;
 }
 size_t SnarlDistanceIndex::NodeRecord::get_distance_right_end() {
-    if (!has_distances(get_record_type())) {
+    if (!record_has_distances(get_record_type())) {
         throw runtime_error("error: trying to access get distance in a distanceless index");
     }
     size_t stored_value = (*records)->at(record_offset + NODE_DISTANCE_RIGHT_END_OFFSET);
@@ -4667,7 +4667,7 @@ size_t SnarlDistanceIndex::TrivialSnarlRecord::get_node_count() const {
 }
 
 tuple<size_t, size_t, size_t, size_t> SnarlDistanceIndex::TrivialSnarlRecord::get_chain_values(size_t node_rank) const {
-    if (!has_distances(get_record_type())) {
+    if (!record_has_distances(get_record_type())) {
         throw runtime_error("error: trying to access get distance in a distanceless index");
     }
 #ifdef debug_distances
@@ -4717,7 +4717,7 @@ tuple<size_t, size_t, size_t, size_t> SnarlDistanceIndex::TrivialSnarlRecord::ge
 
 }
 size_t SnarlDistanceIndex::TrivialSnarlRecord::get_max_prefix_sum(size_t node_rank) const {
-    if (!has_distances(get_record_type())) {
+    if (!record_has_distances(get_record_type())) {
         throw runtime_error("error: trying to access get distance in a distanceless index");
     }
 #ifdef debug_distances
@@ -4736,7 +4736,7 @@ size_t SnarlDistanceIndex::TrivialSnarlRecord::get_max_prefix_sum(size_t node_ra
 
 }
 size_t SnarlDistanceIndex::TrivialSnarlRecord::get_prefix_sum(size_t node_rank) const {
-    if (!has_distances(get_record_type())) {
+    if (!record_has_distances(get_record_type())) {
         throw runtime_error("error: trying to access get distance in a distanceless index");
     }
 #ifdef debug_distances
@@ -4752,7 +4752,7 @@ size_t SnarlDistanceIndex::TrivialSnarlRecord::get_prefix_sum(size_t node_rank) 
     }
 }
 size_t SnarlDistanceIndex::TrivialSnarlRecord::get_forward_loop(size_t node_rank) const {
-    if (!has_distances(get_record_type())) {
+    if (!record_has_distances(get_record_type())) {
         throw runtime_error("error: trying to access get distance in a distanceless index");
     }
 #ifdef debug_distances
@@ -4773,7 +4773,7 @@ size_t SnarlDistanceIndex::TrivialSnarlRecord::get_forward_loop(size_t node_rank
     return sum(forward_loop, right_offset*2);
 }
 size_t SnarlDistanceIndex::TrivialSnarlRecord::get_reverse_loop(size_t node_rank) const {
-    if (!has_distances(get_record_type())) {
+    if (!record_has_distances(get_record_type())) {
         throw runtime_error("error: trying to access get distance in a distanceless index");
     }
 #ifdef debug_distances
@@ -4789,7 +4789,7 @@ size_t SnarlDistanceIndex::TrivialSnarlRecord::get_reverse_loop(size_t node_rank
     return sum(reverse_loop, left_offset*2);
 }
 size_t SnarlDistanceIndex::TrivialSnarlRecord::get_chain_component(size_t node_rank, bool get_end) const {
-    if (!has_distances(get_record_type())) {
+    if (!record_has_distances(get_record_type())) {
         throw runtime_error("error: trying to access get distance in a distanceless index");
     }
     if (!get_end && node_rank == 0 && record_offset == ChainRecord(get_parent_record_offset(), records).get_first_node_offset()){
@@ -4800,7 +4800,7 @@ size_t SnarlDistanceIndex::TrivialSnarlRecord::get_chain_component(size_t node_r
 }
 
 size_t SnarlDistanceIndex::TrivialSnarlRecord::get_node_length(size_t node_rank) const {
-    if (!has_distances(get_record_type())) {
+    if (!record_has_distances(get_record_type())) {
         throw runtime_error("error: trying to access get distance in a distanceless index");
     }
     if (node_rank == 0) {
@@ -4883,25 +4883,25 @@ void SnarlDistanceIndex::NodeRecordWriter::set_rank_in_parent(size_t value) {
     (*records)->at(record_offset + NODE_RANK_OFFSET) = value;
 }
 void SnarlDistanceIndex::NodeRecordWriter::set_distance_left_start(size_t distance) {
-    if (!has_distances(get_record_type())) {
+    if (!record_has_distances(get_record_type())) {
         throw runtime_error("error: trying to access get distance in a distanceless index");
     }
     (*records)->at(record_offset + NODE_DISTANCE_LEFT_START_OFFSET) = (distance == std::numeric_limits<size_t>::max() ? 0 : distance + 1);
 }
 void SnarlDistanceIndex::NodeRecordWriter::set_distance_right_start(size_t distance) {
-    if (!has_distances(get_record_type())) {
+    if (!record_has_distances(get_record_type())) {
         throw runtime_error("error: trying to access get distance in a distanceless index");
     }
     (*records)->at(record_offset + NODE_DISTANCE_RIGHT_START_OFFSET) = (distance == std::numeric_limits<size_t>::max() ? 0 : distance + 1);
 }
 void SnarlDistanceIndex::NodeRecordWriter::set_distance_left_end(size_t distance) {
-    if (!has_distances(get_record_type())) {
+    if (!record_has_distances(get_record_type())) {
         throw runtime_error("error: trying to access get distance in a distanceless index");
     }
     (*records)->at(record_offset + NODE_DISTANCE_LEFT_END_OFFSET) = (distance == std::numeric_limits<size_t>::max() ? 0 : distance + 1);
 }
 void SnarlDistanceIndex::NodeRecordWriter::set_distance_right_end(size_t distance) {
-    if (!has_distances(get_record_type())) {
+    if (!record_has_distances(get_record_type())) {
         throw runtime_error("error: trying to access get distance in a distanceless index");
     }
     (*records)->at(record_offset + NODE_DISTANCE_RIGHT_END_OFFSET) = (distance == std::numeric_limits<size_t>::max() ? 0 : distance + 1);
@@ -4943,7 +4943,7 @@ void SnarlDistanceIndex::TrivialSnarlRecordWriter::set_node_count(size_t value) 
     (*records)->at(record_offset+TRIVIAL_SNARL_NODE_COUNT_OFFSET)=value;
 }
 void SnarlDistanceIndex::TrivialSnarlRecordWriter::set_prefix_sum(size_t value) const {
-    if (!has_distances(get_record_type())) {
+    if (!record_has_distances(get_record_type())) {
         throw runtime_error("error: trying to access get distance in a distanceless index");
     }
 #ifdef debug_distance_indexing
@@ -4954,7 +4954,7 @@ void SnarlDistanceIndex::TrivialSnarlRecordWriter::set_prefix_sum(size_t value) 
     (*records)->at(record_offset + TRIVIAL_SNARL_PREFIX_SUM_OFFSET) = value;
 }
 void SnarlDistanceIndex::TrivialSnarlRecordWriter::set_max_prefix_sum(size_t value) const {
-    if (!has_distances(get_record_type())) {
+    if (!record_has_distances(get_record_type())) {
         throw runtime_error("error: trying to access get distance in a distanceless index");
     }
 #ifdef debug_distance_indexing
@@ -4965,7 +4965,7 @@ void SnarlDistanceIndex::TrivialSnarlRecordWriter::set_max_prefix_sum(size_t val
     (*records)->at(record_offset + TRIVIAL_SNARL_MAX_PREFIX_SUM_OFFSET) = value;
 }
 void SnarlDistanceIndex::TrivialSnarlRecordWriter::set_forward_loop(size_t value) const { 
-    if (!has_distances(get_record_type())) {
+    if (!record_has_distances(get_record_type())) {
         throw runtime_error("error: trying to access get distance in a distanceless index");
     }
 #ifdef debug_distance_indexing
@@ -4976,7 +4976,7 @@ void SnarlDistanceIndex::TrivialSnarlRecordWriter::set_forward_loop(size_t value
     (*records)->at(record_offset + TRIVIAL_SNARL_FORWARD_LOOP_OFFSET) = value;
 }
 void SnarlDistanceIndex::TrivialSnarlRecordWriter::set_reverse_loop(size_t value) const {
-    if (!has_distances(get_record_type())) {
+    if (!record_has_distances(get_record_type())) {
         throw runtime_error("error: trying to access get distance in a distanceless index");
     }
 #ifdef debug_distance_indexing
@@ -4990,7 +4990,7 @@ void SnarlDistanceIndex::TrivialSnarlRecordWriter::set_reverse_loop(size_t value
     
 }
 void SnarlDistanceIndex::TrivialSnarlRecordWriter::set_chain_component(size_t value) const {
-    if (!has_distances(get_record_type())) {
+    if (!record_has_distances(get_record_type())) {
         throw runtime_error("error: trying to access get distance in a distanceless index");
     }
 #ifdef debug_distance_indexing
@@ -5089,7 +5089,7 @@ size_t SnarlDistanceIndex::ChainRecord::get_distance(size_t rank1, bool left_sid
     size_t prefix_sum1, size_t forward_loop1, size_t reverse_loop1, size_t component1, size_t end_component1,
     size_t rank2, bool left_side2, size_t node_length2,
     size_t prefix_sum2, size_t forward_loop2, size_t reverse_loop2, size_t component2, size_t end_component2) const { 
-    if (!has_distances(get_record_type())) {
+    if (!record_has_distances(get_record_type())) {
         throw runtime_error("error: trying to access get distance in a distanceless index");
     }
 
@@ -5173,7 +5173,7 @@ size_t SnarlDistanceIndex::ChainRecord::get_distance_taking_chain_loop(size_t ra
     size_t prefix_sum1, size_t forward_loop1, size_t reverse_loop1, size_t component1,
     size_t rank2, bool left_side2, size_t node_length2,
     size_t prefix_sum2, size_t forward_loop2, size_t reverse_loop2, size_t component2) const {
-    if (!has_distances(get_record_type())) {
+    if (!record_has_distances(get_record_type())) {
         throw runtime_error("error: trying to access get distance in a distanceless index");
     }
     //This is only called by get_distance, so the nodes should be ordered
@@ -5252,28 +5252,28 @@ size_t SnarlDistanceIndex::ChainRecord::get_distance_taking_chain_loop(size_t ra
 }
 
 size_t SnarlDistanceIndex::ChainRecord::get_distance_left_start() {
-    if (!has_distances(get_record_type())) {
+    if (!record_has_distances(get_record_type())) {
         throw runtime_error("error: trying to access get distance in a distanceless index");
     }
     size_t stored_value = (*records)->at(record_offset + CHAIN_DISTANCE_LEFT_START_OFFSET);
     return stored_value == 0 ? std::numeric_limits<size_t>::max() : stored_value - 1;
 }
 size_t SnarlDistanceIndex::ChainRecord::get_distance_right_start() {
-    if (!has_distances(get_record_type())) {
+    if (!record_has_distances(get_record_type())) {
         throw runtime_error("error: trying to access get distance in a distanceless index");
     }
     size_t stored_value = (*records)->at(record_offset + CHAIN_DISTANCE_RIGHT_START_OFFSET);
     return stored_value == 0 ? std::numeric_limits<size_t>::max() : stored_value - 1;
 }
 size_t SnarlDistanceIndex::ChainRecord::get_distance_left_end() {
-    if (!has_distances(get_record_type())) {
+    if (!record_has_distances(get_record_type())) {
         throw runtime_error("error: trying to access get distance in a distanceless index");
     }
     size_t stored_value = (*records)->at(record_offset + CHAIN_DISTANCE_LEFT_END_OFFSET);
     return stored_value == 0 ? std::numeric_limits<size_t>::max() : stored_value - 1;
 }
 size_t SnarlDistanceIndex::ChainRecord::get_distance_right_end() {
-    if (!has_distances(get_record_type())) {
+    if (!record_has_distances(get_record_type())) {
         throw runtime_error("error: trying to access get distance in a distanceless index");
     }
     size_t stored_value = (*records)->at(record_offset + CHAIN_DISTANCE_RIGHT_END_OFFSET);
@@ -5513,25 +5513,25 @@ void SnarlDistanceIndex::ChainRecordWriter::set_last_child_offset(size_t offset,
 }
 
 void SnarlDistanceIndex::ChainRecordWriter::set_distance_left_start(size_t distance) {
-    if (!has_distances(get_record_type())) {
+    if (!record_has_distances(get_record_type())) {
         throw runtime_error("error: trying to access get distance in a distanceless index");
     }
     (*records)->at(record_offset + CHAIN_DISTANCE_LEFT_START_OFFSET) = (distance == std::numeric_limits<size_t>::max() ? 0 : distance + 1);
 }
 void SnarlDistanceIndex::ChainRecordWriter::set_distance_right_start(size_t distance) {
-    if (!has_distances(get_record_type())) {
+    if (!record_has_distances(get_record_type())) {
         throw runtime_error("error: trying to access get distance in a distanceless index");
     }
     (*records)->at(record_offset + CHAIN_DISTANCE_RIGHT_START_OFFSET) = (distance == std::numeric_limits<size_t>::max() ? 0 : distance + 1);
 }
 void SnarlDistanceIndex::ChainRecordWriter::set_distance_left_end(size_t distance) {
-    if (!has_distances(get_record_type())) {
+    if (!record_has_distances(get_record_type())) {
         throw runtime_error("error: trying to access get distance in a distanceless index");
     }
     (*records)->at(record_offset + CHAIN_DISTANCE_LEFT_END_OFFSET) = (distance == std::numeric_limits<size_t>::max() ? 0 : distance + 1);
 }
 void SnarlDistanceIndex::ChainRecordWriter::set_distance_right_end(size_t distance) {
-    if (!has_distances(get_record_type())) {
+    if (!record_has_distances(get_record_type())) {
         throw runtime_error("error: trying to access get distance in a distanceless index");
     }
     (*records)->at(record_offset + CHAIN_DISTANCE_RIGHT_END_OFFSET) = (distance == std::numeric_limits<size_t>::max() ? 0 : distance + 1);
