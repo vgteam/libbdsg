@@ -702,7 +702,7 @@ net_handle_t SnarlDistanceIndex::get_snarl_child_from_rank(const net_handle_t& s
     }
 }
 
-bool SnarlDistanceIndex::has_distances(const net_handle_t& net) const {
+bool SnarlDistanceIndex::has_distances_net(const net_handle_t& net) const {
     return has_distances(SnarlTreeRecord(net, &snarl_tree_records).get_record_type()); 
 }
 
