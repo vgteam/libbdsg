@@ -6343,7 +6343,20 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                             chain_node_i++;
 
 
-                        } else {
+                        } else if (child_record_index.first == TEMP_ZIA_SNARL) {
+                            // This is where you take the temporary snarl record and put it in the actual distance index
+                            // You can probably just copy the else code block
+
+                            //Get the temporary snarl record
+                            const TemporaryDistanceIndex::TemporarySnarlRecord& temp_snarl_record =
+                                 temp_index->temp_snarl_records[child_record_index.second];
+                                 
+
+                                // Make the snarl record writer for writing the actual vector
+                                ZiaSnarlRecordWriter snarl_record_constructor =
+                                    chain_record_constructor.add_snarl(temp_snarl_record.node_count, record_type, last_child_offset.first);
+
+                        }else {
                             //Add a snarl to the chain
                             assert(child_record_index.first == TEMP_SNARL);
                             //Get the temporary snarl record

@@ -910,6 +910,16 @@ private:
     const static size_t SNARL_DISTANCE_END_END_OFFSET = 6;
     const static size_t SNARL_CHILD_RECORD_OFFSET = 7;
 
+    const static size_t ZIA_SNARL_RECORD_SIZE = 9;
+    const static size_t ZIA_DISTANCE_VECTOR_LENGTH_OFFSET = 1;
+    const static size_t ZIA_SNARL_NODE_COUNT_OFFSET = 1;
+    const static size_t ZIA_SNARL_PARENT_OFFSET = 2;
+    const static size_t ZIA_SNARL_MIN_LENGTH_OFFSET = 3;
+    const static size_t ZIA_SNARL_MAX_LENGTH_OFFSET = 4;
+    const static size_t ZIA_SNARL_DISTANCE_START_START_OFFSET = 5;
+    const static size_t ZIA_SNARL_DISTANCE_END_END_OFFSET = 6;
+    const static size_t ZIA_SNARL_CHILD_RECORD_OFFSET = 7;
+
     /*A simple snarl for bubbles with only nodes with two edges, one to each bound
      * [simple snarl tag, node count+length, parent, [node id, node length]xN
     */
@@ -934,6 +944,7 @@ private:
                      "TRIVIAL_SNARL", "DISTANCED_TRIVIAL_SNARL",
                      "SNARL", "DISTANCED_SNARL", "SIMPLE_SNARL", "OVERSIZED_SNARL", 
                      "ROOT_SNARL", "DISTANCED_ROOT_SNARL",
+                     "ZIA_SNARL", 
                      "CHAIN", "DISTANCED_CHAIN", "MULTICOMPONENT_CHAIN",
                      "CHILDREN"};
     vector<std::string> connectivity_t_as_string = { "START_START", "START_END", "START_TIP", 
@@ -1302,6 +1313,63 @@ private:
         void add_child(size_t pointer);
     };
 
+    // SNarl record for Zia
+    // THis can probably inherit functions from SnarlRecord as long as all the _OFFSET's are the same
+    struct ZiaSnarlRecord : SnarlRecord, SnarlTreeRecord {
+
+
+        ZiaSnarlRecord() {};
+        ZiaSnarlRecord (size_t pointer, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records);
+
+        ZiaSnarlRecord (net_handle_t net, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records);
+
+        //How big is the entire snarl record?
+        static size_t distance_vector_size(record_t type, size_t node_count);
+        //TODO: Get the length of the vector
+        static size_t record_size (record_t type, size_t node_count) ;
+        size_t record_size() ;
+
+        //Get the distances between two node sides in the graph
+        //Ranks identify which node, sides indicate node side: false for left, true for right
+        size_t get_distance(size_t rank1, bool right_side1, size_t rank2, bool right_side2) const;
+
+        size_t get_distance_start_start() const;
+        size_t get_distance_end_end() const;
+
+        size_t get_node_count() const;
+
+        //Get the offset of the list of children
+        size_t get_child_record_pointer() const;
+
+        bool for_each_child(const std::function<bool(const net_handle_t&)>& iteratee) const;
+
+    };
+
+    struct ZiaSnarlRecordWriter : ZiaSnarlRecord, SnarlRecordWriter, SnarlTreeRecordWriter {
+        using SnarlTreeRecordWriter::records;
+        using SnarlTreeRecordWriter::record_offset;
+        using SnarlTreeRecordWriter::get_record_type;
+
+
+        ZiaSnarlRecordWriter();
+
+        ZiaSnarlRecordWriter (size_t node_count, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, record_t type);
+        ZiaSnarlRecordWriter(bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, size_t pointer);
+
+        void set_distance_start_start(size_t value);
+        void set_distance_end_end(size_t value) ;
+
+        //Node count is the number of nodes in the snarl, not including boundary nodes
+        void set_node_count(size_t node_count);
+
+        void set_child_record_pointer(size_t pointer) ;
+
+        //Add a reference to a child of this snarl. Assumes that the index is completed up
+        //to here
+        void add_child(size_t pointer);
+    };
+
+
     struct SimpleSnarlRecord : SnarlTreeRecord {
 
         //The node offset is set if we're considering this to be a node, not a snarl
@@ -1625,6 +1693,42 @@ public:
             bool include_distances = true;
             vector<pair<temp_record_t, size_t>> children; //All children, nodes and chains, in arbitrary order
             unordered_set<size_t> tippy_child_ranks; //The ranks of children that are tips
+            //vector<tuple<pair<size_t, bool>, pair<size_t, bool>, size_t>> distances;
+            unordered_map<pair<pair<size_t, bool>, pair<size_t, bool>>, size_t> distances;
+                     
+            //How long is the record going to be in the distance index?
+            size_t get_max_record_length() const ;
+        };
+
+        struct TemporaryZiaSnarlRecord : TemporaryRecord{
+            pair<temp_record_t, size_t> parent;
+            handlegraph::nid_t start_node_id;
+            size_t start_node_length=0;
+            handlegraph::nid_t end_node_id;
+            size_t end_node_length=0;
+            size_t node_count=0;
+            size_t min_length = std::numeric_limits<size_t>::max(); //Not including boundary nodes
+            size_t max_length = 0;
+            size_t max_distance = 0;
+            size_t tree_depth = 0; //TODO: This isn't used but I left it because I couldn't get the python bindings to build when I changed it
+
+            size_t distance_start_start = std::numeric_limits<size_t>::max();
+            size_t distance_end_end = std::numeric_limits<size_t>::max();
+
+            size_t rank_in_parent=0;
+
+            bool reversed_in_parent;
+            bool start_node_rev;
+            bool end_node_rev;
+            bool is_trivial;
+            bool is_simple;
+            bool is_tip = false;
+            bool is_root_snarl = false;
+            bool include_distances = true;
+            vector<pair<temp_record_t, size_t>> children; //All children, nodes and chains, in arbitrary order
+            unordered_set<size_t> tippy_child_ranks; //The ranks of children that are tips
+
+            //TODO: Replace this with whatever you need
             //vector<tuple<pair<size_t, bool>, pair<size_t, bool>, size_t>> distances;
             unordered_map<pair<pair<size_t, bool>, pair<size_t, bool>>, size_t> distances;
                      
