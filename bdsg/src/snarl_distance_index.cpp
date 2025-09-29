@@ -702,6 +702,28 @@ net_handle_t SnarlDistanceIndex::get_snarl_child_from_rank(const net_handle_t& s
     }
 }
 
+size_t SnarlDistanceIndex::get_snarl_child_count(const net_handle_t& snarl) const {
+
+    //Get the number of children depending on the type of record
+    SnarlTreeRecord record(snarl, &snarl_tree_records);
+
+    if (record.get_record_type() == SNARL ||
+                record.get_record_type() == DISTANCED_SNARL||
+                record.get_record_type() == OVERSIZED_SNARL  ){
+
+        return SnarlRecord(snarl, &snarl_tree_records).get_node_count();
+
+    } else if (record.get_record_type() == SIMPLE_SNARL ||
+                record.get_record_type() == DISTANCED_SIMPLE_SNARL) {
+
+        return SimpleSnarlRecord(snarl, &snarl_tree_records).get_node_count();
+
+    } else {
+        throw runtime_error("error: getting the snarl child count of the wrong type of a non-snarl");
+    }
+}
+
+
 bool SnarlDistanceIndex::has_distances(const net_handle_t& net) const {
     return has_distances(SnarlTreeRecord(net, &snarl_tree_records).get_record_type()); 
 }
@@ -5881,24 +5903,10 @@ void SnarlDistanceIndex::print_snarl_stats() const {
             //Iteratee for a snarl child
             SnarlTreeRecord record(snarl_child, &snarl_tree_records);
 
-            //Get the number of children depending on the type of record
-            size_t child_count;
-            if (record.get_record_type() == SNARL ||
-                        record.get_record_type() == DISTANCED_SNARL||
-                        record.get_record_type() == OVERSIZED_SNARL  
-                        ){
- 
-                child_count = SnarlRecord(snarl_child, &snarl_tree_records).get_node_count();
-            } else if (record.get_record_type() == SIMPLE_SNARL ||
-                        record.get_record_type() == DISTANCED_SIMPLE_SNARL) {
-                child_count = SimpleSnarlRecord(snarl_child, &snarl_tree_records).get_node_count();
-            } else {
-                throw runtime_error("error: getting the snarl child count of the wrong type of record");
-            }
             //Print the stats
             cout << record.get_start_id() << "\t" 
                  << record.get_end_id() << "\t" 
-                 << child_count << "\t" 
+                 << get_snarl_child_count(snarl_child) << "\t" 
                  << get_depth(snarl_child) << endl; 
             return true;
         }, 
