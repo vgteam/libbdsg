@@ -540,6 +540,9 @@ public:
     ///For 0 or 1, returns the sentinel facing in. Otherwise return the child as a chain going START_END
     net_handle_t get_snarl_child_from_rank(const net_handle_t& snarl, const size_t& rank) const;
 
+    /// How many children does this snarl have?
+    size_t get_snarl_child_count(const net_handle_t& snarl) const;
+
     /// Does this net handle store distances?
     bool has_distances(const net_handle_t& net) const;
     /// Does the distance index in general store distances?
