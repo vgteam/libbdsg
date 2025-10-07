@@ -1615,6 +1615,11 @@ public:
 
             size_t rank_in_parent=0;
 
+            // How many bits do we need to store the largest thing in this record?
+            // Since this is usually the maximum distance, which we already check, for now only do this for
+            // the simple snarl records, which need 11 + 11 + number of bits for the number of children
+            size_t max_bits = 0;
+
             bool reversed_in_parent;
             bool start_node_rev;
             bool end_node_rev;
