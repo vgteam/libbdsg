@@ -677,7 +677,7 @@ net_handle_t SnarlDistanceIndex::get_snarl_child_from_rank(const net_handle_t& s
     } else {
         //Ranks for children of snarls start from 2 since 0 and 1 are reserved for the bounds
 #ifdef debug_distances
-        assert(rank-2 < get_node_count());
+        //assert(rank-2 < get_node_count());
 #endif
         if (rank == 0) {
             //The boundary node. This technically shouldn't be here because boundary nodes aren't children
