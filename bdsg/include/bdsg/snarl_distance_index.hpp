@@ -547,7 +547,7 @@ public:
 
 protected:
     ///Internal implementation for for_each_child.
-    bool for_each_child_impl(const net_handle_t& traversal, const std::function<bool(const net_handle_t&)>& iteratee) const;
+    bool for_each_child_impl(const net_handle_t& traversal, const std::function<bool(const net_handle_t&)>& iteratee, bool parallel=false) const;
 
     ///Internal implementation for for_each_traversal.
     bool for_each_traversal_impl(const net_handle_t& item, const std::function<bool(const net_handle_t&)>& iteratee) const;
@@ -1125,7 +1125,7 @@ private:
         size_t get_max_tree_depth() const {return (*records)->at(record_offset+MAX_TREE_DEPTH_OFFSET);}
         size_t get_min_node_id() const {return (*records)->at(record_offset+MIN_NODE_ID_OFFSET);}
         SnarlTreeRecord get_component_record(size_t component_number) const {return SnarlTreeRecord((*records)->at(record_offset+2+component_number), records);}
-        bool for_each_child(const std::function<bool(const handlegraph::net_handle_t&)>& iteratee) const;
+        bool for_each_child(const std::function<bool(const handlegraph::net_handle_t&)>& iteratee, bool parallel = false) const;
 
     };
 
@@ -1272,7 +1272,7 @@ private:
         //Get the offset of the list of children
         size_t get_child_record_pointer() const;
 
-        bool for_each_child(const std::function<bool(const net_handle_t&)>& iteratee) const;
+        bool for_each_child(const std::function<bool(const net_handle_t&)>& iteratee, bool parallel = false) const;
 
     };
 
@@ -1330,7 +1330,7 @@ private:
 
 
         net_handle_t get_child_from_rank(const size_t& rank) const;
-        bool for_each_child(const std::function<bool(const net_handle_t&)>& iteratee) const;
+        bool for_each_child(const std::function<bool(const net_handle_t&)>& iteratee, bool parallel = false) const;
 
     };
     struct SimpleSnarlRecordWriter : SimpleSnarlRecord , SnarlTreeRecordWriter {
@@ -1412,7 +1412,7 @@ private:
         //The next handle will be pointing in the direction that we just moved.
         net_handle_t get_next_child(const net_handle_t& net_handle, bool go_left) const;
 
-        bool for_each_child(const std::function<bool(const net_handle_t&)>& iteratee) const;
+        bool for_each_child(const std::function<bool(const net_handle_t&)>& iteratee, bool parallel = false) const;
 
     };
 

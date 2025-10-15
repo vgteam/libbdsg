@@ -6,6 +6,7 @@
 #include "bdsg/snarl_distance_index.hpp"
 #include <jansson.h>
 #include <arpa/inet.h>
+#include <atomic>
 
 using namespace std;
 using namespace handlegraph;
@@ -711,7 +712,7 @@ bool SnarlDistanceIndex::has_distances() const {
     return has_distances(get_node_net_handle(root_record.get_min_node_id())); 
 }
 
-bool SnarlDistanceIndex::for_each_child_impl(const net_handle_t& traversal, const std::function<bool(const net_handle_t&)>& iteratee) const {
+bool SnarlDistanceIndex::for_each_child_impl(const net_handle_t& traversal, const std::function<bool(const net_handle_t&)>& iteratee, bool parallel) const {
 #ifdef debug_snarl_traversal
     cerr << "Go through children of " << net_handle_as_string(traversal) << endl;
 #endif
@@ -722,7 +723,7 @@ bool SnarlDistanceIndex::for_each_child_impl(const net_handle_t& traversal, cons
     net_handle_record_t handle_type = get_handle_type(traversal);
     if (record_type == ROOT_HANDLE) {
         RootRecord root_record(get_root(), &snarl_tree_records);
-        return root_record.for_each_child(iteratee);
+        return root_record.for_each_child(iteratee, parallel);
     } else if (SnarlTreeRecord(traversal, &snarl_tree_records).get_record_type() == SIMPLE_SNARL ||
         SnarlTreeRecord(traversal, &snarl_tree_records).get_record_type() == DISTANCED_SIMPLE_SNARL ) {
         //If this is a simple snarl then it is a bit different
@@ -732,16 +733,16 @@ bool SnarlDistanceIndex::for_each_child_impl(const net_handle_t& traversal, cons
             return iteratee(get_net_handle_from_values(get_record_offset(traversal), get_connectivity(traversal), 
                                            NODE_HANDLE, get_node_record_offset(traversal)));
         } else if (handle_type == SNARL_HANDLE) {
-            return SimpleSnarlRecord(traversal, &snarl_tree_records).for_each_child(iteratee);
+            return SimpleSnarlRecord(traversal, &snarl_tree_records).for_each_child(iteratee, parallel);
         } else { 
             throw runtime_error("error: Looking for children of a node or sentinel in a simple snarl");
         }
     } else if (record_type == SNARL_HANDLE) {
         SnarlRecord snarl_record(traversal, &snarl_tree_records);
-        return snarl_record.for_each_child(iteratee);
+        return snarl_record.for_each_child(iteratee, parallel);
     } else if (record_type == CHAIN_HANDLE) {
         ChainRecord chain_record(traversal, &snarl_tree_records);
-        return chain_record.for_each_child(iteratee);
+        return chain_record.for_each_child(iteratee, parallel);
     } else  if (record_type == NODE_HANDLE && handle_type == CHAIN_HANDLE) {
         //This is actually a node but we're pretending it's a chain
 #ifdef debug_snarl_traversal
@@ -4043,37 +4044,81 @@ SnarlDistanceIndex::RootRecord::RootRecord (net_handle_t net, const bdsg::yomo::
 
 
 
-bool SnarlDistanceIndex::RootRecord::for_each_child(const std::function<bool(const handlegraph::net_handle_t&)>& iteratee) const {
+bool SnarlDistanceIndex::RootRecord::for_each_child(const std::function<bool(const handlegraph::net_handle_t&)>& iteratee, bool parallel) const {
     assert(record_offset == 0);
-    size_t connected_component_count = get_connected_component_count();
-    for (size_t i = 0 ; i < connected_component_count ; i++) {
+    if (!parallel) {
+        size_t connected_component_count = get_connected_component_count();
+        for (size_t i = 0 ; i < connected_component_count ; i++) {
 
-        size_t child_offset = (*records)->at(record_offset + ROOT_RECORD_SIZE + i);
-        net_handle_record_t type = SnarlTreeRecord(child_offset, records).get_record_handle_type();
-        record_t record_type = SnarlTreeRecord(child_offset, records).get_record_type();
+            size_t child_offset = (*records)->at(record_offset + ROOT_RECORD_SIZE + i);
+            net_handle_record_t type = SnarlTreeRecord(child_offset, records).get_record_handle_type();
+            record_t record_type = SnarlTreeRecord(child_offset, records).get_record_type();
 
 
-        if (record_type == ROOT_SNARL || record_type == DISTANCED_ROOT_SNARL) {
-            //This is a bunch of root components that are connected, so go through each
-            SnarlRecord snarl_record(child_offset, records);
-            if (! snarl_record.for_each_child(iteratee)) {
-                return false;
-            }
-        } else {
-            //Otherwise, it is a separate connected component
-            net_handle_t child_handle;
-            if (type == NODE_HANDLE) {
-                //If this child is a node, then pretend it's a chain
-                child_handle = get_net_handle_from_values(child_offset, START_END, CHAIN_HANDLE);
+            if (record_type == ROOT_SNARL || record_type == DISTANCED_ROOT_SNARL) {
+                //This is a bunch of root components that are connected, so go through each
+                SnarlRecord snarl_record(child_offset, records);
+                if (! snarl_record.for_each_child(iteratee)) {
+                    return false;
+                }
             } else {
-                child_handle =  get_net_handle_from_values(child_offset, START_END, type);
-            }
-            if (!iteratee(child_handle)) {
-                return false;
+                //Otherwise, it is a separate connected component
+                net_handle_t child_handle;
+                if (type == NODE_HANDLE) {
+                    //If this child is a node, then pretend it's a chain
+                    child_handle = get_net_handle_from_values(child_offset, START_END, CHAIN_HANDLE);
+                } else {
+                    child_handle =  get_net_handle_from_values(child_offset, START_END, type);
+                }
+                if (!iteratee(child_handle)) {
+                    return false;
+                }
             }
         }
+        return true;
+    } else {
+        size_t connected_component_count = get_connected_component_count();
+        bool keep_going = true;
+        #pragma omp parallel shared(keep_going)
+        {
+        #pragma omp single
+        {
+            for (size_t i = 0 ; keep_going &&  i < connected_component_count ; i++) {
+                #pragma omp task
+                {
+
+                    size_t child_offset = (*records)->at(record_offset + ROOT_RECORD_SIZE + i);
+                    net_handle_record_t type = SnarlTreeRecord(child_offset, records).get_record_handle_type();
+                    record_t record_type = SnarlTreeRecord(child_offset, records).get_record_type();
+
+
+                    if (record_type == ROOT_SNARL || record_type == DISTANCED_ROOT_SNARL) {
+                        //This is a bunch of root components that are connected, so go through each
+                        SnarlRecord snarl_record(child_offset, records);
+                        bool thread_keep_going = snarl_record.for_each_child(iteratee);
+                        #pragma omp atomic
+                        keep_going = keep_going & thread_keep_going; 
+                        // OMP needs this to be bitwise AND. Copied this from libbdsg
+
+                    } else {
+                        //Otherwise, it is a separate connected component
+                        net_handle_t child_handle;
+                        if (type == NODE_HANDLE) {
+                            //If this child is a node, then pretend it's a chain
+                            child_handle = get_net_handle_from_values(child_offset, START_END, CHAIN_HANDLE);
+                        } else {
+                            child_handle =  get_net_handle_from_values(child_offset, START_END, type);
+                        }
+                        bool thread_keep_going = iteratee(child_handle);
+                        #pragma omp atomic
+                        keep_going = keep_going & thread_keep_going;
+                    }
+                } // omp task
+            } //for loop
+        } //omp single
+        } //omp shared keep_going
+        return keep_going;
     }
-    return true;
 }
 
 SnarlDistanceIndex::RootRecordWriter::RootRecordWriter (size_t pointer, size_t connected_component_count, size_t node_count, 
@@ -4306,22 +4351,50 @@ size_t SnarlDistanceIndex::SnarlRecord::get_distance_vector_offset(size_t rank1,
 }
 
 
-bool SnarlDistanceIndex::SnarlRecord::for_each_child(const std::function<bool(const net_handle_t&)>& iteratee) const {
+bool SnarlDistanceIndex::SnarlRecord::for_each_child(const std::function<bool(const net_handle_t&)>& iteratee, bool parallel) const {
     size_t child_count = get_node_count();
     size_t child_record_offset = get_child_record_pointer();
-    for (size_t i = 0 ; i < child_count ; i++) {
-        size_t child_offset =  (*records)->at(child_record_offset + i);
+    if (!parallel) {
+        for (size_t i = 0 ; i < child_count ; i++) {
+            size_t child_offset =  (*records)->at(child_record_offset + i);
 #ifdef debug_distances
-        net_handle_record_t type = SnarlTreeRecord(child_offset, records).get_record_handle_type();
-        assert(type == NODE_HANDLE || type == CHAIN_HANDLE);
+            net_handle_record_t type = SnarlTreeRecord(child_offset, records).get_record_handle_type();
+            assert(type == NODE_HANDLE || type == CHAIN_HANDLE);
 #endif
-        net_handle_t child_handle =  get_net_handle_from_values (child_offset, START_END, CHAIN_HANDLE);
-        bool result = iteratee(child_handle);
-        if (result == false) {
-            return false;
+            net_handle_t child_handle =  get_net_handle_from_values (child_offset, START_END, CHAIN_HANDLE);
+            bool result = iteratee(child_handle);
+            if (result == false) {
+                return false;
+            }
         }
+        return true;
+    } else {
+        bool keep_going = true;
+        #pragma omp parallel shared(keep_going)
+        {
+        #pragma omp single
+        {
+            for (size_t i = 0 ; i < child_count && keep_going ; i++) {
+                // The whole loop is in omp task
+                #pragma omp task
+                {
+
+                size_t child_offset =  (*records)->at(child_record_offset + i);
+#ifdef debug_distances
+                net_handle_record_t type = SnarlTreeRecord(child_offset, records).get_record_handle_type();
+                assert(type == NODE_HANDLE || type == CHAIN_HANDLE);
+#endif
+                net_handle_t child_handle =  get_net_handle_from_values (child_offset, START_END, CHAIN_HANDLE);
+                bool result = iteratee(child_handle);
+                #pragma omp atomic
+                keep_going = keep_going & result;
+
+                } // end omp task
+            }
+        } // end omp single
+        }
+        return keep_going;
     }
-    return true;
 }
 
 void SnarlDistanceIndex::SnarlRecordWriter::set_distance(size_t rank1, bool right_side1, size_t rank2, bool right_side2, size_t distance) {
@@ -4542,16 +4615,36 @@ size_t SnarlDistanceIndex::SimpleSnarlRecord::get_distance(size_t rank1, bool ri
 net_handle_t SnarlDistanceIndex::SimpleSnarlRecord::get_child_from_rank(const size_t& rank) const {
     return get_net_handle_from_values(record_offset, START_END, CHAIN_HANDLE, rank);
 }
-bool SnarlDistanceIndex::SimpleSnarlRecord::for_each_child(const std::function<bool(const net_handle_t&)>& iteratee) const {
+bool SnarlDistanceIndex::SimpleSnarlRecord::for_each_child(const std::function<bool(const net_handle_t&)>& iteratee, bool parallel) const {
     size_t node_count = get_node_count();
-    for (size_t i = 0 ; i < node_count ; i++) {
-        net_handle_t child_handle = get_net_handle_from_values(record_offset, START_END, CHAIN_HANDLE, i+2);
-        bool result = iteratee(child_handle);
-        if (result == false) {
-            return false;
+    if (!parallel) {
+        for (size_t i = 0 ; i < node_count ; i++) {
+            net_handle_t child_handle = get_net_handle_from_values(record_offset, START_END, CHAIN_HANDLE, i+2);
+            bool result = iteratee(child_handle);
+            if (result == false) {
+                return false;
+            }
         }
+        return true;
+    } else {
+        bool keep_going = true;
+        #pragma omp parallel shared(keep_going)
+        {
+        #pragma omp single
+        {
+        for (size_t i = 0 ; keep_going && i < node_count ; i++) {
+            #pragma omp task
+            {
+            net_handle_t child_handle = get_net_handle_from_values(record_offset, START_END, CHAIN_HANDLE, i+2);
+            bool result = iteratee(child_handle);
+            #pragma omp atomic
+            keep_going = keep_going & result;
+            }
+        } //end for loop
+        } // end omp single
+        } //end omp shared keep_going
+        return keep_going;
     }
-    return true;
 }
 void SnarlDistanceIndex::SimpleSnarlRecordWriter::add_child(size_t rank, nid_t node_id, size_t node_length, bool is_reversed) {
     //Let the root know where to find the node
@@ -5422,7 +5515,7 @@ net_handle_t SnarlDistanceIndex::ChainRecord::get_next_child(const net_handle_t&
     }
 }
 
-bool SnarlDistanceIndex::ChainRecord::for_each_child(const std::function<bool(const net_handle_t&)>& iteratee) const {
+bool SnarlDistanceIndex::ChainRecord::for_each_child(const std::function<bool(const net_handle_t&)>& iteratee, bool parallel) const {
 
     if (get_record_handle_type() == NODE_HANDLE) {
         //If this is a node pretending to be a chain, just do it for the node
@@ -5436,25 +5529,63 @@ bool SnarlDistanceIndex::ChainRecord::for_each_child(const std::function<bool(co
     net_handle_t current_child = get_net_handle_from_values(first_node_offset, rev_in_parent ? END_START : START_END, NODE_HANDLE, 0);
     bool is_first = true;
 
-    while (true) {
-        if (!is_first && current_child == first_child){
-            //Don't look at the first node a second time
-            return true;
-        }
+    if (!parallel) {
+        while (true) {
+            if (!is_first && current_child == first_child){
+                //Don't look at the first node a second time
+                return true;
+            }
 
-        bool result = iteratee(current_child);
-        if (result == false) {
-            return false;
+            bool result = iteratee(current_child);
+            if (result == false) {
+                return false;
+            }
+            net_handle_t next_child = get_next_child(current_child, false);
+            if (current_child == next_child || get_start_endpoint(get_connectivity(next_child)) == get_end_endpoint(get_connectivity(next_child))) {
+                return true;
+            } else {
+                current_child = next_child;
+            }
+            is_first = false;
         }
-        net_handle_t next_child = get_next_child(current_child, false);
-        if (current_child == next_child || get_start_endpoint(get_connectivity(next_child)) == get_end_endpoint(get_connectivity(next_child))) {
-            return true;
-        } else {
-            current_child = next_child;
-        }
-        is_first = false;
+        return true;
+    } else {
+        bool keep_going = true;
+        bool return_value = true;
+        #pragma omp parallel shared(return_value, keep_going)
+        {
+        #pragma omp single
+        {
+        while (keep_going) {
+            if (!is_first && current_child == first_child){
+                //Don't look at the first node a second time
+                keep_going = false;
+            }
+
+            #pragma omp task 
+            {
+                bool result = iteratee(current_child);
+                #pragma omp atomic
+                keep_going = keep_going & result;
+                return_value = return_value & result;
+            }
+
+            // Get the next child
+            net_handle_t next_child = get_next_child(current_child, false);
+            if (current_child == next_child || get_start_endpoint(get_connectivity(next_child)) == get_end_endpoint(get_connectivity(next_child))) {
+                keep_going = false;
+            } else {
+                current_child = next_child;
+            }
+            is_first = false;
+
+            //Wait at the end of the loop
+            #pragma omp taskwait
+        } //end while
+        } // end omp single
+        } //end omp parallel
+        return return_value;
     }
-    return true;
 }
 
 
