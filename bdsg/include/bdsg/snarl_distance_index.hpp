@@ -1548,7 +1548,8 @@ public:
         size_t max_tree_depth = 0;
         size_t max_index_size= 0;
         size_t max_distance = 0;
-        size_t max_bits = 0;
+        //At least 10 for the tags
+        size_t max_bits = 10;
 
         //How long is the record going to be in the distance index?
         size_t get_max_record_length() const; 
