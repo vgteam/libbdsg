@@ -221,7 +221,7 @@ if (BUILD_PYTHON_BINDINGS)
 
     # pybind11
     # See also: pybind11 commit defined in make_and_run_binder.py.
-    set(PYBIND11_COMMIT 5b0a6fc2017fcc176545afe3e09c9f9885283242)
+    set(PYBIND11_COMMIT f5fbe867d2d26e4a0a9177a51f6e568868ad3dc8)
     if (CMAKE_MAJOR_VERSION EQUAL "3" AND CMAKE_MINOR_VERSION EQUAL "10")
         # We need pybind11 installed in ./pybind11 *before* CMake can finish processing this file.
         # On CMake 3.11+ we can do that with FetchContent
