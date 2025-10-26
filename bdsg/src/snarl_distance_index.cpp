@@ -6148,7 +6148,9 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
     size_t maximum_distance = 0;
     size_t maximum_index_size = 0;
     size_t maximum_tree_depth = 0;
-    size_t max_bits = 0;
+    // Start with 10
+    //TODO: This should maybe be a const static variable somewhere
+    size_t max_bits = 10;
     //The maximum distance value that gets stored in the index, and the maximum possible
     //length of the index
 
