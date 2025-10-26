@@ -45,7 +45,7 @@ def clone_repos():
         subprocess.check_call(['git', 'clone', 'https://github.com/RosettaCommons/pybind11.git', 'build/pybind11'])
         os.chdir('build/pybind11')
         # See also: pybind11 commit defined in CMakeLists.txt
-        subprocess.check_call(['git', 'checkout', 'f5fbe867d2d26e4a0a9177a51f6e568868ad3dc8'])
+        subprocess.check_call(['git', 'checkout', 'a2e59f0e7065404b44dfe92a28aca47ba1378dc4'])
         os.chdir(parent)
 
 
