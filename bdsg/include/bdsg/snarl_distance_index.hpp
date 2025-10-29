@@ -1548,6 +1548,8 @@ public:
         size_t max_tree_depth = 0;
         size_t max_index_size= 0;
         size_t max_distance = 0;
+        //At least 10 for the tags
+        size_t max_bits = 26;
 
         //How long is the record going to be in the distance index?
         size_t get_max_record_length() const; 
@@ -1614,6 +1616,11 @@ public:
             size_t distance_end_end = std::numeric_limits<size_t>::max();
 
             size_t rank_in_parent=0;
+
+            // How many bits do we need to store the largest thing in this record?
+            // Since this is usually the maximum distance, which we already check, for now only do this for
+            // the simple snarl records, which need 11 + 11 + number of bits for the number of children
+            size_t max_bits = 0;
 
             bool reversed_in_parent;
             bool start_node_rev;
