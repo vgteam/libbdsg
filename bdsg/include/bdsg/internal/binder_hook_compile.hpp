@@ -5,6 +5,7 @@
 // Forced to be included in every binding compilation unit.
 
 #include <vector>
+#include <unordered_set>
 
 // We need all the handle graph types that ever get used in vectors.
 #include <handlegraph/types.hpp>
@@ -25,5 +26,6 @@ PYBIND11_MAKE_OPAQUE(std::vector<long unsigned int>);
 PYBIND11_MAKE_OPAQUE(std::vector<handlegraph::handle_t>);
 PYBIND11_MAKE_OPAQUE(std::vector<handlegraph::path_handle_t>);
 PYBIND11_MAKE_OPAQUE(std::vector<handlegraph::step_handle_t>);
-
+PYBIND11_MAKE_OPAQUE(std::unordered_set<handlegraph::PathSense>);
+PYBIND11_MAKE_OPAQUE(std::unordered_set<std::string>);
 #endif

@@ -631,7 +631,7 @@ public:
                    ROOT_SNARL, DISTANCED_ROOT_SNARL,
                    CHAIN, DISTANCED_CHAIN, MULTICOMPONENT_CHAIN,
                    CHILDREN};
-    const static bool has_distances(record_t type) {
+    const static bool record_has_distances(record_t type) {
         return type == DISTANCED_NODE || type == DISTANCED_TRIVIAL_SNARL || type == DISTANCED_SIMPLE_SNARL
             || type == DISTANCED_SNARL || type == OVERSIZED_SNARL || type == DISTANCED_ROOT_SNARL 
             || type == DISTANCED_CHAIN || type == MULTICOMPONENT_CHAIN;
