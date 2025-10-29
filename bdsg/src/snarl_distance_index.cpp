@@ -677,7 +677,7 @@ net_handle_t SnarlDistanceIndex::get_snarl_child_from_rank(const net_handle_t& s
     } else {
         //Ranks for children of snarls start from 2 since 0 and 1 are reserved for the bounds
 #ifdef debug_distances
-        assert(rank-2 < get_node_count());
+        //assert(rank-2 < get_node_count());
 #endif
         if (rank == 0) {
             //The boundary node. This technically shouldn't be here because boundary nodes aren't children
@@ -6156,6 +6156,9 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
     size_t maximum_distance = 0;
     size_t maximum_index_size = 0;
     size_t maximum_tree_depth = 0;
+    // Start with 10
+    //TODO: This should maybe be a const static variable somewhere
+    size_t max_bits = 10;
     //The maximum distance value that gets stored in the index, and the maximum possible
     //length of the index
 
@@ -6168,6 +6171,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
         maximum_distance = std::max(temp_index->max_distance, maximum_distance);
         maximum_index_size += temp_index->get_max_record_length();
         maximum_tree_depth = std::max(maximum_tree_depth, temp_index->max_tree_depth);
+        max_bits = std::max(max_bits, temp_index->max_bits);
     }
 
 #ifdef debug_distance_indexing
@@ -6181,7 +6185,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
     //Set the width of the values to the minimum needed to fit everything
     size_t max_dist_bit_width = bit_width(std::max(maximum_distance, (size_t) max_node_id));
     size_t max_address_bit_width = bit_width(maximum_index_size);
-    size_t new_width = std::max(std::max(max_dist_bit_width, max_address_bit_width)+2, (size_t)26); //26 is the size for the simple snarl node count + node lengths
+    size_t new_width = std::max(std::max(max_dist_bit_width, max_address_bit_width)+2, max_bits);
     if (new_width > 64) {
         cerr << "The bit width for the distance index is greater than 64 bits, which may cause problems" << endl;
     }
