@@ -1,6 +1,9 @@
 bdsg.cpp
+std/basic_string.cpp
+std/stl_function.cpp
 handlegraph/types.cpp
 handlegraph/handle_graph.cpp
+std/unordered_set.cpp
 handlegraph/path_metadata.cpp
 handlegraph/path_handle_graph.cpp
 std/bdsg/internal/binder_hook_bind.cpp
@@ -19,11 +22,12 @@ bdsg/internal/eades_algorithm.cpp
 bdsg/internal/base_packed_graph.cpp
 handlegraph/path_position_handle_graph.cpp
 bdsg/overlays/packed_path_position_overlay.cpp
-bdsg/overlays/packed_reference_path_overlay.cpp
+bdsg/overlays/packed_path_position_overlay_1.cpp
 bdsg/overlays/path_position_overlays.cpp
 bdsg/overlays/path_subgraph_overlay.cpp
 bdsg/overlays/reference_path_overlay.cpp
 bdsg/overlays/vectorizable_overlays.cpp
+bdsg/overlays/vectorizable_overlays_1.cpp
 handlegraph/trivially_serializable.cpp
 bdsg/packed_graph.cpp
 bdsg/snarl_distance_index.cpp
