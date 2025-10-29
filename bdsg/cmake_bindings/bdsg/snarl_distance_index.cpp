@@ -536,6 +536,7 @@ void bind_bdsg_snarl_distance_index(std::function< pybind11::module &(std::strin
 		cl.def("get_rank_in_parent", (unsigned long (bdsg::SnarlDistanceIndex::*)(const struct handlegraph::net_handle_t &) const) &bdsg::SnarlDistanceIndex::get_rank_in_parent, "For a child of a snarl, the rank is used to calculate the distance\n\nC++: bdsg::SnarlDistanceIndex::get_rank_in_parent(const struct handlegraph::net_handle_t &) const --> unsigned long", pybind11::arg("net"));
 		cl.def("connected_component_count", (unsigned long (bdsg::SnarlDistanceIndex::*)() const) &bdsg::SnarlDistanceIndex::connected_component_count, "How many connected components are in this graph?\nThis returns the number of topological connected components, not necessarily the \nnumber of nodes in the top-level snarl \n\nC++: bdsg::SnarlDistanceIndex::connected_component_count() const --> unsigned long");
 		cl.def("get_snarl_child_from_rank", (struct handlegraph::net_handle_t (bdsg::SnarlDistanceIndex::*)(const struct handlegraph::net_handle_t &, const unsigned long &) const) &bdsg::SnarlDistanceIndex::get_snarl_child_from_rank, "Get the child of a snarl from its rank. This shouldn't be exposed to the public interface but I need it\nPlease don't use it\nFor 0 or 1, returns the sentinel facing in. Otherwise return the child as a chain going START_END\n\nC++: bdsg::SnarlDistanceIndex::get_snarl_child_from_rank(const struct handlegraph::net_handle_t &, const unsigned long &) const --> struct handlegraph::net_handle_t", pybind11::arg("snarl"), pybind11::arg("rank"));
+		cl.def("get_snarl_child_count", (unsigned long (bdsg::SnarlDistanceIndex::*)(const struct handlegraph::net_handle_t &) const) &bdsg::SnarlDistanceIndex::get_snarl_child_count, "Get the number of child chains for a snarl\n\nC++: bdsg::SnarlDistanceIndex::get_snarl_child_count(const struct handlegraph::net_handle_t &) const --> unsigned long", pybind11::arg("snarl"));
 		cl.def("has_distances", (bool (bdsg::SnarlDistanceIndex::*)(const struct handlegraph::net_handle_t &) const) &bdsg::SnarlDistanceIndex::has_distances, "Does this net handle store distances?\n\nC++: bdsg::SnarlDistanceIndex::has_distances(const struct handlegraph::net_handle_t &) const --> bool", pybind11::arg("net"));
 		cl.def("has_distances", (bool (bdsg::SnarlDistanceIndex::*)() const) &bdsg::SnarlDistanceIndex::has_distances, "Does the distance index in general store distances?\n\nC++: bdsg::SnarlDistanceIndex::has_distances() const --> bool");
 		cl.def("get_parent_traversal", (struct handlegraph::net_handle_t (bdsg::SnarlDistanceIndex::*)(const struct handlegraph::net_handle_t &, const struct handlegraph::net_handle_t &) const) &bdsg::SnarlDistanceIndex::get_parent_traversal, "Get a net handle for traversals of a snarl or chain that contains\nthe given oriented bounding node traversals or sentinels. Given two\nsentinels for a snarl, produces a net handle to a start-to-end,\nend-to-end, end-to-start, or start-to-start traversal of that snarl.\nGiven handles to traversals of the bounding nodes of a chain, similarly\nproduces a net handle to a traversal of the chain.\n\nFor a chain, either or both handles can also be a snarl containing tips,\nfor a tip-to-start, tip-to-end, start-to-tip, end-to-tip, or tip-to-tip\ntraversal. Similarly, for a snarl, either or both handles can be a chain\nin the snarl that contains internal tips, or that has no edges on the\nappropriate end.\n\nMay only be called if a path actually exists between the given start\nand end.\n\nC++: bdsg::SnarlDistanceIndex::get_parent_traversal(const struct handlegraph::net_handle_t &, const struct handlegraph::net_handle_t &) const --> struct handlegraph::net_handle_t", pybind11::arg("traversal_start"), pybind11::arg("traversal_end"));
@@ -575,7 +576,7 @@ void bind_bdsg_snarl_distance_index(std::function< pybind11::module &(std::strin
 		cl.def_static("bit_width", (unsigned long (*)(unsigned long)) &bdsg::SnarlDistanceIndex::bit_width, "C++: bdsg::SnarlDistanceIndex::bit_width(unsigned long) --> unsigned long", pybind11::arg("value"));
 		cl.def("time_accesses", (void (bdsg::SnarlDistanceIndex::*)()) &bdsg::SnarlDistanceIndex::time_accesses, "C++: bdsg::SnarlDistanceIndex::time_accesses() --> void");
 
-		{ // bdsg::SnarlDistanceIndex::TemporaryDistanceIndex file:bdsg/snarl_distance_index.hpp line:1537
+		{ // bdsg::SnarlDistanceIndex::TemporaryDistanceIndex file:bdsg/snarl_distance_index.hpp line:1540
 			auto & enclosing_class = cl;
 			pybind11::class_<bdsg::SnarlDistanceIndex::TemporaryDistanceIndex, std::shared_ptr<bdsg::SnarlDistanceIndex::TemporaryDistanceIndex>> cl(enclosing_class, "TemporaryDistanceIndex", "");
 			cl.def( pybind11::init( [](){ return new bdsg::SnarlDistanceIndex::TemporaryDistanceIndex(); } ) );
@@ -586,6 +587,7 @@ void bind_bdsg_snarl_distance_index(std::function< pybind11::module &(std::strin
 			cl.def_readwrite("max_tree_depth", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::max_tree_depth);
 			cl.def_readwrite("max_index_size", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::max_index_size);
 			cl.def_readwrite("max_distance", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::max_distance);
+			cl.def_readwrite("max_bits", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::max_bits);
 			cl.def_readwrite("components", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::components);
 			cl.def_readwrite("root_snarl_components", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::root_snarl_components);
 			cl.def_readwrite("temp_chain_records", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::temp_chain_records);
@@ -596,7 +598,7 @@ void bind_bdsg_snarl_distance_index(std::function< pybind11::module &(std::strin
 			cl.def("get_max_record_length", (unsigned long (bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::*)() const) &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::get_max_record_length, "C++: bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::get_max_record_length() const --> unsigned long");
 			cl.def("assign", (class bdsg::SnarlDistanceIndex::TemporaryDistanceIndex & (bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::*)(const class bdsg::SnarlDistanceIndex::TemporaryDistanceIndex &)) &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::operator=, "C++: bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::operator=(const class bdsg::SnarlDistanceIndex::TemporaryDistanceIndex &) --> class bdsg::SnarlDistanceIndex::TemporaryDistanceIndex &", pybind11::return_value_policy::automatic, pybind11::arg(""));
 
-			{ // bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord file:bdsg/snarl_distance_index.hpp line:1557
+			{ // bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord file:bdsg/snarl_distance_index.hpp line:1562
 				auto & enclosing_class = cl;
 				pybind11::class_<bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord, std::shared_ptr<bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord>> cl(enclosing_class, "TemporaryRecord", "");
 				cl.def( pybind11::init( [](bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord const &o){ return new bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord(o); } ) );
@@ -604,7 +606,7 @@ void bind_bdsg_snarl_distance_index(std::function< pybind11::module &(std::strin
 				cl.def("assign", (struct bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord & (bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord::*)(const struct bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord &)) &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord::operator=, "C++: bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord::operator=(const struct bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord &) --> struct bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord &", pybind11::return_value_policy::automatic, pybind11::arg(""));
 			}
 
-			{ // bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord file:bdsg/snarl_distance_index.hpp line:1559
+			{ // bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord file:bdsg/snarl_distance_index.hpp line:1564
 				auto & enclosing_class = cl;
 				pybind11::class_<bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord, std::shared_ptr<bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord>, bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord> cl(enclosing_class, "TemporaryChainRecord", "");
 				cl.def( pybind11::init( [](){ return new bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord(); } ) );
@@ -638,7 +640,7 @@ void bind_bdsg_snarl_distance_index(std::function< pybind11::module &(std::strin
 				cl.def("assign", (struct bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord & (bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::*)(const struct bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord &)) &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::operator=, "C++: bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord::operator=(const struct bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord &) --> struct bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryChainRecord &", pybind11::return_value_policy::automatic, pybind11::arg(""));
 			}
 
-			{ // bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord file:bdsg/snarl_distance_index.hpp line:1601
+			{ // bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord file:bdsg/snarl_distance_index.hpp line:1606
 				auto & enclosing_class = cl;
 				pybind11::class_<bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord, std::shared_ptr<bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord>, bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord> cl(enclosing_class, "TemporarySnarlRecord", "");
 				cl.def( pybind11::init( [](){ return new bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord(); } ) );
@@ -656,6 +658,7 @@ void bind_bdsg_snarl_distance_index(std::function< pybind11::module &(std::strin
 				cl.def_readwrite("distance_start_start", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::distance_start_start);
 				cl.def_readwrite("distance_end_end", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::distance_end_end);
 				cl.def_readwrite("rank_in_parent", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::rank_in_parent);
+				cl.def_readwrite("max_bits", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::max_bits);
 				cl.def_readwrite("reversed_in_parent", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::reversed_in_parent);
 				cl.def_readwrite("start_node_rev", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::start_node_rev);
 				cl.def_readwrite("end_node_rev", &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::end_node_rev);
@@ -671,7 +674,7 @@ void bind_bdsg_snarl_distance_index(std::function< pybind11::module &(std::strin
 				cl.def("assign", (struct bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord & (bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::*)(const struct bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord &)) &bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::operator=, "C++: bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::operator=(const struct bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord &) --> struct bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord &", pybind11::return_value_policy::automatic, pybind11::arg(""));
 			}
 
-			{ // bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord file:bdsg/snarl_distance_index.hpp line:1634
+			{ // bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord file:bdsg/snarl_distance_index.hpp line:1644
 				auto & enclosing_class = cl;
 				pybind11::class_<bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord, std::shared_ptr<bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord>, bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryRecord> cl(enclosing_class, "TemporaryNodeRecord", "");
 				cl.def( pybind11::init( [](){ return new bdsg::SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryNodeRecord(); } ) );
