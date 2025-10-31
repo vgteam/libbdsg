@@ -1663,6 +1663,7 @@ public:
         vector<TemporarySnarlRecord> temp_snarl_records;
         vector<TemporaryNodeRecord> temp_node_records;
         bool use_oversized_snarls = false;
+        size_t most_oversized_snarl_size = 0;
         friend class SnarlDistanceIndex;
 
     };
