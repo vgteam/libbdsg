@@ -149,6 +149,10 @@ if(get_handle_type(net) == SNARL_HANDLE){
     return get_handle_type(net) == SNARL_HANDLE;
 }
 
+bool SnarlDistanceIndex::is_oversized_snarl(const net_handle_t& net) const {
+    return SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == OVERSIZED_SNARL;
+}
+
 bool SnarlDistanceIndex::is_dag(const net_handle_t& snarl) const {
     record_t record_type = SnarlTreeRecord(snarl, &snarl_tree_records).get_record_type();
     if ( record_type == SNARL || record_type == ROOT_SNARL ) {
@@ -6362,7 +6366,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                                 bool ignore_distances = (snarl_size_limit == 0) || only_top_level_chain_distances;
 
                                 record_t record_type = ignore_distances ? SNARL :
-                                    (temp_snarl_record.node_count < snarl_size_limit ? DISTANCED_SNARL : OVERSIZED_SNARL);
+                                    (temp_snarl_record.node_count <= snarl_size_limit ? DISTANCED_SNARL : OVERSIZED_SNARL);
                                 SnarlRecordWriter snarl_record_constructor =
                                     chain_record_constructor.add_snarl(temp_snarl_record.node_count, record_type, last_child_offset.first);
 
@@ -6574,7 +6578,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
 #ifdef debug_distance_indexing
                         assert(distance <= temp_snarl_record.max_distance);
 #endif
-                        if ((temp_snarl_record.node_count < snarl_size_limit)) {
+                        if ((temp_snarl_record.node_count <= snarl_size_limit)) {
                             snarl_record_constructor.set_distance(node_rank1.first, node_rank1.second,
                              node_rank2.first, node_rank2.second, distance);
 #ifdef debug_distance_indexing

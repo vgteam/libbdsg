@@ -408,6 +408,9 @@ public:
     ///Returns true if the given net handle refers to (a traversal of) a snarl.
     bool is_snarl(const net_handle_t& net) const;
 
+    ///Returns true if the given net handle refers to (a traversal of) an oversized snarl.
+    bool is_oversized_snarl(const net_handle_t& net) const;
+
     ///Return true if the given snarl is a DAG and false otherwise
     ///Returns true if the given net_handle_t is not a snarl
     bool is_dag(const net_handle_t& snarl) const;
@@ -947,7 +950,7 @@ private:
      * Otherwise, for snarls with more children than snarl_size_limit, only store the distances
      * that include boundary nodes (OVERSIZED_SNARL)
      */
-    size_t snarl_size_limit = 5000;
+    size_t snarl_size_limit = 50000;
 
     //If this is true, then only store distance along top-level chains. Everything still needs its minimum lengths to get
     //the distances along top-level chains but don't store internal distances in snarls or in nested chains
@@ -1670,6 +1673,7 @@ public:
         vector<TemporarySnarlRecord> temp_snarl_records;
         vector<TemporaryNodeRecord> temp_node_records;
         bool use_oversized_snarls = false;
+        size_t most_oversized_snarl_size = 0;
         friend class SnarlDistanceIndex;
 
     };
