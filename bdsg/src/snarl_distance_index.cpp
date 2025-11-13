@@ -4124,7 +4124,7 @@ void SnarlDistanceIndex::RootRecordWriter::set_version_number() {
     cerr << record_offset+VERSION_NUMBER_OFFSET << " set version number to be " << CURRENT_VERSION_NUMBER << endl;
     assert((*records)->at(record_offset+VERSION_NUMBER_OFFSET) == 0);
 #endif
-    (*records)->at(record_offset+VERSION_NUMBER_OFFSET) = VERSION_NUMBER_SENTINEL - CURRENT_VERSION_NUMBER;
+    (*records)->at(record_offset+VERSION_NUMBER_OFFSET) = VERSION_NUMBER_SENTINEL ^ CURRENT_VERSION_NUMBER;
 }
 
 void SnarlDistanceIndex::RootRecordWriter::set_connected_component_count(size_t connected_component_count) {

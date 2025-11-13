@@ -820,11 +820,12 @@ private:
     const static size_t MIN_NODE_ID_OFFSET = 4;
     const static size_t MAX_TREE_DEPTH_OFFSET = 5;
 
-    // While the version number is 3, we will store (max - version)
+    // While the version number is 3, store it in a bit masked way
     // to avoid getting confused with old indexes without version numbers
     // that start with component count
     const static size_t CURRENT_VERSION_NUMBER = 3;
-    const static size_t VERSION_NUMBER_SENTINEL = (1 << 26) - CURRENT_VERSION_NUMBER;
+    /// Arbitrary large number which doens't overflow the number of bits we give
+    const static size_t VERSION_NUMBER_SENTINEL = (1 << 11) - 1;
 
     /*Node record
      * - A node record for nodes in snarls/roots. These are interpreted as either trivial chains or nodes.
@@ -1130,7 +1131,7 @@ private:
         RootRecord (size_t pointer, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records);
         RootRecord (net_handle_t net, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records);
 
-        size_t get_version_number() const {return VERSION_NUMBER_SENTINEL - (*records)->at(record_offset+VERSION_NUMBER_OFFSET);}
+        size_t get_version_number() const {return VERSION_NUMBER_SENTINEL ^ (*records)->at(record_offset+VERSION_NUMBER_OFFSET);}
         size_t get_connected_component_count() const {return (*records)->at(record_offset+COMPONENT_COUNT_OFFSET);}
         size_t get_node_count() const {return (*records)->at(record_offset+NODE_COUNT_OFFSET);}
         size_t get_max_tree_depth() const {return (*records)->at(record_offset+MAX_TREE_DEPTH_OFFSET);}
