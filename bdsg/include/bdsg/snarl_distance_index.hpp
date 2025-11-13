@@ -825,7 +825,7 @@ private:
     // that start with component count
     const static size_t CURRENT_VERSION_NUMBER = 3;
     /// Arbitrary large number which doens't overflow the number of bits we give
-    const static size_t VERSION_NUMBER_SENTINEL = 1 << 10;
+    const static size_t VERSION_NUMBER_SENTINEL = (1 << 10) - 1;
 
     /*Node record
      * - A node record for nodes in snarls/roots. These are interpreted as either trivial chains or nodes.
