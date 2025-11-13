@@ -813,11 +813,18 @@ private:
      *   The root vector stores the root of every connected component, which can be a 
      *   node, snarl, or chain
      */
-    const static size_t ROOT_RECORD_SIZE = 5;
-    const static size_t COMPONENT_COUNT_OFFSET = 1;
-    const static size_t NODE_COUNT_OFFSET = 2;
-    const static size_t MIN_NODE_ID_OFFSET = 3;
-    const static size_t MAX_TREE_DEPTH_OFFSET = 4;
+    const static size_t ROOT_RECORD_SIZE = 6;
+    const static size_t VERSION_NUMBER_OFFSET = 1;
+    const static size_t COMPONENT_COUNT_OFFSET = 2;
+    const static size_t NODE_COUNT_OFFSET = 3;
+    const static size_t MIN_NODE_ID_OFFSET = 4;
+    const static size_t MAX_TREE_DEPTH_OFFSET = 5;
+
+    // While the version number is 3, we will store (max - version)
+    // to avoid getting confused with old indexes without version numbers
+    // that start with component count
+    const static size_t CURRENT_VERSION_NUMBER = 3;
+    const static size_t VERSION_NUMBER_SENTINEL = (1 << 26) - CURRENT_VERSION_NUMBER;
 
     /*Node record
      * - A node record for nodes in snarls/roots. These are interpreted as either trivial chains or nodes.
@@ -1123,6 +1130,7 @@ private:
         RootRecord (size_t pointer, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records);
         RootRecord (net_handle_t net, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records);
 
+        size_t get_version_number() const {return VERSION_NUMBER_SENTINEL - (*records)->at(record_offset+VERSION_NUMBER_OFFSET);}
         size_t get_connected_component_count() const {return (*records)->at(record_offset+COMPONENT_COUNT_OFFSET);}
         size_t get_node_count() const {return (*records)->at(record_offset+NODE_COUNT_OFFSET);}
         size_t get_max_tree_depth() const {return (*records)->at(record_offset+MAX_TREE_DEPTH_OFFSET);}
@@ -1141,6 +1149,8 @@ private:
         RootRecordWriter (size_t pointer, size_t connected_component_count, size_t node_count, size_t max_tree_depth, 
                     handlegraph::nid_t min_node_id, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records);
 
+        // Doesn't accept a value because it uses CURRENT_VERSION_NUMBER
+        void set_version_number();
         void set_connected_component_count(size_t connected_component_count);
         void set_node_count(size_t node_count);
         void set_max_tree_depth(size_t tree_depth);
