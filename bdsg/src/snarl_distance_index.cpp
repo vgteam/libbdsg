@@ -1064,6 +1064,11 @@ void SnarlDistanceIndex::deserialize(int fd) {
     //This gets called by TriviallySerializable::deserialize(filename), which
     //doesn't check for the prefix, so this should expect it
     snarl_tree_records.load(fd, get_prefix());
+    RootRecord root_record (get_root(), &snarl_tree_records);
+    if (root_record.get_version_number() != CURRENT_VERSION_NUMBER) {
+        throw runtime_error("error: Trying to load a SnarlDistanceIndex which is not version " +
+                            std::to_string(CURRENT_VERSION_NUMBER) + "; try regenerating the index");
+    }
 }
 
 void SnarlDistanceIndex::serialize_members(std::ostream& out) const {
@@ -1075,6 +1080,11 @@ void SnarlDistanceIndex::deserialize_members(std::istream& in){
     //This gets called by Serializable::deserialize(istream), which has already
     //read the prefix, so don't expect the prefix
     snarl_tree_records.load_after_prefix(in, get_prefix());
+    RootRecord root_record (get_root(), &snarl_tree_records);
+    if (root_record.get_version_number() != CURRENT_VERSION_NUMBER) {
+        throw runtime_error("error: Trying to load a SnarlDistanceIndex which is not version " +
+                            std::to_string(CURRENT_VERSION_NUMBER) + "; try regenerating the index");
+    }
 }
 
 uint32_t SnarlDistanceIndex::get_magic_number()const {
@@ -4103,11 +4113,19 @@ SnarlDistanceIndex::RootRecordWriter::RootRecordWriter (size_t pointer, size_t c
     set_node_count(node_count);
     set_max_tree_depth(max_tree_depth);
     set_connected_component_count(connected_component_count);
+    set_version_number();
 #ifdef count_allocations
     cerr << "new_root\t" <<  (ROOT_RECORD_SIZE + connected_component_count + (node_count*2)) << "\t" << (*records)->siz     e() << endl;
 #endif
 }
 
+void SnarlDistanceIndex::RootRecordWriter::set_version_number() {
+#ifdef debug_distance_indexing
+    cerr << record_offset+VERSION_NUMBER_OFFSET << " set version number to be " << CURRENT_VERSION_NUMBER << endl;
+    assert((*records)->at(record_offset+VERSION_NUMBER_OFFSET) == 0);
+#endif
+    (*records)->at(record_offset+VERSION_NUMBER_OFFSET) = VERSION_NUMBER_SENTINEL ^ CURRENT_VERSION_NUMBER;
+}
 
 void SnarlDistanceIndex::RootRecordWriter::set_connected_component_count(size_t connected_component_count) {
 #ifdef debug_distance_indexing
