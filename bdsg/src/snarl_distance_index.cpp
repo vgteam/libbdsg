@@ -705,6 +705,26 @@ net_handle_t SnarlDistanceIndex::get_snarl_child_from_rank(const net_handle_t& s
         }
     }
 }
+size_t SnarlDistanceIndex::get_snarl_child_count(const net_handle_t& snarl) const {
+
+    //Get the number of children depending on the type of record
+    SnarlTreeRecord record(snarl, &snarl_tree_records);
+
+    if (record.get_record_type() == SNARL ||
+                record.get_record_type() == DISTANCED_SNARL||
+                record.get_record_type() == OVERSIZED_SNARL  ){
+
+        return SnarlRecord(snarl, &snarl_tree_records).get_node_count();
+
+    } else if (record.get_record_type() == SIMPLE_SNARL ||
+                record.get_record_type() == DISTANCED_SIMPLE_SNARL) {
+
+        return SimpleSnarlRecord(snarl, &snarl_tree_records).get_node_count();
+
+    } else {
+        throw runtime_error("error: getting the snarl child count of the wrong type of a non-snarl");
+    }
+}
 
 bool SnarlDistanceIndex::has_distances(const net_handle_t& net) const {
     return has_distances(SnarlTreeRecord(net, &snarl_tree_records).get_record_type()); 
