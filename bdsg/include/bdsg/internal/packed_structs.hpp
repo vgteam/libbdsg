@@ -194,9 +194,21 @@ public:
         
     /// Add a value to the end
     inline void push_back(const uint64_t& value);
+
+    /// Add a value to the end (deprecated in favor of STL-like push_back)
+    [[deprecated("Use push_back instead of append_back")]] 	
+    inline void append_back(const uint64_t& value) {
+        push_back(value);
+    }
         
     /// Remove the last value
     inline void pop_back();
+
+    /// Remove the last value (deprecated in favor of STL-like pop_back)
+    [[deprecated("Use pop_back instead of pop")]] 
+    inline void pop() {
+        pop_back();
+    }
     
     /// Either shrink the vector or grow the vector to the new size. New
     /// entries created by growing are filled with 0.
@@ -298,9 +310,21 @@ public:
     
     /// Add a value to the end
     inline void push_back(const uint64_t& value);
+
+    /// Add a value to the end (deprecated in favor of STL-like push_back)
+    [[deprecated("Use push_back instead of append_back")]] 	
+    inline void append_back(const uint64_t& value) {
+        push_back(value);
+    }
     
     /// Remove the last value
     inline void pop_back();
+
+    /// Remove the last value (deprecated in favor of STL-like pop_back)
+    [[deprecated("Use pop_back instead of pop")]] 
+    inline void pop() {
+        pop_back();
+    }
     
     /// Either shrink the vector or grow the vector to the new size. New
     /// entries created by growing are filled with 0.
@@ -399,9 +423,21 @@ public:
     
     /// Add a value to the end
     inline void push_back(const uint64_t& value);
+
+    /// Add a value to the end (deprecated in favor of STL-like push_back)
+    [[deprecated("Use push_back instead of append_back")]] 	
+    inline void append_back(const uint64_t& value) {
+        push_back(value);
+    }
     
     /// Remove the last value
     inline void pop_back();
+
+    /// Remove the last value (deprecated in favor of STL-like pop_back)
+    [[deprecated("Use pop_back instead of pop")]] 
+    inline void pop() {
+        pop_back();
+    }
     
     /// Either shrink the vector or grow the vector to the new size. New
     /// entries created by growing are filled with 0.
@@ -492,9 +528,21 @@ public:
     
     /// Add a value to the front
     inline void push_front(const uint64_t& value);
+
+    /// Add a value to the front (deprecated in favor of STL-like push_front)
+    [[deprecated("Use push_front instead of append_front")]] 	
+    inline void append_front(const uint64_t& value) {
+        push_front(value);
+    }
     
     /// Add a value to the back
     inline void push_back(const uint64_t& value);
+
+    /// Add a value to the back (deprecated in favor of STL-like push_back)
+    [[deprecated("Use push_back instead of append_back")]] 	
+    inline void append_back(const uint64_t& value) {
+        push_back(value);
+    }
     
     /// Remove the front value
     inline void pop_front();
