@@ -2875,11 +2875,53 @@ void test_packed_vector() {
     cerr << "PackedVector (" << typeid(PackedVectorImpl).name() << ") tests successful!" << endl;
 }
 
-template<typename PackedVectorImpl>
-void test_packed_vector_iterators() {
-    // Test 1: Empty vector iteration
+// SFINAE helpers to detect append() vs append_back()
+template<typename T>
+class has_append_method {
+    template<typename U>
+    static auto test(int) -> decltype(std::declval<U>().append(0), std::true_type());
+
+    template<typename>
+    static std::false_type test(...);
+
+public:
+    static constexpr bool value = decltype(test<T>(0))::value;
+};
+
+template<typename T>
+class has_append_back_method {
+    template<typename U>
+    static auto test(int) -> decltype(std::declval<U>().append_back(0), std::true_type());
+
+    template<typename>
+    static std::false_type test(...);
+
+public:
+    static constexpr bool value = decltype(test<T>(0))::value;
+};
+
+// Generic helper to append to a container (works with both append() and append_back())
+template<typename Container>
+typename std::enable_if<has_append_method<Container>::value>::type
+container_append(Container& c, uint64_t val) {
+    c.append(val);
+}
+
+template<typename Container>
+typename std::enable_if<has_append_back_method<Container>::value && !has_append_method<Container>::value>::type
+container_append(Container& c, uint64_t val) {
+    c.append_back(val);
+}
+
+/**
+ * Generic iterator test function that works with any vector-like container
+ * (PackedVector, PagedVector, RobustPagedVector, PackedDeque)
+ */
+template<typename VectorLike>
+void test_vector_like_iterators_common() {
+    // Test 1: Empty iteration
     {
-        PackedVectorImpl vec;
+        VectorLike vec;
         assert(vec.begin() == vec.end());
 
         size_t count = 0;
@@ -2891,8 +2933,8 @@ void test_packed_vector_iterators() {
 
     // Test 2: Single element
     {
-        PackedVectorImpl vec;
-        vec.append(42);
+        VectorLike vec;
+        container_append(vec, 42);
 
         assert(vec.begin() != vec.end());
 
@@ -2904,11 +2946,11 @@ void test_packed_vector_iterators() {
 
     // Test 3: Multiple elements - basic iteration
     {
-        PackedVectorImpl vec;
+        VectorLike vec;
         vector<uint64_t> expected = {10, 20, 30, 40, 50};
 
         for (auto val : expected) {
-            vec.append(val);
+            container_append(vec, val);
         }
 
         // Iterate and compare
@@ -2923,11 +2965,11 @@ void test_packed_vector_iterators() {
 
     // Test 4: Range-based for loop
     {
-        PackedVectorImpl vec;
+        VectorLike vec;
         vector<uint64_t> expected = {100, 200, 300, 400, 500, 600, 700, 800};
 
         for (auto val : expected) {
-            vec.append(val);
+            container_append(vec, val);
         }
 
         size_t idx = 0;
@@ -2941,10 +2983,10 @@ void test_packed_vector_iterators() {
 
     // Test 5: Iterator equality and inequality
     {
-        PackedVectorImpl vec;
-        vec.append(1);
-        vec.append(2);
-        vec.append(3);
+        VectorLike vec;
+        container_append(vec, 1);
+        container_append(vec, 2);
+        container_append(vec, 3);
 
         auto it1 = vec.begin();
         auto it2 = vec.begin();
@@ -2959,9 +3001,9 @@ void test_packed_vector_iterators() {
 
     // Test 6: std::distance compatibility
     {
-        PackedVectorImpl vec;
+        VectorLike vec;
         for (size_t i = 0; i < 15; i++) {
-            vec.append(i);
+            container_append(vec, i);
         }
 
         auto dist = std::distance(vec.begin(), vec.end());
@@ -2971,12 +3013,12 @@ void test_packed_vector_iterators() {
 
     // Test 7: std::find compatibility
     {
-        PackedVectorImpl vec;
-        vec.append(10);
-        vec.append(20);
-        vec.append(30);
-        vec.append(40);
-        vec.append(50);
+        VectorLike vec;
+        container_append(vec, 10);
+        container_append(vec, 20);
+        container_append(vec, 30);
+        container_append(vec, 40);
+        container_append(vec, 50);
 
         auto it = std::find(vec.begin(), vec.end(), 30);
         assert(it != vec.end());
@@ -2988,12 +3030,12 @@ void test_packed_vector_iterators() {
 
     // Test 8: Const iterator
     {
-        PackedVectorImpl vec;
-        vec.append(5);
-        vec.append(15);
-        vec.append(25);
+        VectorLike vec;
+        container_append(vec, 5);
+        container_append(vec, 15);
+        container_append(vec, 25);
 
-        const PackedVectorImpl& const_vec = vec;
+        const VectorLike& const_vec = vec;
 
         size_t count = 0;
         for (auto it = const_vec.begin(); it != const_vec.end(); ++it) {
@@ -3009,9 +3051,9 @@ void test_packed_vector_iterators() {
         assert(*it == 25);
     }
 
-    // Test 9: Large vector with various patterns
+    // Test 9: Large container with various patterns
     {
-        PackedVectorImpl vec;
+        VectorLike vec;
         random_device rd;
         default_random_engine prng(rd());
         uniform_int_distribution<uint64_t> val_distr(0, 10000);
@@ -3022,7 +3064,7 @@ void test_packed_vector_iterators() {
         for (size_t i = 0; i < num_elements; i++) {
             uint64_t val = val_distr(prng);
             expected.push_back(val);
-            vec.append(val);
+            container_append(vec, val);
         }
 
         size_t idx = 0;
@@ -3035,10 +3077,10 @@ void test_packed_vector_iterators() {
 
     // Test 10: Iteration after modification
     {
-        PackedVectorImpl vec;
-        vec.append(1);
-        vec.append(2);
-        vec.append(3);
+        VectorLike vec;
+        container_append(vec, 1);
+        container_append(vec, 2);
+        container_append(vec, 3);
 
         // First iteration
         size_t count = 0;
@@ -3048,7 +3090,7 @@ void test_packed_vector_iterators() {
         assert(count == 3);
 
         // Modify
-        vec.append(4);
+        container_append(vec, 4);
         vec.set(0, 100);
 
         // Second iteration
@@ -3061,16 +3103,16 @@ void test_packed_vector_iterators() {
         assert(idx == 4);
     }
 
-    // Test 11: Bit-width changes during iteration
+    // Test 11: Value range during iteration (e.g., bit-width changes for PackedVector)
     {
-        PackedVectorImpl vec;
-        // Start with small values (low bit-width)
-        vec.append(1);
-        vec.append(2);
-        vec.append(3);
+        VectorLike vec;
+        // Start with small values
+        container_append(vec, 1);
+        container_append(vec, 2);
+        container_append(vec, 3);
 
-        // Add large value (increases bit-width)
-        vec.append(1000000);
+        // Add large value
+        container_append(vec, 1000000);
 
         vector<uint64_t> expected = {1, 2, 3, 1000000};
         size_t idx = 0;
@@ -3083,9 +3125,9 @@ void test_packed_vector_iterators() {
 
     // Test 12: Iterator copy construction
     {
-        PackedVectorImpl vec;
-        vec.append(10);
-        vec.append(20);
+        VectorLike vec;
+        container_append(vec, 10);
+        container_append(vec, 20);
 
         auto it1 = vec.begin();
         auto it2(it1); // Copy constructor
@@ -3097,10 +3139,10 @@ void test_packed_vector_iterators() {
 
     // Test 13: Iterator assignment
     {
-        PackedVectorImpl vec;
-        vec.append(10);
-        vec.append(20);
-        vec.append(30);
+        VectorLike vec;
+        container_append(vec, 10);
+        container_append(vec, 20);
+        container_append(vec, 30);
 
         auto it1 = vec.begin();
         auto it2 = vec.begin();
@@ -3113,6 +3155,12 @@ void test_packed_vector_iterators() {
         assert(it1 == it2);
         assert(*it1 == 20);
     }
+}
+
+template<typename PackedVectorImpl>
+void test_packed_vector_iterators() {
+    // Run common tests
+    test_vector_like_iterators_common<PackedVectorImpl>();
 
     cerr << "PackedVector (" << typeid(PackedVectorImpl).name() << ") iterator tests successful!" << endl;
 }
@@ -3213,87 +3261,10 @@ void test_paged_vector() {
 
 template<typename PagedVectorImpl>
 void test_paged_vector_iterators() {
-    // Test 1: Empty vector iteration
-    {
-        PagedVectorImpl vec;
-        assert(vec.begin() == vec.end());
+    // Run common tests
+    test_vector_like_iterators_common<PagedVectorImpl>();
 
-        size_t count = 0;
-        for (auto it = vec.begin(); it != vec.end(); ++it) {
-            count++;
-        }
-        assert(count == 0);
-    }
-
-    // Test 2: Single element
-    {
-        PagedVectorImpl vec;
-        vec.append(42);
-
-        assert(vec.begin() != vec.end());
-
-        auto it = vec.begin();
-        assert(*it == 42);
-        ++it;
-        assert(it == vec.end());
-    }
-
-    // Test 3: Multiple elements - basic iteration
-    {
-        PagedVectorImpl vec;
-        vector<uint64_t> expected = {10, 20, 30, 40, 50};
-
-        for (auto val : expected) {
-            vec.append(val);
-        }
-
-        // Iterate and compare
-        size_t idx = 0;
-        for (auto it = vec.begin(); it != vec.end(); ++it) {
-            assert(idx < expected.size());
-            assert(*it == expected[idx]);
-            idx++;
-        }
-        assert(idx == expected.size());
-    }
-
-    // Test 4: Range-based for loop
-    {
-        PagedVectorImpl vec;
-        vector<uint64_t> expected = {100, 200, 300, 400, 500, 600, 700, 800};
-
-        for (auto val : expected) {
-            vec.append(val);
-        }
-
-        size_t idx = 0;
-        for (auto val : vec) {
-            assert(idx < expected.size());
-            assert(val == expected[idx]);
-            idx++;
-        }
-        assert(idx == expected.size());
-    }
-
-    // Test 5: Iterator equality and inequality
-    {
-        PagedVectorImpl vec;
-        vec.append(1);
-        vec.append(2);
-        vec.append(3);
-
-        auto it1 = vec.begin();
-        auto it2 = vec.begin();
-        assert(it1 == it2);
-
-        ++it2;
-        assert(it1 != it2);
-
-        ++it1;
-        assert(it1 == it2);
-    }
-
-    // Test 6: Iteration over page boundaries (important for PagedVector)
+    // PagedVector-specific test: Iteration over page boundaries
     {
         PagedVectorImpl vec;
         // Create a temp vector to get page_width
@@ -3309,155 +3280,6 @@ void test_paged_vector_iterators() {
             idx++;
         }
         assert(idx == num_elements);
-    }
-
-    // Test 7: std::distance compatibility
-    {
-        PagedVectorImpl vec;
-        for (size_t i = 0; i < 15; i++) {
-            vec.append(i);
-        }
-
-        auto dist = std::distance(vec.begin(), vec.end());
-        assert((size_t)dist == vec.size());
-        assert((size_t)dist == 15);
-    }
-
-    // Test 8: std::find compatibility
-    {
-        PagedVectorImpl vec;
-        vec.append(10);
-        vec.append(20);
-        vec.append(30);
-        vec.append(40);
-        vec.append(50);
-
-        auto it = std::find(vec.begin(), vec.end(), 30);
-        assert(it != vec.end());
-        assert(*it == 30);
-
-        auto it2 = std::find(vec.begin(), vec.end(), 999);
-        assert(it2 == vec.end());
-    }
-
-    // Test 9: Const iterator
-    {
-        PagedVectorImpl vec;
-        vec.append(5);
-        vec.append(15);
-        vec.append(25);
-
-        const PagedVectorImpl& const_vec = vec;
-
-        size_t count = 0;
-        for (auto it = const_vec.begin(); it != const_vec.end(); ++it) {
-            count++;
-        }
-        assert(count == 3);
-
-        auto it = const_vec.begin();
-        assert(*it == 5);
-        ++it;
-        assert(*it == 15);
-        ++it;
-        assert(*it == 25);
-    }
-
-    // Test 10: Large vector with various patterns
-    {
-        PagedVectorImpl vec;
-        random_device rd;
-        default_random_engine prng(rd());
-        uniform_int_distribution<uint64_t> val_distr(0, 10000);
-
-        vector<uint64_t> expected;
-        size_t num_elements = 200;
-
-        for (size_t i = 0; i < num_elements; i++) {
-            uint64_t val = val_distr(prng);
-            expected.push_back(val);
-            vec.append(val);
-        }
-
-        size_t idx = 0;
-        for (auto val : vec) {
-            assert(val == expected[idx]);
-            idx++;
-        }
-        assert(idx == expected.size());
-    }
-
-    // Test 11: Iteration after modification
-    {
-        PagedVectorImpl vec;
-        vec.append(1);
-        vec.append(2);
-        vec.append(3);
-
-        // First iteration
-        size_t count = 0;
-        for (auto it = vec.begin(); it != vec.end(); ++it) {
-            count++;
-        }
-        assert(count == 3);
-
-        // Modify
-        vec.append(4);
-        vec.set(0, 100);
-
-        // Second iteration
-        vector<uint64_t> expected = {100, 2, 3, 4};
-        size_t idx = 0;
-        for (auto val : vec) {
-            assert(val == expected[idx]);
-            idx++;
-        }
-        assert(idx == 4);
-    }
-
-    // Test 12: All zeros
-    {
-        PagedVectorImpl vec;
-        vec.append(0);
-        vec.append(0);
-        vec.append(0);
-
-        for (auto val : vec) {
-            assert(val == 0);
-        }
-    }
-
-    // Test 13: Iterator copy construction
-    {
-        PagedVectorImpl vec;
-        vec.append(10);
-        vec.append(20);
-
-        auto it1 = vec.begin();
-        auto it2(it1); // Copy constructor
-
-        assert(it1 == it2);
-        assert(*it1 == *it2);
-        assert(*it1 == 10);
-    }
-
-    // Test 14: Iterator assignment
-    {
-        PagedVectorImpl vec;
-        vec.append(10);
-        vec.append(20);
-        vec.append(30);
-
-        auto it1 = vec.begin();
-        auto it2 = vec.begin();
-        ++it2;
-
-        assert(*it1 == 10);
-        assert(*it2 == 20);
-
-        it1 = it2; // Assignment
-        assert(it1 == it2);
-        assert(*it1 == 20);
     }
 
     cerr << "PagedVector (" << typeid(PagedVectorImpl).name() << ") iterator tests successful!" << endl;
