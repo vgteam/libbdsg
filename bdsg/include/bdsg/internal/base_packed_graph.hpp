@@ -1160,26 +1160,26 @@ size_t BasePackedGraph<Backend>::new_node_record(nid_t node_id) {
     size_t next_g_iv_idx = graph_iv.size();
     
     // no edges yet, null pointer for linked list
-    graph_iv.append(0);
-    graph_iv.append(0);
+    graph_iv.push_back(0);
+    graph_iv.push_back(0);
     
     // record the sequence interval
-    seq_start_iv.append(0);
-    seq_length_iv.append(0);
+    seq_start_iv.push_back(0);
+    seq_length_iv.push_back(0);
     
     // initialize an empty path membership list
-    path_membership_node_iv.append(0);
+    path_membership_node_iv.push_back(0);
     
     // expand the ID vector's dimensions so it can handle the full ID interval
     if (nid_to_graph_iv.empty()) {
-        nid_to_graph_iv.append_back(0);
+        nid_to_graph_iv.push_back(0);
     }
     else {
         for (int64_t i = node_id; i < min_id; i++) {
-            nid_to_graph_iv.append_front(0);
+            nid_to_graph_iv.push_front(0);
         }
         for (int64_t i = nid_to_graph_iv.size(); i <= node_id - min_id; i++) {
-            nid_to_graph_iv.append_back(0);
+            nid_to_graph_iv.push_back(0);
         }
     }
     
@@ -1215,7 +1215,7 @@ handle_t BasePackedGraph<Backend>::create_handle(const string& sequence, const n
     
     // encode the sequence interval
     for (size_t i = 0; i < sequence.size(); i++) {
-        seq_iv.append(encode_nucleotide(sequence[i]));
+        seq_iv.push_back(encode_nucleotide(sequence[i]));
     }
     
     return get_handle(id);
@@ -1243,8 +1243,8 @@ void BasePackedGraph<Backend>::create_edge(const handle_t& left, const handle_t&
                                                  GRAPH_START_EDGES_OFFSET);
     
     // add a new linked list node pointing to the rest of the list
-    edge_lists_iv.append(encode_traversal(right));
-    edge_lists_iv.append(graph_iv.get(g_iv_left));
+    edge_lists_iv.push_back(encode_traversal(right));
+    edge_lists_iv.push_back(graph_iv.get(g_iv_left));
     // make this new node the head
     graph_iv.set(g_iv_left, edge_lists_iv.size() / EDGE_RECORD_SIZE);
     
@@ -1255,8 +1255,8 @@ void BasePackedGraph<Backend>::create_edge(const handle_t& left, const handle_t&
     }
     
     // add a new linked list node pointing to the rest of the list
-    edge_lists_iv.append(encode_traversal(flip(left)));
-    edge_lists_iv.append(graph_iv.get(g_iv_right));
+    edge_lists_iv.push_back(encode_traversal(flip(left)));
+    edge_lists_iv.push_back(graph_iv.get(g_iv_right));
     // make this new node the head
     graph_iv.set(g_iv_right, edge_lists_iv.size() / EDGE_RECORD_SIZE);
 }
@@ -1570,14 +1570,14 @@ std::vector<handle_t> BasePackedGraph<Backend>::divide_handle(const handle_t& ha
         seq_length_iv.set(graph_index_to_seq_len_index(g_iv_idx), off - last_offset);
         
         // create an edge forward onto the new node
-        edge_lists_iv.append(encode_traversal(get_handle(next_id)));
-        edge_lists_iv.append(0);
+        edge_lists_iv.push_back(encode_traversal(get_handle(next_id)));
+        edge_lists_iv.push_back(0);
         // add the edge onto the previous node
         graph_iv.set(g_iv_idx + GRAPH_END_EDGES_OFFSET, edge_lists_iv.size() / EDGE_RECORD_SIZE);
         
         // create an edge backward to the previous node
-        edge_lists_iv.append(encode_traversal(get_handle(prev_id, true)));
-        edge_lists_iv.append(0);
+        edge_lists_iv.push_back(encode_traversal(get_handle(prev_id, true)));
+        edge_lists_iv.push_back(0);
         // add the edge backwards to the current node
         graph_iv.set(new_g_iv_idx + GRAPH_START_EDGES_OFFSET, edge_lists_iv.size() / EDGE_RECORD_SIZE);
         
@@ -1635,17 +1635,17 @@ std::vector<handle_t> BasePackedGraph<Backend>::divide_handle(const handle_t& ha
         vector<size_t> divided_trav_offsets{occ_idx};
         for (size_t i = 1; i < return_val.size(); i++) {
             // the new traversals will have the same strandedness as the original occurrence
-            packed_path.steps_iv.append(encode_traversal(path_trav_rev ? flip(return_val[i]) : return_val[i]));
-            packed_path.links_iv.append(0);
-            packed_path.links_iv.append(0);
+            packed_path.steps_iv.push_back(encode_traversal(path_trav_rev ? flip(return_val[i]) : return_val[i]));
+            packed_path.links_iv.push_back(0);
+            packed_path.links_iv.push_back(0);
             
             divided_trav_offsets.push_back(packed_path.steps_iv.size() / STEP_RECORD_SIZE);
             
             // record the membership of this node in this path
             size_t node_member_idx = graph_index_to_node_member_index(graph_iv_index(return_val[i]));
-            path_membership_id_iv.append(get_membership_path(path_membership));
-            path_membership_offset_iv.append(packed_path.steps_iv.size() / STEP_RECORD_SIZE);
-            path_membership_next_iv.append(path_membership_node_iv.get(node_member_idx));
+            path_membership_id_iv.push_back(get_membership_path(path_membership));
+            path_membership_offset_iv.push_back(packed_path.steps_iv.size() / STEP_RECORD_SIZE);
+            path_membership_next_iv.push_back(path_membership_node_iv.get(node_member_idx));
             
             // make this new membership record the head of the linked list
             path_membership_node_iv.set(node_member_idx, path_membership_next_iv.size() / MEMBERSHIP_NEXT_RECORD_SIZE);
@@ -1774,7 +1774,7 @@ handle_t BasePackedGraph<Backend>::change_sequence(const handle_t& handle, const
         // the new sequence doesn't fit, add it at the end
         seq_start_iv.set(graph_index_to_seq_start_index(g_iv_index), seq_iv.size());
         for (size_t i = 0; i < sequence.size(); ++i) {
-            seq_iv.append(encode_nucleotide(sequence[i]));
+            seq_iv.push_back(encode_nucleotide(sequence[i]));
         }
         deleted_bases += seq_len;
     }
@@ -1876,9 +1876,9 @@ void BasePackedGraph<Backend>::defragment_path(const int64_t& path_idx, bool for
             size_t prev = 0;
             while (copying_from != 0 && (first_iter || copying_from != path_head_iv.get(path_idx))) {
                 // make a new record
-                new_steps_iv.append(get_step_trav(path, copying_from));
-                new_links_iv.append(prev);
-                new_links_iv.append(0);
+                new_steps_iv.push_back(get_step_trav(path, copying_from));
+                new_links_iv.push_back(prev);
+                new_links_iv.push_back(0);
                 
                 size_t here = new_steps_iv.size() / STEP_RECORD_SIZE;
                 
@@ -1915,7 +1915,7 @@ void BasePackedGraph<Backend>::defragment_path(const int64_t& path_idx, bool for
             // records (even if the node occurs multiple times on this path), so we will use a bit deque
             // indexed by node_id - min_id to flag nodes as either translated or untranslated
             PackedDeque<> nid_translated;
-            nid_translated.append_back(0);
+            nid_translated.push_back(0);
             nid_t min_translated_id = get_id(decode_traversal(get_step_trav(path, path_head_iv.get(path_idx))));
             
             first_iter = true;
@@ -1929,13 +1929,13 @@ void BasePackedGraph<Backend>::defragment_path(const int64_t& path_idx, bool for
                 // expand the bounds of the deque as necessary to be able to index by ID
                 if (step_node_id < min_translated_id) {
                     for (nid_t i = step_node_id; i < min_translated_id; ++i) {
-                        nid_translated.append_front(0);
+                        nid_translated.push_front(0);
                     }
                     min_translated_id = step_node_id;
                 }
                 else if (step_node_id >= min_translated_id + nid_translated.size()) {
                     for (nid_t i = min_translated_id + nid_translated.size(); i <= step_node_id; ++i) {
-                        nid_translated.append_back(0);
+                        nid_translated.push_back(0);
                     }
                 }
                 
@@ -2048,49 +2048,49 @@ void BasePackedGraph<Backend>::eject_deleted_paths() {
     decltype(path_name_start_iv) new_path_name_start_iv;
     new_path_name_start_iv.reserve(paths.size());
     for (size_t i = 0; i < paths.size(); ++i) {
-        new_path_name_start_iv.append(path_name_start_iv.get(i));
+        new_path_name_start_iv.push_back(path_name_start_iv.get(i));
     }
     path_name_start_iv = std::move(new_path_name_start_iv);
     
     PackedVector<> new_path_name_length_iv;
     new_path_name_length_iv.reserve(paths.size());
     for (size_t i = 0; i < paths.size(); ++i) {
-        new_path_name_length_iv.append(path_name_length_iv.get(i));
+        new_path_name_length_iv.push_back(path_name_length_iv.get(i));
     }
     path_name_length_iv = std::move(new_path_name_length_iv);
     
     PackedVector<> new_path_is_deleted_iv;
     new_path_is_deleted_iv.reserve(paths.size());
     for (size_t i = 0; i < paths.size(); ++i) {
-        new_path_is_deleted_iv.append(path_is_deleted_iv.get(i));
+        new_path_is_deleted_iv.push_back(path_is_deleted_iv.get(i));
     }
     path_is_deleted_iv = std::move(new_path_is_deleted_iv);
     
     PackedVector<> new_path_is_circular_iv;
     new_path_is_circular_iv.reserve(paths.size());
     for (size_t i = 0; i < paths.size(); ++i) {
-        new_path_is_circular_iv.append(path_is_circular_iv.get(i));
+        new_path_is_circular_iv.push_back(path_is_circular_iv.get(i));
     }
     path_is_circular_iv = std::move(new_path_is_circular_iv);
     
     decltype(path_head_iv) new_path_head_iv;
     new_path_head_iv.reserve(paths.size());
     for (size_t i = 0; i < paths.size(); ++i) {
-        new_path_head_iv.append(path_head_iv.get(i));
+        new_path_head_iv.push_back(path_head_iv.get(i));
     }
     path_head_iv = std::move(new_path_head_iv);
     
     decltype(path_tail_iv) new_path_tail_iv;
     new_path_tail_iv.reserve(paths.size());
     for (size_t i = 0; i < paths.size(); ++i) {
-        new_path_tail_iv.append(path_tail_iv.get(i));
+        new_path_tail_iv.push_back(path_tail_iv.get(i));
     }
     path_tail_iv = std::move(new_path_tail_iv);
     
     PackedVector<> new_path_deleted_steps_iv;
     new_path_deleted_steps_iv.reserve(paths.size());
     for (size_t i = 0; i < paths.size(); ++i) {
-        new_path_deleted_steps_iv.append(path_deleted_steps_iv.get(i));
+        new_path_deleted_steps_iv.push_back(path_deleted_steps_iv.get(i));
     }
     path_deleted_steps_iv = std::move(new_path_deleted_steps_iv);
     
@@ -2140,7 +2140,7 @@ void BasePackedGraph<Backend>::tighten() {
     new_nid_to_graph_iv.reserve(nid_to_graph_iv.size());
     // transfer of the data
     for (size_t i = 0; i < nid_to_graph_iv.size(); i++) {
-        new_nid_to_graph_iv.append_back(nid_to_graph_iv.get(i));
+        new_nid_to_graph_iv.push_back(nid_to_graph_iv.get(i));
     }
     // replace the old one
     nid_to_graph_iv = std::move(new_nid_to_graph_iv);
@@ -2161,7 +2161,7 @@ void BasePackedGraph<Backend>::tighten() {
         seq_start_iv.set(i, new_seq_iv.size());
         // transfer the actual sequence over
         for (size_t j = begin; j < end; j++) {
-            new_seq_iv.append(seq_iv.get(j));
+            new_seq_iv.push_back(seq_iv.get(j));
         }
     }
     // replace the old seq iv
@@ -2211,11 +2211,11 @@ void BasePackedGraph<Backend>::defragment(bool force) {
             if (raw_g_iv_idx) {
                 size_t g_iv_idx = (raw_g_iv_idx - 1) * GRAPH_RECORD_SIZE;
                 // this node still exists, create a new copy
-                new_graph_iv.append(graph_iv.get(g_iv_idx + GRAPH_START_EDGES_OFFSET));
-                new_graph_iv.append(graph_iv.get(g_iv_idx + GRAPH_END_EDGES_OFFSET));
-                new_seq_length_iv.append(seq_length_iv.get(graph_index_to_seq_len_index(g_iv_idx)));
-                new_seq_start_iv.append(seq_start_iv.get(graph_index_to_seq_start_index(g_iv_idx)));
-                new_path_membership_node_iv.append(path_membership_node_iv.get(graph_index_to_node_member_index(g_iv_idx)));
+                new_graph_iv.push_back(graph_iv.get(g_iv_idx + GRAPH_START_EDGES_OFFSET));
+                new_graph_iv.push_back(graph_iv.get(g_iv_idx + GRAPH_END_EDGES_OFFSET));
+                new_seq_length_iv.push_back(seq_length_iv.get(graph_index_to_seq_len_index(g_iv_idx)));
+                new_seq_start_iv.push_back(seq_start_iv.get(graph_index_to_seq_start_index(g_iv_idx)));
+                new_path_membership_node_iv.push_back(path_membership_node_iv.get(graph_index_to_node_member_index(g_iv_idx)));
                 // update the pointer into graph_iv
                 nid_to_graph_iv.set(i, new_graph_iv.size() / GRAPH_RECORD_SIZE);
             }
@@ -2249,16 +2249,16 @@ void BasePackedGraph<Backend>::defragment(bool force) {
                     size_t edge_list_idx = graph_iv.get(g_iv_idx + edge_list_offset);
                     if (edge_list_idx) {
                         // add a new edge record
-                        new_edge_lists_iv.append(get_edge_target(edge_list_idx));
-                        new_edge_lists_iv.append(0);
+                        new_edge_lists_iv.push_back(get_edge_target(edge_list_idx));
+                        new_edge_lists_iv.push_back(0);
                         // point the graph vector at this new edge list
                         graph_iv.set(g_iv_idx + edge_list_offset, new_edge_lists_iv.size() / EDGE_RECORD_SIZE);
                         
                         edge_list_idx = get_next_edge_index(edge_list_idx);
                         while (edge_list_idx) {
                             // add a new edge record
-                            new_edge_lists_iv.append(get_edge_target(edge_list_idx));
-                            new_edge_lists_iv.append(0);
+                            new_edge_lists_iv.push_back(get_edge_target(edge_list_idx));
+                            new_edge_lists_iv.push_back(0);
                             // point the previous link at this one
                             new_edge_lists_iv.set(new_edge_lists_iv.size() - 2 * EDGE_RECORD_SIZE + EDGE_NEXT_OFFSET,
                                                   new_edge_lists_iv.size() / EDGE_RECORD_SIZE);
@@ -2298,9 +2298,9 @@ void BasePackedGraph<Backend>::defragment(bool force) {
                 uint64_t member_idx = path_membership_node_iv.get(graph_index_to_node_member_index(g_iv_idx));
                 if (member_idx) {
                     // make a new membership record
-                    new_path_membership_id_iv.append(get_membership_path(member_idx));
-                    new_path_membership_offset_iv.append(get_membership_step(member_idx));
-                    new_path_membership_next_iv.append(0);
+                    new_path_membership_id_iv.push_back(get_membership_path(member_idx));
+                    new_path_membership_offset_iv.push_back(get_membership_step(member_idx));
+                    new_path_membership_next_iv.push_back(0);
                     
                     // point the membership vector here
                     path_membership_node_iv.set(graph_index_to_node_member_index(g_iv_idx),
@@ -2309,9 +2309,9 @@ void BasePackedGraph<Backend>::defragment(bool force) {
                     member_idx = get_next_membership(member_idx);
                     while (member_idx) {
                         // make a new membership record
-                        new_path_membership_id_iv.append(get_membership_path(member_idx));
-                        new_path_membership_offset_iv.append(get_membership_step(member_idx));
-                        new_path_membership_next_iv.append(0);
+                        new_path_membership_id_iv.push_back(get_membership_path(member_idx));
+                        new_path_membership_offset_iv.push_back(get_membership_step(member_idx));
+                        new_path_membership_next_iv.push_back(0);
                         // point the previous link at this one
                         new_path_membership_next_iv.set(new_path_membership_next_iv.size() - 2 * MEMBERSHIP_NEXT_RECORD_SIZE,
                                                         new_path_membership_next_iv.size() / MEMBERSHIP_NEXT_RECORD_SIZE);
@@ -2617,7 +2617,7 @@ PackedVector<> BasePackedGraph<Backend>::encode_path_name(const string& path_nam
 template<typename Backend>
 void BasePackedGraph<Backend>::append_path_name(const string& path_name) {
     for (size_t i = 0; i < path_name.size(); ++i) {
-        path_names_iv.append(get_or_make_assignment(path_name.at(i)));
+        path_names_iv.push_back(get_or_make_assignment(path_name.at(i)));
     }
 }
 
@@ -2748,13 +2748,13 @@ path_handle_t BasePackedGraph<Backend>::create_path_handle(const string& name, b
     
     paths.emplace_back();
     
-    path_name_start_iv.append(path_names_iv.size());
-    path_name_length_iv.append(name.size());
-    path_is_circular_iv.append(is_circular);
-    path_is_deleted_iv.append(false);
-    path_head_iv.append(0);
-    path_tail_iv.append(0);
-    path_deleted_steps_iv.append(0);
+    path_name_start_iv.push_back(path_names_iv.size());
+    path_name_length_iv.push_back(name.size());
+    path_is_circular_iv.push_back(is_circular);
+    path_is_deleted_iv.push_back(false);
+    path_head_iv.push_back(0);
+    path_tail_iv.push_back(0);
+    path_deleted_steps_iv.push_back(0);
     
     append_path_name(name);
     
@@ -2767,9 +2767,9 @@ step_handle_t BasePackedGraph<Backend>::append_step(const path_handle_t& path, c
     PackedPath& packed_path = paths.at(as_integer(path));
     
     // create a new path record
-    packed_path.steps_iv.append(as_integer(to_append));
-    packed_path.links_iv.append(path_tail_iv.get(as_integer(path)));
-    packed_path.links_iv.append(0);
+    packed_path.steps_iv.push_back(as_integer(to_append));
+    packed_path.links_iv.push_back(path_tail_iv.get(as_integer(path)));
+    packed_path.links_iv.push_back(0);
     
     // the offset associated with the new record
     size_t step_offset = packed_path.steps_iv.size() / STEP_RECORD_SIZE;
@@ -2793,9 +2793,9 @@ step_handle_t BasePackedGraph<Backend>::append_step(const path_handle_t& path, c
     
     // record the membership of this node in this path
     size_t node_member_idx = graph_index_to_node_member_index(graph_iv_index(to_append));
-    path_membership_id_iv.append(as_integer(path));
-    path_membership_offset_iv.append(step_offset);
-    path_membership_next_iv.append(path_membership_node_iv.get(node_member_idx));
+    path_membership_id_iv.push_back(as_integer(path));
+    path_membership_offset_iv.push_back(step_offset);
+    path_membership_next_iv.push_back(path_membership_node_iv.get(node_member_idx));
     
     // make this new membership record the head of the linked list
     path_membership_node_iv.set(node_member_idx, path_membership_next_iv.size() / MEMBERSHIP_NEXT_RECORD_SIZE);
@@ -2813,9 +2813,9 @@ step_handle_t BasePackedGraph<Backend>::prepend_step(const path_handle_t& path, 
     PackedPath& packed_path = paths.at(as_integer(path));
     
     // create a new path record
-    packed_path.steps_iv.append(as_integer(to_prepend));
-    packed_path.links_iv.append(0);
-    packed_path.links_iv.append(path_head_iv.get(as_integer(path)));
+    packed_path.steps_iv.push_back(as_integer(to_prepend));
+    packed_path.links_iv.push_back(0);
+    packed_path.links_iv.push_back(path_head_iv.get(as_integer(path)));
     
     // the offset associated with the new record
     size_t step_offset = packed_path.steps_iv.size() / STEP_RECORD_SIZE;
@@ -2839,9 +2839,9 @@ step_handle_t BasePackedGraph<Backend>::prepend_step(const path_handle_t& path, 
     
     // record the membership of this node in this path
     size_t node_member_idx = graph_index_to_node_member_index(graph_iv_index(to_prepend));
-    path_membership_id_iv.append(as_integer(path));
-    path_membership_offset_iv.append(step_offset);
-    path_membership_next_iv.append(path_membership_node_iv.get(node_member_idx));
+    path_membership_id_iv.push_back(as_integer(path));
+    path_membership_offset_iv.push_back(step_offset);
+    path_membership_next_iv.push_back(path_membership_node_iv.get(node_member_idx));
     
     // make this new membership record the head of the linked list
     path_membership_node_iv.set(node_member_idx, path_membership_next_iv.size() / MEMBERSHIP_NEXT_RECORD_SIZE);
@@ -2938,9 +2938,9 @@ pair<step_handle_t, step_handle_t> BasePackedGraph<Backend>::rewrite_segment(con
     for (const handle_t& handle : new_segment) {
         
         // create a new step record
-        packed_path.steps_iv.append(encode_traversal(handle));
-        packed_path.links_iv.append(0);
-        packed_path.links_iv.append(0);
+        packed_path.steps_iv.push_back(encode_traversal(handle));
+        packed_path.links_iv.push_back(0);
+        packed_path.links_iv.push_back(0);
         
         uint64_t step_offset = packed_path.steps_iv.size() / STEP_RECORD_SIZE;
         
@@ -2982,9 +2982,9 @@ pair<step_handle_t, step_handle_t> BasePackedGraph<Backend>::rewrite_segment(con
         
         // put a membership record for this occurrence at the front of the membership list
         size_t node_member_idx = graph_index_to_node_member_index(graph_iv_index(handle));
-        path_membership_id_iv.append(as_integers(segment_end)[0]);
-        path_membership_offset_iv.append(step_offset);
-        path_membership_next_iv.append(path_membership_node_iv.get(node_member_idx));
+        path_membership_id_iv.push_back(as_integers(segment_end)[0]);
+        path_membership_offset_iv.push_back(step_offset);
+        path_membership_next_iv.push_back(path_membership_node_iv.get(node_member_idx));
         path_membership_node_iv.set(node_member_idx, path_membership_next_iv.size() / MEMBERSHIP_NEXT_RECORD_SIZE);
         
         if (first_iter) {
@@ -3084,14 +3084,14 @@ void BasePackedGraph<Backend>::reassign_node_ids(const std::function<nid_t(const
 
             // expand the new ID vector as necessary
             if (new_nid_to_graph_iv.empty()) {
-                new_nid_to_graph_iv.append_back(0);
+                new_nid_to_graph_iv.push_back(0);
             }
             else {
                 for (int64_t j = new_id; j < new_min_id; ++j) {
-                    new_nid_to_graph_iv.append_front(0);
+                    new_nid_to_graph_iv.push_front(0);
                 }
                 for (int64_t j = new_nid_to_graph_iv.size(); j <= new_id - new_min_id; ++j) {
-                    new_nid_to_graph_iv.append_back(0);
+                    new_nid_to_graph_iv.push_back(0);
                 }
             }
             

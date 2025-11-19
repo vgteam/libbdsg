@@ -94,10 +94,10 @@ public:
     inline uint64_t get(const size_t& i) const;
         
     /// Add a value to the end
-    inline void append(const uint64_t& value);
+    inline void push_back(const uint64_t& value);
         
     /// Remove the last value
-    inline void pop();
+    inline void pop_back();
     
     /// Either shrink the vector or grow the vector to the new size. New
     /// entries created by growing are filled with 0.
@@ -240,10 +240,10 @@ public:
     inline uint64_t get(const size_t& i) const;
     
     /// Add a value to the end
-    inline void append(const uint64_t& value);
+    inline void push_back(const uint64_t& value);
     
     /// Remove the last value
-    inline void pop();
+    inline void pop_back();
     
     /// Either shrink the vector or grow the vector to the new size. New
     /// entries created by growing are filled with 0.
@@ -383,10 +383,10 @@ public:
     inline uint64_t get(const size_t& i) const;
     
     /// Add a value to the end
-    inline void append(const uint64_t& value);
+    inline void push_back(const uint64_t& value);
     
     /// Remove the last value
-    inline void pop();
+    inline void pop_back();
     
     /// Either shrink the vector or grow the vector to the new size. New
     /// entries created by growing are filled with 0.
@@ -518,10 +518,10 @@ public:
     inline uint64_t get(const size_t& i) const;
     
     /// Add a value to the front
-    inline void append_front(const uint64_t& value);
+    inline void push_front(const uint64_t& value);
     
     /// Add a value to the back
-    inline void append_back(const uint64_t& value);
+    inline void push_back(const uint64_t& value);
     
     /// Remove the front value
     inline void pop_front();
@@ -799,13 +799,13 @@ inline uint64_t PackedVector<Backend>::get(const size_t& i) const {
 }
 
 template<typename Backend>
-inline void PackedVector<Backend>::append(const uint64_t& value) {
+inline void PackedVector<Backend>::push_back(const uint64_t& value) {
     resize(filled + 1);
     set(filled - 1, value);
 }
 
 template<typename Backend>
-inline void PackedVector<Backend>::pop() {
+inline void PackedVector<Backend>::pop_back() {
     resize(filled - 1);
 }
     
@@ -1041,7 +1041,7 @@ inline void PackedDeque<Backend>::reserve(const size_t& future_size) {
 }
 
 template<typename Backend>
-inline void PackedDeque<Backend>::append_front(const uint64_t& value) {
+inline void PackedDeque<Backend>::push_front(const uint64_t& value) {
     // expand capacity if necessary
     if (filled == vec.size()) {
         size_t new_capacity = size_t(factor * vec.size()) + 1;
@@ -1063,7 +1063,7 @@ inline void PackedDeque<Backend>::append_front(const uint64_t& value) {
 }
 
 template<typename Backend>
-inline void PackedDeque<Backend>::append_back(const uint64_t& value) {
+inline void PackedDeque<Backend>::push_back(const uint64_t& value) {
     // expand capacity if necessary
     if (filled == vec.size()) {
         size_t new_capacity = size_t(factor * vec.size()) + 1;
@@ -1262,12 +1262,12 @@ inline uint64_t PagedVector<page_size, Backend>::get(const size_t& i) const {
 }
 
 template<size_t page_size, typename Backend>
-inline void PagedVector<page_size, Backend>::append(const uint64_t& value) {
+inline void PagedVector<page_size, Backend>::push_back(const uint64_t& value) {
     if (filled == pages.size() * page_size) {
         // init a new page and a new anchor
         pages.emplace_back();
         pages.back().resize(page_size);
-        anchors.append(0);
+        anchors.push_back(0);
     }
     
     // use the logic in set to choose anchor and diff
@@ -1276,12 +1276,12 @@ inline void PagedVector<page_size, Backend>::append(const uint64_t& value) {
 }
 
 template<size_t page_size, typename Backend>
-inline void PagedVector<page_size, Backend>::pop() {
+inline void PagedVector<page_size, Backend>::pop_back() {
     filled--;
     while (filled + page_size <= pages.size() * page_size) {
         // the final page is unused now, remove it
         pages.pop_back(); // TODO: this won't resize since it's an STL vector
-        anchors.pop();
+        anchors.pop_back();
     }
 }
 
@@ -1496,22 +1496,22 @@ inline uint64_t RobustPagedVector<page_size, Backend>::get(const size_t& i) cons
 }
 
 template<size_t page_size, typename Backend>
-inline void RobustPagedVector<page_size, Backend>::append(const uint64_t& value) {
+inline void RobustPagedVector<page_size, Backend>::push_back(const uint64_t& value) {
     if (first_page.size() < latter_pages.page_width()) {
-        first_page.append(value);
+        first_page.push_back(value);
     }
     else {
-        latter_pages.append(value);
+        latter_pages.push_back(value);
     }
 }
 
 template<size_t page_size, typename Backend>
-inline void RobustPagedVector<page_size, Backend>::pop() {
+inline void RobustPagedVector<page_size, Backend>::pop_back() {
     if (latter_pages.empty()) {
-        first_page.pop();
+        first_page.pop_back();
     }
     else {
-        latter_pages.pop();
+        latter_pages.pop_back();
     }
 }
 
