@@ -37,9 +37,13 @@ class PackedVector {
 private:
     using IntVector = typename IntVectorFor<Backend>::type;
 public:
+
+    /// Forward declaration of iterator
+    class iterator;
+
     /// Constructor (starts empty)
     PackedVector();
-    
+
     // TODO: constructor templated on allocator types conflicts with all the
     // other 1-argument constructor overloads.
     
@@ -117,11 +121,59 @@ public:
     
     /// Reports the amount of memory consumed by this object in bytes.
     size_t memory_usage() const;
-    
+
+    /// Iterator to the first element
+    iterator begin() const;
+
+    /// Iterator to the past-the-end element
+    iterator end() const;
+
     /// Returns true if the contents are identical (but not necessarily storage
     /// parameters, such as pointer to data, capacity, bit width, etc.).
     inline bool operator==(const PackedVector& other) const;
-        
+
+    /**
+     * A forward iterator for PackedVector that provides read-only access to elements
+     */
+    class iterator {
+    public:
+        // Iterator traits for standard library compatibility
+        using iterator_category = std::forward_iterator_tag;
+        using value_type = uint64_t;
+        using difference_type = typename std::make_signed<size_t>::type;
+        using pointer = void;
+        using reference = uint64_t;
+
+        // Standard iterator operations
+        iterator(const iterator& other) = default;
+        iterator& operator=(const iterator& other) = default;
+        ~iterator() = default;
+
+        /// Pre-increment operator
+        iterator& operator++();
+
+        /// Post-increment operator
+        iterator operator++(int);
+
+        /// Dereference operator - returns value at current position
+        uint64_t operator*() const;
+
+        /// Equality comparison
+        bool operator==(const iterator& other) const;
+
+        /// Inequality comparison
+        bool operator!=(const iterator& other) const;
+
+    private:
+        // Private constructor - only PackedVector can create iterators
+        iterator(const PackedVector* vec, size_t idx);
+
+        const PackedVector* vec_ptr = nullptr;
+        size_t index = 0;
+
+        friend class PackedVector;
+    };
+
 private:
     // We don't allocate ourselves, so we don't need to hold an allocator.
     
@@ -152,23 +204,26 @@ private:
     using PageHolder = typename VectorFor<Backend>::template type<Page>;
 
 public:
-    
-    /// Construct (starts empty) 
+
+    /// Forward declaration of iterator
+    class iterator;
+
+    /// Construct (starts empty)
     PagedVector();
-    
+
     /// Construct from contents in a stream
     PagedVector(istream& in);
-    
+
     /// Move constructor
     PagedVector(PagedVector&& other) = default;
     /// Move assignment operator
     PagedVector& operator=(PagedVector&& other) = default;
-    
+
     /// Copy constructor
     PagedVector(const PagedVector& other) = default;
     /// Copy assignment operator
     PagedVector& operator=(const PagedVector& other) = default;
-    
+
     // Destructor
     ~PagedVector();
     
@@ -212,18 +267,66 @@ public:
     
     /// Returns the page width of the vector
     inline size_t page_width() const;
-    
+
+    /// Iterator to the first element
+    iterator begin() const;
+
+    /// Iterator to the past-the-end element
+    iterator end() const;
+
     /// Reports the amount of memory consumed by this object in bytes
     size_t memory_usage() const;
-    
+
+    /**
+     * A forward iterator for PagedVector that provides read-only access to elements
+     */
+    class iterator {
+    public:
+        // Iterator traits for standard library compatibility
+        using iterator_category = std::forward_iterator_tag;
+        using value_type = uint64_t;
+        using difference_type = typename std::make_signed<size_t>::type;
+        using pointer = void;
+        using reference = uint64_t;
+
+        // Standard iterator operations
+        iterator(const iterator& other) = default;
+        iterator& operator=(const iterator& other) = default;
+        ~iterator() = default;
+
+        /// Pre-increment operator
+        iterator& operator++();
+
+        /// Post-increment operator
+        iterator operator++(int);
+
+        /// Dereference operator - returns value at current position
+        uint64_t operator*() const;
+
+        /// Equality comparison
+        bool operator==(const iterator& other) const;
+
+        /// Inequality comparison
+        bool operator!=(const iterator& other) const;
+
+    private:
+        // Private constructor - only PagedVector can create iterators
+        iterator(const PagedVector* vec, size_t idx);
+
+        const PagedVector* vec_ptr = nullptr;
+        size_t index = 0;
+
+        friend class PagedVector;
+    };
+
 private:
-    
+
     inline uint64_t to_diff(const uint64_t& value, const uint64_t& page) const;
     inline uint64_t from_diff(const uint64_t& diff, const uint64_t& page) const;
-    
+
     // The number of entries filled so far
     size_t filled = 0;
-    
+
     // Evenly spaced entries from the vector
     Page anchors;
     // All entries in the vector expressed as a difference from the preceding page value
@@ -244,9 +347,13 @@ private:
     using PackedVec = PackedVector<Backend>;
     using PagedVec = PagedVector<page_size, Backend>;
 public:
+
+    /// Forward declaration of iterator
+    class iterator;
+
     /// Construct (starts empty)
     RobustPagedVector();
-    
+
     /// Construct from contents in a stream
     RobustPagedVector(istream& in);
     
@@ -303,10 +410,58 @@ public:
     
     /// Returns the page width of the vector
     inline size_t page_width() const;
-    
+
+    /// Iterator to the first element
+    iterator begin() const;
+
+    /// Iterator to the past-the-end element
+    iterator end() const;
+
     /// Reports the amount of memory consumed by this object in bytes
     size_t memory_usage() const;
-    
+
+    /**
+     * A forward iterator for RobustPagedVector that provides read-only access to elements
+     */
+    class iterator {
+    public:
+        // Iterator traits for standard library compatibility
+        using iterator_category = std::forward_iterator_tag;
+        using value_type = uint64_t;
+        using difference_type = typename std::make_signed<size_t>::type;
+        using pointer = void;
+        using reference = uint64_t;
+
+        // Standard iterator operations
+        iterator(const iterator& other) = default;
+        iterator& operator=(const iterator& other) = default;
+        ~iterator() = default;
+
+        /// Pre-increment operator
+        iterator& operator++();
+
+        /// Post-increment operator
+        iterator operator++(int);
+
+        /// Dereference operator - returns value at current position
+        uint64_t operator*() const;
+
+        /// Equality comparison
+        bool operator==(const iterator& other) const;
+
+        /// Inequality comparison
+        bool operator!=(const iterator& other) const;
+
+    private:
+        // Private constructor - only RobustPagedVector can create iterators
+        iterator(const RobustPagedVector* vec, size_t idx);
+
+        const RobustPagedVector* vec_ptr = nullptr;
+        size_t index = 0;
+
+        friend class RobustPagedVector;
+    };
+
 private:
     
     /// The first page_size entries go in this vector
@@ -328,6 +483,10 @@ class PackedDeque {
 private:
     using PackedVec = PackedVector<Backend>;
 public:
+
+    /// Forward declaration of iterator
+    class iterator;
+
     /// Construct empty
     PackedDeque(void);
     /// Construct from contents in a stream
@@ -382,10 +541,58 @@ public:
     
     /// Empty the contents
     inline void clear();
-    
+
+    /// Iterator to the first element
+    iterator begin() const;
+
+    /// Iterator to the past-the-end element
+    iterator end() const;
+
     /// Reports the amount of memory consumed by this object in bytes.
     size_t memory_usage() const;
-    
+
+    /**
+     * A forward iterator for PackedDeque that provides read-only access to elements
+     */
+    class iterator {
+    public:
+        // Iterator traits for standard library compatibility
+        using iterator_category = std::forward_iterator_tag;
+        using value_type = uint64_t;
+        using difference_type = typename std::make_signed<size_t>::type;
+        using pointer = void;
+        using reference = uint64_t;
+
+        // Standard iterator operations
+        iterator(const iterator& other) = default;
+        iterator& operator=(const iterator& other) = default;
+        ~iterator() = default;
+
+        /// Pre-increment operator
+        iterator& operator++();
+
+        /// Post-increment operator
+        iterator operator++(int);
+
+        /// Dereference operator - returns value at current position
+        uint64_t operator*() const;
+
+        /// Equality comparison
+        bool operator==(const iterator& other) const;
+
+        /// Inequality comparison
+        bool operator!=(const iterator& other) const;
+
+    private:
+        // Private constructor - only PackedDeque can create iterators
+        iterator(const PackedDeque* deque, size_t idx);
+
+        const PackedDeque* deque_ptr = nullptr;
+        size_t index = 0;
+
+        friend class PackedDeque;
+    };
+
 private:
     
     inline void contract();
@@ -714,6 +921,58 @@ size_t PackedVector<Backend>::memory_usage() const {
 }
 
 /////////////////////
+/// PackedVector::iterator
+/////////////////////
+
+template<typename Backend>
+PackedVector<Backend>::iterator::iterator(const PackedVector* vec, size_t idx)
+    : vec_ptr(vec), index(idx) {
+    // Constructor
+}
+
+template<typename Backend>
+typename PackedVector<Backend>::iterator&
+PackedVector<Backend>::iterator::operator++() {
+    ++index;
+    return *this;
+}
+
+template<typename Backend>
+typename PackedVector<Backend>::iterator
+PackedVector<Backend>::iterator::operator++(int) {
+    iterator tmp = *this;
+    ++index;
+    return tmp;
+}
+
+template<typename Backend>
+uint64_t PackedVector<Backend>::iterator::operator*() const {
+    return vec_ptr->get(index);
+}
+
+template<typename Backend>
+bool PackedVector<Backend>::iterator::operator==(const iterator& other) const {
+    return vec_ptr == other.vec_ptr && index == other.index;
+}
+
+template<typename Backend>
+bool PackedVector<Backend>::iterator::operator!=(const iterator& other) const {
+    return !(*this == other);
+}
+
+template<typename Backend>
+typename PackedVector<Backend>::iterator
+PackedVector<Backend>::begin() const {
+    return iterator(this, 0);
+}
+
+template<typename Backend>
+typename PackedVector<Backend>::iterator
+PackedVector<Backend>::end() const {
+    return iterator(this, filled);
+}
+
+/////////////////////
 /// PackedDeque
 /////////////////////
 
@@ -872,7 +1131,59 @@ inline void PackedDeque<Backend>::clear() {
     filled = 0;
     begin_idx = 0;
 }
-    
+
+/////////////////////
+/// PackedDeque::iterator
+/////////////////////
+
+template<typename Backend>
+PackedDeque<Backend>::iterator::iterator(const PackedDeque* deque, size_t idx)
+    : deque_ptr(deque), index(idx) {
+    // Constructor
+}
+
+template<typename Backend>
+typename PackedDeque<Backend>::iterator&
+PackedDeque<Backend>::iterator::operator++() {
+    ++index;
+    return *this;
+}
+
+template<typename Backend>
+typename PackedDeque<Backend>::iterator
+PackedDeque<Backend>::iterator::operator++(int) {
+    iterator tmp = *this;
+    ++index;
+    return tmp;
+}
+
+template<typename Backend>
+uint64_t PackedDeque<Backend>::iterator::operator*() const {
+    return deque_ptr->get(index);
+}
+
+template<typename Backend>
+bool PackedDeque<Backend>::iterator::operator==(const iterator& other) const {
+    return deque_ptr == other.deque_ptr && index == other.index;
+}
+
+template<typename Backend>
+bool PackedDeque<Backend>::iterator::operator!=(const iterator& other) const {
+    return !(*this == other);
+}
+
+template<typename Backend>
+typename PackedDeque<Backend>::iterator
+PackedDeque<Backend>::begin() const {
+    return iterator(this, 0);
+}
+
+template<typename Backend>
+typename PackedDeque<Backend>::iterator
+PackedDeque<Backend>::end() const {
+    return iterator(this, filled);
+}
+
 /////////////////////
 /// PagedVector
 /////////////////////
@@ -1064,7 +1375,7 @@ inline uint64_t PagedVector<page_size, Backend>::to_diff(const uint64_t& value, 
 template<size_t page_size, typename Backend>
 inline uint64_t PagedVector<page_size, Backend>::from_diff(const uint64_t& diff, const uint64_t& anchor) const {
     // convert backward from the transformation described in to_diff
-    
+
     if (diff == 0) {
         return 0;
     }
@@ -1074,6 +1385,58 @@ inline uint64_t PagedVector<page_size, Backend>::from_diff(const uint64_t& diff,
     else {
         return anchor + diff - diff / 5 - 1;
     }
+}
+
+/////////////////////
+/// PagedVector::iterator
+/////////////////////
+
+template<size_t page_size, typename Backend>
+PagedVector<page_size, Backend>::iterator::iterator(const PagedVector* vec, size_t idx)
+    : vec_ptr(vec), index(idx) {
+    // Constructor
+}
+
+template<size_t page_size, typename Backend>
+typename PagedVector<page_size, Backend>::iterator&
+PagedVector<page_size, Backend>::iterator::operator++() {
+    ++index;
+    return *this;
+}
+
+template<size_t page_size, typename Backend>
+typename PagedVector<page_size, Backend>::iterator
+PagedVector<page_size, Backend>::iterator::operator++(int) {
+    iterator tmp = *this;
+    ++index;
+    return tmp;
+}
+
+template<size_t page_size, typename Backend>
+uint64_t PagedVector<page_size, Backend>::iterator::operator*() const {
+    return vec_ptr->get(index);
+}
+
+template<size_t page_size, typename Backend>
+bool PagedVector<page_size, Backend>::iterator::operator==(const iterator& other) const {
+    return vec_ptr == other.vec_ptr && index == other.index;
+}
+
+template<size_t page_size, typename Backend>
+bool PagedVector<page_size, Backend>::iterator::operator!=(const iterator& other) const {
+    return !(*this == other);
+}
+
+template<size_t page_size, typename Backend>
+typename PagedVector<page_size, Backend>::iterator
+PagedVector<page_size, Backend>::begin() const {
+    return iterator(this, 0);
+}
+
+template<size_t page_size, typename Backend>
+typename PagedVector<page_size, Backend>::iterator
+PagedVector<page_size, Backend>::end() const {
+    return iterator(this, filled);
 }
 
 /////////////////////
@@ -1200,6 +1563,58 @@ inline void RobustPagedVector<page_size, Backend>::clear() {
 template<size_t page_size, typename Backend>
 inline size_t RobustPagedVector<page_size, Backend>::page_width() const {
     return latter_pages.page_width();
+}
+
+/////////////////////
+/// RobustPagedVector::iterator
+/////////////////////
+
+template<size_t page_size, typename Backend>
+RobustPagedVector<page_size, Backend>::iterator::iterator(const RobustPagedVector* vec, size_t idx)
+    : vec_ptr(vec), index(idx) {
+    // Constructor
+}
+
+template<size_t page_size, typename Backend>
+typename RobustPagedVector<page_size, Backend>::iterator&
+RobustPagedVector<page_size, Backend>::iterator::operator++() {
+    ++index;
+    return *this;
+}
+
+template<size_t page_size, typename Backend>
+typename RobustPagedVector<page_size, Backend>::iterator
+RobustPagedVector<page_size, Backend>::iterator::operator++(int) {
+    iterator tmp = *this;
+    ++index;
+    return tmp;
+}
+
+template<size_t page_size, typename Backend>
+uint64_t RobustPagedVector<page_size, Backend>::iterator::operator*() const {
+    return vec_ptr->get(index);
+}
+
+template<size_t page_size, typename Backend>
+bool RobustPagedVector<page_size, Backend>::iterator::operator==(const iterator& other) const {
+    return vec_ptr == other.vec_ptr && index == other.index;
+}
+
+template<size_t page_size, typename Backend>
+bool RobustPagedVector<page_size, Backend>::iterator::operator!=(const iterator& other) const {
+    return !(*this == other);
+}
+
+template<size_t page_size, typename Backend>
+typename RobustPagedVector<page_size, Backend>::iterator
+RobustPagedVector<page_size, Backend>::begin() const {
+    return iterator(this, 0);
+}
+
+template<size_t page_size, typename Backend>
+typename RobustPagedVector<page_size, Backend>::iterator
+RobustPagedVector<page_size, Backend>::end() const {
+    return iterator(this, size());
 }
 
 /////////////////////
