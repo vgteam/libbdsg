@@ -2877,10 +2877,15 @@ void test_packed_vector() {
 
 /**
  * Generic iterator test function that works with any vector-like container
- * (PackedVector, PagedVector, RobustPagedVector, PackedDeque)
+ * (PackedVector, PagedVector, RobustPagedVector, PackedDeque).
+ *
+ * Tests ForwardIterator, BidirectionalIterator, RandomAccessIterator, and
+ * iterator order comparison, but not OutputIterator.
  */
 template<typename VectorLike>
 void test_iterators() {
+    // ForwardIterator tests
+
     // Empty iteration
     {
         VectorLike vec;
@@ -3096,6 +3101,124 @@ void test_iterators() {
         it1 = it2; // Assignment
         assert(it1 == it2);
         assert(*it1 == 20);
+    }
+
+    // BidirectionalIterator tests.
+    {
+        VectorLike vec;
+        vec.push_back(10);
+        vec.push_back(20);
+        vec.push_back(30);
+
+        auto it1 = vec.begin();
+        auto it2 = it1;
+        ++it2;
+        auto also_decremented = --it2;
+
+        assert(it2 == it1);
+        assert(also_decremented == it1);
+
+        it2++;
+        auto not_decremented = it2--;
+
+        assert(it2 == it1);
+        assert(not_decremented != it1);
+        assert(*not_decremented == 20);
+
+        auto it3 = vec.end();
+        it3--;
+        assert(it3 != vec.end());
+        assert(*it3 == 30);
+    }
+
+    // RandomAccessIterator tests
+    {
+        VectorLike vec;
+        vec.push_back(10);
+        vec.push_back(20);
+        vec.push_back(30);
+
+        auto it1 = vec.begin();
+        auto it2 = it1;
+
+        it1 += 1;
+        assert(*it1 == 20);
+
+        it1 += 2;
+        assert(it1 == vec.end());
+
+        it1 -= 1;
+        auto it3 = it2 + 2;
+        assert(it1 == it3);
+        assert(*it1 == 30);
+        assert(it2 == vec.begin());
+
+        auto it4 = it1 - 2;
+        assert(*it4 == 10);
+
+        assert(*it1 == vec.begin()[2]);
+        assert(*it4 == vec.begin()[0]);
+        assert(it4[2] == *it1);
+        assert(it1[-2] == *it4);
+
+        assert(it1 + -2 == it4);
+        assert(it4 - -2 == it1);
+        
+        it1 += -2;
+        assert(it1 == it4);
+
+        it1 -= -1;
+        it4++;
+        assert(it1 == it4);
+    }
+
+    // Iterator comparison tests
+    {
+        VectorLike vec;
+        vec.push_back(10);
+        vec.push_back(20);
+        vec.push_back(30);
+
+        auto it1 = vec.begin();
+        auto it2 = it1;
+
+        assert(it1 >= it2);
+        assert(it1 <= it2);
+        assert(!(it1 < it2));
+        assert(!(it1 > it2));
+        it1++;
+
+        assert(it1 >= it2);
+        assert(!(it1 <= it2));
+        assert(!(it2 >= it1));
+        assert(it2 <= it1);
+        assert(!(it1 < it2));
+        assert(it1 > it2);
+        assert(it2 < it1);
+        assert(!(it2 > it1));
+    }
+
+    // Iterator distance tests
+    {
+        VectorLike vec;
+        vec.push_back(10);
+        vec.push_back(20);
+        vec.push_back(30);
+
+        assert(vec.end() - vec.begin() == vec.size());
+
+        auto it1 = vec.begin();
+        auto it2 = it1;
+        
+        it1 += 1;
+        it2 += 2;
+
+        assert(it2 - it1 == 1);
+        assert(it1 - it2 == -1);
+
+        it1--;
+        assert(it2 - it1 == 2);
+        assert(it1 - it2 == -2);
     }
 
     cerr << "Iterator (" << typeid(typename VectorLike::iterator).name() << ") tests successful!" << endl;
