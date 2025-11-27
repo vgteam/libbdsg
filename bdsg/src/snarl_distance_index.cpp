@@ -868,7 +868,9 @@ bool SnarlDistanceIndex::follow_net_edges_impl(const net_handle_t& here, const h
 #ifdef debug_snarl_traversal
         cerr << "        traversing graph from actual node " << graph->get_id(graph_handle) << (graph->get_is_reverse(graph_handle) ? "rev" : "fd") << endl;
 #endif
-        graph->follow_edges(graph_handle, false, [&](const handle_t& h) {
+
+        // Follow edges in the graph. Return the return value of graph follow_edges
+        return graph->follow_edges(graph_handle, false, [&](const handle_t& h) {
 #ifdef debug_snarl_traversal
             cerr << "  reached actual node " << graph->get_id(h) << (graph->get_is_reverse(h) ? "rev" : "fd") << endl;
 #endif
