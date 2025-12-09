@@ -18,8 +18,8 @@ OPTION(USE_INSTALLED_LIBHANDLEGRAPH "Use the version of libhandlegraph installed
 # TODO: We can only do out-of-source builds!
 # TODO: How do we error out meaningfully on in-source builds?
 
-# We build using c++14
-set(CMAKE_CXX_STANDARD 14)
+# We build using c++20
+set(CMAKE_CXX_STANDARD 20)
 # We need library paths to be relative in the build directories so we can let
 # the libraries in our Python module find each other when we package them into
 # a wheel. This only works on CMake 3.14+; older CMake we have to bully with
@@ -306,6 +306,7 @@ add_library(bdsg_objs OBJECT
   ${bdsg_DIR}/src/strand_split_overlay.cpp
   ${bdsg_DIR}/src/utility.cpp
   ${bdsg_DIR}/src/vectorizable_overlays.cpp
+  ${bdsg_DIR}/src/ch.cpp
   ${bdsg_DIR}/src/snarl_distance_index.cpp
   )
 

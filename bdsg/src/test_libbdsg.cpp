@@ -32,7 +32,7 @@
 #include "bdsg/overlays/vectorizable_overlays.hpp"
 #include "bdsg/overlays/packed_subgraph_overlay.hpp"
 #include "bdsg/overlays/reference_path_overlay.hpp"
-
+#include "bdsg/ch.hpp"
 
 using namespace bdsg;
 using namespace handlegraph;
@@ -4637,6 +4637,37 @@ void test_hash_graph() {
     assert(handlegraph::algorithms::are_equivalent_with_paths(&g, &g_move_2, true));
     
     cerr << "HashGraph tests successful!" << endl;
+}
+
+void test_hub_labeling() {
+  HashGraph test_g;
+  vector<handle_t> handles; handles.resize(3);
+  for (auto n: {0,1,2}) {
+    handles[n] = test_g.create_handle("A");
+  }
+  test_g.create_edge(handles[0], handles[1]);
+  test_g.create_edge(handles[1], handles[2]);
+  
+  //test HashGraph -> Boost graph
+  CHOverlay bg = make_boost_graph(test_g);
+
+  vector<vector<HubRecord>> labels_fwd; labels_fwd.resize(num_vertices(bg));
+  vector<vector<HubRecord>> labels_back; labels_back.resize(num_vertices(bg));
+  create_labels(labels_fwd, labels_back, bg);
+
+  //linearization
+  vector<size_t> packed_labels = pack_labels(labels_fwd, labels_back);
+  //dummy filter
+  //TODO: placeholder getter for now
+  size_t dist = hhl_query(0, 1, [&] (size_t ofs) { return 1; }); //binary_intersection_ch(packed_labels, 0, 1, 5);
+  assert(dist == 1);
+  
+  /*
+  for (size_t i = 0; i < test_g.get_node_count(); i++) { 
+    for (size_t j = 0; j < test_g.get_node_count(); j++) {
+      binary_intersection_ch(
+    }
+  }*/
 }
 
 void test_snarl_distance_index() {

@@ -1250,7 +1250,10 @@ private:
 
         //How big is the entire snarl record?
         static size_t distance_vector_size(record_t type, size_t node_count);
-        static size_t record_size (record_t type, size_t node_count) ;
+        //vec_size parameter only needed for oversized snarls
+        //represents size of hub labeling-related data
+        //the value needed should be the first entry after the fixed-size record data
+        static size_t record_size (record_t type, size_t node_count, size_t vec_size) ;
         size_t record_size() ;
 
         //Get the index into the distance vector for the calculating distance between the given node sides
@@ -1284,8 +1287,12 @@ private:
 
         SnarlRecordWriter();
 
-        SnarlRecordWriter (size_t node_count, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, record_t type);
+        SnarlRecordWriter (size_t node_count, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, record_t type, size_t vec_size);
         SnarlRecordWriter(bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, size_t pointer);
+
+        //sets size of hub label flat vector (only used for oversized snarls)
+        //TODO: Make separate SnarlRecordWriter for oversized snarls
+        void set_vec_size(size_t vec_size);
 
         void set_distance(size_t rank1, bool right_side1, size_t rank2, bool right_side2, size_t distance);
 
@@ -1456,7 +1463,7 @@ private:
          */
 
         //Add a snarl to the end of the chain and return a SnarlRecordWriter pointing to it
-        SnarlRecordWriter add_snarl(size_t snarl_size, record_t type, size_t previous_child_offset); 
+        SnarlRecordWriter add_snarl(size_t snarl_size, record_t type, size_t vec_size, size_t previous_child_offset); 
         SimpleSnarlRecordWriter add_simple_snarl(size_t snarl_size, record_t type, size_t previous_child_offset); 
         //Add a node to the end of a chain and return the offset of the record it got added to
         //If new_record is true, make a new trivial snarl record for the node
@@ -1634,7 +1641,9 @@ public:
             unordered_set<size_t> tippy_child_ranks; //The ranks of children that are tips
             //vector<tuple<pair<size_t, bool>, pair<size_t, bool>, size_t>> distances;
             unordered_map<pair<pair<size_t, bool>, pair<size_t, bool>>, size_t> distances;
-                     
+            //linearized hub labels (if not empty, this is an oversized snarl)
+            vector<uint64_t> hub_labels;
+         
             //How long is the record going to be in the distance index?
             size_t get_max_record_length() const ;
         };
