@@ -26,7 +26,106 @@ using namespace std;
  * Repack an SDSL int vector, or any int vector that implements a repack().
  */
 template<typename IntVector>
-inline void repack(IntVector& target, size_t new_width, size_t new_size); 
+inline void repack(IntVector& target, size_t new_width, size_t new_size);
+
+
+/**
+ * A forward iterator for anything vector-like (PackedVector, PagedVector,
+ * etc.) that provides read-only access to elements and internally uses integer
+ * indexes.
+ *
+ * This iterator is invalidated if the backing object changes size or moves.
+ */
+template<typename VectorLike>
+class IndexingIterator {
+public:
+    // Iterator traits for standard library compatibility
+    using iterator_category = std::random_access_iterator_tag;
+    using value_type = uint64_t;
+    using difference_type = typename std::make_signed<size_t>::type;
+    using pointer = void;
+    using reference = uint64_t;
+
+    // Standard iterator operations
+    IndexingIterator(const IndexingIterator& other) = default;
+    IndexingIterator& operator=(const IndexingIterator& other) = default;
+    ~IndexingIterator() = default;
+
+    /// Pre-increment operator
+    IndexingIterator& operator++();
+
+    /// Post-increment operator
+    IndexingIterator operator++(int);
+
+    /// Dereference operator - returns value at current position
+    uint64_t operator*() const;
+
+    /// Equality comparison
+    bool operator==(const IndexingIterator& other) const;
+
+    /// Inequality comparison
+    bool operator!=(const IndexingIterator& other) const;
+
+    // Bidirectional methods
+
+    /// Pre-decrement operator
+    IndexingIterator& operator--();
+
+    /// Post-decrement operator
+    IndexingIterator operator--(int);
+
+    // Random-access methods
+    
+    /// Addition of offset in place
+    IndexingIterator& operator+=(difference_type offset);
+
+    /// Addition of offset
+    IndexingIterator operator+(difference_type offset) const;
+
+    /// Subtraction of offset in place
+    IndexingIterator& operator-=(difference_type offset);
+
+    /// Subtraction of offset
+    IndexingIterator operator-(difference_type offset) const;
+
+    /// Subtraction of two iterators
+    difference_type operator-(const IndexingIterator& other) const;
+
+    /// Indexing into iterator. Even though we type this as reference, remember
+    /// that we don't actually implement writing to our "references" and just
+    /// use the value type.
+    /// Result is undefined if itrators are to different collecitons.
+    reference operator[](difference_type offset) const;
+
+    // Comaprable iterator methods (TODO: Is there an STL concept name for this?)
+    
+    /// Determine if this iterator is strictly before another.
+    /// Result is undefined if iterators are to different collecitons.
+    bool operator<(const IndexingIterator& other) const;
+
+    /// Determine if this iterator is before or at another.
+    /// Result is undefined if iterators are to different collecitons.
+    bool operator<=(const IndexingIterator& other) const;
+
+    /// Determine if this iterator is strictly after another.
+    /// Result is undefined if iterators are to different collecitons.
+    bool operator>(const IndexingIterator& other) const;
+
+    /// Determine if this iterator is at or after another.
+    /// Result is undefined if itrators are to different collecitons.
+    bool operator>=(const IndexingIterator& other) const;
+    
+private:
+    // Private constructor - only associated class can create iterators
+    IndexingIterator(const VectorLike* vec, size_t idx);
+
+    const VectorLike* vec_ptr = nullptr;
+    size_t index = 0;
+    
+    // We're not allowed to use "class" when befriending a template parameter.
+    // See <https://stackoverflow.com/a/702701>
+    friend VectorLike;
+};
     
 /*
  * A dynamic integer vector that maintains integers in bit-compressed form.
@@ -37,9 +136,13 @@ class PackedVector {
 private:
     using IntVector = typename IntVectorFor<Backend>::type;
 public:
+
+    /// Allow iteration with a general indexing iterator.
+    using iterator = IndexingIterator<PackedVector>;
+
     /// Constructor (starts empty)
     PackedVector();
-    
+
     // TODO: constructor templated on allocator types conflicts with all the
     // other 1-argument constructor overloads.
     
@@ -90,10 +193,22 @@ public:
     inline uint64_t get(const size_t& i) const;
         
     /// Add a value to the end
-    inline void append(const uint64_t& value);
+    inline void push_back(const uint64_t& value);
+
+    /// Add a value to the end (deprecated in favor of STL-like push_back)
+    [[deprecated("Use push_back instead of append_back")]] 	
+    inline void append_back(const uint64_t& value) {
+        push_back(value);
+    }
         
     /// Remove the last value
-    inline void pop();
+    inline void pop_back();
+
+    /// Remove the last value (deprecated in favor of STL-like pop_back)
+    [[deprecated("Use pop_back instead of pop")]] 
+    inline void pop() {
+        pop_back();
+    }
     
     /// Either shrink the vector or grow the vector to the new size. New
     /// entries created by growing are filled with 0.
@@ -114,14 +229,20 @@ public:
 
     /// Clears the backing vector.
     inline void clear();
+
+    /// Iterator to the first element
+    iterator begin() const;
+
+    /// Iterator to the past-the-end element
+    iterator end() const;
     
     /// Reports the amount of memory consumed by this object in bytes.
     size_t memory_usage() const;
-    
+
     /// Returns true if the contents are identical (but not necessarily storage
     /// parameters, such as pointer to data, capacity, bit width, etc.).
     inline bool operator==(const PackedVector& other) const;
-        
+
 private:
     // We don't allocate ourselves, so we don't need to hold an allocator.
     
@@ -152,23 +273,26 @@ private:
     using PageHolder = typename VectorFor<Backend>::template type<Page>;
 
 public:
-    
-    /// Construct (starts empty) 
+
+    /// Allow iteration with a general indexing iterator.
+    using iterator = IndexingIterator<PagedVector>;
+
+    /// Construct (starts empty)
     PagedVector();
-    
+
     /// Construct from contents in a stream
     PagedVector(istream& in);
-    
+
     /// Move constructor
     PagedVector(PagedVector&& other) = default;
     /// Move assignment operator
     PagedVector& operator=(PagedVector&& other) = default;
-    
+
     /// Copy constructor
     PagedVector(const PagedVector& other) = default;
     /// Copy assignment operator
     PagedVector& operator=(const PagedVector& other) = default;
-    
+
     // Destructor
     ~PagedVector();
     
@@ -185,10 +309,22 @@ public:
     inline uint64_t get(const size_t& i) const;
     
     /// Add a value to the end
-    inline void append(const uint64_t& value);
+    inline void push_back(const uint64_t& value);
+
+    /// Add a value to the end (deprecated in favor of STL-like push_back)
+    [[deprecated("Use push_back instead of append_back")]] 	
+    inline void append_back(const uint64_t& value) {
+        push_back(value);
+    }
     
     /// Remove the last value
-    inline void pop();
+    inline void pop_back();
+
+    /// Remove the last value (deprecated in favor of STL-like pop_back)
+    [[deprecated("Use pop_back instead of pop")]] 
+    inline void pop() {
+        pop_back();
+    }
     
     /// Either shrink the vector or grow the vector to the new size. New
     /// entries created by growing are filled with 0.
@@ -209,21 +345,27 @@ public:
     
     /// Clears the backing vector
     inline void clear();
+
+    /// Iterator to the first element
+    iterator begin() const;
+
+    /// Iterator to the past-the-end element
+    iterator end() const;
     
     /// Returns the page width of the vector
     inline size_t page_width() const;
-    
+
     /// Reports the amount of memory consumed by this object in bytes
     size_t memory_usage() const;
-    
+
 private:
-    
+
     inline uint64_t to_diff(const uint64_t& value, const uint64_t& page) const;
     inline uint64_t from_diff(const uint64_t& diff, const uint64_t& page) const;
-    
+
     // The number of entries filled so far
     size_t filled = 0;
-    
+
     // Evenly spaced entries from the vector
     Page anchors;
     // All entries in the vector expressed as a difference from the preceding page value
@@ -244,9 +386,13 @@ private:
     using PackedVec = PackedVector<Backend>;
     using PagedVec = PagedVector<page_size, Backend>;
 public:
+
+    /// Allow iteration with a general indexing iterator.
+    using iterator = IndexingIterator<RobustPagedVector>;
+
     /// Construct (starts empty)
     RobustPagedVector();
-    
+
     /// Construct from contents in a stream
     RobustPagedVector(istream& in);
     
@@ -276,10 +422,22 @@ public:
     inline uint64_t get(const size_t& i) const;
     
     /// Add a value to the end
-    inline void append(const uint64_t& value);
+    inline void push_back(const uint64_t& value);
+
+    /// Add a value to the end (deprecated in favor of STL-like push_back)
+    [[deprecated("Use push_back instead of append_back")]] 	
+    inline void append_back(const uint64_t& value) {
+        push_back(value);
+    }
     
     /// Remove the last value
-    inline void pop();
+    inline void pop_back();
+
+    /// Remove the last value (deprecated in favor of STL-like pop_back)
+    [[deprecated("Use pop_back instead of pop")]] 
+    inline void pop() {
+        pop_back();
+    }
     
     /// Either shrink the vector or grow the vector to the new size. New
     /// entries created by growing are filled with 0.
@@ -300,13 +458,19 @@ public:
     
     /// Clears the backing vector
     inline void clear();
+
+    /// Iterator to the first element
+    iterator begin() const;
+
+    /// Iterator to the past-the-end element
+    iterator end() const;
     
     /// Returns the page width of the vector
     inline size_t page_width() const;
-    
+
     /// Reports the amount of memory consumed by this object in bytes
     size_t memory_usage() const;
-    
+
 private:
     
     /// The first page_size entries go in this vector
@@ -328,6 +492,10 @@ class PackedDeque {
 private:
     using PackedVec = PackedVector<Backend>;
 public:
+
+    /// Allow iteration with a general indexing iterator.
+    using iterator = IndexingIterator<PackedDeque>;
+
     /// Construct empty
     PackedDeque(void);
     /// Construct from contents in a stream
@@ -359,10 +527,22 @@ public:
     inline uint64_t get(const size_t& i) const;
     
     /// Add a value to the front
-    inline void append_front(const uint64_t& value);
+    inline void push_front(const uint64_t& value);
+
+    /// Add a value to the front (deprecated in favor of STL-like push_front)
+    [[deprecated("Use push_front instead of append_front")]] 	
+    inline void append_front(const uint64_t& value) {
+        push_front(value);
+    }
     
     /// Add a value to the back
-    inline void append_back(const uint64_t& value);
+    inline void push_back(const uint64_t& value);
+
+    /// Add a value to the back (deprecated in favor of STL-like push_back)
+    [[deprecated("Use push_back instead of append_back")]] 	
+    inline void append_back(const uint64_t& value) {
+        push_back(value);
+    }
     
     /// Remove the front value
     inline void pop_front();
@@ -382,10 +562,16 @@ public:
     
     /// Empty the contents
     inline void clear();
-    
+
+    /// Iterator to the first element
+    iterator begin() const;
+
+    /// Iterator to the past-the-end element
+    iterator end() const;
+
     /// Reports the amount of memory consumed by this object in bytes.
     size_t memory_usage() const;
-    
+
 private:
     
     inline void contract();
@@ -559,7 +745,113 @@ inline void repack<sdsl::int_vector<>>(sdsl::int_vector<>& target, size_t new_wi
     target = std::move(tmp);
 }
 
-    
+/////////////////////
+/// IndexingIterator
+/////////////////////
+
+template<typename VectorLike>
+IndexingIterator<VectorLike>::IndexingIterator(const VectorLike* vec, size_t idx)
+    : vec_ptr(vec), index(idx) {
+    // Constructor
+}
+
+template<typename VectorLike>
+IndexingIterator<VectorLike>& IndexingIterator<VectorLike>::operator++() {
+    ++index;
+    return *this;
+}
+
+template<typename VectorLike>
+IndexingIterator<VectorLike> IndexingIterator<VectorLike>::operator++(int) {
+    IndexingIterator tmp = *this;
+    ++index;
+    return tmp;
+}
+
+template<typename VectorLike>
+uint64_t IndexingIterator<VectorLike>::operator*() const {
+    return vec_ptr->get(index);
+}
+
+template<typename VectorLike>
+bool IndexingIterator<VectorLike>::operator==(const IndexingIterator& other) const {
+    return vec_ptr == other.vec_ptr && index == other.index;
+}
+
+template<typename VectorLike>
+bool IndexingIterator<VectorLike>::operator!=(const IndexingIterator& other) const {
+    return !(*this == other);
+}
+
+template<typename VectorLike>
+IndexingIterator<VectorLike>& IndexingIterator<VectorLike>::operator--() {
+    --index;
+    return *this;
+}
+
+template<typename VectorLike>
+IndexingIterator<VectorLike> IndexingIterator<VectorLike>::operator--(int) {
+    IndexingIterator tmp = *this;
+    --index;
+    return tmp;
+}
+
+template<typename VectorLike>
+IndexingIterator<VectorLike>& IndexingIterator<VectorLike>::operator+=(difference_type offset) {
+    index += offset;
+    return *this;
+}
+
+template<typename VectorLike>
+IndexingIterator<VectorLike> IndexingIterator<VectorLike>::operator+(difference_type offset) const {
+    return IndexingIterator(vec_ptr, index + offset);
+}
+
+template<typename VectorLike>
+IndexingIterator<VectorLike>& IndexingIterator<VectorLike>::operator-=(difference_type offset) {
+    index -= offset;
+    return *this;
+}
+
+template<typename VectorLike>
+IndexingIterator<VectorLike> IndexingIterator<VectorLike>::operator-(difference_type offset) const {
+    return IndexingIterator(vec_ptr, index - offset);
+}
+
+template<typename VectorLike>
+typename IndexingIterator<VectorLike>::difference_type IndexingIterator<VectorLike>::operator-(const IndexingIterator& other) const {
+    // TODO: I don't know a way to subtract two unsigned values and get the
+    // signed difference in a single operation as long as that difference
+    // itself fits the signed type. So we cast and hope.
+    return (difference_type) index - (difference_type) other.index;
+}
+
+template<typename VectorLike>
+typename IndexingIterator<VectorLike>::reference IndexingIterator<VectorLike>::operator[](difference_type offset) const {
+    return *(*this + offset);
+}
+
+template<typename VectorLike>
+bool IndexingIterator<VectorLike>::operator<(const IndexingIterator& other) const {
+    return index < other.index;
+}
+
+template<typename VectorLike>
+bool IndexingIterator<VectorLike>::operator<=(const IndexingIterator& other) const {
+    return index <= other.index;
+}
+
+template<typename VectorLike>
+bool IndexingIterator<VectorLike>::operator>(const IndexingIterator& other) const {
+    return index > other.index;
+}
+
+template<typename VectorLike>
+bool IndexingIterator<VectorLike>::operator>=(const IndexingIterator& other) const {
+    return index >= other.index;
+}
+
+
 /////////////////////
 /// PackedVector
 /////////////////////
@@ -592,13 +884,13 @@ inline uint64_t PackedVector<Backend>::get(const size_t& i) const {
 }
 
 template<typename Backend>
-inline void PackedVector<Backend>::append(const uint64_t& value) {
+inline void PackedVector<Backend>::push_back(const uint64_t& value) {
     resize(filled + 1);
     set(filled - 1, value);
 }
 
 template<typename Backend>
-inline void PackedVector<Backend>::pop() {
+inline void PackedVector<Backend>::pop_back() {
     resize(filled - 1);
 }
     
@@ -648,6 +940,16 @@ inline void PackedVector<Backend>::clear() {
     vec.resize(0);
     vec.width(1);
     filled = 0;
+}
+
+template<typename Backend>
+typename PackedVector<Backend>::iterator PackedVector<Backend>::begin() const {
+    return iterator(this, 0);
+}
+
+template<typename Backend>
+typename PackedVector<Backend>::iterator PackedVector<Backend>::end() const {
+    return iterator(this, filled);
 }
 
 template<typename Backend>
@@ -782,7 +1084,7 @@ inline void PackedDeque<Backend>::reserve(const size_t& future_size) {
 }
 
 template<typename Backend>
-inline void PackedDeque<Backend>::append_front(const uint64_t& value) {
+inline void PackedDeque<Backend>::push_front(const uint64_t& value) {
     // expand capacity if necessary
     if (filled == vec.size()) {
         size_t new_capacity = size_t(factor * vec.size()) + 1;
@@ -804,7 +1106,7 @@ inline void PackedDeque<Backend>::append_front(const uint64_t& value) {
 }
 
 template<typename Backend>
-inline void PackedDeque<Backend>::append_back(const uint64_t& value) {
+inline void PackedDeque<Backend>::push_back(const uint64_t& value) {
     // expand capacity if necessary
     if (filled == vec.size()) {
         size_t new_capacity = size_t(factor * vec.size()) + 1;
@@ -872,7 +1174,17 @@ inline void PackedDeque<Backend>::clear() {
     filled = 0;
     begin_idx = 0;
 }
-    
+
+template<typename Backend>
+typename PackedDeque<Backend>::iterator PackedDeque<Backend>::begin() const {
+    return iterator(this, 0);
+}
+
+template<typename Backend>
+typename PackedDeque<Backend>::iterator PackedDeque<Backend>::end() const {
+    return iterator(this, filled);
+}
+
 /////////////////////
 /// PagedVector
 /////////////////////
@@ -951,12 +1263,12 @@ inline uint64_t PagedVector<page_size, Backend>::get(const size_t& i) const {
 }
 
 template<size_t page_size, typename Backend>
-inline void PagedVector<page_size, Backend>::append(const uint64_t& value) {
+inline void PagedVector<page_size, Backend>::push_back(const uint64_t& value) {
     if (filled == pages.size() * page_size) {
         // init a new page and a new anchor
         pages.emplace_back();
         pages.back().resize(page_size);
-        anchors.append(0);
+        anchors.push_back(0);
     }
     
     // use the logic in set to choose anchor and diff
@@ -965,12 +1277,12 @@ inline void PagedVector<page_size, Backend>::append(const uint64_t& value) {
 }
 
 template<size_t page_size, typename Backend>
-inline void PagedVector<page_size, Backend>::pop() {
+inline void PagedVector<page_size, Backend>::pop_back() {
     filled--;
     while (filled + page_size <= pages.size() * page_size) {
         // the final page is unused now, remove it
         pages.pop_back(); // TODO: this won't resize since it's an STL vector
-        anchors.pop();
+        anchors.pop_back();
     }
 }
 
@@ -1034,6 +1346,16 @@ inline void PagedVector<page_size, Backend>::clear() {
 }
 
 template<size_t page_size, typename Backend>
+typename PagedVector<page_size, Backend>::iterator PagedVector<page_size, Backend>::begin() const {
+    return iterator(this, 0);
+}
+
+template<size_t page_size, typename Backend>
+typename PagedVector<page_size, Backend>::iterator PagedVector<page_size, Backend>::end() const {
+    return iterator(this, filled);
+}
+
+template<size_t page_size, typename Backend>
 inline size_t PagedVector<page_size, Backend>::page_width() const {
     return page_size;
 }
@@ -1064,7 +1386,7 @@ inline uint64_t PagedVector<page_size, Backend>::to_diff(const uint64_t& value, 
 template<size_t page_size, typename Backend>
 inline uint64_t PagedVector<page_size, Backend>::from_diff(const uint64_t& diff, const uint64_t& anchor) const {
     // convert backward from the transformation described in to_diff
-    
+
     if (diff == 0) {
         return 0;
     }
@@ -1133,22 +1455,22 @@ inline uint64_t RobustPagedVector<page_size, Backend>::get(const size_t& i) cons
 }
 
 template<size_t page_size, typename Backend>
-inline void RobustPagedVector<page_size, Backend>::append(const uint64_t& value) {
+inline void RobustPagedVector<page_size, Backend>::push_back(const uint64_t& value) {
     if (first_page.size() < latter_pages.page_width()) {
-        first_page.append(value);
+        first_page.push_back(value);
     }
     else {
-        latter_pages.append(value);
+        latter_pages.push_back(value);
     }
 }
 
 template<size_t page_size, typename Backend>
-inline void RobustPagedVector<page_size, Backend>::pop() {
+inline void RobustPagedVector<page_size, Backend>::pop_back() {
     if (latter_pages.empty()) {
-        first_page.pop();
+        first_page.pop_back();
     }
     else {
-        latter_pages.pop();
+        latter_pages.pop_back();
     }
 }
 
@@ -1195,6 +1517,16 @@ template<size_t page_size, typename Backend>
 inline void RobustPagedVector<page_size, Backend>::clear() {
     first_page.clear();
     latter_pages.clear();
+}
+
+template<size_t page_size, typename Backend>
+typename RobustPagedVector<page_size, Backend>::iterator RobustPagedVector<page_size, Backend>::begin() const {
+    return iterator(this, 0);
+}
+
+template<size_t page_size, typename Backend>
+typename RobustPagedVector<page_size, Backend>::iterator RobustPagedVector<page_size, Backend>::end() const {
+    return iterator(this, size());
 }
 
 template<size_t page_size, typename Backend>

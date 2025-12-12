@@ -154,6 +154,10 @@ if(get_handle_type(net) == SNARL_HANDLE){
     return get_handle_type(net) == SNARL_HANDLE;
 }
 
+bool SnarlDistanceIndex::is_oversized_snarl(const net_handle_t& net) const {
+    return SnarlTreeRecord(net, &snarl_tree_records).get_record_type() == OVERSIZED_SNARL;
+}
+
 bool SnarlDistanceIndex::is_dag(const net_handle_t& snarl) const {
     record_t record_type = SnarlTreeRecord(snarl, &snarl_tree_records).get_record_type();
     if ( record_type == SNARL || record_type == ROOT_SNARL ) {
@@ -1065,6 +1069,11 @@ void SnarlDistanceIndex::deserialize(int fd) {
     //This gets called by TriviallySerializable::deserialize(filename), which
     //doesn't check for the prefix, so this should expect it
     snarl_tree_records.load(fd, get_prefix());
+    RootRecord root_record (get_root(), &snarl_tree_records);
+    if (root_record.get_version_number() != CURRENT_VERSION_NUMBER) {
+        throw runtime_error("error: Trying to load a SnarlDistanceIndex which is not version " +
+                            std::to_string(CURRENT_VERSION_NUMBER) + "; try regenerating the index");
+    }
 }
 
 void SnarlDistanceIndex::serialize_members(std::ostream& out) const {
@@ -1076,6 +1085,11 @@ void SnarlDistanceIndex::deserialize_members(std::istream& in){
     //This gets called by Serializable::deserialize(istream), which has already
     //read the prefix, so don't expect the prefix
     snarl_tree_records.load_after_prefix(in, get_prefix());
+    RootRecord root_record (get_root(), &snarl_tree_records);
+    if (root_record.get_version_number() != CURRENT_VERSION_NUMBER) {
+        throw runtime_error("error: Trying to load a SnarlDistanceIndex which is not version " +
+                            std::to_string(CURRENT_VERSION_NUMBER) + "; try regenerating the index");
+    }
 }
 
 uint32_t SnarlDistanceIndex::get_magic_number()const {
@@ -4073,11 +4087,19 @@ SnarlDistanceIndex::RootRecordWriter::RootRecordWriter (size_t pointer, size_t c
     set_node_count(node_count);
     set_max_tree_depth(max_tree_depth);
     set_connected_component_count(connected_component_count);
+    set_version_number();
 #ifdef count_allocations
     cerr << "new_root\t" <<  (ROOT_RECORD_SIZE + connected_component_count + (node_count*2)) << "\t" << (*records)->siz     e() << endl;
 #endif
 }
 
+void SnarlDistanceIndex::RootRecordWriter::set_version_number() {
+#ifdef debug_distance_indexing
+    cerr << record_offset+VERSION_NUMBER_OFFSET << " set version number to be " << CURRENT_VERSION_NUMBER << endl;
+    assert((*records)->at(record_offset+VERSION_NUMBER_OFFSET) == 0);
+#endif
+    (*records)->at(record_offset+VERSION_NUMBER_OFFSET) = VERSION_NUMBER_SENTINEL ^ CURRENT_VERSION_NUMBER;
+}
 
 void SnarlDistanceIndex::RootRecordWriter::set_connected_component_count(size_t connected_component_count) {
 #ifdef debug_distance_indexing
@@ -6359,9 +6381,8 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
 
                                 bool ignore_distances = (snarl_size_limit == 0) || only_top_level_chain_distances;
 
-                                record_t record_type = ignore_distances ? SNARL :
-                                    (temp_snarl_record.node_count < snarl_size_limit ? DISTANCED_SNARL : OVERSIZED_SNARL);
-                                //TODO: Need to pass vec_size to add_snarl() but don't know where in TempSnarlRecord that is yet
+                                record_t record_type = ignore_distances ? SNARL : (temp_snarl_record.node_count <= snarl_size_limit ? DISTANCED_SNARL : OVERSIZED_SNARL); 
+
                                 SnarlRecordWriter snarl_record_constructor =
                                     chain_record_constructor.add_snarl(temp_snarl_record.node_count, record_type, last_child_offset.first, temp_snarl_record.hub_labels.size());
 
@@ -6573,7 +6594,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
 #ifdef debug_distance_indexing
                         assert(distance <= temp_snarl_record.max_distance);
 #endif
-                        if ((temp_snarl_record.node_count < snarl_size_limit)) {
+                        if ((temp_snarl_record.node_count <= snarl_size_limit)) {
                             snarl_record_constructor.set_distance(node_rank1.first, node_rank1.second,
                              node_rank2.first, node_rank2.second, distance);
 #ifdef debug_distance_indexing
