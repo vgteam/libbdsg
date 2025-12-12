@@ -47,7 +47,8 @@ void make_contraction_hierarchy(CHOverlay& ov);
 
 DIST_UINT binary_intersection_ch(vector<HubRecord>& v1, vector<HubRecord>& v2);
 
-DIST_UINT hhl_query(size_t rank1, size_t rank2, std::function<size_t(size_t)> reader);  
+template <typename ItrType>
+DIST_UINT hhl_query(ItrType start_itr, size_t rank1, size_t rank2);  
 
 void down_dijk(int node, CHOverlay& ov, vector<DIST_UINT>& node_dists, vector<vector<HubRecord>>& labels, vector<vector<HubRecord>>& labels_rev);
 

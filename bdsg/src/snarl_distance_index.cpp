@@ -1304,12 +1304,9 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
         if (get_record_type(snarl_tree_records->at(get_record_offset(parent))) == DISTANCED_SIMPLE_SNARL) {
             return SimpleSnarlRecord(parent, &snarl_tree_records).get_distance(rank1, rev1, rank2, rev2);
         } else if (get_record_type(snarl_tree_records->at(get_record_offset(parent))) == OVERSIZED_SNARL) { 
-            size_t distance = hhl_query(rank1, rank2, [&] (size_t data_offset) {
-                //+ 1 is for skipping over vec_size
-                return snarl_tree_records->at(get_record_offset(parent) + SNARL_RECORD_SIZE + 1 + data_offset);
-            });
-            
-            return distance;   
+            size_t distance = hhl_query(snarl_tree_records->begin() + get_record_offset(parent) + SNARL_RECORD_SIZE + 1, rank1, rank2); 
+            return distance;
+          
         } else if (rank1 == 0 && rank2 == 0 && !snarl_is_root) {
             //Start to start is stored in the snarl
             return SnarlRecord(parent, &snarl_tree_records).get_distance_start_start();

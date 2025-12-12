@@ -523,9 +523,8 @@ ItrType get_dist_itr(ItrType start_itr, ItrType hub_itr) {
 /*
 start_bound_index variables are relative to start_offset
 */
-template <typename VecType>
-DIST_UINT binary_intersection_ch(const VecType& storage, size_t start_offset, size_t v1_start_bound_index, size_t v2_start_bound_index) {
-  auto start_itr = next(storage.begin(), start_offset);
+template <typename ItrType>
+DIST_UINT binary_intersection_ch(ItrType start_itr, size_t v1_start_bound_index, size_t v2_start_bound_index) {
   auto v1_start_bound_itr = next(start_itr, v1_start_bound_index);
   auto v1_end_bound_itr = next(v1_start_bound_itr, 1);
   auto v2_start_bound_itr = next(start_itr, v2_start_bound_index);
@@ -557,12 +556,18 @@ DIST_UINT binary_intersection_ch(const VecType& storage, size_t start_offset, si
   return min_dist; 
 }
 
-DIST_UINT hhl_query(size_t rank1, size_t rank2, std::function<size_t(size_t)> reader) {
-  //reader gets value at index
-  auto start_index_1 = reader(rank1+1);
-  auto start_index_2 = reader(rank2+1); 
+
+template <typename ItrType>
+DIST_UINT hhl_query(ItrType start_itr, size_t rank1, size_t rank2) {
+  size_t label_count = *start_itr;
+
+  auto start_index_1 = 1+rank1;
+  auto start_index_2 = 1+label_count+1+rank2;
   
-  return 1; 
+  DIST_UINT dist = binary_intersection_ch(start_itr, start_index_1, start_index_2);
+
+
+  return dist; 
 } 
 
 void down_dijk(int node, CHOverlay& ov, vector<DIST_UINT>& node_dists, vector<vector<HubRecord>>& labels, vector<vector<HubRecord>>& labels_back) {
