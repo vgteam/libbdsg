@@ -196,8 +196,8 @@ public:
     inline void push_back(const uint64_t& value);
 
     /// Add a value to the end (deprecated in favor of STL-like push_back)
-    [[deprecated("Use push_back instead of append_back")]] 	
-    inline void append_back(const uint64_t& value) {
+    [[deprecated("Use push_back instead of append")]] 	
+    inline void append(const uint64_t& value) {
         push_back(value);
     }
         
@@ -312,8 +312,8 @@ public:
     inline void push_back(const uint64_t& value);
 
     /// Add a value to the end (deprecated in favor of STL-like push_back)
-    [[deprecated("Use push_back instead of append_back")]] 	
-    inline void append_back(const uint64_t& value) {
+    [[deprecated("Use push_back instead of append")]] 	
+    inline void append(const uint64_t& value) {
         push_back(value);
     }
     
@@ -425,8 +425,8 @@ public:
     inline void push_back(const uint64_t& value);
 
     /// Add a value to the end (deprecated in favor of STL-like push_back)
-    [[deprecated("Use push_back instead of append_back")]] 	
-    inline void append_back(const uint64_t& value) {
+    [[deprecated("Use push_back instead of append")]] 	
+    inline void append(const uint64_t& value) {
         push_back(value);
     }
     
