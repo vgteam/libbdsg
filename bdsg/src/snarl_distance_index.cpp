@@ -244,7 +244,7 @@ if(get_handle_type(net) == SNARL_HANDLE){
     if ((record_type == SNARL || record_type == OVERSIZED_SNARL) && graph == nullptr) {
         throw runtime_error("error: is_regular_snarl requires a graph if the distance index doesn't contain distances");
     }
-    if ((record_type == SNARL || record_type == OVERSIZED_SNARL) && !allow_internal_loops) {
+    if (record_type == SNARL && !allow_internal_loops) {
         throw runtime_error("error: is_regular_snarl requires distances in the distance index to verify that there are no internal loops");
     }
 
@@ -252,12 +252,12 @@ if(get_handle_type(net) == SNARL_HANDLE){
     // How we check this depends on if we have distances or not
     net_handle_t start_in = get_bound(net, false, true);
     net_handle_t end_in = get_bound(net, true, true);
-    if (record_type == DISTANCED_SNARL) {
+    if (record_type == DISTANCED_SNARL || record_type == OVERSIZED_SNARL) {
         if (has_edge(start_in, start_in) || 
             has_edge(end_in, end_in)) {
             return false;
         }
-    } else if (record_type != DISTANCED_SNARL) {
+    } else if (record_type != DISTANCED_SNARL && record_type != OVERSIZED_SNARL) {
         if (graph->has_edge( get_handle(flip(start_in), graph), get_handle(flip(start_in), graph)) ||
             graph->has_edge( get_handle(flip(end_in), graph), get_handle(flip(end_in), graph))) {
             return false;
