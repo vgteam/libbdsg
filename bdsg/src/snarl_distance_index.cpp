@@ -6220,7 +6220,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
      * Walk down the snarl tree and fill in children
      */
     // maps <index into temporary_indexes, <record type, index into chain/snarl/node records>> to new offset
-    unordered_map<std::pair<size_t, std::temp_record_ref_t>, size_t> record_to_offset;
+    unordered_map<std::pair<size_t, temp_record_ref_t>, size_t> record_to_offset;
     //Set the root index
     for (size_t temp_index_i = 0 ; temp_index_i < temporary_indexes.size() ; temp_index_i++) {
         //Any root will point to the same root
@@ -6701,7 +6701,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
     for (size_t temp_index_i = 0 ; temp_index_i < temporary_indexes.size() ; temp_index_i++) {
         const TemporaryDistanceIndex* temp_index = temporary_indexes[temp_index_i];
         for (size_t temp_snarl_i = 0 ; temp_snarl_i < temp_index->temp_snarl_records.size() ; temp_snarl_i ++) {
-            TemporaryDistanceIndex::temp_record_ref_t temp_snarl_ref = make_pair(TEMP_SNARL, temp_snarl_i);
+            temp_record_ref_t temp_snarl_ref = make_pair(TEMP_SNARL, temp_snarl_i);
             //Get the temporary index for this snarl
             const TemporaryDistanceIndex::TemporarySnarlRecord& temp_snarl_record = temp_index->get_snarl(temp_snarl_ref);
             if (!temp_snarl_record.is_trivial && !temp_snarl_record.is_simple) {
