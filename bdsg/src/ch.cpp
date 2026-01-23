@@ -54,15 +54,15 @@ CHOverlay make_boost_graph(bdsg::HashGraph& hg) {
   return g;
 }
 
-CHOverlay make_boost_graph(SnarlDistanceIndex::TemporaryDistanceIndex& temp_index, pair<SnarlDistanceIndex::temp_record_t, size_t>& snarl_index, SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord& temp_snarl_record, vector<pair<SnarlDistanceIndex::temp_record_t, size_t>>& all_children, const HandleGraph* hgraph) {
+CHOverlay make_boost_graph(SnarlDistanceIndex::TemporaryDistanceIndex& temp_index, SnarlDistanceIndex::temp_record_ref_t& snarl_index, SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord& temp_snarl_record, vector<SnarlDistanceIndex::temp_record_ref_t>& all_children, const HandleGraph* hgraph) {
   CHOverlay ov(all_children.size()*4);
   //maps edge destination handle to id in Boost graph
   unordered_map<handle_t, CHOverlay::vertex_descriptor> handle_bgnid_map;
  
   for (size_t child_num = 0; child_num < all_children.size(); child_num++) {
-    auto [rec_type, rec_index] = all_children[child_num];
-    if (rec_type == bdsg::SnarlDistanceIndex::TEMP_CHAIN) {
-      auto& record = temp_index.temp_chain_records.at(rec_index);
+    auto child = all_children[child_num];
+    if (child.first == bdsg::SnarlDistanceIndex::TEMP_CHAIN) {
+      auto& record = temp_index.get_chain(child);
       handle_t start_handle = hgraph->get_handle(record.start_node_id, record.start_node_rev);
       handle_t end_handle = hgraph->get_handle(record.end_node_id, record.end_node_rev); 
       //chain representation as node ids (numbers are offsets from child_num*4)
@@ -79,7 +79,7 @@ CHOverlay make_boost_graph(SnarlDistanceIndex::TemporaryDistanceIndex& temp_inde
       //add looping distances (thanks Xian!)
       auto& first_child = record.children.front(); 
       assert(first_child.first == bdsg::SnarlDistanceIndex::TEMP_NODE); 
-      DIST_UINT start_node_length = temp_index.temp_node_records.at(first_child.second).node_length;
+      DIST_UINT start_node_length = temp_index.get_node(first_child).node_length;
       //record.children.front().first.node_length;
       DIST_UINT start_start_distance = record.forward_loops[0] + (2*start_node_length);
       DIST_UINT end_end_distance = record.backward_loops.back() + (2*record.end_node_length);
@@ -89,8 +89,8 @@ CHOverlay make_boost_graph(SnarlDistanceIndex::TemporaryDistanceIndex& temp_inde
       new_loop_edge = add_edge(child_num*4+1, child_num*4, ov);
       ov[new_loop_edge.first].weight = start_start_distance; 
      
-    } else if (rec_type == bdsg::SnarlDistanceIndex::TEMP_NODE) {
-      auto& record = temp_index.temp_node_records.at(rec_index);
+    } else if (child.first == bdsg::SnarlDistanceIndex::TEMP_NODE) {
+      auto& record = temp_index.get_node(child);
       handle_t node_handle = hgraph->get_handle(record.node_id, record.reversed_in_parent);
       ov[child_num*4].seqlen = record.node_length;//hgraph->get_length(node_handle);
     } else {
@@ -101,9 +101,9 @@ CHOverlay make_boost_graph(SnarlDistanceIndex::TemporaryDistanceIndex& temp_inde
 
   //add edges between Boost graph nodes of different temp chains / temp nodes
   for (size_t child_num = 0; child_num < all_children.size(); child_num++) {
-    auto [rec_type, rec_index] = all_children[child_num];   
-    if (rec_type == bdsg::SnarlDistanceIndex::TEMP_CHAIN) {
-      auto& record = temp_index.temp_chain_records.at(rec_index);  
+    auto child = all_children[child_num];   
+    if (child.first == bdsg::SnarlDistanceIndex::TEMP_CHAIN) {
+      auto& record = temp_index.get_chain(child);  
       const handle_t start_handle = hgraph->get_handle(record.start_node_id, record.start_node_rev);
       const handle_t end_handle = hgraph->get_handle(record.end_node_id, record.end_node_rev); 
       auto start_id = handle_bgnid_map[start_handle];
@@ -131,8 +131,8 @@ CHOverlay make_boost_graph(SnarlDistanceIndex::TemporaryDistanceIndex& temp_inde
         }
       }); 
     } else {
-      if (rec_type == bdsg::SnarlDistanceIndex::TEMP_NODE) { 
-        auto& record = temp_index.temp_node_records.at(rec_index);
+      if (child.first == bdsg::SnarlDistanceIndex::TEMP_NODE) { 
+        auto& record = temp_index.get_node(child);
         handle_t node_handle = hgraph->get_handle(record.node_id, record.reversed_in_parent); 
         const auto node_id = handle_bgnid_map[node_handle];
         for (bool direction: {true, false}) {
