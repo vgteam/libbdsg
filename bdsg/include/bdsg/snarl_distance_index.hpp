@@ -1642,7 +1642,7 @@ public:
             //vector<tuple<pair<size_t, bool>, pair<size_t, bool>, size_t>> distances;
             unordered_map<pair<pair<size_t, bool>, pair<size_t, bool>>, size_t> distances;
             //linearized hub labels (if not empty, this is an oversized snarl)
-            vector<uint64_t> hub_labels;
+            vector<size_t> hub_labels;
          
             //How long is the record going to be in the distance index?
             size_t get_max_record_length() const ;
