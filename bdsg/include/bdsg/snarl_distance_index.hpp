@@ -1692,6 +1692,7 @@ public:
         vector<TemporaryChainRecord> temp_chain_records;
         vector<TemporarySnarlRecord> temp_snarl_records;
         vector<TemporaryNodeRecord> temp_node_records;
+        //whether the entire index has any oversized snarls or not
         bool use_oversized_snarls = false;
         size_t most_oversized_snarl_size = 0;
         friend class SnarlDistanceIndex;

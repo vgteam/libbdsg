@@ -413,7 +413,7 @@ void make_contraction_hierarchy(CHOverlay& ov) {
   cerr << "left over: " << num_vertices(ov) - num_con << endl; 
   //std::fill(skip.begin(), skip.end(), false);  
   //for (auto n: arti_pts) { skip[n] = true; }
-  
+
   vector<tuple<int, CHOverlay::vertex_descriptor>> queue_objs; queue_objs.reserve(num_vertices(ov)/2); 
   for (int i = 0; i < num_vertices(ov); i+=1) {
     if (ov[i].contracted) { continue; }
@@ -426,9 +426,9 @@ void make_contraction_hierarchy(CHOverlay& ov) {
   } 
   make_heap(queue_objs.begin(), queue_objs.end(), greater<tuple<int, CHOverlay::vertex_descriptor>>());
   pop_heap(queue_objs.begin(), queue_objs.end(), greater<tuple<int, CHOverlay::vertex_descriptor>>()); 
-  //size_t init_qsize = queue_objs.size();
  
-  while (queue_objs.size() > 4) { 
+ 
+  while (queue_objs.size() > 2) { 
     auto [pri, node] = queue_objs.back(); queue_objs.pop_back();
     //preparing for next pop
     pop_heap(queue_objs.begin(), queue_objs.end(), greater<tuple<int, CHOverlay::vertex_descriptor>>());
@@ -445,11 +445,12 @@ void make_contraction_hierarchy(CHOverlay& ov) {
       continue;
     } 
     ov[node].level += 1;
-    if (queue_objs.size() % 100 == 1) {
-      cerr << "remaining: " << queue_objs.size() << ", deg: " << (double)num_edges(ov)/num_vertices(ov) << endl;
-      cerr << "lv: " << ov[node].level << endl;
-    } 
-   
+    
+    //if (queue_objs.size() % 100 == 1) {
+    cerr << "remaining: " << queue_objs.size() << ", deg: " << (double)num_edges(ov)/num_vertices(ov) << endl;
+    cerr << "lv: " << ov[node].level << endl;
+    //} 
+    
    
     ov[node].new_id = num_vertices(ov)-1-num_con;
     contract(node, contracted_g, ov, node_dists, skip, hop_limit); num_con += 1;
@@ -474,11 +475,12 @@ void make_contraction_hierarchy(CHOverlay& ov) {
   for (auto i = 0u; i < num_vertices(ov); i+=1) {
     v2.emplace_back(in_degree(i,ov)*out_degree(i,ov), i);
   }
-  sort(v2.rbegin(), v2.rend()); 
+  sort(v2.rbegin(), v2.rend());
+  /* 
   for (int i: {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}) {
     auto [p, n] = v2[i];
     cerr << n << " (" << ov[n].new_id << "): " << in_degree(n,ov) << " " << out_degree(n,ov) << endl;
-  } 
+  } */
 }
 
 DIST_UINT binary_intersection_ch(vector<HubRecord>& v1, vector<HubRecord>& v2) {
@@ -500,7 +502,7 @@ DIST_UINT binary_intersection_ch(vector<HubRecord>& v1, vector<HubRecord>& v2) {
   }  
   return min_dist;
 }
-                           
+/*                           
 template <typename ItrType>
 ItrType get_dist_itr(ItrType start_itr, ItrType hub_itr) {
   auto node_count = *start_itr;
@@ -519,56 +521,11 @@ ItrType get_dist_itr(ItrType start_itr, ItrType hub_itr) {
     return next(hub_itr, jump_to_dist); 
   }
 }
-
-/*
-start_bound_index variables are relative to start_offset
 */
-template <typename ItrType>
-DIST_UINT binary_intersection_ch(ItrType start_itr, size_t v1_start_bound_index, size_t v2_start_bound_index) {
-  auto v1_start_bound_itr = next(start_itr, v1_start_bound_index);
-  auto v1_end_bound_itr = next(v1_start_bound_itr, 1);
-  auto v2_start_bound_itr = next(start_itr, v2_start_bound_index);
-  auto v2_end_bound_itr = next(v2_start_bound_itr, 1);
-
-  auto v1_start_itr = next(start_itr, *v1_start_bound_itr); 
-  auto v1_end_itr = next(start_itr, *v1_end_bound_itr);
-  auto v2_start_itr = next(start_itr, *v2_start_bound_itr); 
-  auto v2_end_itr = next(start_itr, *v2_end_bound_itr); 
-  auto v1_range = ranges::subrange(v1_start_itr, v1_end_itr);
-  auto v2_range = ranges::subrange(v2_start_itr, v2_end_itr); 
-
-  auto& key_vec = v1_range.size() < v2_range.size() ? v1_range : v2_range; 
-  auto& search_vec = v1_range.size() < v2_range.size() ? v2_range : v1_range;
- 
-  auto search_start_itr = search_vec.begin();
-  auto search_end_itr = search_vec.end(); 
-  DIST_UINT min_dist = INF_INT;
-  for (auto k: key_vec) {
-    search_start_itr = lower_bound(search_start_itr, search_end_itr, k); 
-    if (search_start_itr == search_end_itr) {
-      return min_dist;
-    } 
-    if (*search_start_itr == k) {
-      DIST_UINT d = 
-      min_dist = min(min_dist, d);
-    }
-  }  
-  return min_dist; 
-}
 
 
-template <typename ItrType>
-DIST_UINT hhl_query(ItrType start_itr, size_t rank1, size_t rank2) {
-  size_t label_count = *start_itr;
-
-  auto start_index_1 = 1+rank1;
-  auto start_index_2 = 1+label_count+1+rank2;
-  
-  DIST_UINT dist = binary_intersection_ch(start_itr, start_index_1, start_index_2);
 
 
-  return dist; 
-} 
 
 void down_dijk(int node, CHOverlay& ov, vector<DIST_UINT>& node_dists, vector<vector<HubRecord>>& labels, vector<vector<HubRecord>>& labels_back) {
   auto in_node = node;
@@ -711,6 +668,7 @@ void test_dijk(int node, CHOverlay& ov, vector<DIST_UINT>& node_dists, vector<ve
     if (cur_node == node) {
       check_dist = min(check_dist, labels_back[cur_node].back().dist + labels[node].back().dist);
     }
+    
     if (check_dist != node_dists[cur_node]) {
       cerr << "node " << cur_node << " mismatch: " << check_dist << ", actual: " << node_dists[cur_node] << endl; 
     }  
@@ -760,9 +718,11 @@ void test_dijk_back(int node, CHOverlay& ov, vector<DIST_UINT>& node_dists, vect
     if (cur_node == node) {
       check_dist = min(check_dist, labels[cur_node].back().dist + labels_back[node].back().dist);
     } 
+    
     if (check_dist != node_dists[cur_node]) {
       cerr << "node " << cur_node << " mismatch: " << check_dist << ", actual: " << node_dists[cur_node] << endl;
     } 
+    
   } 
   
   node_dists[node] = INF_INT;
@@ -772,6 +732,7 @@ void test_dijk_back(int node, CHOverlay& ov, vector<DIST_UINT>& node_dists, vect
 } 
 
 void create_labels(vector<vector<HubRecord>>& labels, vector<vector<HubRecord>>& labels_back, CHOverlay& ov) { 
+  cerr << "start create labels" << endl;
   vector<DIST_UINT> node_dists(num_vertices(ov), INF_INT);
   vector<int> v; v.resize(num_vertices(ov));
   for (auto i = 0u; i < num_vertices(ov); i++) {
@@ -780,7 +741,9 @@ void create_labels(vector<vector<HubRecord>>& labels, vector<vector<HubRecord>>&
 
   for (auto j = 0u; j < num_vertices(ov); j++) { 
     
-    if (j % 100 == 1) { cerr << j << "th node, " << v[j] << endl; } 
+    //if (j % 100 == 1) { 
+    cerr << j << "th node, " << v[j] << endl; 
+
     //cerr << "starting dijkstra: " << endl;
     down_dijk_back(v[j], ov, node_dists, labels, labels_back);
   

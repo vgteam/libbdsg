@@ -19,6 +19,7 @@
 #include <unordered_map>
 #include <vector>
 #include <shared_mutex>
+#include <bdsg/internal/indexing_iterator.hpp>
 
 // TODO: We only target little-endian systems, like x86_64 and ARM64 Linux and
 // MacOS. Porting to big-endian systems will require wrapping all the numbers
@@ -827,7 +828,7 @@ private:
 template<typename T, typename Alloc = std::allocator<T>>
 class CompatVector {
 public:
-
+    
     CompatVector() = default;
     
     // Because we contain a pointer, we need a destructor and copy and move
@@ -865,6 +866,7 @@ public:
      * Empty out the vector and free any allocated memory.
      */
     void clear();
+
     T& at(size_t index);
     const T& at(size_t index) const;
     
@@ -937,6 +939,7 @@ using MappedVector = CompatVector<T, yomo::Allocator<T>>;
 template<typename Alloc = std::allocator<uint64_t>>
 class CompatIntVector {
 public:
+    using iterator = IndexingIterator<CompatIntVector>;
     
     CompatIntVector() = default;
     
@@ -995,6 +998,9 @@ public:
      * Drop everything from the vector.
      */
     void clear();
+
+    iterator begin() const;
+    iterator end() const;
 
     /**
      * Return the width in bits of the entries.
@@ -1109,6 +1115,9 @@ public:
      */
     ConstProxy operator[](size_t index) const;
     
+    //get() needed for iterators (or compiler won't be happy)
+    inline uint64_t get(size_t index) const { return (*this)[index]; };
+
     // Compatibility with SDSL-lite serialization
     
     /**
@@ -1742,6 +1751,16 @@ void CompatIntVector<Alloc>::clear() {
 }
 
 template<typename Alloc>
+CompatIntVector<Alloc>::iterator CompatIntVector<Alloc>::begin() const {
+  return iterator(this, 0);
+} 
+
+template<typename Alloc>
+CompatIntVector<Alloc>::iterator CompatIntVector<Alloc>::end() const {
+  return iterator(this, length);
+}
+
+template<typename Alloc>
 size_t CompatIntVector<Alloc>::width() const {
     return bit_width;
 }
@@ -1860,6 +1879,7 @@ CompatIntVector<Alloc>::ConstProxy::operator uint64_t () const {
 template<typename Alloc>
 auto CompatIntVector<Alloc>::at(size_t index) -> Proxy {
     if (index > size()) {
+        assert(false);
         throw std::out_of_range("Accessing index " + std::to_string(index) +
             " in integer vector of length " + std::to_string(size()));
     }
@@ -1869,6 +1889,7 @@ auto CompatIntVector<Alloc>::at(size_t index) -> Proxy {
 template<typename Alloc>
 auto CompatIntVector<Alloc>::at(size_t index) const -> ConstProxy {
     if (index > size()) {
+        assert(false); 
         throw std::out_of_range("Accessing index " + std::to_string(index) +
             " in integer vector of length " + std::to_string(size()));
     }

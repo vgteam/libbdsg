@@ -1,4 +1,4 @@
-//#define debug_distance_indexing
+#define debug_distance_indexing
 //#define debug_snarl_traversal
 //#define debug_distances
 //#define debug_distance_paths
@@ -4386,15 +4386,16 @@ void SnarlDistanceIndex::SnarlRecordWriter::set_node_count(size_t node_count) {
 
 /*
 set size of hub labels vector (hub_labels)
+putting vec_size in the SNARL_RECORD_SIZE slot due to it being the first one after the header
 */
 void SnarlDistanceIndex::SnarlRecordWriter::set_vec_size(size_t vec_size) {
 #ifdef debug_distance_indexing
-    cerr << record_offset + SNARL_NODE_COUNT_OFFSET << " set vec_size " << vec_size << endl;
+    cerr << record_offset + SNARL_RECORD_SIZE << " set vec_size " << vec_size << endl;
     assert(vec_size > 0);
-    assert((*records)->at(record_offset + SNARL_NODE_COUNT_OFFSET) == 0);
+    assert((*records)->at(record_offset + SNARL_RECORD_SIZE) == 0);
 #endif
 
-    (*records)->at(record_offset + SNARL_NODE_COUNT_OFFSET) = vec_size;
+    (*records)->at(record_offset + SNARL_RECORD_SIZE) = vec_size;
 } 
 
 size_t SnarlDistanceIndex::SnarlRecord::get_child_record_pointer() const {
@@ -6384,7 +6385,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                                 record_t record_type = ignore_distances ? SNARL : (temp_snarl_record.node_count <= snarl_size_limit ? DISTANCED_SNARL : OVERSIZED_SNARL); 
 
                                 SnarlRecordWriter snarl_record_constructor =
-                                    chain_record_constructor.add_snarl(temp_snarl_record.node_count, record_type, last_child_offset.first, temp_snarl_record.hub_labels.size());
+                                    chain_record_constructor.add_snarl(temp_snarl_record.node_count, record_type, temp_snarl_record.hub_labels.size(), last_child_offset.first);
 
                                 //Record how to find the new snarl record
                                 record_to_offset.emplace(make_pair(temp_index_i, child_record_index), snarl_record_constructor.record_offset);
@@ -6499,7 +6500,9 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                                 for (size_t i = 0 ; i < temp_snarl_record.node_count ; i++ ) {
                                     const pair<temp_record_t, size_t>& child_index = temp_snarl_record.children[i];
                                     if( child_index.first == TEMP_CHAIN) {
-                                        assert(temp_index->temp_chain_records[child_index.second].children.size() == 1);
+                                        if (temp_index->temp_chain_records[child_index.second].children.size() != 1) {
+                                           throw runtime_error("size of children != 1, child index: "+to_string(child_index.second)+", bounding nodes: "+to_string(temp_snarl_record.start_node_id)+" "+to_string(temp_snarl_record.end_node_id));
+                                        }
                                         const pair<temp_record_t, size_t>& node_index = temp_index->temp_chain_records[child_index.second].children.front();
                                         const TemporaryDistanceIndex::TemporaryNodeRecord& temp_node_record =
                                              temp_index->temp_node_records[node_index.second-min_node_id];
