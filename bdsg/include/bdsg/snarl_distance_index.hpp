@@ -408,6 +408,9 @@ public:
     ///Returns true if the given net handle refers to (a traversal of) a snarl.
     bool is_snarl(const net_handle_t& net) const;
 
+    ///Returns true if the given net handle refers to (a traversal of) an oversized snarl.
+    bool is_oversized_snarl(const net_handle_t& net) const;
+
     ///Return true if the given snarl is a DAG and false otherwise
     ///Returns true if the given net_handle_t is not a snarl
     bool is_dag(const net_handle_t& snarl) const;
@@ -810,11 +813,19 @@ private:
      *   The root vector stores the root of every connected component, which can be a 
      *   node, snarl, or chain
      */
-    const static size_t ROOT_RECORD_SIZE = 5;
-    const static size_t COMPONENT_COUNT_OFFSET = 1;
-    const static size_t NODE_COUNT_OFFSET = 2;
-    const static size_t MIN_NODE_ID_OFFSET = 3;
-    const static size_t MAX_TREE_DEPTH_OFFSET = 4;
+    const static size_t ROOT_RECORD_SIZE = 6;
+    const static size_t VERSION_NUMBER_OFFSET = 1;
+    const static size_t COMPONENT_COUNT_OFFSET = 2;
+    const static size_t NODE_COUNT_OFFSET = 3;
+    const static size_t MIN_NODE_ID_OFFSET = 4;
+    const static size_t MAX_TREE_DEPTH_OFFSET = 5;
+
+    // While the version number is 3, store it in a bit masked way
+    // to avoid getting confused with old indexes without version numbers
+    // that start with component count
+    const static size_t CURRENT_VERSION_NUMBER = 3;
+    /// Arbitrary large number which doens't overflow the number of bits we give
+    const static size_t VERSION_NUMBER_SENTINEL = (1 << 10) - 1;
 
     /*Node record
      * - A node record for nodes in snarls/roots. These are interpreted as either trivial chains or nodes.
@@ -947,7 +958,7 @@ private:
      * Otherwise, for snarls with more children than snarl_size_limit, only store the distances
      * that include boundary nodes (OVERSIZED_SNARL)
      */
-    size_t snarl_size_limit = 5000;
+    size_t snarl_size_limit = 50000;
 
     //If this is true, then only store distance along top-level chains. Everything still needs its minimum lengths to get
     //the distances along top-level chains but don't store internal distances in snarls or in nested chains
@@ -1120,6 +1131,7 @@ private:
         RootRecord (size_t pointer, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records);
         RootRecord (net_handle_t net, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records);
 
+        size_t get_version_number() const {return VERSION_NUMBER_SENTINEL ^ (*records)->at(record_offset+VERSION_NUMBER_OFFSET);}
         size_t get_connected_component_count() const {return (*records)->at(record_offset+COMPONENT_COUNT_OFFSET);}
         size_t get_node_count() const {return (*records)->at(record_offset+NODE_COUNT_OFFSET);}
         size_t get_max_tree_depth() const {return (*records)->at(record_offset+MAX_TREE_DEPTH_OFFSET);}
@@ -1138,6 +1150,8 @@ private:
         RootRecordWriter (size_t pointer, size_t connected_component_count, size_t node_count, size_t max_tree_depth, 
                     handlegraph::nid_t min_node_id, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records);
 
+        // Doesn't accept a value because it uses CURRENT_VERSION_NUMBER
+        void set_version_number();
         void set_connected_component_count(size_t connected_component_count);
         void set_node_count(size_t node_count);
         void set_max_tree_depth(size_t tree_depth);
@@ -1678,7 +1692,9 @@ public:
         vector<TemporaryChainRecord> temp_chain_records;
         vector<TemporarySnarlRecord> temp_snarl_records;
         vector<TemporaryNodeRecord> temp_node_records;
+        //whether the entire index has any oversized snarls or not
         bool use_oversized_snarls = false;
+        size_t most_oversized_snarl_size = 0;
         friend class SnarlDistanceIndex;
 
     };

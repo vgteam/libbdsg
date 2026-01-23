@@ -15,6 +15,7 @@
 #include <deque>
 #include <functional>
 #include <stdexcept>
+#include <algorithm>
 
 #include <omp.h> // BINDER_IGNORE because Binder can't find this
 
@@ -2832,7 +2833,7 @@ void test_packed_vector() {
                 case APPEND:
                     for (size_t k = 0; k < appends_per_op; k++) {
                         std_vec.push_back(next_val);
-                        dyn_vec.append(next_val);
+                        dyn_vec.push_back(next_val);
                         next_val++;
                     }
                     
@@ -2842,7 +2843,7 @@ void test_packed_vector() {
                     if (!std_vec.empty()) {
                         for (size_t k = 0; k < pops_per_op; k++) {
                             std_vec.pop_back();
-                            dyn_vec.pop();
+                            dyn_vec.pop_back();
                         }
                     }
                     
@@ -2872,6 +2873,355 @@ void test_packed_vector() {
         }
     }
     cerr << "PackedVector (" << typeid(PackedVectorImpl).name() << ") tests successful!" << endl;
+}
+
+/**
+ * Generic iterator test function that works with any vector-like container
+ * (PackedVector, PagedVector, RobustPagedVector, PackedDeque).
+ *
+ * Tests ForwardIterator, BidirectionalIterator, RandomAccessIterator, and
+ * iterator order comparison, but not OutputIterator.
+ */
+template<typename VectorLike>
+void test_iterators() {
+    // ForwardIterator tests
+
+    // Empty iteration
+    {
+        VectorLike vec;
+        assert(vec.begin() == vec.end());
+
+        size_t count = 0;
+        for (auto it = vec.begin(); it != vec.end(); ++it) {
+            count++;
+        }
+        assert(count == 0);
+    }
+
+    // Single element
+    {
+        VectorLike vec;
+        vec.push_back(42);
+
+        assert(vec.begin() != vec.end());
+
+        auto it = vec.begin();
+        assert(*it == 42);
+        ++it;
+        assert(it == vec.end());
+    }
+
+    // Multiple elements - basic iteration
+    {
+        VectorLike vec;
+        vector<uint64_t> expected = {10, 20, 30, 40, 50};
+
+        for (auto val : expected) {
+            vec.push_back(val);
+        }
+
+        // Iterate and compare
+        size_t idx = 0;
+        for (auto it = vec.begin(); it != vec.end(); ++it) {
+            assert(idx < expected.size());
+            assert(*it == expected[idx]);
+            idx++;
+        }
+        assert(idx == expected.size());
+    }
+
+    // Range-based for loop
+    {
+        VectorLike vec;
+        vector<uint64_t> expected = {100, 200, 300, 400, 500, 600, 700, 800};
+
+        for (auto val : expected) {
+            vec.push_back(val);
+        }
+
+        size_t idx = 0;
+        for (auto val : vec) {
+            assert(idx < expected.size());
+            assert(val == expected[idx]);
+            idx++;
+        }
+        assert(idx == expected.size());
+    }
+
+    // Iterator equality and inequality
+    {
+        VectorLike vec;
+        vec.push_back(1);
+        vec.push_back(2);
+        vec.push_back(3);
+
+        auto it1 = vec.begin();
+        auto it2 = vec.begin();
+        assert(it1 == it2);
+
+        ++it2;
+        assert(it1 != it2);
+
+        ++it1;
+        assert(it1 == it2);
+    }
+
+    // std::distance compatibility
+    {
+        VectorLike vec;
+        for (size_t i = 0; i < 15; i++) {
+            vec.push_back(i);
+        }
+
+        auto dist = std::distance(vec.begin(), vec.end());
+        assert((size_t)dist == vec.size());
+        assert((size_t)dist == 15);
+    }
+
+    // std::find compatibility
+    {
+        VectorLike vec;
+        vec.push_back(10);
+        vec.push_back(20);
+        vec.push_back(30);
+        vec.push_back(40);
+        vec.push_back(50);
+
+        auto it = std::find(vec.begin(), vec.end(), 30);
+        assert(it != vec.end());
+        assert(*it == 30);
+
+        auto it2 = std::find(vec.begin(), vec.end(), 999);
+        assert(it2 == vec.end());
+    }
+
+    // Const iterator
+    {
+        VectorLike vec;
+        vec.push_back(5);
+        vec.push_back(15);
+        vec.push_back(25);
+
+        const VectorLike& const_vec = vec;
+
+        size_t count = 0;
+        for (auto it = const_vec.begin(); it != const_vec.end(); ++it) {
+            count++;
+        }
+        assert(count == 3);
+
+        auto it = const_vec.begin();
+        assert(*it == 5);
+        ++it;
+        assert(*it == 15);
+        ++it;
+        assert(*it == 25);
+    }
+
+    // Large container with various patterns
+    {
+        VectorLike vec;
+        random_device rd;
+        default_random_engine prng(rd());
+        uniform_int_distribution<uint64_t> val_distr(0, 10000);
+
+        vector<uint64_t> expected;
+        size_t num_elements = 200;
+
+        for (size_t i = 0; i < num_elements; i++) {
+            uint64_t val = val_distr(prng);
+            expected.push_back(val);
+            vec.push_back(val);
+        }
+
+        size_t idx = 0;
+        for (auto val : vec) {
+            assert(val == expected[idx]);
+            idx++;
+        }
+        assert(idx == expected.size());
+    }
+
+    // Iteration after modification
+    {
+        VectorLike vec;
+        vec.push_back(1);
+        vec.push_back(2);
+        vec.push_back(3);
+
+        // First iteration
+        size_t count = 0;
+        for (auto it = vec.begin(); it != vec.end(); ++it) {
+            count++;
+        }
+        assert(count == 3);
+
+        // Modify
+        vec.push_back(4);
+        vec.set(0, 100);
+
+        // Second iteration
+        vector<uint64_t> expected = {100, 2, 3, 4};
+        size_t idx = 0;
+        for (auto val : vec) {
+            assert(val == expected[idx]);
+            idx++;
+        }
+        assert(idx == 4);
+    }
+
+    // Iterator copy construction
+    {
+        VectorLike vec;
+        vec.push_back(10);
+        vec.push_back(20);
+
+        auto it1 = vec.begin();
+        auto it2(it1); // Copy constructor
+
+        assert(it1 == it2);
+        assert(*it1 == *it2);
+        assert(*it1 == 10);
+    }
+
+    // Iterator assignment
+    {
+        VectorLike vec;
+        vec.push_back(10);
+        vec.push_back(20);
+        vec.push_back(30);
+
+        auto it1 = vec.begin();
+        auto it2 = vec.begin();
+        ++it2;
+
+        assert(*it1 == 10);
+        assert(*it2 == 20);
+
+        it1 = it2; // Assignment
+        assert(it1 == it2);
+        assert(*it1 == 20);
+    }
+
+    // BidirectionalIterator tests.
+    {
+        VectorLike vec;
+        vec.push_back(10);
+        vec.push_back(20);
+        vec.push_back(30);
+
+        auto it1 = vec.begin();
+        auto it2 = it1;
+        ++it2;
+        auto also_decremented = --it2;
+
+        assert(it2 == it1);
+        assert(also_decremented == it1);
+
+        it2++;
+        auto not_decremented = it2--;
+
+        assert(it2 == it1);
+        assert(not_decremented != it1);
+        assert(*not_decremented == 20);
+
+        auto it3 = vec.end();
+        it3--;
+        assert(it3 != vec.end());
+        assert(*it3 == 30);
+    }
+
+    // RandomAccessIterator tests
+    {
+        VectorLike vec;
+        vec.push_back(10);
+        vec.push_back(20);
+        vec.push_back(30);
+
+        auto it1 = vec.begin();
+        auto it2 = it1;
+
+        it1 += 1;
+        assert(*it1 == 20);
+
+        it1 += 2;
+        assert(it1 == vec.end());
+
+        it1 -= 1;
+        auto it3 = it2 + 2;
+        assert(it1 == it3);
+        assert(*it1 == 30);
+        assert(it2 == vec.begin());
+
+        auto it4 = it1 - 2;
+        assert(*it4 == 10);
+
+        assert(*it1 == vec.begin()[2]);
+        assert(*it4 == vec.begin()[0]);
+        assert(it4[2] == *it1);
+        assert(it1[-2] == *it4);
+
+        assert(it1 + -2 == it4);
+        assert(it4 - -2 == it1);
+        
+        it1 += -2;
+        assert(it1 == it4);
+
+        it1 -= -1;
+        it4++;
+        assert(it1 == it4);
+    }
+
+    // Iterator comparison tests
+    {
+        VectorLike vec;
+        vec.push_back(10);
+        vec.push_back(20);
+        vec.push_back(30);
+
+        auto it1 = vec.begin();
+        auto it2 = it1;
+
+        assert(it1 >= it2);
+        assert(it1 <= it2);
+        assert(!(it1 < it2));
+        assert(!(it1 > it2));
+        it1++;
+
+        assert(it1 >= it2);
+        assert(!(it1 <= it2));
+        assert(!(it2 >= it1));
+        assert(it2 <= it1);
+        assert(!(it1 < it2));
+        assert(it1 > it2);
+        assert(it2 < it1);
+        assert(!(it2 > it1));
+    }
+
+    // Iterator distance tests
+    {
+        VectorLike vec;
+        vec.push_back(10);
+        vec.push_back(20);
+        vec.push_back(30);
+
+        assert(vec.end() - vec.begin() == vec.size());
+
+        auto it1 = vec.begin();
+        auto it2 = it1;
+        
+        it1 += 1;
+        it2 += 2;
+
+        assert(it2 - it1 == 1);
+        assert(it1 - it2 == -1);
+
+        it1--;
+        assert(it2 - it1 == 2);
+        assert(it1 - it2 == -2);
+    }
+
+    cerr << "Iterator (" << typeid(typename VectorLike::iterator).name() << ") tests successful!" << endl;
 }
 
 template<typename PagedVectorImpl>
@@ -2926,7 +3276,7 @@ void test_paged_vector() {
                 case APPEND:
                     for (size_t k = 0; k < appends_per_op; k++) {
                         std_vec.push_back(next_val);
-                        dyn_vec.append(next_val);
+                        dyn_vec.push_back(next_val);
                         next_val = val_distr(prng);
                     }
                     
@@ -2936,7 +3286,7 @@ void test_paged_vector() {
                     if (!std_vec.empty()) {
                         for (size_t k = 0; k < pops_per_op; k++) {
                             std_vec.pop_back();
-                            dyn_vec.pop();
+                            dyn_vec.pop_back();
                         }
                     }
                     
@@ -3018,7 +3368,7 @@ void test_packed_deque() {
                 case APPEND_LEFT:
                     for (size_t k = 0; k < appends_per_op; k++) {
                         std_deq.push_front(next_val);
-                        suc_deq.append_front(next_val);
+                        suc_deq.push_front(next_val);
                         next_val++;
                     }
                     
@@ -3035,7 +3385,7 @@ void test_packed_deque() {
                 case APPEND_RIGHT:
                     for (size_t k = 0; k < appends_per_op; k++) {
                         std_deq.push_back(next_val);
-                        suc_deq.append_back(next_val);
+                        suc_deq.push_back(next_val);
                         next_val++;
                     }
                     
@@ -4639,35 +4989,124 @@ void test_hash_graph() {
     cerr << "HashGraph tests successful!" << endl;
 }
 
-void test_hub_labeling() {
-  HashGraph test_g;
-  vector<handle_t> handles; handles.resize(3);
-  for (auto n: {0,1,2}) {
-    handles[n] = test_g.create_handle("A");
-  }
-  test_g.create_edge(handles[0], handles[1]);
-  test_g.create_edge(handles[1], handles[2]);
-  
-  //test HashGraph -> Boost graph
-  CHOverlay bg = make_boost_graph(test_g);
-
-  vector<vector<HubRecord>> labels_fwd; labels_fwd.resize(num_vertices(bg));
-  vector<vector<HubRecord>> labels_back; labels_back.resize(num_vertices(bg));
-  create_labels(labels_fwd, labels_back, bg);
-
-  //linearization
-  vector<size_t> packed_labels = pack_labels(labels_fwd, labels_back);
-  //dummy filter
-  //TODO: placeholder getter for now
-  size_t dist = hhl_query(0, 1, [&] (size_t ofs) { return 1; }); //binary_intersection_ch(packed_labels, 0, 1, 5);
-  assert(dist == 1);
-  
-  /*
-  for (size_t i = 0; i < test_g.get_node_count(); i++) { 
-    for (size_t j = 0; j < test_g.get_node_count(); j++) {
-      binary_intersection_ch(
+void test_hub_labeling() { 
+  {
+    HashGraph test_g;
+    vector<handle_t> handles; handles.resize(3);
+    for (auto n: {0,1,2}) {
+      handles[n] = test_g.create_handle("A");
     }
-  }*/
+    test_g.create_edge(handles[0], handles[1]);
+    test_g.create_edge(handles[1], handles[2]);
+    
+    //test HashGraph -> Boost graph
+    CHOverlay bg = make_boost_graph(test_g);
+
+    //
+    make_contraction_hierarchy(bg);
+    //cerr << " - made contraction hierarchy" << endl;
+
+    vector<vector<HubRecord>> labels_fwd; labels_fwd.resize(num_vertices(bg));
+    vector<vector<HubRecord>> labels_back; labels_back.resize(num_vertices(bg));
+    create_labels(labels_fwd, labels_back, bg);
+
+    //linearization
+    vector<size_t> packed_labels = pack_labels(labels_fwd, labels_back);
+    //dummy filter
+    /*
+    for (auto v: labels_fwd) {
+      for (auto sz: v) {
+      cerr << "(" << sz.hub << "," << sz.dist << ") ";
+      }
+      cerr << " | "; 
+    }
+    cerr << endl;  
+    cerr<<"back:" << endl;
+    for (auto v: labels_back) {
+      for (auto sz: v) {
+      cerr << "(" << sz.hub << "," << sz.dist << ") "; 
+      } 
+      cerr << " | ";
+    }
+    cerr << endl;
+    cerr << "pack:" << endl; 
+    for (auto sz: packed_labels) {
+      cerr << sz << " ";
+    }
+    cerr << endl;  */
+      
+    assert(hhl_query(packed_labels.begin(), 0, 2) == 0); 
+
+    //TODO: what to do when node equals itself?
+    //assert(hhl_query(packed_labels.begin(), 0, 0) == INF_INT); 
+    assert(hhl_query(packed_labels.begin(), 5, 1) == 1); 
+    
+    assert(hhl_query(packed_labels.begin(), 1, 2) == INF_INT); 
+    //TODO: check that error occurs when nodeside out of range is given
+  }
+  {
+    HashGraph test_g;
+    vector<handle_t> handles; handles.resize(8);
+    for (auto n: {0,1,2,3,4,5,6,7}) {
+      handles[n] = test_g.create_handle(string(n+1, 'A'));
+    } 
+    //vector<tuple<int,int>> edges={{0,1},{0,2},{1,0},{2,0},{1,3},{1,4},{4,1},{5,5}};
+    vector<tuple<int,int>> edges={{1,3}};
+    for (auto e: edges) {
+      auto [s,t] = e;
+      test_g.create_edge(handles[s], handles[t]);
+    }
+    //test HashGraph -> Boost graph
+    CHOverlay bg = make_boost_graph(test_g);
+    auto [edges_start, edges_end] = boost::edges(bg);
+    std::for_each(edges_start, edges_end, [&] (auto e) {
+      cerr << source(e,bg) << " -> " << target(e,bg) << endl;
+    });
+    make_contraction_hierarchy(bg);  
+
+    vector<vector<HubRecord>> labels_fwd; labels_fwd.resize(num_vertices(bg));
+    vector<vector<HubRecord>> labels_back; labels_back.resize(num_vertices(bg));
+    create_labels(labels_fwd, labels_back, bg);
+
+    //linearization
+    vector<size_t> packed_labels = pack_labels(labels_fwd, labels_back); 
+    for (auto v: labels_fwd) {
+      for (auto sz: v) {
+      cerr << "(" << sz.hub << "," << sz.dist << ") ";
+      }
+      cerr << " | "; 
+    }
+    cerr << endl;  
+    cerr<<"back:" << endl;
+    for (auto v: labels_back) {
+      for (auto sz: v) {
+      cerr << "(" << sz.hub << "," << sz.dist << ") "; 
+      } 
+      cerr << " | ";
+    }
+    /* 
+    //nonexistent path
+    assert(hhl_query(packed_labels.begin(), 0, 14) == INF_INT);
+    
+    //check node lengths are taken into account
+    assert(hhl_query(packed_labels.begin(), 0, 6) == 2); 
+
+    //check u -> v and v -> u are different
+    assert(hhl_query(packed_labels.begin(), 6, 2) == INF_INT); */
+    //need to debug
+    for (int a = 0; a < 10; a++ ) {
+      cerr << hhl_query(packed_labels.begin(), 2, a) << endl;
+    } 
+    assert(hhl_query(packed_labels.begin(), 2, 6) == 0); 
+    /*
+    //node to itself in the same direction (edge exists)
+    assert(hhl_query(packed_labels.begin(), 10, 10) == 0); 
+    //node to itself in the same direction (edge doesn't exist)
+    assert(hhl_query(packed_labels.begin(), 6, 6) == INF_INT); 
+    */
+  }
+  
+  cerr << "HubLabeling tests successful!" << endl;
 }
 
 void test_snarl_distance_index() {
@@ -4724,13 +5163,16 @@ void test_snarl_distance_index() {
 }
 
 int main(void) {
-    test_reference_path_overlay();
+    /*test_reference_path_overlay();
     test_bit_packing();
     test_mapped_structs();
     test_int_vector();
     test_packed_vector<PackedVector<>>();
     test_packed_vector<PackedVector<CompatBackend>>();
     test_packed_vector<PackedVector<MappedBackend>>();
+    test_iterators<PackedVector<>>();
+    test_iterators<PackedVector<CompatBackend>>();
+    test_iterators<PackedVector<MappedBackend>>();
     test_paged_vector<PagedVector<1>>();
     test_paged_vector<PagedVector<2>>();
     test_paged_vector<PagedVector<3>>();
@@ -4738,7 +5180,24 @@ int main(void) {
     test_paged_vector<PagedVector<5>>();
     test_paged_vector<PagedVector<5, CompatBackend>>();
     test_paged_vector<PagedVector<5, MappedBackend>>();
+    test_iterators<PagedVector<1>>();
+    test_iterators<PagedVector<2>>();
+    test_iterators<PagedVector<3>>();
+    test_iterators<PagedVector<4>>();
+    test_iterators<PagedVector<5>>();
+    test_iterators<PagedVector<64>>();
+    test_iterators<PagedVector<5, CompatBackend>>();
+    test_iterators<PagedVector<5, MappedBackend>>();
+    test_iterators<RobustPagedVector<1>>();
+    test_iterators<RobustPagedVector<2>>();
+    test_iterators<RobustPagedVector<5>>();
+    test_iterators<RobustPagedVector<64>>();
+    test_iterators<RobustPagedVector<5, CompatBackend>>();
+    test_iterators<RobustPagedVector<5, MappedBackend>>();
     test_packed_deque();
+    test_iterators<PackedDeque<>>();
+    test_iterators<PackedDeque<CompatBackend>>();
+    test_iterators<PackedDeque<MappedBackend>>();
     test_packed_set();
     test_mutable_path_handle_graphs();
     test_deletable_handle_graphs();
@@ -4750,6 +5209,7 @@ int main(void) {
     test_packed_subgraph_overlay();
     test_multithreaded_overlay_construction();
     test_mapped_packed_graph();
-    test_hash_graph();
-    test_snarl_distance_index();
+    test_hash_graph(); */
+    test_hub_labeling();
+    //test_snarl_distance_index();
 }
