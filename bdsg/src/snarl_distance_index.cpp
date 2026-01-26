@@ -1,6 +1,6 @@
 #define debug_distance_indexing
 //#define debug_snarl_traversal
-//#define debug_distances
+#define debug_distances
 //#define debug_distance_paths
 
 #include "bdsg/snarl_distance_index.hpp"
@@ -1318,8 +1318,26 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
 
         if (get_record_type(snarl_tree_records->at(get_record_offset(parent))) == DISTANCED_SIMPLE_SNARL) {
             return SimpleSnarlRecord(parent, &snarl_tree_records).get_distance(rank1, rev1, rank2, rev2);
-        } else if (get_record_type(snarl_tree_records->at(get_record_offset(parent))) == OVERSIZED_SNARL) { 
-            size_t distance = hhl_query(snarl_tree_records->begin() + get_record_offset(parent) + SNARL_RECORD_SIZE + 1, rank1, rank2); 
+        } else if (get_record_type(snarl_tree_records->at(get_record_offset(parent))) == OVERSIZED_SNARL) {
+#ifdef debug_distances
+            cerr << "             Performing HHL query" << endl;
+#endif
+            // We need to point at the hub labeling data, which lives after the fixed-size snarl record header and the length value
+            // This points to the whole record, including the fixed-size header
+            auto record_it = snarl_tree_records->begin() + get_record_offset(parent);
+            // This points to the length and the variable-sized data
+            auto length_data_it = record_it + SNARL_RECORD_SIZE;
+            std::cerr <<  "               Hub label data length: " << *length_data_it << endl;
+            std::cerr <<  "               Hub label data: ";
+            for (size_t i = 0; i < *length_data_it; i++) {
+                // Dump the hub label data as retrieved
+                if (i > 0) {
+                    std::cerr << " | ";
+                }
+                std::cerr << *(length_data_it + 1 + i);
+            }
+            std::cerr << std::endl;
+            size_t distance = hhl_query(length_data_it + 1, rank1, rank2); 
             return distance;
           
         } else if (rank1 == 0 && rank2 == 0 && !snarl_is_root) {

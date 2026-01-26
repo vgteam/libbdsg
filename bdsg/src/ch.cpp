@@ -752,15 +752,6 @@ void create_labels(vector<vector<HubRecord>>& labels, vector<vector<HubRecord>>&
   } 
 }
 
-/*
-Puts hub labels in a flat vector form
-
-Structure:
-- offsets are relative to start of flat vector
-- extra offset in each of fwd and back offset sets at the end so that end of ranges can be found
--- subtracting the extra offset by the first offset of its set gets the distance to the corresponding dist of a hub
-label count | start offsets (fwd) | start offsets (back) | fwd label hubs | fwd label dists | back label hubs | back label dists 
-*/
 vector<size_t> pack_labels(const vector<vector<HubRecord>>& labels, const vector<vector<HubRecord>>& labels_back) {
   auto label_count = labels.size();
   //label_count+1 is so we can look at the next offset to determine end of range

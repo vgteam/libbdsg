@@ -65,8 +65,15 @@ ItrType get_dist_itr(ItrType start_itr, ItrType hub_itr) {
 
 DIST_UINT binary_intersection_ch(vector<HubRecord>& v1, vector<HubRecord>& v2);
 /*
-start_bound_index variables are relative to start_offset
-*/
+ * Do binary intersection to find shared labels for two vertices.
+ *
+ * start_itr should point to the first slot of the packed label data returned
+ * by pack_labels(), which is the label count.
+ *
+ * start_bound_index variables are relative to start_itr, and give the
+ * positions of the stored start bounds for the two labels; the stored end
+ * bounds will be in the slots after.
+ */
 template <typename ItrType>
 DIST_UINT binary_intersection_ch(ItrType start_itr, size_t v1_start_bound_index, size_t v2_start_bound_index) {
   auto v1_start_bound_itr = next(start_itr, v1_start_bound_index);
@@ -76,8 +83,14 @@ DIST_UINT binary_intersection_ch(ItrType start_itr, size_t v1_start_bound_index,
 
   auto v1_start_itr = next(start_itr, *v1_start_bound_itr); 
   auto v1_end_itr = next(start_itr, *v1_end_bound_itr);
+
+  std::cerr << "Found " << v1_end_itr - v1_start_itr << " labels for vertex 1" << std::endl;
+
   auto v2_start_itr = next(start_itr, *v2_start_bound_itr); 
-  auto v2_end_itr = next(start_itr, *v2_end_bound_itr); 
+  auto v2_end_itr = next(start_itr, *v2_end_bound_itr);
+
+  std::cerr << "Found " << v2_end_itr - v2_start_itr << " labels for vertex 2" << std::endl;
+
   auto v1_range = ranges::subrange<ItrType>(v1_start_itr, v1_end_itr);
   auto v2_range = ranges::subrange<ItrType>(v2_start_itr, v2_end_itr); 
 
@@ -88,33 +101,51 @@ DIST_UINT binary_intersection_ch(ItrType start_itr, size_t v1_start_bound_index,
   auto search_end_itr = search_vec.end(); 
   DIST_UINT min_dist = INF_INT;
   for (auto it = key_vec.begin(); it < key_vec.end(); it++) {
-    //cerr << "loop top" << endl;
+    cerr << "Performing key query" << endl;
     auto k = *it;
     auto k_dist_itr = get_dist_itr(start_itr, it); 
-    //cerr << "dist for k " << k << " is " << *k_dist_itr << ", at: " << distance(start_itr,k_dist_itr) << endl;
-    //cerr << "searching for " << k << " between " << distance(start_itr,search_start_itr) << " & " << distance(start_itr,search_end_itr) << endl;
+    cerr << "Distance for k " << k << " is " << *k_dist_itr << ", at: " << distance(start_itr,k_dist_itr) << endl;
+    cerr << "searching for " << k << " between " << distance(start_itr,search_start_itr) << " & " << distance(start_itr,search_end_itr) << endl;
     search_start_itr = lower_bound(search_start_itr, search_end_itr, k); 
     if (search_start_itr == search_end_itr) {
+      std::cerr << "No more search results possible" << std::endl; 
       return min_dist;
     } 
     if (*search_start_itr == k) {
-      //cerr << "match found, key: " << *search_start_itr << ", at " << distance(start_itr,search_start_itr) << endl;
+      cerr << "match found, key: " << *search_start_itr << ", at " << distance(start_itr,search_start_itr) << endl;
       auto dist_itr = get_dist_itr(start_itr, search_start_itr);
       DIST_UINT d = *(dist_itr) + *(k_dist_itr);
-      //cerr << "dist for key is: " << *dist_itr << ", at " << distance(start_itr,dist_itr) << endl; 
-      //cerr << "total dist is: " << d << endl;
+      cerr << "dist for key is: " << *dist_itr << ", at " << distance(start_itr,dist_itr) << endl; 
+      cerr << "total dist is: " << d << endl;
       min_dist = min(min_dist, d);
     }
   }  
   return min_dist; 
 }  
 
+/**
+ * Query stored hub label data for a minimum distance.
+ *
+ * start_itr should point to the first slot of the packed label data returned
+ * by pack_labels(), which is the label count.
+ */
 template <typename ItrType>
 DIST_UINT hhl_query(ItrType start_itr, size_t rank1, size_t rank2) {
   size_t label_count = *start_itr;
 
+  std::cerr << "Making hub label query on " << label_count << " labels" << std::endl;
+
+  // Bounds start after the label count, and at the rank of the first
+  // vertex past there we find the start bound for the first vertex.
   auto start_index_1 = 1+rank1;
+
+  std::cerr << "Start bound for forward label for rank " << rank1 << " is at index " << start_index_1 << " past there" << std::endl;
+
+  // And there's a final end value for the first set of labels before we go on
+  // to the bounds where we would find the start bound for the second vertex.
   auto start_index_2 = 1+label_count+1+rank2;
+
+  std::cerr << "Start bound for reverse label for rank " << rank2 << " is at index " << start_index_2 << " past there" << std::endl;
   
   DIST_UINT dist = binary_intersection_ch(start_itr, start_index_1, start_index_2);
 
@@ -132,6 +163,17 @@ void test_dijk_rev(int node, CHOverlay& ov, vector<DIST_UINT>& node_dists, vecto
 
 void create_labels(vector<vector<HubRecord>>& labels, vector<vector<HubRecord>>& labels_rev, CHOverlay& ov);
 
+/**
+ * Puts hub labels in a flat vector form
+ * 
+ * Structure:
+ * - offsets are relative to start of flat vector
+ * - extra offset in each of fwd and back offset sets at the end so that end of ranges can be found
+ * -- subtracting the extra offset by the first offset of its set gets the distance to the corresponding dist of a hub
+ *
+ * The layout is:
+ * label count | start offsets (fwd) | start offsets (back) | fwd label hubs | fwd label dists | back label hubs | back label dists 
+*/
 vector<size_t> pack_labels(const vector<vector<HubRecord>>& labels, const vector<vector<HubRecord>>& labels_back); 
 
 //not necessary stuff
