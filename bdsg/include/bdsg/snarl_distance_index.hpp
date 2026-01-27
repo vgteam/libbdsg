@@ -1304,10 +1304,30 @@ private:
         SnarlRecordWriter (size_t node_count, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, record_t type, size_t vec_size);
         SnarlRecordWriter(bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, size_t pointer);
 
-        //sets size of hub label flat vector (only used for oversized snarls)
-        //TODO: Make separate SnarlRecordWriter for oversized snarls
+        /**
+         * Set size of hub labels flat vector (hub_labels).
+         * Only used for oversized snarls.
+         *
+         * May only be called once.
+         *
+         * TODO: Make separate SnarlRecordWriter for oversized snarls?
+         *
+         * Putting vec_size in the SNARL_RECORD_SIZE'th slot due to it being the first one after the header
+         */
         void set_vec_size(size_t vec_size);
+        
+        /**
+         * Set an entry in the vector holding the hub label data.
+         * Only used for oversized snarls.
+         *
+         * set_vec_size() must be called first.
+         */
+        void set_vec_entry(size_t index, size_t value);
 
+        /**
+         * Set a distance matrix entry.
+         * Not used for oversized snarls.
+         */
         void set_distance(size_t rank1, bool right_side1, size_t rank2, bool right_side2, size_t distance);
 
         void set_distance_start_start(size_t value);

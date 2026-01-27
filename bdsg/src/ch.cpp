@@ -55,95 +55,203 @@ CHOverlay make_boost_graph(bdsg::HashGraph& hg) {
 }
 
 CHOverlay make_boost_graph(SnarlDistanceIndex::TemporaryDistanceIndex& temp_index, SnarlDistanceIndex::temp_record_ref_t& snarl_index, SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord& temp_snarl_record, vector<SnarlDistanceIndex::temp_record_ref_t>& all_children, const HandleGraph* hgraph) {
+  // Boost graph numbering principle (hypothesis):
+  // - Each child gets 4 Boost vertices at child_num*4, child_num*4+1, child_num*4+2, child_num*4+3
+  // - For chains: 0=start_fwd, 1=start_rev, 2=end_fwd, 3=end_rev (where rev_bgid flips lowest bit)
+  // - For nodes: Unclear - only child_num*4 seems to be used?
+  // - rev_bgid(n) = n ^ 1 swaps between forward/reverse of same endpoint
+
+  cerr << "=== make_boost_graph: Building net graph ===" << endl;
+  cerr << "Number of children: " << all_children.size() << endl;
+  cerr << "Allocating " << all_children.size()*4 << " Boost vertices (4 per child)" << endl;
+
   CHOverlay ov(all_children.size()*4);
   //maps edge destination handle to id in Boost graph
   unordered_map<handle_t, CHOverlay::vertex_descriptor> handle_bgnid_map;
- 
+
+  cerr << "--- Phase 1: Creating Boost vertices for each net graph child ---" << endl;
   for (size_t child_num = 0; child_num < all_children.size(); child_num++) {
     auto child = all_children[child_num];
     if (child.first == bdsg::SnarlDistanceIndex::TEMP_CHAIN) {
       auto& record = temp_index.get_chain(child);
       handle_t start_handle = hgraph->get_handle(record.start_node_id, record.start_node_rev);
-      handle_t end_handle = hgraph->get_handle(record.end_node_id, record.end_node_rev); 
+      handle_t end_handle = hgraph->get_handle(record.end_node_id, record.end_node_rev);
+
+      cerr << "Child " << child_num << " is CHAIN: start_node=" << record.start_node_id
+           << " (rev=" << record.start_node_rev << "), end_node=" << record.end_node_id
+           << " (rev=" << record.end_node_rev << "), min_length=" << record.min_length << endl;
+      cerr << "  start_handle: id=" << hgraph->get_id(start_handle) << " rev=" << hgraph->get_is_reverse(start_handle) << endl;
+      cerr << "  end_handle: id=" << hgraph->get_id(end_handle) << " rev=" << hgraph->get_is_reverse(end_handle) << endl;
+      cerr << "  Boost vertices: " << child_num*4 << " (start_fwd), " << child_num*4+1 << " (start_rev), "
+           << child_num*4+2 << " (end_fwd), " << child_num*4+3 << " (end_rev)" << endl;
+
       //chain representation as node ids (numbers are offsets from child_num*4)
       // 1<-3
-      // 0->2  
+      // 0->2
       handle_bgnid_map[start_handle] = child_num*4;
       handle_bgnid_map[end_handle] = child_num*4+2;
+
+      cerr << "  Mapping start_handle -> Boost " << child_num*4 << endl;
+      cerr << "  Mapping end_handle -> Boost " << child_num*4+2 << endl;
+      // TODO: Should we also map the REVERSE of start_handle and end_handle?
+      // Currently only forward orientations are mapped. If follow_edges returns
+      // a reversed handle, it won't be found in handle_bgnid_map.
+
       //add edges representing distance across chain
-      auto new_edge = add_edge(child_num*4, child_num*4+2, ov); 
+      auto new_edge = add_edge(child_num*4, child_num*4+2, ov);
       ov[new_edge.first].weight = record.min_length;
-      new_edge = add_edge(child_num*4+3, child_num*4+1, ov); 
-      ov[new_edge.first].weight = record.min_length; 
+      cerr << "  Edge " << child_num*4 << " -> " << child_num*4+2 << " (fwd traversal, weight=" << record.min_length << ")" << endl;
+
+      new_edge = add_edge(child_num*4+3, child_num*4+1, ov);
+      ov[new_edge.first].weight = record.min_length;
+      cerr << "  Edge " << child_num*4+3 << " -> " << child_num*4+1 << " (rev traversal, weight=" << record.min_length << ")" << endl;
 
       //add looping distances (thanks Xian!)
-      auto& first_child = record.children.front(); 
-      assert(first_child.first == bdsg::SnarlDistanceIndex::TEMP_NODE); 
+      auto& first_child = record.children.front();
+      assert(first_child.first == bdsg::SnarlDistanceIndex::TEMP_NODE);
       DIST_UINT start_node_length = temp_index.get_node(first_child).node_length;
       //record.children.front().first.node_length;
       DIST_UINT start_start_distance = record.forward_loops[0] + (2*start_node_length);
       DIST_UINT end_end_distance = record.backward_loops.back() + (2*record.end_node_length);
+      cerr << "  Loop distances: start_start=" << start_start_distance << ", end_end=" << end_end_distance << endl;
+
       //loops are edges between different orientations of the same node
       auto new_loop_edge = add_edge(child_num*4+2, child_num*4+3, ov);
       ov[new_loop_edge.first].weight = end_end_distance;
+      cerr << "  Edge " << child_num*4+2 << " -> " << child_num*4+3 << " (end loop, weight=" << end_end_distance << ")" << endl;
+
       new_loop_edge = add_edge(child_num*4+1, child_num*4, ov);
-      ov[new_loop_edge.first].weight = start_start_distance; 
-     
+      ov[new_loop_edge.first].weight = start_start_distance;
+      cerr << "  Edge " << child_num*4+1 << " -> " << child_num*4 << " (start loop, weight=" << start_start_distance << ")" << endl;
+
     } else if (child.first == bdsg::SnarlDistanceIndex::TEMP_NODE) {
       auto& record = temp_index.get_node(child);
       handle_t node_handle = hgraph->get_handle(record.node_id, record.reversed_in_parent);
+
+      cerr << "Child " << child_num << " is NODE: node_id=" << record.node_id
+           << " (reversed_in_parent=" << record.reversed_in_parent << "), length=" << record.node_length << endl;
+      cerr << "  node_handle: id=" << hgraph->get_id(node_handle) << " rev=" << hgraph->get_is_reverse(node_handle) << endl;
+      cerr << "  Boost vertices allocated: " << child_num*4 << "-" << child_num*4+3 << endl;
+      cerr << "  Only setting seqlen on Boost vertex " << child_num*4 << endl;
+
       ov[child_num*4].seqlen = record.node_length;//hgraph->get_length(node_handle);
+
+      // TODO: Node is NOT added to handle_bgnid_map here! This seems like a bug.
+      // The edge-adding phase below tries to look up handles in the map, but nodes
+      // won't be found. Should we add:
+      //   handle_bgnid_map[node_handle] = child_num*4;
+      //   handle_bgnid_map[hgraph->flip(node_handle)] = child_num*4+1; // for reverse?
+      // Also: no edges are created for nodes (like the loop edges for chains).
+      // Should there be a "through the node" edge from one side to the other?
+
+      cerr << "  WARNING: node_handle NOT added to handle_bgnid_map!" << endl;
     } else {
       //uh oh
       cerr << "unexpected rec_type" << endl;
     }
   }
 
+  cerr << "--- Phase 2: Adding edges between children based on handle graph edges ---" << endl;
+  cerr << "Handle map contents:" << endl;
+  for (const auto& [h, bg_id] : handle_bgnid_map) {
+    cerr << "  handle(id=" << hgraph->get_id(h) << ", rev=" << hgraph->get_is_reverse(h) << ") -> Boost " << bg_id << endl;
+  }
+
   //add edges between Boost graph nodes of different temp chains / temp nodes
   for (size_t child_num = 0; child_num < all_children.size(); child_num++) {
-    auto child = all_children[child_num];   
+    auto child = all_children[child_num];
     if (child.first == bdsg::SnarlDistanceIndex::TEMP_CHAIN) {
-      auto& record = temp_index.get_chain(child);  
+      auto& record = temp_index.get_chain(child);
       const handle_t start_handle = hgraph->get_handle(record.start_node_id, record.start_node_rev);
-      const handle_t end_handle = hgraph->get_handle(record.end_node_id, record.end_node_rev); 
+      const handle_t end_handle = hgraph->get_handle(record.end_node_id, record.end_node_rev);
       auto start_id = handle_bgnid_map[start_handle];
       auto end_id = handle_bgnid_map[end_handle];
-      //traverse edges going out of start and end nodes of the chain (thanks Xian!) 
-      hgraph->follow_edges(start_handle, false, [&] (const handle_t& next) { 
-        if (!handle_bgnid_map.contains(next)) { return; }   
+
+      cerr << "Child " << child_num << " (CHAIN): Finding edges from start_handle and end_handle" << endl;
+      cerr << "  start_handle(id=" << hgraph->get_id(start_handle) << ", rev=" << hgraph->get_is_reverse(start_handle)
+           << ") -> Boost " << start_id << endl;
+      cerr << "  end_handle(id=" << hgraph->get_id(end_handle) << ", rev=" << hgraph->get_is_reverse(end_handle)
+           << ") -> Boost " << end_id << endl;
+
+      //traverse edges going out of start and end nodes of the chain (thanks Xian!)
+      cerr << "  Following edges from start_handle (go_left=false):" << endl;
+      hgraph->follow_edges(start_handle, false, [&] (const handle_t& next) {
+        cerr << "    Found edge to next(id=" << hgraph->get_id(next) << ", rev=" << hgraph->get_is_reverse(next) << ")" << endl;
+        if (!handle_bgnid_map.contains(next)) {
+          cerr << "      NOT in handle_bgnid_map - skipping" << endl;
+          // TODO: This could be a problem. If the next handle is the reverse of something
+          // in the map, we won't find it. Should we check for flip(next) too?
+          return;
+        }
         const auto next_id = handle_bgnid_map[next];
+        cerr << "      Maps to Boost " << next_id << endl;
         //pair of edge_descriptor and bool of it exists or not
         auto edge_info = edge(start_id, next_id, ov);
         if (!edge_info.second) {
+          cerr << "      Adding edge " << start_id << " -> " << next_id << endl;
+          cerr << "      Adding reverse edge " << rev_bgid(next_id) << " -> " << rev_bgid(start_id) << endl;
           add_edge(start_id, next_id, ov);
           add_edge(rev_bgid(next_id), rev_bgid(start_id), ov);
+        } else {
+          cerr << "      Edge already exists" << endl;
         }
       });
 
+      cerr << "  Following edges from end_handle (go_left=false):" << endl;
       hgraph->follow_edges(end_handle, false, [&] (const handle_t& next) {
-        if (!handle_bgnid_map.contains(next)) { return; }
+        cerr << "    Found edge to next(id=" << hgraph->get_id(next) << ", rev=" << hgraph->get_is_reverse(next) << ")" << endl;
+        if (!handle_bgnid_map.contains(next)) {
+          cerr << "      NOT in handle_bgnid_map - skipping" << endl;
+          return;
+        }
         const auto next_id = handle_bgnid_map[next];
+        cerr << "      Maps to Boost " << next_id << endl;
         //pair of edge_descriptor and bool of it exists or not
         auto edge_info = edge(end_id, next_id, ov);
         if (!edge_info.second) {
+          cerr << "      Adding edge " << end_id << " -> " << next_id << endl;
+          cerr << "      Adding reverse edge " << rev_bgid(next_id) << " -> " << rev_bgid(end_id) << endl;
           add_edge(end_id, next_id, ov);
           add_edge(rev_bgid(next_id), rev_bgid(end_id), ov);
+        } else {
+          cerr << "      Edge already exists" << endl;
         }
-      }); 
+      });
     } else {
-      if (child.first == bdsg::SnarlDistanceIndex::TEMP_NODE) { 
+      if (child.first == bdsg::SnarlDistanceIndex::TEMP_NODE) {
         auto& record = temp_index.get_node(child);
-        handle_t node_handle = hgraph->get_handle(record.node_id, record.reversed_in_parent); 
+        handle_t node_handle = hgraph->get_handle(record.node_id, record.reversed_in_parent);
+
+        cerr << "Child " << child_num << " (NODE): Finding edges from node_handle" << endl;
+        cerr << "  node_handle(id=" << hgraph->get_id(node_handle) << ", rev=" << hgraph->get_is_reverse(node_handle) << ")" << endl;
+
+        // TODO: This lookup will FAIL because nodes were never added to handle_bgnid_map!
+        // The map lookup below will return 0 (default) which is wrong.
+        if (!handle_bgnid_map.contains(node_handle)) {
+          cerr << "  ERROR: node_handle NOT in handle_bgnid_map! Lookup will return garbage." << endl;
+        }
         const auto node_id = handle_bgnid_map[node_handle];
+        cerr << "  Looked up Boost ID: " << node_id << " (expected: " << child_num*4 << ")" << endl;
+
         for (bool direction: {true, false}) {
+          cerr << "  Following edges (go_left=" << (direction ? "true" : "false") << "):" << endl;
           hgraph->follow_edges(node_handle, direction, [&] (const handle_t& next) {
-            if (!handle_bgnid_map.contains(next)) { return; }
+            cerr << "    Found edge to next(id=" << hgraph->get_id(next) << ", rev=" << hgraph->get_is_reverse(next) << ")" << endl;
+            if (!handle_bgnid_map.contains(next)) {
+              cerr << "      NOT in handle_bgnid_map - skipping" << endl;
+              return;
+            }
             const auto next_id = handle_bgnid_map[next];
+            cerr << "      Maps to Boost " << next_id << endl;
             //pair of edge_descriptor and bool of it exists or not
             auto edge_info = edge(node_id, next_id, ov);
             if (!edge_info.second) {
+              cerr << "      Adding edge " << node_id << " -> " << next_id << endl;
+              cerr << "      Adding reverse edge " << rev_bgid(next_id) << " -> " << rev_bgid(node_id) << endl;
               add_edge(node_id, next_id, ov);
               add_edge(rev_bgid(next_id), rev_bgid(node_id), ov);
+            } else {
+              cerr << "      Edge already exists" << endl;
             }
           });
         }
@@ -151,6 +259,8 @@ CHOverlay make_boost_graph(SnarlDistanceIndex::TemporaryDistanceIndex& temp_inde
       }
     }
   }
+
+  cerr << "=== make_boost_graph complete ===" << endl;
   return ov;
 }
 
