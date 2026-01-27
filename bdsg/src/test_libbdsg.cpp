@@ -4991,6 +4991,7 @@ void test_hash_graph() {
 
 void test_hub_labeling() { 
   {
+    // Simple stick graph of 3 nodes
     HashGraph test_g;
     vector<handle_t> handles; handles.resize(3);
     for (auto n: {0,1,2}) {
@@ -5034,14 +5035,20 @@ void test_hub_labeling() {
       cerr << sz << " ";
     }
     cerr << endl;  */
-      
+    
+    // 0th forward to 1st forward: no intervening bases
     assert(hhl_query(packed_labels.begin(), 0, 2) == 0); 
 
-    //TODO: what to do when node equals itself?
-    //assert(hhl_query(packed_labels.begin(), 0, 0) == INF_INT); 
+    // When asking about the same node twice, we look for self loops.
+    // Here there aren't any.
+    assert(hhl_query(packed_labels.begin(), 0, 0) == INF_INT);
+
+    // 2nd reverse to 1st reverse: 1 intervening base
     assert(hhl_query(packed_labels.begin(), 5, 1) == 1); 
     
-    assert(hhl_query(packed_labels.begin(), 1, 2) == INF_INT); 
+    // 0th reverse to 1st forward: no connection
+    assert(hhl_query(packed_labels.begin(), 1, 2) == INF_INT);
+    
     //TODO: check that error occurs when nodeside out of range is given
   }
   {

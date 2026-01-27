@@ -128,6 +128,16 @@ DIST_UINT binary_intersection_ch(ItrType start_itr, size_t v1_start_bound_index,
  *
  * start_itr should point to the first slot of the packed label data returned
  * by pack_labels(), which is the label count.
+ *
+ * The rank space covers both orientations of each node.
+ *
+ * Returns the minimum distance from the end of the node orientation at rank1
+ * to the start of the node orientation at rank2. (If working in a net graph in
+ * a SnarlDistanceIndex, these "nodes" may really be child chains.)
+ *
+ * If rank1 == rank2, returns the minimum distance around that cycle, if any.
+ *
+ * If there is no known path between the given nodes, returns INF_INT.
  */
 template <typename ItrType>
 DIST_UINT hhl_query(ItrType start_itr, size_t rank1, size_t rank2) {
