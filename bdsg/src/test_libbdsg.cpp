@@ -4989,31 +4989,25 @@ void test_hash_graph() {
     cerr << "HashGraph tests successful!" << endl;
 }
 
-void test_hub_labeling() { 
-  {
-    // Simple stick graph of 3 nodes
-    HashGraph test_g;
-    vector<handle_t> handles; handles.resize(3);
-    for (auto n: {0,1,2}) {
-      handles[n] = test_g.create_handle("A");
-    }
-    test_g.create_edge(handles[0], handles[1]);
-    test_g.create_edge(handles[1], handles[2]);
-    
+void test_hub_labeling() {
+
+  // To make the tests easier to write we have a widget that does the full dance
+  // to build a packed label vector.
+  auto get_packed_labels = [](const HashGraph& test_g) {
     //test HashGraph -> Boost graph
     CHOverlay bg = make_boost_graph(test_g);
 
-    //
+    auto [edges_start, edges_end] = boost::edges(bg);
+    std::for_each(edges_start, edges_end, [&] (auto e) {
+      cerr << source(e,bg) << " -> " << target(e,bg) << endl;
+    });
+
     make_contraction_hierarchy(bg);
     //cerr << " - made contraction hierarchy" << endl;
 
     vector<vector<HubRecord>> labels_fwd; labels_fwd.resize(num_vertices(bg));
     vector<vector<HubRecord>> labels_back; labels_back.resize(num_vertices(bg));
-    create_labels(labels_fwd, labels_back, bg);
 
-    //linearization
-    vector<size_t> packed_labels = pack_labels(labels_fwd, labels_back);
-    //dummy filter
     /*
     for (auto v: labels_fwd) {
       for (auto sz: v) {
@@ -5035,6 +5029,24 @@ void test_hub_labeling() {
       cerr << sz << " ";
     }
     cerr << endl;  */
+
+    create_labels(labels_fwd, labels_back, bg);
+
+    //linearization
+    return pack_labels(labels_fwd, labels_back);
+  };
+
+  {
+    // Simple stick graph of 3 nodes
+    HashGraph test_g;
+    vector<handle_t> handles; handles.resize(3);
+    for (auto n: {0,1,2}) {
+      handles[n] = test_g.create_handle("A");
+    }
+    test_g.create_edge(handles[0], handles[1]);
+    test_g.create_edge(handles[1], handles[2]);
+    
+    vector<size_t> packed_labels = get_packed_labels(test_g);
     
     // 0th forward to 1st forward: no intervening bases
     assert(hhl_query(packed_labels.begin(), 0, 2) == 0); 
@@ -5052,65 +5064,64 @@ void test_hub_labeling() {
     //TODO: check that error occurs when nodeside out of range is given
   }
   {
+    // Graph with several nodes but only one edge
     HashGraph test_g;
     vector<handle_t> handles; handles.resize(8);
     for (auto n: {0,1,2,3,4,5,6,7}) {
       handles[n] = test_g.create_handle(string(n+1, 'A'));
-    } 
-    //vector<tuple<int,int>> edges={{0,1},{0,2},{1,0},{2,0},{1,3},{1,4},{4,1},{5,5}};
+    }
     vector<tuple<int,int>> edges={{1,3}};
     for (auto e: edges) {
       auto [s,t] = e;
       test_g.create_edge(handles[s], handles[t]);
     }
-    //test HashGraph -> Boost graph
-    CHOverlay bg = make_boost_graph(test_g);
-    auto [edges_start, edges_end] = boost::edges(bg);
-    std::for_each(edges_start, edges_end, [&] (auto e) {
-      cerr << source(e,bg) << " -> " << target(e,bg) << endl;
-    });
-    make_contraction_hierarchy(bg);  
 
-    vector<vector<HubRecord>> labels_fwd; labels_fwd.resize(num_vertices(bg));
-    vector<vector<HubRecord>> labels_back; labels_back.resize(num_vertices(bg));
-    create_labels(labels_fwd, labels_back, bg);
-
-    //linearization
-    vector<size_t> packed_labels = pack_labels(labels_fwd, labels_back); 
-    for (auto v: labels_fwd) {
-      for (auto sz: v) {
-      cerr << "(" << sz.hub << "," << sz.dist << ") ";
-      }
-      cerr << " | "; 
-    }
-    cerr << endl;  
-    cerr<<"back:" << endl;
-    for (auto v: labels_back) {
-      for (auto sz: v) {
-      cerr << "(" << sz.hub << "," << sz.dist << ") "; 
-      } 
-      cerr << " | ";
-    }
-    /* 
+    vector<size_t> packed_labels = get_packed_labels(test_g);
+ 
+    // 1st forward to 3rd forward: the only edge there is
+    assert(hhl_query(packed_labels.begin(), 2, 6) == 0);
     //nonexistent path
     assert(hhl_query(packed_labels.begin(), 0, 14) == INF_INT);
+  }
+  {
+    // Graph with several nodes and several edges
+    HashGraph test_g;
+    vector<handle_t> handles; handles.resize(8);
+    for (auto n: {0,1,2,3,4,5,6,7}) {
+      handles[n] = test_g.create_handle(string(n+1, 'A'));
+    }
+    vector<tuple<int,int>> edges={{0,1},{0,2},{1,0},{2,0},{1,3},{1,4},{4,1},{5,5}};
+    for (auto e: edges) {
+      auto [s,t] = e;
+      test_g.create_edge(handles[s], handles[t]);
+    }
+
+    vector<size_t> packed_labels = get_packed_labels(test_g);
     
-    //check node lengths are taken into account
+    // 1st forward to 3rd forward: direct connection
+    assert(hhl_query(packed_labels.begin(), 2, 6) == 0);
+    // 1st forward to 7th forward: nonexistent path
+    assert(hhl_query(packed_labels.begin(), 0, 14) == INF_INT);
+
+    // check node lengths are taken into account
+    // 0th forward to 3rd forward: should need to go through 1st which has length 2
     assert(hhl_query(packed_labels.begin(), 0, 6) == 2); 
 
     //check u -> v and v -> u are different
-    assert(hhl_query(packed_labels.begin(), 6, 2) == INF_INT); */
+    // 3rd forward to 2nd forward: shouldn't connect because nothing is downstream of 3rd
+    assert(hhl_query(packed_labels.begin(), 6, 2) == INF_INT);
+    // 1st forward to 3rd forward: direct connection
+    assert(hhl_query(packed_labels.begin(), 2, 6) == 0);
+
     //need to debug
-    for (int a = 0; a < 10; a++ ) {
+    for (int a = 0; a < handles.size() * 2; a++ ) {
       cerr << hhl_query(packed_labels.begin(), 2, a) << endl;
     } 
-    assert(hhl_query(packed_labels.begin(), 2, 6) == 0); 
-    /*
+    
     //node to itself in the same direction (edge exists)
     assert(hhl_query(packed_labels.begin(), 10, 10) == 0); 
     //node to itself in the same direction (edge doesn't exist)
     assert(hhl_query(packed_labels.begin(), 6, 6) == INF_INT); 
-    */
   }
   
   cerr << "HubLabeling tests successful!" << endl;
