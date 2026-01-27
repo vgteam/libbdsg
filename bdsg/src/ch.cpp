@@ -644,7 +644,13 @@ ItrType get_dist_itr(ItrType start_itr, ItrType hub_itr) {
 void down_dijk(int node, CHOverlay& ov, vector<DIST_UINT>& node_dists, vector<vector<HubRecord>>& labels, vector<vector<HubRecord>>& labels_back) {
   auto in_node = node;
 
-  labels_back[node].emplace_back(ov[node].new_id, -ov[node].seqlen); 
+  // TODO: We used to add -ov[node].seqlen to labels_back[node] for the hub
+  // ov[node].new_id. But this involved doing unsigned overflow shenanigans,
+  // and gave us values in the labels that are maximally wide and can't later
+  // be packed into the reduced bit width in a SnarlDistanceIndex.
+  //
+  // The tests didn't seem to cover a case where these entries were needed, so
+  // we just don't do that anymore.
   std::priority_queue<tuple<DIST_UINT, int>, vector<tuple<DIST_UINT, int>>, greater<tuple<DIST_UINT, int>>> q; 
  
   auto [_, __] = out_edges(in_node, ov);
