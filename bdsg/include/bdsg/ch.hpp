@@ -36,7 +36,7 @@ typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::bidirectionalS, N
 typedef boost::filtered_graph<CHOverlay, function<bool(CHOverlay::edge_descriptor)>> ContractedGraph;
 
 CHOverlay make_boost_graph(const bdsg::HashGraph& hg);
-CHOverlay make_boost_graph(const bdsg::SnarlDistanceIndex::TemporaryDistanceIndex& temp_index, const pair<bdsg::SnarlDistanceIndex::temp_record_t, size_t>& snarl_index, const SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord& temp_snarl_record, vector<pair<SnarlDistanceIndex::temp_record_t, size_t>>& all_children, const HandleGraph* graph);
+CHOverlay make_boost_graph(const bdsg::SnarlDistanceIndex::TemporaryDistanceIndex& temp_index, const SnarlIndex::temp_record_ref_t& snarl_index, const SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord& temp_snarl_record, const vector<pair<SnarlDistanceIndex::temp_record_t, size_t>>& all_children, const HandleGraph* graph);
 
 int edge_diff(ContractedGraph::vertex_descriptor nid, ContractedGraph& ch, CHOverlay& ov, vector<DIST_UINT>& node_dists, int hop_limit);
 
