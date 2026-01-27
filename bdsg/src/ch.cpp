@@ -25,7 +25,7 @@ bdsg::HashGraph make_test() {
   return g;
 }
 
-NODE_UINT bgid(const handle_t& h, bdsg::HashGraph& hg) {
+NODE_UINT bgid(const handle_t& h, const bdsg::HashGraph& hg) {
   auto nid = hg.get_id(h);  
   return hg.get_is_reverse(h) ? (nid-1)*2+1 : (nid-1)*2;
 }
@@ -34,7 +34,7 @@ NODE_UINT rev_bgid(NODE_UINT n) {
   return n ^ 1;
 }
 
-CHOverlay make_boost_graph(bdsg::HashGraph& hg) {
+CHOverlay make_boost_graph(const bdsg::HashGraph& hg) {
   NODE_UINT node_count = hg.get_node_count();
   CHOverlay g(node_count*2);
   hg.for_each_edge([&](const edge_t& edge_h) {
@@ -56,7 +56,7 @@ CHOverlay make_boost_graph(bdsg::HashGraph& hg) {
   return g;
 }
 
-CHOverlay make_boost_graph(SnarlDistanceIndex::TemporaryDistanceIndex& temp_index, SnarlDistanceIndex::temp_record_ref_t& snarl_index, SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord& temp_snarl_record, vector<SnarlDistanceIndex::temp_record_ref_t>& all_children, const HandleGraph* hgraph) {
+CHOverlay make_boost_graph(const SnarlDistanceIndex::TemporaryDistanceIndex& temp_index, const SnarlDistanceIndex::temp_record_ref_t& snarl_index, const SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord& temp_snarl_record, const vector<SnarlDistanceIndex::temp_record_ref_t>& all_children, const HandleGraph* hgraph) {
   // Boost graph vertex allocation:
   // - Chains get 4 vertices: start_fwd, start_rev, end_fwd, end_rev
   // - Nodes get 2 vertices: fwd, rev (like in the HashGraph overload)
