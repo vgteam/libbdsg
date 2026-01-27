@@ -49,7 +49,7 @@ public:
     arr2d.resize(row_count);
     for (DIST_UINT i = 0; i < row_count; i++) {
       sdsl::int_vector<DIST_NBITS> sdsl_row(col_count, Inf_UInt, DIST_NBITS);
-      arr2d[i] = move(sdsl_row);
+      arr2d[i] = std::move(sdsl_row);
     }
   }                                   
 
@@ -67,7 +67,7 @@ public:
           sdsl_row[j] = static_cast<DIST_UINT>(entry)+offset;
         }
       }
-      arr2d[i] = move(sdsl_row);
+      arr2d[i] = std::move(sdsl_row);
     }
   }
 
