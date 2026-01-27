@@ -69,7 +69,6 @@ CHOverlay make_boost_graph(SnarlDistanceIndex::TemporaryDistanceIndex& temp_inde
   //
   // For nodes, we follow the HashGraph pattern:
   //   base = fwd orientation, base+1 = rev orientation
-  //   No through-edge (sequence length is on seqlen property)
 
   // First pass: count how many vertices we need
   size_t total_vertices = 0;
@@ -88,7 +87,8 @@ CHOverlay make_boost_graph(SnarlDistanceIndex::TemporaryDistanceIndex& temp_inde
 #endif
 
   CHOverlay ov(total_vertices);
-  // Maps handle to Boost graph vertex ID
+  // Maps inward-facing handle to Boost graph vertex ID.
+  // Doesn't include outward-facing handles.
   unordered_map<handle_t, CHOverlay::vertex_descriptor> handle_bgnid_map;
 
   // Track current vertex offset as we iterate (chains get 4, nodes get 2)
@@ -122,17 +122,15 @@ CHOverlay make_boost_graph(SnarlDistanceIndex::TemporaryDistanceIndex& temp_inde
       //   1 = flip(start_handle) (outward-facing, sends edges to outside)
       //   2 = end_handle (outward-facing, sends edges to outside)
       //   3 = flip(end_handle) (inward-facing, receives edges from outside)
+      //
+      //   But only the inward-facing versions can be arrived at, so only they need to be indexed directly.
 
-      // Map both orientations of start and end handles
+      // Map inward orientations of start and end handles
       handle_bgnid_map[start_handle] = vertex_offset;           // start inward
-      handle_bgnid_map[hgraph->flip(start_handle)] = vertex_offset + 1;  // start outward
-      handle_bgnid_map[end_handle] = vertex_offset + 2;         // end outward
       handle_bgnid_map[hgraph->flip(end_handle)] = vertex_offset + 3;    // end inward
 
 #ifdef debug_boost_graph
       cerr << "  Mapping start_handle (inward) -> Boost " << vertex_offset << endl;
-      cerr << "  Mapping flip(start_handle) (outward) -> Boost " << vertex_offset + 1 << endl;
-      cerr << "  Mapping end_handle (outward) -> Boost " << vertex_offset + 2 << endl;
       cerr << "  Mapping flip(end_handle) (inward) -> Boost " << vertex_offset + 3 << endl;
 #endif
 
@@ -155,6 +153,10 @@ CHOverlay make_boost_graph(SnarlDistanceIndex::TemporaryDistanceIndex& temp_inde
       DIST_UINT start_node_length = temp_index.get_node(first_child).node_length;
       DIST_UINT start_start_distance = record.forward_loops[0] + (2 * start_node_length);
       DIST_UINT end_end_distance = record.backward_loops.back() + (2 * record.end_node_length);
+
+      // TODO: Shouldn't we not make the loop edges if the loops don't exist
+      // or are unreachable distance sentinels or whatever? Are forward_loops
+      // and backward_loops always nonempty?
 
 #ifdef debug_boost_graph
       cerr << "  Loop distances: start_start=" << start_start_distance << ", end_end=" << end_end_distance << endl;
@@ -189,9 +191,10 @@ CHOverlay make_boost_graph(SnarlDistanceIndex::TemporaryDistanceIndex& temp_inde
       // Node vertex layout (like HashGraph overload):
       //   base = forward orientation
       //   base+1 = reverse orientation
-      // Both get seqlen set, no through-edge between them
+      // Both get seqlen set
 
-      // Map both orientations
+      // Map both orientations; both orientations of a node count as
+      // "inward-facing" since both can be arrived at.
       handle_bgnid_map[node_handle] = vertex_offset;
       handle_bgnid_map[hgraph->flip(node_handle)] = vertex_offset + 1;
 
@@ -223,162 +226,41 @@ CHOverlay make_boost_graph(SnarlDistanceIndex::TemporaryDistanceIndex& temp_inde
   }
 #endif
 
-  // Reset vertex_offset for second pass
-  vertex_offset = 0;
+  for (auto [handle_in, vertex_id_in] : handle_bgnid_map) {
+    // The map contains inward-facing orientations of every handle.
+    // So get the outward-facing versioin.
+    
+    handle_t handle = hgraph->flip(handle_in);
+    NODE_UINT vertex_id = rev_bgid(vertex_id_in);
 
-  // Add edges between Boost graph nodes of different temp chains / temp nodes
-  for (size_t child_num = 0; child_num < all_children.size(); child_num++) {
-    auto child = all_children[child_num];
-    if (child.first == bdsg::SnarlDistanceIndex::TEMP_CHAIN) {
-      auto& record = temp_index.get_chain(child);
-      // Both handles point left-to-right along the chain:
-      // - At start (left side): left-to-right = INWARD (pointing into chain)
-      // - At end (right side): left-to-right = OUTWARD (pointing out of chain)
-      const handle_t start_handle_inward = hgraph->get_handle(record.start_node_id, record.start_node_rev);
-      const handle_t start_handle_outward = hgraph->flip(start_handle_inward);
-      const handle_t end_handle_outward = hgraph->get_handle(record.end_node_id, record.end_node_rev);
-      const handle_t end_handle_inward = hgraph->flip(end_handle_outward);
-
-      // Outward-facing vertices are used as edge sources when connecting to other children
-      auto start_id_outward = handle_bgnid_map[start_handle_outward];  // vertex_offset + 1
-      auto end_id_outward = handle_bgnid_map[end_handle_outward];      // vertex_offset + 2
-
-#ifdef debug_boost_graph
-      cerr << "Child " << child_num << " (CHAIN): Finding edges from chain endpoints" << endl;
-      cerr << "  start_handle_outward(id=" << hgraph->get_id(start_handle_outward) << ", rev=" << hgraph->get_is_reverse(start_handle_outward)
-           << ") -> Boost " << start_id_outward << endl;
-      cerr << "  end_handle_outward(id=" << hgraph->get_id(end_handle_outward) << ", rev=" << hgraph->get_is_reverse(end_handle_outward)
-           << ") -> Boost " << end_id_outward << endl;
-#endif
-
-      // For start: look LEFT (go_left=true) to find edges going outside the chain
-      // start_handle_inward points into the chain, so looking left from it goes outside
-#ifdef debug_boost_graph
-      cerr << "  Following edges from start_handle_inward (go_left=true to look outside chain):" << endl;
-#endif
-      hgraph->follow_edges(start_handle_inward, true, [&] (const handle_t& next) {
-#ifdef debug_boost_graph
-        cerr << "    Found edge to next(id=" << hgraph->get_id(next) << ", rev=" << hgraph->get_is_reverse(next) << ")" << endl;
-#endif
-        if (!handle_bgnid_map.contains(next)) {
-#ifdef debug_boost_graph
-          cerr << "      NOT in handle_bgnid_map - skipping" << endl;
-#endif
-          return;
-        }
-        const auto next_id = handle_bgnid_map[next];
-#ifdef debug_boost_graph
-        cerr << "      Maps to Boost " << next_id << endl;
-#endif
-        // Edge from our outward vertex to the destination
-        auto edge_info = edge(start_id_outward, next_id, ov);
-        if (!edge_info.second) {
-#ifdef debug_boost_graph
-          cerr << "      Adding edge " << start_id_outward << " -> " << next_id << endl;
-          cerr << "      Adding reverse edge " << rev_bgid(next_id) << " -> " << rev_bgid(start_id_outward) << endl;
-#endif
-          add_edge(start_id_outward, next_id, ov);
-          add_edge(rev_bgid(next_id), rev_bgid(start_id_outward), ov);
-        } else {
-#ifdef debug_boost_graph
-          cerr << "      Edge already exists" << endl;
-#endif
-        }
-      });
-
-      // For end: look RIGHT (go_left=false) to find edges going outside the chain
-      // end_handle_outward already points out of the chain, so looking right from it goes outside
-#ifdef debug_boost_graph
-      cerr << "  Following edges from end_handle_outward (go_left=false to look outside chain):" << endl;
-#endif
-      hgraph->follow_edges(end_handle_outward, false, [&] (const handle_t& next) {
-#ifdef debug_boost_graph
-        cerr << "    Found edge to next(id=" << hgraph->get_id(next) << ", rev=" << hgraph->get_is_reverse(next) << ")" << endl;
-#endif
-        if (!handle_bgnid_map.contains(next)) {
-#ifdef debug_boost_graph
-          cerr << "      NOT in handle_bgnid_map - skipping" << endl;
-#endif
-          return;
-        }
-        const auto next_id = handle_bgnid_map[next];
-#ifdef debug_boost_graph
-        cerr << "      Maps to Boost " << next_id << endl;
-#endif
-        auto edge_info = edge(end_id_outward, next_id, ov);
-        if (!edge_info.second) {
-#ifdef debug_boost_graph
-          cerr << "      Adding edge " << end_id_outward << " -> " << next_id << endl;
-          cerr << "      Adding reverse edge " << rev_bgid(next_id) << " -> " << rev_bgid(end_id_outward) << endl;
-#endif
-          add_edge(end_id_outward, next_id, ov);
-          add_edge(rev_bgid(next_id), rev_bgid(end_id_outward), ov);
-        } else {
-#ifdef debug_boost_graph
-          cerr << "      Edge already exists" << endl;
-#endif
-        }
-      });
-
-      vertex_offset += 4;
-
-    } else if (child.first == bdsg::SnarlDistanceIndex::TEMP_NODE) {
-      auto& record = temp_index.get_node(child);
-      handle_t node_handle = hgraph->get_handle(record.node_id, record.reversed_in_parent);
-      const auto node_id_fwd = handle_bgnid_map[node_handle];
-      const auto node_id_rev = handle_bgnid_map[hgraph->flip(node_handle)];
-
-#ifdef debug_boost_graph
-      cerr << "Child " << child_num << " (NODE): Finding edges from node" << endl;
-      cerr << "  node_handle(id=" << hgraph->get_id(node_handle) << ", rev=" << hgraph->get_is_reverse(node_handle)
-           << ") -> Boost " << node_id_fwd << " (fwd), " << node_id_rev << " (rev)" << endl;
-#endif
-
-      // For nodes, we look both directions from each handle
-      // go_left=false from node_handle finds edges leaving the right side
-      // go_left=true from node_handle finds edges leaving the left side
-      for (bool go_left : {false, true}) {
-        // Determine which Boost vertex is the source based on direction
-        // If go_left=false (looking right), edges leave from the forward vertex
-        // If go_left=true (looking left), edges leave from the reverse vertex
-        auto source_id = go_left ? node_id_rev : node_id_fwd;
-
-#ifdef debug_boost_graph
-        cerr << "  Following edges from node_handle (go_left=" << (go_left ? "true" : "false") << "), source Boost=" << source_id << ":" << endl;
-#endif
-        hgraph->follow_edges(node_handle, go_left, [&] (const handle_t& next) {
-#ifdef debug_boost_graph
-          cerr << "    Found edge to next(id=" << hgraph->get_id(next) << ", rev=" << hgraph->get_is_reverse(next) << ")" << endl;
-#endif
-          if (!handle_bgnid_map.contains(next)) {
-#ifdef debug_boost_graph
-            cerr << "      NOT in handle_bgnid_map - skipping" << endl;
-#endif
+    // We need to get all the edges off the right side of this outward-facing
+    // handle and create them if they don't already exist.
+    hgraph->follow_edges(handle, false, [&] (const handle_t& next) {
+        auto found = handle_bgnid_map.find(next);
+        if (found == handle_bgnid_map.end()) {
+            // We're looking outside our net graph, or have reached something
+            // not inward-facing (like across the inside of a chain).
+            // Don't add the edge.
             return;
-          }
-          const auto next_id = handle_bgnid_map[next];
-#ifdef debug_boost_graph
-          cerr << "      Maps to Boost " << next_id << endl;
-#endif
-          auto edge_info = edge(source_id, next_id, ov);
-          if (!edge_info.second) {
-#ifdef debug_boost_graph
-            cerr << "      Adding edge " << source_id << " -> " << next_id << endl;
-            cerr << "      Adding reverse edge " << rev_bgid(next_id) << " -> " << rev_bgid(source_id) << endl;
-#endif
-            add_edge(source_id, next_id, ov);
-            add_edge(rev_bgid(next_id), rev_bgid(source_id), ov);
-          } else {
-#ifdef debug_boost_graph
-            cerr << "      Edge already exists" << endl;
-#endif
-          }
-        });
-      }
+        }
+        NODE_UINT next_id = found->second;
 
-      vertex_offset += 2;
-    }
+        auto edge_info = edge(vertex_id, next_id, ov);
+        if (!edge_info.second) {
+#ifdef debug_boost_graph
+          cerr << "    Adding edge " << vertex_id << " -> " << next_id << endl;
+          cerr << "    Adding reverse edge " << rev_bgid(next_id) << " -> " << rev_bgid(vertex_id) << endl;
+#endif
+          add_edge(vertex_id, next_id, ov);
+          add_edge(rev_bgid(next_id), rev_bgid(vertex_id), ov);
+        } else {
+#ifdef debug_boost_graph
+          cerr << "    Edge already exists" << endl;
+#endif
+        }
+    });
   }
+
 
 #ifdef debug_boost_graph
   cerr << "=== make_boost_graph complete ===" << endl;
