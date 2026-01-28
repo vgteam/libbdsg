@@ -1119,8 +1119,8 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
 
 #ifdef debug_distances
     cerr << "\t\tFind distance between " << net_handle_as_string(child1) 
-         << " and " << net_handle_as_string(child2) 
-         << "\tin parent " << net_handle_as_string(parent) << endl;
+         << " and " << net_handle_as_string(child2)
+         << " facing back toward it in parent " << net_handle_as_string(parent) << endl;
     assert(canonical(parent) == canonical(get_parent(child1)));
     assert(canonical(parent) == canonical(get_parent(child2)));
 #endif
@@ -1315,7 +1315,7 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
         }
 
 #ifdef debug_distances
-            cerr << "             between ranks " << rank1 << " " << rev1 << " " << rank2 << " " << rev2 << endl;
+        cerr << "             between ranks " << rank1 << " " << rev1 << " " << rank2 << " " << rev2 << endl;
 #endif
 
         if (get_record_type(snarl_tree_records->at(get_record_offset(parent))) == DISTANCED_SIMPLE_SNARL) {
@@ -1329,6 +1329,7 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
             auto record_it = snarl_tree_records->begin() + get_record_offset(parent);
             // This points to the length and the variable-sized data
             auto length_data_it = record_it + SNARL_RECORD_SIZE;
+#ifdef debug_hub_label_storage
             std::cerr <<  "               Hub label data length: " << *length_data_it << endl;
             std::cerr <<  "               Hub label data: ";
             for (size_t i = 0; i < *length_data_it; i++) {
@@ -1339,7 +1340,39 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
                 std::cerr << *(length_data_it + 1 + i);
             }
             std::cerr << std::endl;
-            size_t distance = hhl_query(length_data_it + 1, rank1, rank2); 
+#endif
+            // Here we need to convert from child rank (where 0 and 1 represent
+            // snarl boundaries oriented along the snarl) and child orientation
+            // to HHL vertex ranks.
+            //
+            // The HHL index thinks a child being "reverse" means that we're
+            // thinking of the child in the opposite orientation form how it
+            // appears in us. (So even not-reversed won't mean local forward
+            // orientation if is_reversed_in_parent() is true for that child).
+            //
+            // TODO: Probably need to also flip for is_reversed_in_parent() to
+            // account for this.
+            //
+            // TODO: rev1 and rev2 seem to actually be backwards for
+            // non-sentinel children (rev1 is true if child1's traversal
+            // *doesn't* end at its start, and thus ends at its end). Right now
+            // we address this by flipping them. We flip them and query
+            // going out the end of child 1 if its traversal ends at its end.
+            // But that's weird and makes no sense that we would need to do
+            // that!
+            //
+            // Because this function takes the destination as facing back
+            // towards the start, but hhl_query takes it as facing along the
+            // connecting path, we need to flip the second orientation one more
+            // time.
+            size_t distance = hhl_query(length_data_it + 1, bgid(rank1, rev1 ^ !is_sentinel(child1), true), bgid(rank2, !(rev2 ^ !is_sentinel(child2)), false));
+            if (distance == bdsg::INF_INT) {
+                // Promote unreachable sentinel to wider type.
+                distance = std::numeric_limits<size_t>::max();
+            }
+#ifdef debug_distances
+            cerr << "               Resulting distance: " << distance << endl;
+#endif
             return distance;
           
         } else if (rank1 == 0 && rank2 == 0 && !snarl_is_root) {
@@ -1831,7 +1864,7 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
 
 #ifdef debug_distances
         cerr << endl;
-        cerr << "Find the minimum distance between " << id1 << " " <<rev1 <<" " << offset1 << " and " << id2 << " " << rev2 << " " << offset2 << endl;
+        cerr << "Find the minimum distance between " << id1 << " " << (rev1 ? "rev" : "fwd") << "@" << offset1 << " and " << id2 << " " << (rev2 ? "rev" : "fwd") << "@" << offset2 << endl;
 #endif
 
 
@@ -2084,7 +2117,11 @@ size_t SnarlDistanceIndex::minimum_distance(const handlegraph::nid_t id1, const 
             cerr << "                     child 2 (" << net_handle_as_string(net2) << "): " << distance_to_start2 << " " <<  distance_to_end2 << endl;
 #endif
 
-        //Find the minimum distance between the two children (net1 and net2)
+        //Find the minimum distance between the two children (net1 and net2).
+        //Since distance_in_parent() takes traversals that point toward each
+        //other, and not in the same direction along the connecting path,
+        //distance_end_start (the "normal" forward/forward case) has to flip
+        //net2 to point back towards net1, and the others behave similarly.
         size_t distance_start_start = distance_in_parent(common_ancestor, flip(net1), flip(net2), graph);
         size_t distance_start_end = distance_in_parent(common_ancestor, flip(net1), net2, graph);
         size_t distance_end_start = distance_in_parent(common_ancestor, net1, flip(net2), graph);
@@ -5832,7 +5869,7 @@ string SnarlDistanceIndex::net_handle_as_string(const net_handle_t& net) const {
             + "->"
             + std::to_string(record.get_end_id())
             + (record.get_end_orientation() ? "rev" : "fd"));
-    result += "traversing ";
+    result += " traversing ";
     result += (starts_at(net) == START ? "start" : (starts_at(net) == END ? "end" : "tip"));
     result += "->";
     result += (ends_at(net) == START ? "start" : (ends_at(net) == END ? "end" : "tip"));

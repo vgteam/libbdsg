@@ -30,6 +30,13 @@ NODE_UINT bgid(const handle_t& h, const bdsg::HashGraph& hg) {
   return hg.get_is_reverse(h) ? (nid-1)*2+1 : (nid-1)*2;
 }
 
+NODE_UINT bgid(size_t net_rank, bool is_reverse, bool is_source) {
+  // The diagram is:
+  //   1<-3   (reverse traversal: start_rev (source) <- end_rev (not source))
+  //   0->2   (forward traversal: start_fwd (not source) -> end_fwd (source))
+  return net_rank * 4 + ((is_source ^ is_reverse) ? 2 : 0) + (is_reverse ? 1 : 0);
+}
+
 NODE_UINT rev_bgid(NODE_UINT n) {
   return n ^ 1;
 }
@@ -57,181 +64,210 @@ CHOverlay make_boost_graph(const bdsg::HashGraph& hg) {
 }
 
 CHOverlay make_boost_graph(const SnarlDistanceIndex::TemporaryDistanceIndex& temp_index, const SnarlDistanceIndex::temp_record_ref_t& snarl_index, const SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord& temp_snarl_record, const vector<SnarlDistanceIndex::temp_record_ref_t>& all_children, const HandleGraph* hgraph) {
-  // Boost graph vertex allocation:
-  // - Chains get 4 vertices: start_fwd, start_rev, end_fwd, end_rev
-  // - Nodes get 2 vertices: fwd, rev (like in the HashGraph overload)
-  // - rev_bgid(n) = n ^ 1 swaps between forward/reverse orientations
+  
+  // Every net graph element (start node at rank 0, end node at rank 1, each
+  // child nose/chain) needs to have 4 Boost graph nodes. We need separate
+  // representations for forward and reverse orientations, and within each
+  // orientation we need an in "port" and an out "port" so that we can draw the
+  // subgraphs describing internal reversals inside chains. We use the in ports
+  // to represent each element as a destination, and the out ports to represent
+  // each element as a source.
   //
-  // For chains, the diagram is:
-  //   1<-3   (reverse traversal: end_rev -> start_rev)
-  //   0->2   (forward traversal: start_fwd -> end_fwd)
-  // With loop edges: 2->3 (end loop), 1->0 (start loop)
+  // We wouldn't really need all 4 vertices to represent node children, or the
+  // start and end, but we need O(1) mapping from net graph rank.
   //
-  // For nodes, we follow the HashGraph pattern:
-  //   base = fwd orientation, base+1 = rev orientation
-
-  // First pass: count how many vertices we need
-  size_t total_vertices = 0;
-  for (const auto& child : all_children) {
-    if (child.first == bdsg::SnarlDistanceIndex::TEMP_CHAIN) {
-      total_vertices += 4;
-    } else if (child.first == bdsg::SnarlDistanceIndex::TEMP_NODE) {
-      total_vertices += 2;
-    }
-  }
+  // TODO: Can we reassign the net graph ranks so all the snarls are first and
+  // store a number of snarl children to let us throw out a bunch of
+  // never-queried labels?
+  
+  size_t total_vertices = all_children.size() * 4;
 
 #ifdef debug_boost_graph
   cerr << "=== make_boost_graph: Building net graph ===" << endl;
   cerr << "Number of children: " << all_children.size() << endl;
-  cerr << "Allocating " << total_vertices << " Boost vertices (4 per chain, 2 per node)" << endl;
+  cerr << "Allocating " << total_vertices << " Boost vertices" << endl;
 #endif
 
   CHOverlay ov(total_vertices);
+  
   // Maps inward-facing handle to Boost graph vertex ID.
   // Doesn't include outward-facing handles.
   unordered_map<handle_t, CHOverlay::vertex_descriptor> handle_bgnid_map;
-
-  // Track current vertex offset as we iterate (chains get 4, nodes get 2)
-  size_t vertex_offset = 0;
 
 #ifdef debug_boost_graph
   cerr << "--- Phase 1: Creating Boost vertices for each net graph child ---" << endl;
 #endif
 
-  for (size_t child_num = 0; child_num < all_children.size(); child_num++) {
-    auto child = all_children[child_num];
+  for (auto& child : all_children) {
+    // Ignore index in all_children and use whether the ID matches the
+    // start/end or else use the stored rank to determine the child number.
+
+    // Depending on the child type we need to load these different ways and some might be INF_INT.
+    // The start and end handles point forward, not inward.
+    size_t child_net_rank;
+    handle_t start_handle;
+    handle_t end_handle;
+    DIST_UINT start_end_distance;
+    DIST_UINT start_start_distance;
+    DIST_UINT end_end_distance;
+    
     if (child.first == bdsg::SnarlDistanceIndex::TEMP_CHAIN) {
+      // This is a child chain
       auto& record = temp_index.get_chain(child);
-      handle_t start_handle = hgraph->get_handle(record.start_node_id, record.start_node_rev);
-      handle_t end_handle = hgraph->get_handle(record.end_node_id, record.end_node_rev);
+
+      // A child chain can never be the start or end boundary
+      child_net_rank = record.rank_in_parent;
+
+      start_handle = hgraph->get_handle(record.start_node_id, record.start_node_rev);
+      end_handle = hgraph->get_handle(record.end_node_id, record.end_node_rev);
+
+      // Fetch straight-through distance.
+      // TODO: What value does this have if straight-through is unreachable? Then we want INF_INT.
+      start_end_distance = record.min_length;
+
+      // Fetch looping distances (thanks Xian!)
+      // TODO: What's the representation for "not connected"? Is it not having a value or is it having a sentinel value we need to translate to INF_INT here?
+      if (!record.forward_loops.empty()) {
+        // We know a chain always has a first child that's a node, so we can
+        // get the start node length.
+        auto& first_child = record.children.front();
+        assert(first_child.first == bdsg::SnarlDistanceIndex::TEMP_NODE);
+        DIST_UINT start_node_length = temp_index.get_node(first_child).node_length;
+        start_start_distance = record.forward_loops[0] + (2 * start_node_length);
+      } else {
+        start_start_distance = INF_INT;
+      }
+      if (!record.backward_loops.empty()) {
+        // The end node length is already helpfully stored for us.
+        end_end_distance = record.backward_loops.back() + (2 * record.end_node_length);
+      } else {
+        end_end_distance = INF_INT;
+      }
+
+      if (record.reversed_in_parent) {
+        // Fix up everything so we're thinking of the orientation of the chain
+        // in its parent, rather than its local forward orientation.
+        auto temp = start_handle;
+        start_handle = hgraph->flip(end_handle);
+        end_handle = hgraph->flip(temp);
+        std::swap(start_start_distance, end_end_distance);
+      }
 
 #ifdef debug_boost_graph
-      cerr << "Child " << child_num << " is CHAIN: start_node=" << record.start_node_id
+      cerr << "Child " << child_net_rank << " is CHAIN: start_node=" << record.start_node_id
            << " (rev=" << record.start_node_rev << "), end_node=" << record.end_node_id
            << " (rev=" << record.end_node_rev << "), min_length=" << record.min_length << endl;
       cerr << "  start_handle: id=" << hgraph->get_id(start_handle) << " rev=" << hgraph->get_is_reverse(start_handle) << endl;
       cerr << "  end_handle: id=" << hgraph->get_id(end_handle) << " rev=" << hgraph->get_is_reverse(end_handle) << endl;
-      cerr << "  Boost vertices: " << vertex_offset << " (start_fwd), " << vertex_offset+1 << " (start_rev), "
-           << vertex_offset+2 << " (end_fwd), " << vertex_offset+3 << " (end_rev)" << endl;
+      cerr << " (reversed_in_parent=" << record.reversed_in_parent << ")" << endl;
+      cerr << "  Boost vertices: " << bgid(child_net_rank, false, false) << " (start_fwd), "
+           << bgid(child_net_rank, true, true) << " (start_rev), "
+           << bgid(child_net_rank, false, true) << " (end_fwd), "
+           << bgid(child_net_rank, true, false) << " (end_rev)" << endl;
 #endif
-
-      // Chain vertex layout (offsets from vertex_offset):
-      // Both start_handle and end_handle point left-to-right along the chain.
-      // At start (left): left-to-right = inward. At end (right): left-to-right = outward.
-      //   0 = start_handle (inward-facing, receives edges from outside)
-      //   1 = flip(start_handle) (outward-facing, sends edges to outside)
-      //   2 = end_handle (outward-facing, sends edges to outside)
-      //   3 = flip(end_handle) (inward-facing, receives edges from outside)
-      //
-      //   But only the inward-facing versions can be arrived at, so only they need to be indexed directly.
-
-      // Map inward orientations of start and end handles
-      handle_bgnid_map[start_handle] = vertex_offset;           // start inward
-      handle_bgnid_map[hgraph->flip(end_handle)] = vertex_offset + 3;    // end inward
-
-#ifdef debug_boost_graph
-      cerr << "  Mapping start_handle (inward) -> Boost " << vertex_offset << endl;
-      cerr << "  Mapping flip(end_handle) (inward) -> Boost " << vertex_offset + 3 << endl;
-#endif
-
-      // Add edges representing distance across chain
-      auto new_edge = add_edge(vertex_offset, vertex_offset + 2, ov);
-      ov[new_edge.first].weight = record.min_length;
-#ifdef debug_boost_graph
-      cerr << "  Edge " << vertex_offset << " -> " << vertex_offset + 2 << " (fwd traversal, weight=" << record.min_length << ")" << endl;
-#endif
-
-      new_edge = add_edge(vertex_offset + 3, vertex_offset + 1, ov);
-      ov[new_edge.first].weight = record.min_length;
-#ifdef debug_boost_graph
-      cerr << "  Edge " << vertex_offset + 3 << " -> " << vertex_offset + 1 << " (rev traversal, weight=" << record.min_length << ")" << endl;
-#endif
-
-      // Add looping distances (thanks Xian!)
-      auto& first_child = record.children.front();
-      assert(first_child.first == bdsg::SnarlDistanceIndex::TEMP_NODE);
-      DIST_UINT start_node_length = temp_index.get_node(first_child).node_length;
-      DIST_UINT start_start_distance = record.forward_loops[0] + (2 * start_node_length);
-      DIST_UINT end_end_distance = record.backward_loops.back() + (2 * record.end_node_length);
-
-      // TODO: Shouldn't we not make the loop edges if the loops don't exist
-      // or are unreachable distance sentinels or whatever? Are forward_loops
-      // and backward_loops always nonempty?
-
-#ifdef debug_boost_graph
-      cerr << "  Loop distances: start_start=" << start_start_distance << ", end_end=" << end_end_distance << endl;
-#endif
-
-      // Loops are edges between different orientations of the same endpoint
-      auto new_loop_edge = add_edge(vertex_offset + 2, vertex_offset + 3, ov);
-      ov[new_loop_edge.first].weight = end_end_distance;
-#ifdef debug_boost_graph
-      cerr << "  Edge " << vertex_offset + 2 << " -> " << vertex_offset + 3 << " (end loop, weight=" << end_end_distance << ")" << endl;
-#endif
-
-      new_loop_edge = add_edge(vertex_offset + 1, vertex_offset, ov);
-      ov[new_loop_edge.first].weight = start_start_distance;
-#ifdef debug_boost_graph
-      cerr << "  Edge " << vertex_offset + 1 << " -> " << vertex_offset << " (start loop, weight=" << start_start_distance << ")" << endl;
-#endif
-
-      vertex_offset += 4;
 
     } else if (child.first == bdsg::SnarlDistanceIndex::TEMP_NODE) {
+      // This is a child node
       auto& record = temp_index.get_node(child);
-      handle_t node_handle = hgraph->get_handle(record.node_id, record.reversed_in_parent);
+
+      // The rank may need to be 0 or 1 if we are a start or end bound.
+      if (record.node_id == temp_snarl_record.start_node_id) {
+        // TODO: Don't we need to handle having the same node as a start and an end bound???
+        child_net_rank = 0;
+        // Handles need to point along snarl
+        start_handle = hgraph->get_handle(temp_snarl_record.start_node_id, temp_snarl_record.start_node_rev);
+      } else if (record.node_id == temp_snarl_record.end_node_id) {
+        child_net_rank = 1;
+        // Handles need to point along snarl
+        start_handle = hgraph->get_handle(temp_snarl_record.end_node_id, temp_snarl_record.end_node_rev);
+      } else {
+        child_net_rank = record.rank_in_parent;
+        // Handle needs to represent the thing in the orientation we have it in in the snarl.
+        start_handle = hgraph->get_handle(record.node_id, record.reversed_in_parent);
+      }
+      
+      // Node is potentially reachable in both directions (though we only want to index one of these for bounds)
+      end_handle = start_handle;
+
+      start_end_distance = record.node_length;
+      start_start_distance = INF_INT;
+      end_end_distance = INF_INT;
 
 #ifdef debug_boost_graph
-      cerr << "Child " << child_num << " is NODE: node_id=" << record.node_id
+      cerr << "Child " << child_net_rank << " is NODE: node_id=" << record.node_id
            << " (reversed_in_parent=" << record.reversed_in_parent << "), length=" << record.node_length << endl;
-      cerr << "  node_handle: id=" << hgraph->get_id(node_handle) << " rev=" << hgraph->get_is_reverse(node_handle) << endl;
-      cerr << "  Boost vertices: " << vertex_offset << " (fwd), " << vertex_offset + 1 << " (rev)" << endl;
+      cerr << "  id=" << hgraph->get_id(start_handle) << " rev=" << hgraph->get_is_reverse(start_handle) << endl;
 #endif
-
-      // Node vertex layout (like HashGraph overload):
-      //   base = forward orientation
-      //   base+1 = reverse orientation
-      // Both get seqlen set
-
-      // Map both orientations; both orientations of a node count as
-      // "inward-facing" since both can be arrived at.
-      handle_bgnid_map[node_handle] = vertex_offset;
-      handle_bgnid_map[hgraph->flip(node_handle)] = vertex_offset + 1;
-
-#ifdef debug_boost_graph
-      cerr << "  Mapping node_handle -> Boost " << vertex_offset << endl;
-      cerr << "  Mapping flip(node_handle) -> Boost " << vertex_offset + 1 << endl;
-#endif
-
-      // Set seqlen on both orientations (like HashGraph overload)
-      ov[vertex_offset].seqlen = record.node_length;
-      ov[vertex_offset + 1].seqlen = record.node_length;
-
-#ifdef debug_boost_graph
-      cerr << "  Setting seqlen=" << record.node_length << " on both Boost vertices " << vertex_offset << " and " << vertex_offset + 1 << endl;
-#endif
-
-      vertex_offset += 2;
-
     } else {
-      cerr << "unexpected rec_type" << endl;
+      throw std::runtime_error("unexpected rec_type: " + std::to_string(child.first));
+    }
+      
+
+    // Map inward orientations of start and end handles
+    if (child_net_rank != 0) {
+      // We can arrive at the start of everything but our own start.
+      handle_bgnid_map[start_handle] = bgid(child_net_rank, false, false);
+    }
+    if (child_net_rank != 1) {
+      // We can arrive at the end of everything but our own end.
+      handle_bgnid_map[hgraph->flip(end_handle)] = bgid(child_net_rank, true, false);
+    }
+
+#ifdef debug_boost_graph
+    cerr << "  Mapping start_handle (inward) -> Boost " << handle_bgnid_map[start_handle] << endl;
+    cerr << "  Mapping flip(end_handle) (inward) -> Boost " << handle_bgnid_map[hgraph->flip(end_handle)] << endl;
+#endif
+
+    if (start_end_distance != INF_INT) {
+      // Add edges representing distance across chain
+      auto new_edge = add_edge(bgid(child_net_rank, false, false), bgid(child_net_rank, false, true), ov);
+      ov[new_edge.first].weight = start_end_distance;
+#ifdef debug_boost_graph
+      cerr << "  Edge " << bgid(child_net_rank, false, false) << " -> " << bgid(child_net_rank, false, true) << " (fwd traversal, weight=" << start_end_distance << ")" << endl;
+#endif
+
+      new_edge = add_edge(bgid(child_net_rank, true, false), bgid(child_net_rank, true, true), ov);
+      ov[new_edge.first].weight = start_end_distance;
+#ifdef debug_boost_graph
+      cerr << "  Edge " << bgid(child_net_rank, true, false) << " -> " << bgid(child_net_rank, true, true) << " (rev traversal, weight=" << start_end_distance << ")" << endl;
+#endif
+    }
+
+#ifdef debug_boost_graph
+    cerr << "  Loop distances: start_start=" << start_start_distance << ", end_end=" << end_end_distance << endl;
+#endif
+
+    if (end_end_distance != INF_INT) {
+      // Loops are edges between different orientations of the same endpoint
+      auto new_loop_edge = add_edge(bgid(child_net_rank, true, false), bgid(child_net_rank, false, true), ov);
+      ov[new_loop_edge.first].weight = end_end_distance;
+#ifdef debug_boost_graph
+      cerr << "  Edge " << bgid(child_net_rank, true, false) << " -> " << bgid(child_net_rank, false, true) << " (end loop, weight=" << end_end_distance << ")" << endl;
+#endif
+    }
+
+    if (start_start_distance != INF_INT) {
+      auto new_loop_edge = add_edge(bgid(child_net_rank, false, false), bgid(child_net_rank, true, true), ov);
+      ov[new_loop_edge.first].weight = start_start_distance;
+#ifdef debug_boost_graph
+      cerr << "  Edge " << bgid(child_net_rank, false, false) << " -> " << bgid(child_net_rank, true, true) << " (start loop, weight=" << start_start_distance << ")" << endl;
+#endif
     }
   }
 
 #ifdef debug_boost_graph
   cerr << "--- Phase 2: Adding edges between children based on handle graph edges ---" << endl;
-  cerr << "Handle map contents:" << endl;
-  for (const auto& [h, bg_id] : handle_bgnid_map) {
-    cerr << "  handle(id=" << hgraph->get_id(h) << ", rev=" << hgraph->get_is_reverse(h) << ") -> Boost " << bg_id << endl;
-  }
 #endif
 
   for (auto [handle_in, vertex_id_in] : handle_bgnid_map) {
     // The map contains inward-facing orientations of every handle.
     // So get the outward-facing versioin.
-    
     handle_t handle = hgraph->flip(handle_in);
     NODE_UINT vertex_id = rev_bgid(vertex_id_in);
+
+#ifdef debug_boost_graph
+    cerr << "  handle(id=" << hgraph->get_id(handle) << ", rev=" << hgraph->get_is_reverse(handle) << ") -> Boost " << vertex_id << endl;
+#endif
 
     // We need to get all the edges off the right side of this outward-facing
     // handle and create them if they don't already exist.
@@ -245,17 +281,21 @@ CHOverlay make_boost_graph(const SnarlDistanceIndex::TemporaryDistanceIndex& tem
         }
         NODE_UINT next_id = found->second;
 
+#ifdef debug_boost_graph
+        cerr << "    Connects to handle(id=" << hgraph->get_id(next) << ", rev=" << hgraph->get_is_reverse(next) << ") -> Boost " << next_id << endl;
+#endif
+
         auto edge_info = edge(vertex_id, next_id, ov);
         if (!edge_info.second) {
 #ifdef debug_boost_graph
-          cerr << "    Adding edge " << vertex_id << " -> " << next_id << endl;
-          cerr << "    Adding reverse edge " << rev_bgid(next_id) << " -> " << rev_bgid(vertex_id) << endl;
+          cerr << "      Adding edge " << vertex_id << " -> " << next_id << endl;
+          cerr << "      Adding reverse edge " << rev_bgid(next_id) << " -> " << rev_bgid(vertex_id) << endl;
 #endif
           add_edge(vertex_id, next_id, ov);
           add_edge(rev_bgid(next_id), rev_bgid(vertex_id), ov);
         } else {
 #ifdef debug_boost_graph
-          cerr << "    Edge already exists" << endl;
+          cerr << "      Edge already exists" << endl;
 #endif
         }
     });
@@ -528,6 +568,10 @@ void make_contraction_hierarchy(CHOverlay& ov) {
   //std::fill(skip.begin(), skip.end(), false);  
   //for (auto n: arti_pts) { skip[n] = true; }
 
+  // We maintain a priority queue that lest us find the smallest-priority item.
+  //
+  // We keep all but the last item heap-ified, and the smallest-priority item
+  // last, as our invariant.
   vector<tuple<int, CHOverlay::vertex_descriptor>> queue_objs; queue_objs.reserve(num_vertices(ov)/2); 
   for (int i = 0; i < num_vertices(ov); i+=1) {
     if (ov[i].contracted) { continue; }
@@ -552,9 +596,15 @@ void make_contraction_hierarchy(CHOverlay& ov) {
    
     int new_pri = ((2*edif)+ (1*ov[node].contracted_neighbors)) + (5*(ov[node].level+1)) + ov[node].arc_cover;
     
-    if (new_pri > get<0>(queue_objs.back())) { 
+    if (new_pri > get<0>(queue_objs.back())) {
+      // After recomputing priority, the priority is actually greater than the nex-tlowest-priority entry.
+      // Put this back so we can get that one instead.
+      // First we need to put what's the current last item back in its proper place.
+      push_heap(queue_objs.begin(), queue_objs.end(), greater<tuple<int, CHOverlay::vertex_descriptor>>());
+      // Then we put this item back and heapify everything
       queue_objs.emplace_back(new_pri, node); 
-      push_heap(queue_objs.begin(), queue_objs.end(), greater<tuple<int, CHOverlay::vertex_descriptor>>()); 
+      push_heap(queue_objs.begin(), queue_objs.end(), greater<tuple<int, CHOverlay::vertex_descriptor>>());
+      // Then we find the new smallest-priority item.
       pop_heap(queue_objs.begin(), queue_objs.end(), greater<tuple<int, CHOverlay::vertex_descriptor>>()); 
       continue;
     } 
