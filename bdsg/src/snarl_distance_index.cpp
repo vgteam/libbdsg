@@ -593,6 +593,14 @@ net_handle_t SnarlDistanceIndex::get_node_from_sentinel(const net_handle_t& sent
 
 }
 
+net_handle_t SnarlDistanceIndex::get_non_sentinel_bound(const net_handle_t& snarl, bool get_end) const {
+    net_handle_t bound = get_bound(snarl, get_end, false);
+    if (is_sentinel(bound)) {
+        bound = get_node_from_sentinel(bound);
+    }
+    return bound;
+}
+
 net_handle_t SnarlDistanceIndex::flip(const net_handle_t& net) const {
     connectivity_t old_connectivity = get_connectivity(net);
     connectivity_t new_connectivity;

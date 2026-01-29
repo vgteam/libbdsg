@@ -504,7 +504,11 @@ public:
 
     ///Given the sentinel of a snarl, return a handle to the node representing it
     net_handle_t get_node_from_sentinel(const net_handle_t& sentinel) const;
-
+    
+    /// Get a bounding NODE from a snarl
+    /// Combination of get_bound() and get_node_from_sentinel()
+    /// Will get a bound and then, if not yet a node, convert sentinel to node
+    net_handle_t get_non_sentinel_bound(const net_handle_t& snarl, bool get_end) const;
     
     ///Return a net handle to the same snarl/chain/node in the opposite orientation.
     ///No effect on tip-to-tip, start-to-start, or end-to-end net handles. Flips all the others.
