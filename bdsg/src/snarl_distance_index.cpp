@@ -513,7 +513,7 @@ net_handle_t SnarlDistanceIndex::get_parent(const net_handle_t& child) const {
     } else if (get_record_type(snarl_tree_records->at(get_record_offset(child))) == SIMPLE_SNARL ||
                get_record_type(snarl_tree_records->at(get_record_offset(child))) == DISTANCED_SIMPLE_SNARL) {
 #ifdef debug_distances 
-    std::cerr << "Child " << net_handle_as_string(child) << " has simple snarl record type " << record_t_as_string.at(get_record_type(snarl_tree_records->at(get_record_offset(child)))) << " and default handle type " << net_handle_record_t_string.at(get_record_handle_type(get_record_type(get_record_offset(child)))) << " and current handle type " << net_handle_record_t_string.at(get_handle_type(child)) << std::endl;
+    std::cerr << "Child " << net_handle_as_string(child) << " has simple snarl record type " << record_t_as_string.at(get_record_type(snarl_tree_records->at(get_record_offset(child)))) << " and current handle type " << net_handle_record_t_string.at(get_handle_type(child)) << std::endl;
 #endif
 
         //If this is a simple snarl and a node or chain, then the parent offset doesn't change
@@ -544,7 +544,7 @@ net_handle_t SnarlDistanceIndex::get_parent(const net_handle_t& child) const {
     net_handle_record_t parent_type = parent_record.get_record_handle_type();
 
 #ifdef debug_distances 
-    std::cerr << "Parent of " << net_handle_as_string(child) << " has record type " << record_t_as_string.at(parent_record.get_record_type()) << " and default handle type " << net_handle_record_t_string.at(parent_type) << std::endl;
+    std::cerr << "Parent of " << net_handle_as_string(child) << " has record type " << record_t_as_string.at(parent_record.get_record_type()) << std::endl;
 #endif
     
     //The connectivity of the parent defaults to start-end
