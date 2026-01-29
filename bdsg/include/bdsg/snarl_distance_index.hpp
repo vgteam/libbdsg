@@ -634,6 +634,8 @@ public:
                    ROOT_SNARL, DISTANCED_ROOT_SNARL,
                    CHAIN, DISTANCED_CHAIN, MULTICOMPONENT_CHAIN,
                    CHILDREN};
+    // TODO: Doesn't this need to be inline? And isn't const not allowed on a
+    // static method? Is this just making the bool const?
     const static bool has_distances(record_t type) {
         return type == DISTANCED_NODE || type == DISTANCED_TRIVIAL_SNARL || type == DISTANCED_SIMPLE_SNARL
             || type == DISTANCED_SNARL || type == OVERSIZED_SNARL || type == DISTANCED_ROOT_SNARL 
@@ -1085,7 +1087,7 @@ private:
         bool get_start_orientation() const;
         handlegraph::nid_t get_end_id() const;
         //Return true if the end node is traversed backwards to leave the snarl
-        handlegraph::nid_t get_end_orientation() const;
+        bool get_end_orientation() const;
 
     };
 
