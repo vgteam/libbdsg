@@ -219,8 +219,10 @@ public:
                             END_START, END_END, END_TIP, 
                             TIP_START, TIP_END, TIP_TIP};
 
-    ///Type of a net_handle_t, which may not be the type of the record
-    ///This is to allow a node record to be seen as a chain from the perspective of a handle
+    /// Type of a net_handle_t, which may not be the type of the record
+    /// This is to allow a node record to be seen as a chain from the perspective of a handle.
+    /// And to allow a simple snarl record to be seen as a node, a chain, or a snarl.
+    /// TODO: What does that really mean? Why can that happen?
     enum net_handle_record_t {ROOT_HANDLE=0, NODE_HANDLE, SNARL_HANDLE, CHAIN_HANDLE, SENTINEL_HANDLE};
 
 /////////////////////////////  functions for distance calculations using net_handle_t's 
@@ -653,8 +655,9 @@ public:
             return ROOT_HANDLE;
         } else if (type == NODE || type == DISTANCED_NODE || type == TRIVIAL_SNARL || type == DISTANCED_TRIVIAL_SNARL) {
             return NODE_HANDLE;
-        } else if (type == SNARL || type == DISTANCED_SNARL || type ==  SIMPLE_SNARL ||type ==  OVERSIZED_SNARL 
-                 || type == SIMPLE_SNARL || type == DISTANCED_SIMPLE_SNARL){
+        } else if (type == SNARL || type == DISTANCED_SNARL || 
+                   type ==  OVERSIZED_SNARL ||
+                   type == SIMPLE_SNARL || type == DISTANCED_SIMPLE_SNARL) {
             return SNARL_HANDLE;
         } else if (type == CHAIN || type == DISTANCED_CHAIN || type == MULTICOMPONENT_CHAIN) {
             return CHAIN_HANDLE;
@@ -943,17 +946,10 @@ private:
 
 private:
     /*Give each of the enum types a name for printing */
-    vector<std::string> record_t_as_string = {"ROOT", "NODE", "DISTANCED_NODE", 
-                     "TRIVIAL_SNARL", "DISTANCED_TRIVIAL_SNARL",
-                     "SNARL", "DISTANCED_SNARL", "SIMPLE_SNARL", "OVERSIZED_SNARL", 
-                     "ROOT_SNARL", "DISTANCED_ROOT_SNARL",
-                     "CHAIN", "DISTANCED_CHAIN", "MULTICOMPONENT_CHAIN",
-                     "CHILDREN"};
-    vector<std::string> connectivity_t_as_string = { "START_START", "START_END", "START_TIP", 
-                            "END_START", "END_END", "END_TIP", 
-                            "TIP_START", "TIP_END", "TIP_TIP"};
-    vector<std::string> net_handle_record_t_string = {"ROOT_HANDLE", "NODE_HANDLE", "SNARL_HANDLE", 
-                                                "CHAIN_HANDLE", "SENTINEL_HANDLE"};
+    // TODO: The names can;'t be here unless we give up using them in static methods.
+    const static vector<std::string> record_t_as_string;
+    const static vector<std::string> connectivity_t_as_string;
+    const static vector<std::string> net_handle_record_t_string;
 
 
     /* If this is 0, then don't store distances.
@@ -1017,6 +1013,13 @@ private:
  * SnarlTreeRecord keeps the pointer and interprets the values stored in the record .
  *
  * SnarlTreeRecordWriter does the same thing but for writing values to the index.
+ *
+ * Note that each SnarlTreeRecord class (expecially ChainRecord) sometimes
+ * knows how to parse/interpret *other* actual record types, to support the
+ * system where a node can "pretend" to be a chain, or a simple snarl can
+ * pretend to be either a node (TODO: why?) or a chain. We end up parsing the
+ * record with the class appropriate to the thing we want to interpret it as,
+ * not the one you would pick from its stored record type.
  *
  */
     struct SnarlTreeRecord {
