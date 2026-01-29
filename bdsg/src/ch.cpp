@@ -55,6 +55,7 @@ CHOverlay make_boost_graph(const bdsg::HashGraph& hg) {
   
   hg.for_each_handle([&](const handle_t& h) {
     auto nid = bgid(h, hg);
+    // Initialize all the seqlen fields
     g[nid].seqlen = hg.get_length(h);
     g[rev_bgid(nid)].seqlen = g[nid].seqlen;
   });
@@ -201,8 +202,16 @@ CHOverlay make_boost_graph(const SnarlDistanceIndex::TemporaryDistanceIndex& tem
     } else {
       throw std::runtime_error("unexpected rec_type: " + std::to_string(child.first));
     }
-      
 
+    // Initialize all the seqlen fields of the vertices to 0; we only use edge
+    // weights in this mode, but we're still responsible for them.
+    // TODO: Is it worth doing this just as a separate scan in order instead?
+    for (bool is_reverse : {false, true}) {
+      for (bool is_source : {false, true}) {
+        ov[bgid(child_net_rank, is_reverse, is_source)].seqlen = 0;  
+      }
+    }
+    
     // Map inward orientations of start and end handles
     if (child_net_rank != 0) {
       // We can arrive at the start of everything but our own start.

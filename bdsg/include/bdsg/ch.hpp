@@ -54,13 +54,15 @@ NODE_UINT bgid(size_t net_rank, bool is_reverse, bool is_source);
 NODE_UINT rev_bgid(NODE_UINT n);
 
 
-typedef struct NodeProp { 
+typedef struct NodeProp {
+  // This is initialized by make_boost_graph()
   DIST_UINT seqlen;
   DIST_UINT max_out = 0;
   NODE_UINT contracted_neighbors = 0;
   NODE_UINT level = 0;
   NODE_UINT arc_cover = 1; 
   bool contracted = false;
+  // This is left uninitialized until make_contraction_hierarchy() is run.
   NODE_UINT new_id;
 } NodeProp;
 
@@ -100,6 +102,11 @@ int edge_diff(ContractedGraph::vertex_descriptor nid, ContractedGraph& ch, CHOve
 
 void contract(CHOverlay::vertex_descriptor nid, ContractedGraph& ch, CHOverlay& ov, vector<DIST_UINT>& node_dists, vector<bool>& shouldnt_contract, int hop_limit);
 
+/**
+ * Find the contraction hierarchy order for the graph.
+ *
+ * Initializes the new_id field of each NodeProb in the graph.
+ */
 void make_contraction_hierarchy(CHOverlay& ov);
  
 template <typename ItrType>
