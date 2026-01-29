@@ -1737,44 +1737,68 @@ public:
             if (ref.first != TEMP_CHAIN) {
                 throw std::invalid_argument("Trying to look up a non-chain as a chain");
             }
-            return temp_chain_records.at(ref.second);
+            if (ref.second >= temp_chain_records.size()) {
+                throw std::out_of_range("Trying to look up chain " + std::to_string(ref.second) + " but temporary index only has " + std::to_string(temp_chain_records.size()) + " chains");
+            }
+            return temp_chain_records[ref.second];
         }
 
         inline const TemporaryChainRecord& get_chain(const temp_record_ref_t& ref) const {
             if (ref.first != TEMP_CHAIN) {
                 throw std::invalid_argument("Trying to look up a non-chain as a chain");
             }
-            return temp_chain_records.at(ref.second);
+            if (ref.second >= temp_chain_records.size()) {
+                throw std::out_of_range("Trying to look up chain " + std::to_string(ref.second) + " but temporary index only has " + std::to_string(temp_chain_records.size()) + " chains");
+            }
+            return temp_chain_records[ref.second];
         }
 
         inline TemporarySnarlRecord& get_snarl(const temp_record_ref_t& ref) {
             if (ref.first != TEMP_SNARL) {
                 throw std::invalid_argument("Trying to look up a non-snarl as a snarl");
             }
-            return temp_snarl_records.at(ref.second);
+            if (ref.second >= temp_snarl_records.size()) {
+                throw std::out_of_range("Trying to look up snarl " + std::to_string(ref.second) + " but temporary index only has " + std::to_string(temp_snarl_records.size()) + " snarls");
+            }
+            return temp_snarl_records[ref.second];
         }
 
         inline const TemporarySnarlRecord& get_snarl(const temp_record_ref_t& ref) const {
             if (ref.first != TEMP_SNARL) {
                 throw std::invalid_argument("Trying to look up a non-snarl as a snarl");
             }
-            return temp_snarl_records.at(ref.second);
+            if (ref.second >= temp_snarl_records.size()) {
+                throw std::out_of_range("Trying to look up snarl " + std::to_string(ref.second) + " but temporary index only has " + std::to_string(temp_snarl_records.size()) + " snarls");
+            }
+            return temp_snarl_records[ref.second];
         }
 
         inline TemporaryNodeRecord& get_node(const temp_record_ref_t& ref) {
             if (ref.first != TEMP_NODE) {
                 throw std::invalid_argument("Trying to look up a non-node as a node");
             }
+            if (ref.second < min_node_id) {
+                throw std::out_of_range("Trying to look up node " + std::to_string(ref.second) + " but temporary index starts at node " + std::to_string(min_node_id));
+            }
+            if (ref.second >= temp_node_records.size() + min_node_id) {
+                throw std::out_of_range("Trying to look up node " + std::to_string(ref.second) + " but temporary index only goes up until node " + std::to_string(temp_node_records.size() + min_node_id));
+            }
             // Nodes use a node ID in the ref, not an index.
-            return temp_node_records.at(ref.second - min_node_id);
+            return temp_node_records[ref.second - min_node_id];
         }
 
         inline const TemporaryNodeRecord& get_node(const temp_record_ref_t& ref) const {
             if (ref.first != TEMP_NODE) {
                 throw std::invalid_argument("Trying to look up a non-node as a node");
             }
+            if (ref.second < min_node_id) {
+                throw std::out_of_range("Trying to look up node " + std::to_string(ref.second) + " but temporary index starts at node " + std::to_string(min_node_id));
+            }
+            if (ref.second >= temp_node_records.size() + min_node_id) {
+                throw std::out_of_range("Trying to look up node " + std::to_string(ref.second) + " but temporary index only goes up until node " + std::to_string(temp_node_records.size() + min_node_id));
+            }
             // Nodes use a node ID in the ref, not an index.
-            return temp_node_records.at(ref.second - min_node_id);
+            return temp_node_records[ref.second - min_node_id];
         }
 
         // Roots never need to be looked up.

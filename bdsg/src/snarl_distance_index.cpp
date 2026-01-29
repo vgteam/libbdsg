@@ -30,26 +30,30 @@ SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryDistanceIndex(){}
 SnarlDistanceIndex::TemporaryDistanceIndex::~TemporaryDistanceIndex(){}
 
 string SnarlDistanceIndex::TemporaryDistanceIndex::structure_start_end_as_string(temp_record_ref_t index) const {
-    if (index.first == TEMP_NODE) {
-        const TemporaryNodeRecord& temp_node_record = get_node(index);
-        assert(index.second == temp_node_record.node_id);
-        return "node " + std::to_string(temp_node_record.node_id);
-    } else if (index.first == TEMP_SNARL) {
-        const TemporarySnarlRecord& temp_snarl_record = get_snarl(index);
-        return "snarl " + std::to_string(temp_snarl_record.start_node_id) 
-                + (temp_snarl_record.start_node_rev ? " rev" : " fd") 
-                + " -> " + std::to_string(temp_snarl_record.end_node_id) 
-                + (temp_snarl_record.end_node_rev ? " rev" : " fd");
-    } else if (index.first == TEMP_CHAIN) {
-        const TemporaryChainRecord& temp_chain_record = get_chain(index);
-        return "chain " + std::to_string(temp_chain_record.start_node_id) 
-                + (temp_chain_record.start_node_rev ? " rev" : " fd") 
-                + " -> "  + std::to_string(temp_chain_record.end_node_id) 
-                + (temp_chain_record.end_node_rev ? " rev" : " fd");
-    } else if (index.first == TEMP_ROOT) {
-        return (string) "root";
-    } else {
-        return (string)"???" + std::to_string(index.first) + "???";
+    try {
+        if (index.first == TEMP_NODE) {
+            const TemporaryNodeRecord& temp_node_record = get_node(index);
+            assert(index.second == temp_node_record.node_id);
+            return "node " + std::to_string(temp_node_record.node_id);
+        } else if (index.first == TEMP_SNARL) {
+            const TemporarySnarlRecord& temp_snarl_record = get_snarl(index);
+            return "snarl " + std::to_string(temp_snarl_record.start_node_id) 
+                    + (temp_snarl_record.start_node_rev ? " rev" : " fd") 
+                    + " -> " + std::to_string(temp_snarl_record.end_node_id) 
+                    + (temp_snarl_record.end_node_rev ? " rev" : " fd");
+        } else if (index.first == TEMP_CHAIN) {
+            const TemporaryChainRecord& temp_chain_record = get_chain(index);
+            return "chain " + std::to_string(temp_chain_record.start_node_id) 
+                    + (temp_chain_record.start_node_rev ? " rev" : " fd") 
+                    + " -> "  + std::to_string(temp_chain_record.end_node_id) 
+                    + (temp_chain_record.end_node_rev ? " rev" : " fd");
+        } else if (index.first == TEMP_ROOT) {
+            return (string) "root";
+        } else {
+            return (string)"???" + std::to_string(index.first) + "???";
+        }
+    } catch (std::out_of_range& e) {
+        throw std::out_of_range("Unable to look up (" + std::to_string(index.first) + ", " + std::to_string(index.second) + ") in temporary distance index due to out of range error: " + e.what());
     }
 }
 //The max record length of this chain
