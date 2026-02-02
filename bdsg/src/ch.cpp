@@ -3,7 +3,8 @@ file for quickly playing around with stuff
 */
 #include "bdsg/ch.hpp"
 
-#define debug_boost_graph
+//#define debug_boost_graph
+//#define debug_create
 
 namespace bdsg {
 bdsg::HashGraph make_test() {
@@ -489,7 +490,9 @@ int get_hop_limit(CHOverlay& ov) {
 }
 
 void make_contraction_hierarchy(CHOverlay& ov) {
+#ifdef debug_create
   cerr << "starting degree: " << (double)num_edges(ov)/num_vertices(ov) << endl;
+#endif
   
   //thanks https://stackoverflow.com/questions/53490593/boostget-with-boostfiltered-graph-on-adjacency-list-with-netsed-properties for filtered_graph code
   auto contracted_filter = [&](CHOverlay::edge_descriptor eid) { return !(ov[eid].contracted); };  
@@ -568,12 +571,16 @@ void make_contraction_hierarchy(CHOverlay& ov) {
       }
     }  
 
+#ifdef debug_create
     cerr << "num contr: " << num_con << endl;
-    cerr << "after round " << rnd+1 << " degree: " << (double)num_edges(ov)/num_vertices(ov) << endl; 
+    cerr << "after round " << rnd+1 << " degree: " << (double)num_edges(ov)/num_vertices(ov) << endl;
+#endif
   }
   
 
+#ifdef debug_create
   cerr << "left over: " << num_vertices(ov) - num_con << endl; 
+#endif
   //std::fill(skip.begin(), skip.end(), false);  
   //for (auto n: arti_pts) { skip[n] = true; }
 
@@ -618,11 +625,13 @@ void make_contraction_hierarchy(CHOverlay& ov) {
       continue;
     } 
     ov[node].level += 1;
-    
+ 
+#ifdef debug_create
     //if (queue_objs.size() % 100 == 1) {
     cerr << "remaining: " << queue_objs.size() << ", deg: " << (double)num_edges(ov)/num_vertices(ov) << endl;
     cerr << "lv: " << ov[node].level << endl;
-    //} 
+    //}
+#endif
     
    
     ov[node].new_id = num_vertices(ov)-1-num_con;
@@ -911,7 +920,9 @@ void test_dijk_back(int node, CHOverlay& ov, vector<DIST_UINT>& node_dists, vect
 } 
 
 void create_labels(vector<vector<HubRecord>>& labels, vector<vector<HubRecord>>& labels_back, CHOverlay& ov) { 
+#ifdef debug_create
   cerr << "start create labels" << endl;
+#endif
   vector<DIST_UINT> node_dists(num_vertices(ov), INF_INT);
   vector<int> v; v.resize(num_vertices(ov));
   for (auto i = 0u; i < num_vertices(ov); i++) {
@@ -920,8 +931,10 @@ void create_labels(vector<vector<HubRecord>>& labels, vector<vector<HubRecord>>&
 
   for (auto j = 0u; j < num_vertices(ov); j++) { 
     
+#ifdef debug_create
     //if (j % 100 == 1) { 
-    cerr << j << "th node, " << v[j] << endl; 
+    cerr << j << "th node, " << v[j] << endl;
+#endif
 
     //cerr << "starting dijkstra: " << endl;
     down_dijk_back(v[j], ov, node_dists, labels, labels_back);
