@@ -667,7 +667,7 @@ net_handle_t SnarlDistanceIndex::flip(const net_handle_t& net) const {
 net_handle_t SnarlDistanceIndex::canonical(const net_handle_t& net) const {
     SnarlTreeRecord record(net, &snarl_tree_records);
     record_t type = record.get_record_type();
-    if (type == ROOT_SNARL || type == DISTANCED_ROOT_SNARL) {
+    if (type == ROOT || type == ROOT_SNARL || type == DISTANCED_ROOT_SNARL) {
         return get_root();
     }
 
@@ -1175,11 +1175,20 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
         const net_handle_t& child1, const net_handle_t& child2, const HandleGraph* graph, size_t distance_limit) const {
 
 #ifdef debug_distances
+    auto child1_parent = get_parent(child1);
+    auto child2_parent = get_parent(child2);
     cerr << "\t\tFind distance between " << net_handle_as_string(child1) 
          << " and " << net_handle_as_string(child2)
-         << " facing back toward it in parent " << net_handle_as_string(parent) << endl;
-    assert(canonical(parent) == canonical(get_parent(child1)));
-    assert(canonical(parent) == canonical(get_parent(child2)));
+         << " facing back toward it in parent " << net_handle_as_string(canonical(parent)) << endl;
+    cerr << "\t\tChild parents are " << net_handle_as_string(canonical(child1_parent)) << " and " << net_handle_as_string(canonical(child2_parent)) << endl;
+
+    if (canonical(parent) != canonical(child1_parent) || canonical(parent) != canonical(child2_parent)) {
+        std::cerr << "Error: parent mismatch!" << std::endl;
+        std::cerr << as_integer(canonical(parent)) << " = " << net_handle_as_string(canonical(parent)) << std::endl;
+        std::cerr << as_integer(canonical(child1_parent)) << " = " << net_handle_as_string(canonical(child1_parent)) << std::endl;
+        std::cerr << as_integer(canonical(child2_parent)) << " = " << net_handle_as_string(canonical(child2_parent)) << std::endl;
+        assert(false);
+    }
 #endif
 
     //Get the orientation of the children. This only cares about the end endpoint, and assumes that things that end
@@ -5897,7 +5906,7 @@ string SnarlDistanceIndex::net_handle_as_string(const net_handle_t& net) const {
     net_handle_record_t type = get_handle_type(net);
     SnarlTreeRecord record (net, &snarl_tree_records);
     net_handle_record_t record_type = record.get_record_handle_type();
-    string result = "@" + std::to_string(get_record_offset(net)) + "=";
+    string result = net_handle_record_t_string.at(type) + "@" + std::to_string(get_record_offset(net)) + "=";
     if (type == ROOT_HANDLE) {
         if (record.get_record_type() == ROOT_SNARL || record.get_record_type() == DISTANCED_ROOT_SNARL) {
             result += "root snarl";
