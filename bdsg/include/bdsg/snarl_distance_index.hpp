@@ -946,10 +946,44 @@ private:
 
 private:
     /*Give each of the enum types a name for printing */
-    // TODO: The names can;'t be here unless we give up using them in static methods.
-    const static vector<std::string> record_t_as_string;
-    const static vector<std::string> connectivity_t_as_string;
+    // TODO: The names can't be here unless we give up using them in static methods.
+    const static vector<std::string> record_t_as_string; // Note that the enum for this one is 1-based but the names are still 0-based
+    const static vector<std::string> connectivity_t_as_string;  // Note that the enum for this one is 1-based but the names are still 0-based
     const static vector<std::string> net_handle_record_t_string;
+
+    // To deal with different offsets for the different types we use accessors.
+    // TODO: Should we just make std::to_string overloads instead?
+
+    /**
+     * Convert a record_t to a string.
+     */
+    inline static std::string stringify(const record_t& v) {
+        if ((int)v > 0 && v - 1 < record_t_as_string.size()) {
+            return record_t_as_string[v - 1];
+        }
+        return "<OUT OF RANGE:" + std::to_string(v) + ">";
+    }
+
+    /**
+     * Convert a connectivity_t to a string.
+     */
+    inline static std::string stringify(const connectivity_t& v) {
+        if ((int)v > 0 && v - 1 < connectivity_t_as_string.size()) {
+            return connectivity_t_as_string[v - 1];
+        }
+        return "<OUT OF RANGE:" + std::to_string(v) + ">";
+    }
+
+    /**
+     * Convert a net_handle_record_t to a string.
+     */
+    inline static std::string stringify(const net_handle_record_t& v) {
+        // For this one, 0 is an allowed value.
+        if ((int)v >= 0 && v < net_handle_record_t_string.size()) {
+            return net_handle_record_t_string[v];
+        }
+        return "<OUT OF RANGE:" + std::to_string(v) + ">";
+    }
 
 
     /* If this is 0, then don't store distances.

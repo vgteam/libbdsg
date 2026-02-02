@@ -513,7 +513,7 @@ net_handle_t SnarlDistanceIndex::get_parent(const net_handle_t& child) const {
     } else if (get_record_type(snarl_tree_records->at(get_record_offset(child))) == SIMPLE_SNARL ||
                get_record_type(snarl_tree_records->at(get_record_offset(child))) == DISTANCED_SIMPLE_SNARL) {
 #ifdef debug_distances 
-    std::cerr << "Child " << net_handle_as_string(child) << " has simple snarl record type " << record_t_as_string.at(get_record_type(snarl_tree_records->at(get_record_offset(child)))) << " and current handle type " << net_handle_record_t_string.at(get_handle_type(child)) << std::endl;
+    std::cerr << "Child " << net_handle_as_string(child) << " has simple snarl record type " << stringify(get_record_type(snarl_tree_records->at(get_record_offset(child)))) << " and current handle type " << stringify(get_handle_type(child)) << std::endl;
 #endif
 
         //If this is a simple snarl and a node or chain, then the parent offset doesn't change
@@ -544,7 +544,7 @@ net_handle_t SnarlDistanceIndex::get_parent(const net_handle_t& child) const {
     net_handle_record_t parent_type = parent_record.get_record_handle_type();
 
 #ifdef debug_distances 
-    std::cerr << "Parent of " << net_handle_as_string(child) << " has record type " << record_t_as_string.at(parent_record.get_record_type()) << std::endl;
+    std::cerr << "Parent of " << net_handle_as_string(child) << " at " << parent_pointer << " has record type " << stringify(parent_record.get_record_type()) << std::endl;
 #endif
     
     //The connectivity of the parent defaults to start-end
@@ -4280,7 +4280,7 @@ SnarlDistanceIndex::SnarlRecord::SnarlRecord (size_t pointer, const bdsg::yomo::
           type == OVERSIZED_SNARL ||
           type == ROOT_SNARL || type == DISTANCED_ROOT_SNARL)) {
         
-        throw std::runtime_error("SnarlRecord record type " + std::to_string(type) + (type < record_t_as_string.size() ? (" " + record_t_as_string[type]) : "") + " at offset " + std::to_string(record_offset) + " is not an acceptable type for a SnarlRecord; maybe SimpleSnarlRecord should be used instead?");
+        throw std::runtime_error("SnarlRecord record type " + std::to_string(type) + " " + stringify(type) + " at offset " + std::to_string(record_offset) + " is not an acceptable type for a SnarlRecord; maybe SimpleSnarlRecord should be used instead?");
     }
 #endif
 }
@@ -5188,7 +5188,7 @@ SnarlDistanceIndex::ChainRecord::ChainRecord (size_t pointer, const bdsg::yomo::
         // Chain records as stored are allowed.
         return;
     }
-    throw std::runtime_error("ChainRecord with handle type " + std::to_string(type) + (type < net_handle_record_t_string.size() ? (" " + net_handle_record_t_string[type]) : "") + " and record type " + std::to_string(record_type) + (record_type < record_t_as_string.size() ? (" " + record_t_as_string[record_type]) : "") + " at offset " + std::to_string(record_offset) + " is not a node or a chain or a simple snarl");
+    throw std::runtime_error("ChainRecord with handle type " + std::to_string(type) + " " + stringify(type) + " and record type " + std::to_string(record_type) + " " + stringify(record_type) + " at offset " + std::to_string(record_offset) + " is not a node or a chain or a simple snarl");
 #endif
 }       
 
@@ -5222,7 +5222,7 @@ SnarlDistanceIndex::ChainRecord::ChainRecord (net_handle_t net, const bdsg::yomo
         // Chain records as stored are allowed.
         return;
     }
-    throw std::runtime_error("ChainRecord with handle type " + std::to_string(type) + (type < net_handle_record_t_string.size() ? (" " + net_handle_record_t_string[type]) : "") + " and record type " + std::to_string(record_type) + (record_type < record_t_as_string.size() ? (" " + record_t_as_string[record_type]) : "") + " at offset " + std::to_string(record_offset) + " is not a node or a chain or a simple snarl");
+    throw std::runtime_error("ChainRecord with handle type " + std::to_string(type) + " " + stringify(type) + " and record type " + std::to_string(record_type) + " " + stringify(record_type) + " at offset " + std::to_string(record_offset) + " is not a node or a chain or a simple snarl");
 #endif
 }   
 
@@ -5906,7 +5906,7 @@ string SnarlDistanceIndex::net_handle_as_string(const net_handle_t& net) const {
     net_handle_record_t type = get_handle_type(net);
     SnarlTreeRecord record (net, &snarl_tree_records);
     net_handle_record_t record_type = record.get_record_handle_type();
-    string result = net_handle_record_t_string.at(type) + "@" + std::to_string(get_record_offset(net)) + "=";
+    string result = stringify(type) + "@" + std::to_string(get_record_offset(net)) + "=";
     if (type == ROOT_HANDLE) {
         if (record.get_record_type() == ROOT_SNARL || record.get_record_type() == DISTANCED_ROOT_SNARL) {
             result += "root snarl";
