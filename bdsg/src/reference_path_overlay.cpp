@@ -13,16 +13,31 @@ namespace bdsg {
 using namespace std;
 using namespace handlegraph;
 
-ReferencePathOverlay::ReferencePathOverlay(const PathHandleGraph* graph, const std::unordered_set<std::string>& extra_path_names) : graph(graph) {
-    
-    // Get step counts for all paths we want to process, once.
-    // Only index REFERENCE and GENERIC paths, not HAPLOTYPE paths.
+ReferencePathOverlay::ReferencePathOverlay(const PathHandleGraph* graph, bool all_paths)
+    : ReferencePathOverlay(graph, std::unordered_set<std::string>{}, all_paths) {
+}
+
+ReferencePathOverlay::ReferencePathOverlay(const PathHandleGraph* graph,
+                                           const std::unordered_set<std::string>& extra_path_names,
+                                           bool all_paths) : graph(graph) {
+
     std::unordered_map<path_handle_t, size_t> cached_step_counts;
-    std::unordered_set<PathSense> senses = {PathSense::REFERENCE, PathSense::GENERIC};
-    graph->for_each_path_matching(&senses, nullptr, nullptr, [&](const path_handle_t& path) {
-        cached_step_counts[path] = graph->get_step_count(path);
-        return true;
-    });
+
+    if (all_paths) {
+        // Index ALL visible paths
+        graph->for_each_path_handle([&](const path_handle_t& path) {
+            cached_step_counts[path] = graph->get_step_count(path);
+            return true;
+        });
+    } else {
+        // Only index REFERENCE and GENERIC paths (the default)
+        std::unordered_set<PathSense> senses = {PathSense::REFERENCE, PathSense::GENERIC};
+        graph->for_each_path_matching(&senses, nullptr, nullptr, [&](const path_handle_t& path) {
+            cached_step_counts[path] = graph->get_step_count(path);
+            return true;
+        });
+    }
+
     for (auto& path_name : extra_path_names) {
         // Also index hidden paths that the user is asking for by name.
         if (graph->has_path(path_name)) {
@@ -30,7 +45,7 @@ ReferencePathOverlay::ReferencePathOverlay(const PathHandleGraph* graph, const s
             path_handle_t path = graph->get_path_handle(path_name);
             auto found = cached_step_counts.find(path);
             if (found == cached_step_counts.end()) {
-                // And it's not already reference sense.
+                // And it's not already indexed.
                 // Count steps and remember it
                 cached_step_counts.emplace_hint(found, path, graph->get_step_count(path));
             }
