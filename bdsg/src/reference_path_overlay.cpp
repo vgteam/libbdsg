@@ -16,14 +16,12 @@ using namespace handlegraph;
 ReferencePathOverlay::ReferencePathOverlay(const PathHandleGraph* graph, const std::unordered_set<std::string>& extra_path_names) : graph(graph) {
     
     // Get step counts for all paths we want to process, once.
+    // Only index REFERENCE and GENERIC paths, not HAPLOTYPE paths.
     std::unordered_map<path_handle_t, size_t> cached_step_counts;
-    graph->for_each_path_handle([&](const path_handle_t& path) {
-        // Find and measure all the non-hidden paths.
-        // TODO: If we made the overlay transparent so we could access paths
-        // that didn't get indexed, we wouldn't be weirdly indexing haplotype
-        // paths from backends that don't hide them in the "reference" path
-        // overlay.
+    std::unordered_set<PathSense> senses = {PathSense::REFERENCE, PathSense::GENERIC};
+    graph->for_each_path_matching(&senses, nullptr, nullptr, [&](const path_handle_t& path) {
         cached_step_counts[path] = graph->get_step_count(path);
+        return true;
     });
     for (auto& path_name : extra_path_names) {
         // Also index hidden paths that the user is asking for by name.
