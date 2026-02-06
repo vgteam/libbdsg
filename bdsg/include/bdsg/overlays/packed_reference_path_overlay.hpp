@@ -40,6 +40,11 @@ public:
     /// Make a PackedReferencePathOverlay. Do the indexing and compute the
     /// additional indexes that the base class doesn't have.
     PackedReferencePathOverlay(const PathHandleGraph* graph, const std::unordered_set<std::string>& extra_path_names = {}, size_t steps_per_index = 20000000);
+
+    /// Make a PackedReferencePathOverlay with path filtering.
+    /// If all_paths is true, indexes all paths visible via for_each_path_handle().
+    /// If false, indexes only REFERENCE and GENERIC sense paths.
+    PackedReferencePathOverlay(const PathHandleGraph* graph, bool all_paths);
     
     // We assume that tracing out a path is fast in the backing graph, but
     // finding visits on nodes is slow. We override the reverse lookups to go
@@ -49,11 +54,17 @@ public:
     virtual path_handle_t get_path_handle_of_step(const step_handle_t& step_handle) const;
 
 protected:
-    
+
+    /// Whether to index all paths (true) or only REFERENCE and GENERIC paths (false).
+    bool all_paths = true;
+
     // PathHandleGraph interface
-    
+
+    /// Override to filter paths based on all_paths flag.
+    bool for_each_path_handle_impl(const std::function<bool(const path_handle_t&)>& iteratee) const;
+
     /// Calls the given function for each step of the given handle on a path.
-    /// We treat steps as "on" handles in either orientation. 
+    /// We treat steps as "on" handles in either orientation.
     virtual bool for_each_step_on_handle_impl(const handle_t& handle,
                                               const function<bool(const step_handle_t&)>& iteratee) const;
 
