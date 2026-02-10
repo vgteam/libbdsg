@@ -1,6 +1,6 @@
-#define debug_distance_indexing
+//#define debug_distance_indexing
 //#define debug_snarl_traversal
-#define debug_distances
+//#define debug_distances
 //#define debug_distance_paths
 
 #include "bdsg/snarl_distance_index.hpp"
@@ -12,6 +12,23 @@ using namespace std;
 using namespace handlegraph;
 namespace bdsg {
 
+const vector<std::string> SnarlDistanceIndex::record_t_as_string = {
+    "ROOT", "NODE", "DISTANCED_NODE", 
+    "TRIVIAL_SNARL", "DISTANCED_TRIVIAL_SNARL",
+    "SNARL", "DISTANCED_SNARL", "SIMPLE_SNARL", "OVERSIZED_SNARL", 
+    "ROOT_SNARL", "DISTANCED_ROOT_SNARL",
+    "CHAIN", "DISTANCED_CHAIN", "MULTICOMPONENT_CHAIN",
+    "CHILDREN"
+};
+const vector<std::string> SnarlDistanceIndex::connectivity_t_as_string = {
+    "START_START", "START_END", "START_TIP", 
+    "END_START", "END_END", "END_TIP", 
+    "TIP_START", "TIP_END", "TIP_TIP"
+};
+const vector<std::string> SnarlDistanceIndex::net_handle_record_t_string = {
+    "ROOT_HANDLE", "NODE_HANDLE", "SNARL_HANDLE", 
+    "CHAIN_HANDLE", "SENTINEL_HANDLE"
+};
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 //Constructor
@@ -30,26 +47,30 @@ SnarlDistanceIndex::TemporaryDistanceIndex::TemporaryDistanceIndex(){}
 SnarlDistanceIndex::TemporaryDistanceIndex::~TemporaryDistanceIndex(){}
 
 string SnarlDistanceIndex::TemporaryDistanceIndex::structure_start_end_as_string(temp_record_ref_t index) const {
-    if (index.first == TEMP_NODE) {
-        const TemporaryNodeRecord& temp_node_record = get_node(index);
-        assert(index.second == temp_node_record.node_id);
-        return "node " + std::to_string(temp_node_record.node_id);
-    } else if (index.first == TEMP_SNARL) {
-        const TemporarySnarlRecord& temp_snarl_record = get_snarl(index);
-        return "snarl " + std::to_string(temp_snarl_record.start_node_id) 
-                + (temp_snarl_record.start_node_rev ? " rev" : " fd") 
-                + " -> " + std::to_string(temp_snarl_record.end_node_id) 
-                + (temp_snarl_record.end_node_rev ? " rev" : " fd");
-    } else if (index.first == TEMP_CHAIN) {
-        const TemporaryChainRecord& temp_chain_record = get_chain(index);
-        return "chain " + std::to_string(temp_chain_record.start_node_id) 
-                + (temp_chain_record.start_node_rev ? " rev" : " fd") 
-                + " -> "  + std::to_string(temp_chain_record.end_node_id) 
-                + (temp_chain_record.end_node_rev ? " rev" : " fd");
-    } else if (index.first == TEMP_ROOT) {
-        return (string) "root";
-    } else {
-        return (string)"???" + std::to_string(index.first) + "???";
+    try {
+        if (index.first == TEMP_NODE) {
+            const TemporaryNodeRecord& temp_node_record = get_node(index);
+            assert(index.second == temp_node_record.node_id);
+            return "node " + std::to_string(temp_node_record.node_id);
+        } else if (index.first == TEMP_SNARL) {
+            const TemporarySnarlRecord& temp_snarl_record = get_snarl(index);
+            return "snarl " + std::to_string(temp_snarl_record.start_node_id) 
+                    + (temp_snarl_record.start_node_rev ? " rev" : " fd") 
+                    + " -> " + std::to_string(temp_snarl_record.end_node_id) 
+                    + (temp_snarl_record.end_node_rev ? " rev" : " fd");
+        } else if (index.first == TEMP_CHAIN) {
+            const TemporaryChainRecord& temp_chain_record = get_chain(index);
+            return "chain " + std::to_string(temp_chain_record.start_node_id) 
+                    + (temp_chain_record.start_node_rev ? " rev" : " fd") 
+                    + " -> "  + std::to_string(temp_chain_record.end_node_id) 
+                    + (temp_chain_record.end_node_rev ? " rev" : " fd");
+        } else if (index.first == TEMP_ROOT) {
+            return (string) "root";
+        } else {
+            return (string)"???" + std::to_string(index.first) + "???";
+        }
+    } catch (std::out_of_range& e) {
+        throw std::out_of_range("Unable to look up (" + std::to_string(index.first) + ", " + std::to_string(index.second) + ") in temporary distance index due to out of range error: " + e.what());
     }
 }
 //The max record length of this chain
@@ -445,7 +466,10 @@ net_handle_t SnarlDistanceIndex::get_net(const handle_t& handle, const handlegra
 }
 handle_t SnarlDistanceIndex::get_handle(const net_handle_t& net, const handlegraph::HandleGraph* graph) const{
     if (get_handle_type(net) == SENTINEL_HANDLE) {
-        SnarlRecord snarl_record(net, &snarl_tree_records);
+        // We don't know if this is a trivial or nontrivial snarl, so we need
+        // to access it with the base class.
+        // TODO: Make a base class for any kind of snarl.
+        SnarlTreeRecord snarl_record(net, &snarl_tree_records);
         if (starts_at(net) == START) {
             return graph->get_handle(snarl_record.get_start_id(), 
                        ends_at(net) == START ? !snarl_record.get_start_orientation()   //Going out
@@ -488,23 +512,40 @@ net_handle_t SnarlDistanceIndex::get_parent(const net_handle_t& child) const {
         throw runtime_error("error: trying to find the parent of the root");
     } else if (get_record_type(snarl_tree_records->at(get_record_offset(child))) == SIMPLE_SNARL ||
                get_record_type(snarl_tree_records->at(get_record_offset(child))) == DISTANCED_SIMPLE_SNARL) {
+#ifdef debug_distances 
+    std::cerr << "Child " << net_handle_as_string(child) << " has simple snarl record type " << stringify(get_record_type(snarl_tree_records->at(get_record_offset(child)))) << " and current handle type " << stringify(get_handle_type(child)) << std::endl;
+#endif
+
         //If this is a simple snarl and a node or chain, then the parent offset doesn't change
         if (get_handle_type(child) == NODE_HANDLE) {
-            //If this is a node, then return it as a chain
+            // If this is a node, then return it as a chain
+            // TODO: Why can a simple snarl need to look like a node itself?
+            // TODO: Why can a simple snarl need to look like a chain? Because the node needs to look like a chain?
+#ifdef debug_distances
+            std::cerr << "We were looking at a simple snarl as a node; project it as a chain." << std::endl;
+#endif
             return get_net_handle_from_values(get_record_offset(child), child_connectivity, 
                                               CHAIN_HANDLE, get_node_record_offset(child));
         } else if (get_handle_type(child) == CHAIN_HANDLE) {
             //If this is a chain, then return the same thing as a snarl
+#ifdef debug_distances
+            std::cerr << "We were looking at a simple snarl as a chain; project it as a snarl." << std::endl;
+#endif
             return get_net_handle_from_values(get_record_offset(child), START_END, SNARL_HANDLE, 1);
         }
     }
 
     //Otherwise, we need to move up one level in the snarl tree
 
+    SnarlTreeRecord child_record(child, &snarl_tree_records);
     //Get the pointer to the parent to find its type
-    size_t parent_pointer = SnarlTreeRecord(child, &snarl_tree_records).get_parent_record_offset();
-    net_handle_record_t parent_type = SnarlTreeRecord(parent_pointer, &snarl_tree_records).get_record_handle_type();
+    size_t parent_pointer = child_record.get_parent_record_offset();
+    SnarlTreeRecord parent_record(parent_pointer, &snarl_tree_records);
+    net_handle_record_t parent_type = parent_record.get_record_handle_type();
 
+#ifdef debug_distances 
+    std::cerr << "Parent of " << net_handle_as_string(child) << " at " << parent_pointer << " has record type " << stringify(parent_record.get_record_type()) << std::endl;
+#endif
     
     //The connectivity of the parent defaults to start-end
     connectivity_t parent_connectivity = START_END;
@@ -523,8 +564,13 @@ net_handle_t SnarlDistanceIndex::get_parent(const net_handle_t& child) const {
     }
     if (get_handle_type(child) == NODE_HANDLE && parent_type != CHAIN_HANDLE) {
         //If this is a node and it's parent is not a chain, we want to pretend that its 
-        //parent is a chain
-        return get_net_handle_from_values(get_record_offset(child), child_connectivity, CHAIN_HANDLE, get_node_record_offset(child));
+        //parent is a chain version of the child
+        net_handle_t projected = get_net_handle_from_values(get_record_offset(child), child_connectivity, CHAIN_HANDLE, get_node_record_offset(child));
+#ifdef debug_distances 
+        std::cerr << "Parent of " << net_handle_as_string(child) << " projected as " << net_handle_as_string(projected) << std::endl;
+#endif
+
+        return projected;
     } 
 
     return get_net_handle(parent_pointer, parent_connectivity);
@@ -532,6 +578,10 @@ net_handle_t SnarlDistanceIndex::get_parent(const net_handle_t& child) const {
 
 net_handle_t SnarlDistanceIndex::get_bound(const net_handle_t& snarl, bool get_end, bool face_in) const {
     if (get_handle_type(snarl) == CHAIN_HANDLE) {
+        // This could be a real chain, a node looking like a chain, or a simple
+        // snarl record looking like a chain (maybe because the node it was
+        // looking like needs to look like a chain now). ChainRecord promises
+        // to know how to interpret all of them.
         ChainRecord chain_record(snarl, &snarl_tree_records);
         size_t offset;
         size_t node_offset;
@@ -617,7 +667,7 @@ net_handle_t SnarlDistanceIndex::flip(const net_handle_t& net) const {
 net_handle_t SnarlDistanceIndex::canonical(const net_handle_t& net) const {
     SnarlTreeRecord record(net, &snarl_tree_records);
     record_t type = record.get_record_type();
-    if (type == ROOT_SNARL || type == DISTANCED_ROOT_SNARL) {
+    if (type == ROOT || type == ROOT_SNARL || type == DISTANCED_ROOT_SNARL) {
         return get_root();
     }
 
@@ -747,8 +797,15 @@ bool SnarlDistanceIndex::for_each_child_impl(const net_handle_t& traversal, cons
             throw runtime_error("error: Looking for children of a node or sentinel in a simple snarl");
         }
     } else if (record_type == SNARL_HANDLE) {
-        SnarlRecord snarl_record(traversal, &snarl_tree_records);
-        return snarl_record.for_each_child(iteratee);
+        // This could be a simple or non-simple snarl
+        record_t specific_type = SnarlTreeRecord(traversal, &snarl_tree_records).get_record_type();
+        if (specific_type == SIMPLE_SNARL || specific_type == DISTANCED_SIMPLE_SNARL) {
+            SimpleSnarlRecord snarl_record(traversal, &snarl_tree_records);
+            return snarl_record.for_each_child(iteratee);
+        } else {
+            SnarlRecord snarl_record(traversal, &snarl_tree_records);
+            return snarl_record.for_each_child(iteratee);
+        }
     } else if (record_type == CHAIN_HANDLE) {
         ChainRecord chain_record(traversal, &snarl_tree_records);
         return chain_record.for_each_child(iteratee);
@@ -1118,11 +1175,20 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
         const net_handle_t& child1, const net_handle_t& child2, const HandleGraph* graph, size_t distance_limit) const {
 
 #ifdef debug_distances
+    auto child1_parent = get_parent(child1);
+    auto child2_parent = get_parent(child2);
     cerr << "\t\tFind distance between " << net_handle_as_string(child1) 
          << " and " << net_handle_as_string(child2)
-         << " facing back toward it in parent " << net_handle_as_string(parent) << endl;
-    assert(canonical(parent) == canonical(get_parent(child1)));
-    assert(canonical(parent) == canonical(get_parent(child2)));
+         << " facing back toward it in parent " << net_handle_as_string(canonical(parent)) << endl;
+    cerr << "\t\tChild parents are " << net_handle_as_string(canonical(child1_parent)) << " and " << net_handle_as_string(canonical(child2_parent)) << endl;
+
+    if (canonical(parent) != canonical(child1_parent) || canonical(parent) != canonical(child2_parent)) {
+        std::cerr << "Error: parent mismatch!" << std::endl;
+        std::cerr << as_integer(canonical(parent)) << " = " << net_handle_as_string(canonical(parent)) << std::endl;
+        std::cerr << as_integer(canonical(child1_parent)) << " = " << net_handle_as_string(canonical(child1_parent)) << std::endl;
+        std::cerr << as_integer(canonical(child2_parent)) << " = " << net_handle_as_string(canonical(child2_parent)) << std::endl;
+        assert(false);
+    }
 #endif
 
     //Get the orientation of the children. This only cares about the end endpoint, and assumes that things that end
@@ -1170,7 +1236,8 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
             cerr << "=>They are in a snarl, check distance in snarl" << endl;
             cerr << "\tsnarl at offset " << parent_record_offset1 << " with ranks " << get_rank_in_parent(child1) << " " << get_rank_in_parent(child2) << endl;
 #endif                                                                                 
-            //They are in the same root snarl, so find the distance between them
+            //They are in the same root snarl, so find the distance between them.
+            // We know this isn't a simple snarl.
             SnarlRecord snarl_record(parent_record_offset1, &snarl_tree_records);
 
             return snarl_record.get_distance(get_rank_in_parent(child1), !child_ends_at_start1, 
@@ -2759,7 +2826,7 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path_in_snarl(const net_han
     size_t target_distance = distance_to_traverse;
     size_t starting_distance = distance_traversed;
     cerr << "Find shortest path in " << net_handle_as_string(snarl_handle) << " from " << net_handle_as_string(start) << " to " << net_handle_as_string(end) << " with distance " << distance_to_traverse << endl;
-    if (SnarlRecord(snarl_handle, &snarl_tree_records).get_record_type() != OVERSIZED_SNARL) {
+    if (SnarlTreeRecord(snarl_handle, &snarl_tree_records).get_record_type() != OVERSIZED_SNARL) {
         cerr << "\tactual distance is " << distance_in_parent(snarl_handle, start, flip(end)) << endl;
         assert(distance_in_parent(snarl_handle, start, flip(end)) == distance_to_traverse);
     }
@@ -2771,8 +2838,7 @@ void SnarlDistanceIndex::for_each_handle_in_shortest_path_in_snarl(const net_han
      * there will always be only one that is on the minimum distance path.  
     */
 
-    SnarlRecord snarl_record (snarl_handle, &snarl_tree_records);
-    if (snarl_record.get_record_type() == OVERSIZED_SNARL) {
+    if (SnarlTreeRecord(snarl_handle, &snarl_tree_records).get_record_type() == OVERSIZED_SNARL) {
         //IF this is an oversized snarl, then we don't have any distance information so use the handlgraph algorithm
         //for traversing the shortest path
 
@@ -3348,8 +3414,10 @@ nid_t SnarlDistanceIndex::node_id(const net_handle_t& net) const {
             return TrivialSnarlRecord(get_record_offset(net), &snarl_tree_records).get_node_id(get_node_record_offset(net));
         }
     } else if (is_sentinel(net)) {
-        SnarlRecord snarl_record(net, &snarl_tree_records);
-        NodeRecord node_record;
+        // We don't know if this is a trivial or nontrivial snarl, so we need
+        // to access it with the base class.
+        // TODO: Make a base class for any kind of snarl.
+        SnarlTreeRecord snarl_record(net, &snarl_tree_records);
         if (get_start_endpoint(net) == START) {
             return snarl_record.get_start_id();
         } else {
@@ -3722,7 +3790,7 @@ handlegraph::nid_t SnarlDistanceIndex::SnarlTreeRecord::get_end_id() const {
     }
 }
 
-handlegraph::nid_t SnarlDistanceIndex::SnarlTreeRecord::get_end_orientation() const {
+bool SnarlDistanceIndex::SnarlTreeRecord::get_end_orientation() const {
     record_t type = get_record_type();
     if (type == ROOT) {
         throw runtime_error("error: trying to get the end node of the root");
@@ -4208,18 +4276,18 @@ SnarlDistanceIndex::SnarlRecord::SnarlRecord (size_t pointer, const bdsg::yomo::
     records = tree_records;
 #ifdef debug_distance_indexing
     record_t type = get_record_type();
-    assert(type == SNARL || type == DISTANCED_SNARL || type == OVERSIZED_SNARL || type == ROOT_SNARL
-        || type == ROOT_SNARL || type == DISTANCED_ROOT_SNARL);
+    if (!(type == SNARL || type == DISTANCED_SNARL ||
+          type == OVERSIZED_SNARL ||
+          type == ROOT_SNARL || type == DISTANCED_ROOT_SNARL)) {
+        
+        throw std::runtime_error("SnarlRecord record type " + std::to_string(type) + " " + stringify(type) + " at offset " + std::to_string(record_offset) + " is not an acceptable type for a SnarlRecord; maybe SimpleSnarlRecord should be used instead?");
+    }
 #endif
 }
 
-SnarlDistanceIndex::SnarlRecord::SnarlRecord (net_handle_t net, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records){
-    record_offset = get_record_offset(net);
-    records = tree_records;
-#ifdef debug_distance_indexing
-    net_handle_record_t type = get_handle_type(net);
-    assert(type == SNARL_HANDLE || type == SENTINEL_HANDLE || type == ROOT_HANDLE);
-#endif
+SnarlDistanceIndex::SnarlRecord::SnarlRecord (net_handle_t net, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records) :
+    SnarlRecord(get_record_offset(net), tree_records) {
+    // Nothing to do!
 }
 
 
@@ -5098,36 +5166,35 @@ SnarlDistanceIndex::ChainRecord::ChainRecord (size_t pointer, const bdsg::yomo::
 
     record_offset = pointer;
     records = tree_records;
-    net_handle_record_t record_type= get_record_handle_type();
-    if (record_type == NODE_HANDLE) {
-        net_handle_record_t parent_type = SnarlTreeRecord(
-            NodeRecord(pointer, 0, records).get_parent_record_offset(), records
-        ).get_record_handle_type();
-#ifdef debug_distance_indexing
-        assert(parent_type == ROOT_HANDLE || parent_type == SNARL_HANDLE);
-#endif  
-    } else {
-#ifdef debug_distance_indexing
-    assert(get_record_handle_type() == CHAIN_HANDLE);
-#endif
-    }   
-}       
 
-SnarlDistanceIndex::ChainRecord::ChainRecord (net_handle_t net, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records){
-    record_offset = get_record_offset(net);
-    records = tree_records;
-    
-    net_handle_record_t record_type = get_record_handle_type();
 #ifdef debug_distance_indexing
-    if (record_type == NODE_HANDLE) {
+    net_handle_record_t type = get_record_handle_type();
+    if (type == NODE_HANDLE) {
         net_handle_record_t parent_type = SnarlTreeRecord(
             NodeRecord(record_offset, 0, records).get_parent_record_offset(), records
         ).get_record_handle_type();
+
         assert(parent_type == ROOT_HANDLE || parent_type == SNARL_HANDLE);
-    } else {
-        assert(get_record_handle_type() == CHAIN_HANDLE);
+        return;
     }
+    record_t record_type = get_record_type();
+    if (type == SNARL_HANDLE) {
+        // Simple snarls are also able to be looked at as chains, and ChainRecord knows how to parse them.
+        if (record_type == SIMPLE_SNARL || record_type == DISTANCED_SIMPLE_SNARL) {
+            // This is allowed
+            return;
+        }
+    } else if (type == CHAIN_HANDLE) {
+        // Chain records as stored are allowed.
+        return;
+    }
+    throw std::runtime_error("ChainRecord with handle type " + std::to_string(type) + " " + stringify(type) + " and record type " + std::to_string(record_type) + " " + stringify(record_type) + " at offset " + std::to_string(record_offset) + " is not a node or a chain or a simple snarl");
 #endif
+}       
+
+SnarlDistanceIndex::ChainRecord::ChainRecord (net_handle_t net, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records) :
+    ChainRecord(get_record_offset(net), tree_records) {
+    // Nothing to do!
 }   
 
 SnarlDistanceIndex::ChainRecord::ChainRecord (net_handle_t net, const bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* tree_records, size_t tag){
@@ -5135,15 +5202,27 @@ SnarlDistanceIndex::ChainRecord::ChainRecord (net_handle_t net, const bdsg::yomo
     records = tree_records;
     
 #ifdef debug_distance_indexing
-    net_handle_record_t record_type= SnarlDistanceIndex::get_record_handle_type(SnarlDistanceIndex::get_record_type(tag     ));
-    if (record_type == NODE_HANDLE) {
+    net_handle_record_t type = SnarlDistanceIndex::get_record_handle_type(SnarlDistanceIndex::get_record_type(tag     ));
+    if (type == NODE_HANDLE) {
         net_handle_record_t parent_type = SnarlTreeRecord(
             NodeRecord(record_offset, 0, records).get_parent_record_offset(), records
         ).get_record_handle_type();
+
         assert(parent_type == ROOT_HANDLE || parent_type == SNARL_HANDLE);
-    } else {
-        assert(get_record_handle_type() == CHAIN_HANDLE);
-    }       
+        return;
+    }
+    record_t record_type = get_record_type();
+    if (type == SNARL_HANDLE) {
+        // Simple snarls are also able to be looked at as chains, and ChainRecord knows how to parse them.
+        if (record_type == SIMPLE_SNARL || record_type == DISTANCED_SIMPLE_SNARL) {
+            // This is allowed
+            return;
+        }
+    } else if (type == CHAIN_HANDLE) {
+        // Chain records as stored are allowed.
+        return;
+    }
+    throw std::runtime_error("ChainRecord with handle type " + std::to_string(type) + " " + stringify(type) + " and record type " + std::to_string(record_type) + " " + stringify(record_type) + " at offset " + std::to_string(record_offset) + " is not a node or a chain or a simple snarl");
 #endif
 }   
 
@@ -5396,7 +5475,7 @@ net_handle_t SnarlDistanceIndex::ChainRecord::get_next_child(const net_handle_t&
     if (get_handle_type(net_handle) == NODE_HANDLE) {
         //If this is a node in a trivial snarl
 #ifdef debug_snarl_traversal
-        cerr << "GEt next in chain after " << TrivialSnarlRecord(get_record_offset(net_handle), records).get_node_id(get_node_record_offset(net_handle)) << endl;
+        cerr << "Get next in chain after " << TrivialSnarlRecord(get_record_offset(net_handle), records).get_node_id(get_node_record_offset(net_handle)) << endl;
 #endif
         if (go_left && get_node_record_offset(net_handle) != 0) {
             //If we are going left and this is not the first node in the trivial snarl,
@@ -5827,21 +5906,26 @@ string SnarlDistanceIndex::net_handle_as_string(const net_handle_t& net) const {
     net_handle_record_t type = get_handle_type(net);
     SnarlTreeRecord record (net, &snarl_tree_records);
     net_handle_record_t record_type = record.get_record_handle_type();
-    string result;
+    string result = stringify(type) + "@" + std::to_string(get_record_offset(net)) + "=";
     if (type == ROOT_HANDLE) {
         if (record.get_record_type() == ROOT_SNARL || record.get_record_type() == DISTANCED_ROOT_SNARL) {
-            return "root snarl";
+            result += "root snarl";
+            return result;
         } else {
-            return "root"; 
+            result += "root";
+            return result;
         }
     } else if (type == NODE_HANDLE) {
         if (ends_at(net) == starts_at(net)) {
-            return "node" + std::to_string( node_id(net)) + (ends_at(net) == START ? "rev" : "fd") + " that is the end node of a looping chain";
+            result += "node" + std::to_string( node_id(net)) + (ends_at(net) == START ? "rev" : "fd") + " that is the end node of a looping chain";
+            return result;
         }
-        return  "node " + std::to_string( node_id(net)) + (ends_at(net) == START ? "rev" : "fd");
+        result += "node " + std::to_string( node_id(net)) + (ends_at(net) == START ? "rev" : "fd");
+        return result;
     } else if (type == SNARL_HANDLE) {
         if (record.get_record_type() == ROOT) {
-            return "root snarl";
+            result += "root snarl";
+            return result;
         }
         if (get_node_record_offset(net) == 1) {
             result += "simple snarl ";
@@ -5852,11 +5936,13 @@ string SnarlDistanceIndex::net_handle_as_string(const net_handle_t& net) const {
             result += "snarl ";         
         }
     } else if (type == CHAIN_HANDLE && record_type == NODE_HANDLE) {
-        return  "node " + std::to_string( NodeRecord(net, &snarl_tree_records).get_node_id())
+        result += "node " + std::to_string( NodeRecord(net, &snarl_tree_records).get_node_id())
                + (ends_at(net) == START ? "rev" : "fd") + " pretending to be a chain";
+        return result;
     }  else if (type == CHAIN_HANDLE && record_type == SNARL_HANDLE) {
-        return  "node " + std::to_string( SimpleSnarlRecord(net, &snarl_tree_records).get_node_id())
+        result += "node " + std::to_string( SimpleSnarlRecord(net, &snarl_tree_records).get_node_id())
                + (ends_at(net) == START ? "rev" : "fd") + " pretending to be a chain in a simple snarl";
+        return result;
     }else if (type == CHAIN_HANDLE) {
         result += "chain ";
     } else if (type == SENTINEL_HANDLE) {
@@ -5940,17 +6026,16 @@ void SnarlDistanceIndex::print_descendants_of(const net_handle_t net) const {
         } else {
             parent = net_handle_as_string(get_parent(net));
             if (record_type == CHAIN_HANDLE) {
-                child_count =  ChainRecord(net, &snarl_tree_records).get_node_count();
+                child_count = ChainRecord(net, &snarl_tree_records).get_node_count();
             } else if (record.get_record_type() == SNARL ||
-                        record.get_record_type() == DISTANCED_SNARL||
-                        record.get_record_type() == OVERSIZED_SNARL  
-                        ){
+                       record.get_record_type() == DISTANCED_SNARL||
+                       record.get_record_type() == OVERSIZED_SNARL) {
  
                 child_count = SnarlRecord(net, &snarl_tree_records).get_node_count();
             } else if (record.get_record_type() == TRIVIAL_SNARL ||
                         record.get_record_type() == DISTANCED_TRIVIAL_SNARL) {
                 child_count = TrivialSnarlRecord(get_record_offset(net), &snarl_tree_records).get_node_count();
-            }else if (record.get_record_type() == SIMPLE_SNARL ||
+            } else if (record.get_record_type() == SIMPLE_SNARL ||
                         record.get_record_type() == DISTANCED_SIMPLE_SNARL) {
                 child_count = SimpleSnarlRecord(net, &snarl_tree_records).get_node_count();
             } else {
@@ -5977,10 +6062,9 @@ void SnarlDistanceIndex::print_snarl_stats() const {
             //Get the number of children depending on the type of record
             size_t child_count;
             if (record.get_record_type() == SNARL ||
-                        record.get_record_type() == DISTANCED_SNARL||
-                        record.get_record_type() == OVERSIZED_SNARL  
-                        ){
- 
+                record.get_record_type() == DISTANCED_SNARL ||
+                record.get_record_type() == OVERSIZED_SNARL) {
+
                 child_count = SnarlRecord(snarl_child, &snarl_tree_records).get_node_count();
             } else if (record.get_record_type() == SIMPLE_SNARL ||
                         record.get_record_type() == DISTANCED_SIMPLE_SNARL) {
@@ -6047,9 +6131,9 @@ void SnarlDistanceIndex::write_snarls_to_json() const {
 
             //Get the number of children depending on the type of record
             if (record.get_record_type() == SNARL ||
-                        record.get_record_type() == DISTANCED_SNARL||
-                        record.get_record_type() == OVERSIZED_SNARL  
-                        ){
+                record.get_record_type() == DISTANCED_SNARL||
+                record.get_record_type() == OVERSIZED_SNARL) {
+
                 size_t child_count = SnarlRecord(snarl_child, &snarl_tree_records).get_node_count();
                 json_object_set_new(out_json, "child_count", json_integer(child_count)); 
             } else if (record.get_record_type() == SIMPLE_SNARL ||

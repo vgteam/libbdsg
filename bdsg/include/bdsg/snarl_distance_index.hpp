@@ -219,8 +219,10 @@ public:
                             END_START, END_END, END_TIP, 
                             TIP_START, TIP_END, TIP_TIP};
 
-    ///Type of a net_handle_t, which may not be the type of the record
-    ///This is to allow a node record to be seen as a chain from the perspective of a handle
+    /// Type of a net_handle_t, which may not be the type of the record
+    /// This is to allow a node record to be seen as a chain from the perspective of a handle.
+    /// And to allow a simple snarl record to be seen as a node, a chain, or a snarl.
+    /// TODO: What does that really mean? Why can that happen?
     enum net_handle_record_t {ROOT_HANDLE=0, NODE_HANDLE, SNARL_HANDLE, CHAIN_HANDLE, SENTINEL_HANDLE};
 
 /////////////////////////////  functions for distance calculations using net_handle_t's 
@@ -634,6 +636,8 @@ public:
                    ROOT_SNARL, DISTANCED_ROOT_SNARL,
                    CHAIN, DISTANCED_CHAIN, MULTICOMPONENT_CHAIN,
                    CHILDREN};
+    // TODO: Doesn't this need to be inline? And isn't const not allowed on a
+    // static method? Is this just making the bool const?
     const static bool has_distances(record_t type) {
         return type == DISTANCED_NODE || type == DISTANCED_TRIVIAL_SNARL || type == DISTANCED_SIMPLE_SNARL
             || type == DISTANCED_SNARL || type == OVERSIZED_SNARL || type == DISTANCED_ROOT_SNARL 
@@ -651,8 +655,9 @@ public:
             return ROOT_HANDLE;
         } else if (type == NODE || type == DISTANCED_NODE || type == TRIVIAL_SNARL || type == DISTANCED_TRIVIAL_SNARL) {
             return NODE_HANDLE;
-        } else if (type == SNARL || type == DISTANCED_SNARL || type ==  SIMPLE_SNARL ||type ==  OVERSIZED_SNARL 
-                 || type == SIMPLE_SNARL || type == DISTANCED_SIMPLE_SNARL){
+        } else if (type == SNARL || type == DISTANCED_SNARL || 
+                   type ==  OVERSIZED_SNARL ||
+                   type == SIMPLE_SNARL || type == DISTANCED_SIMPLE_SNARL) {
             return SNARL_HANDLE;
         } else if (type == CHAIN || type == DISTANCED_CHAIN || type == MULTICOMPONENT_CHAIN) {
             return CHAIN_HANDLE;
@@ -941,17 +946,44 @@ private:
 
 private:
     /*Give each of the enum types a name for printing */
-    vector<std::string> record_t_as_string = {"ROOT", "NODE", "DISTANCED_NODE", 
-                     "TRIVIAL_SNARL", "DISTANCED_TRIVIAL_SNARL",
-                     "SNARL", "DISTANCED_SNARL", "SIMPLE_SNARL", "OVERSIZED_SNARL", 
-                     "ROOT_SNARL", "DISTANCED_ROOT_SNARL",
-                     "CHAIN", "DISTANCED_CHAIN", "MULTICOMPONENT_CHAIN",
-                     "CHILDREN"};
-    vector<std::string> connectivity_t_as_string = { "START_START", "START_END", "START_TIP", 
-                            "END_START", "END_END", "END_TIP", 
-                            "TIP_START", "TIP_END", "TIP_TIP"};
-    vector<std::string> net_handle_record_t_string = {"ROOT_HANDLE", "NODE_HANDLE", "SNARL_HANDLE", 
-                                                "CHAIN_HANDLE", "SENTINEL_HANDLE"};
+    // TODO: The names can't be here unless we give up using them in static methods.
+    const static vector<std::string> record_t_as_string; // Note that the enum for this one is 1-based but the names are still 0-based
+    const static vector<std::string> connectivity_t_as_string;  // Note that the enum for this one is 1-based but the names are still 0-based
+    const static vector<std::string> net_handle_record_t_string;
+
+    // To deal with different offsets for the different types we use accessors.
+    // TODO: Should we just make std::to_string overloads instead?
+
+    /**
+     * Convert a record_t to a string.
+     */
+    inline static std::string stringify(const record_t& v) {
+        if ((int)v > 0 && v - 1 < record_t_as_string.size()) {
+            return record_t_as_string[v - 1];
+        }
+        return "<OUT OF RANGE:" + std::to_string(v) + ">";
+    }
+
+    /**
+     * Convert a connectivity_t to a string.
+     */
+    inline static std::string stringify(const connectivity_t& v) {
+        if ((int)v > 0 && v - 1 < connectivity_t_as_string.size()) {
+            return connectivity_t_as_string[v - 1];
+        }
+        return "<OUT OF RANGE:" + std::to_string(v) + ">";
+    }
+
+    /**
+     * Convert a net_handle_record_t to a string.
+     */
+    inline static std::string stringify(const net_handle_record_t& v) {
+        // For this one, 0 is an allowed value.
+        if ((int)v >= 0 && v < net_handle_record_t_string.size()) {
+            return net_handle_record_t_string[v];
+        }
+        return "<OUT OF RANGE:" + std::to_string(v) + ">";
+    }
 
 
     /* If this is 0, then don't store distances.
@@ -1015,6 +1047,13 @@ private:
  * SnarlTreeRecord keeps the pointer and interprets the values stored in the record .
  *
  * SnarlTreeRecordWriter does the same thing but for writing values to the index.
+ *
+ * Note that each SnarlTreeRecord class (expecially ChainRecord) sometimes
+ * knows how to parse/interpret *other* actual record types, to support the
+ * system where a node can "pretend" to be a chain, or a simple snarl can
+ * pretend to be either a node (TODO: why?) or a chain. We end up parsing the
+ * record with the class appropriate to the thing we want to interpret it as,
+ * not the one you would pick from its stored record type.
  *
  */
     struct SnarlTreeRecord {
@@ -1085,7 +1124,7 @@ private:
         bool get_start_orientation() const;
         handlegraph::nid_t get_end_id() const;
         //Return true if the end node is traversed backwards to leave the snarl
-        handlegraph::nid_t get_end_orientation() const;
+        bool get_end_orientation() const;
 
     };
 
@@ -1737,44 +1776,68 @@ public:
             if (ref.first != TEMP_CHAIN) {
                 throw std::invalid_argument("Trying to look up a non-chain as a chain");
             }
-            return temp_chain_records.at(ref.second);
+            if (ref.second >= temp_chain_records.size()) {
+                throw std::out_of_range("Trying to look up chain " + std::to_string(ref.second) + " but temporary index only has " + std::to_string(temp_chain_records.size()) + " chains");
+            }
+            return temp_chain_records[ref.second];
         }
 
         inline const TemporaryChainRecord& get_chain(const temp_record_ref_t& ref) const {
             if (ref.first != TEMP_CHAIN) {
                 throw std::invalid_argument("Trying to look up a non-chain as a chain");
             }
-            return temp_chain_records.at(ref.second);
+            if (ref.second >= temp_chain_records.size()) {
+                throw std::out_of_range("Trying to look up chain " + std::to_string(ref.second) + " but temporary index only has " + std::to_string(temp_chain_records.size()) + " chains");
+            }
+            return temp_chain_records[ref.second];
         }
 
         inline TemporarySnarlRecord& get_snarl(const temp_record_ref_t& ref) {
             if (ref.first != TEMP_SNARL) {
                 throw std::invalid_argument("Trying to look up a non-snarl as a snarl");
             }
-            return temp_snarl_records.at(ref.second);
+            if (ref.second >= temp_snarl_records.size()) {
+                throw std::out_of_range("Trying to look up snarl " + std::to_string(ref.second) + " but temporary index only has " + std::to_string(temp_snarl_records.size()) + " snarls");
+            }
+            return temp_snarl_records[ref.second];
         }
 
         inline const TemporarySnarlRecord& get_snarl(const temp_record_ref_t& ref) const {
             if (ref.first != TEMP_SNARL) {
                 throw std::invalid_argument("Trying to look up a non-snarl as a snarl");
             }
-            return temp_snarl_records.at(ref.second);
+            if (ref.second >= temp_snarl_records.size()) {
+                throw std::out_of_range("Trying to look up snarl " + std::to_string(ref.second) + " but temporary index only has " + std::to_string(temp_snarl_records.size()) + " snarls");
+            }
+            return temp_snarl_records[ref.second];
         }
 
         inline TemporaryNodeRecord& get_node(const temp_record_ref_t& ref) {
             if (ref.first != TEMP_NODE) {
                 throw std::invalid_argument("Trying to look up a non-node as a node");
             }
+            if (ref.second < min_node_id) {
+                throw std::out_of_range("Trying to look up node " + std::to_string(ref.second) + " but temporary index starts at node " + std::to_string(min_node_id));
+            }
+            if (ref.second >= temp_node_records.size() + min_node_id) {
+                throw std::out_of_range("Trying to look up node " + std::to_string(ref.second) + " but temporary index only goes up until node " + std::to_string(temp_node_records.size() + min_node_id));
+            }
             // Nodes use a node ID in the ref, not an index.
-            return temp_node_records.at(ref.second - min_node_id);
+            return temp_node_records[ref.second - min_node_id];
         }
 
         inline const TemporaryNodeRecord& get_node(const temp_record_ref_t& ref) const {
             if (ref.first != TEMP_NODE) {
                 throw std::invalid_argument("Trying to look up a non-node as a node");
             }
+            if (ref.second < min_node_id) {
+                throw std::out_of_range("Trying to look up node " + std::to_string(ref.second) + " but temporary index starts at node " + std::to_string(min_node_id));
+            }
+            if (ref.second >= temp_node_records.size() + min_node_id) {
+                throw std::out_of_range("Trying to look up node " + std::to_string(ref.second) + " but temporary index only goes up until node " + std::to_string(temp_node_records.size() + min_node_id));
+            }
             // Nodes use a node ID in the ref, not an index.
-            return temp_node_records.at(ref.second - min_node_id);
+            return temp_node_records[ref.second - min_node_id];
         }
 
         // Roots never need to be looked up.
