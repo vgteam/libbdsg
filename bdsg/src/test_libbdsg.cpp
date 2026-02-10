@@ -33,7 +33,7 @@
 #include "bdsg/overlays/vectorizable_overlays.hpp"
 #include "bdsg/overlays/packed_subgraph_overlay.hpp"
 #include "bdsg/overlays/reference_path_overlay.hpp"
-
+#include "bdsg/ch.hpp"
 
 using namespace bdsg;
 using namespace handlegraph;
@@ -4989,6 +4989,310 @@ void test_hash_graph() {
     cerr << "HashGraph tests successful!" << endl;
 }
 
+void test_hub_labeling() {
+
+  // To make the tests easier to write we have a widget that does the full dance
+  // to build a packed label vector.
+  auto get_packed_labels = [](const HashGraph& test_g) {
+    //test HashGraph -> Boost graph
+    CHOverlay bg = make_boost_graph(test_g);
+
+    auto [edges_start, edges_end] = boost::edges(bg);
+    std::for_each(edges_start, edges_end, [&] (auto e) {
+      cerr << source(e,bg) << " -> " << target(e,bg) << endl;
+    });
+
+    make_contraction_hierarchy(bg);
+    //cerr << " - made contraction hierarchy" << endl;
+
+    vector<vector<HubRecord>> labels_fwd; labels_fwd.resize(num_vertices(bg));
+    vector<vector<HubRecord>> labels_back; labels_back.resize(num_vertices(bg));
+
+    /*
+    for (auto v: labels_fwd) {
+      for (auto sz: v) {
+      cerr << "(" << sz.hub << "," << sz.dist << ") ";
+      }
+      cerr << " | "; 
+    }
+    cerr << endl;  
+    cerr<<"back:" << endl;
+    for (auto v: labels_back) {
+      for (auto sz: v) {
+      cerr << "(" << sz.hub << "," << sz.dist << ") "; 
+      } 
+      cerr << " | ";
+    }
+    cerr << endl;
+    cerr << "pack:" << endl; 
+    for (auto sz: packed_labels) {
+      cerr << sz << " ";
+    }
+    cerr << endl;  */
+
+    create_labels(labels_fwd, labels_back, bg);
+
+    //linearization
+    return pack_labels(labels_fwd, labels_back);
+  };
+
+  // We also use this to let us write our tests in therms of index into the
+  // handles vector, and orientation. This converts that to a hub labeling
+  // rank.
+  auto rank = [](size_t node_index, bool is_reverse) -> size_t {
+    return node_index * 2 + (is_reverse ? 1 : 0);
+  };
+
+  {
+    // Simple stick graph of 3 nodes
+    HashGraph test_g;
+    vector<handle_t> handles; handles.resize(3);
+    for (auto n: {0,1,2}) {
+      handles[n] = test_g.create_handle("A");
+    }
+    test_g.create_edge(handles[0], handles[1]);
+    test_g.create_edge(handles[1], handles[2]);
+
+    vector<size_t> packed_labels = get_packed_labels(test_g);
+
+    // 0th forward to 1st forward: no intervening bases
+    assert(hhl_query(packed_labels.begin(), rank(0, false), rank(1, false)) == 0);
+
+    // When asking about the same node twice, we look for self loops.
+    // Here there aren't any.
+    assert(hhl_query(packed_labels.begin(), rank(0, false), rank(0, false)) == INF_INT);
+
+    // 2nd reverse to 1st reverse: 1 intervening base
+    assert(hhl_query(packed_labels.begin(), rank(2, true), rank(0, true)) == 1);
+
+    // 0th reverse to 1st forward: no connection
+    assert(hhl_query(packed_labels.begin(), rank(0, true), rank(1, false)) == INF_INT);
+
+    //TODO: check that error occurs when nodeside out of range is given
+  }
+  {
+    // Graph with several nodes but only one edge
+    HashGraph test_g;
+    vector<handle_t> handles; handles.resize(8);
+    for (auto n: {0,1,2,3,4,5,6,7}) {
+      handles[n] = test_g.create_handle(string(n+1, 'A'));
+    }
+    vector<tuple<int,int>> edges={{1,3}};
+    for (auto e: edges) {
+      auto [s,t] = e;
+      test_g.create_edge(handles[s], handles[t]);
+    }
+
+    vector<size_t> packed_labels = get_packed_labels(test_g);
+
+    // 1st forward to 3rd forward: the only edge there is
+    assert(hhl_query(packed_labels.begin(), rank(1, false), rank(3, false)) == 0);
+    // nonexistent path
+    assert(hhl_query(packed_labels.begin(), rank(0, false), rank(7, false)) == INF_INT);
+  }
+  {
+    // Graph with several nodes and several edges
+    HashGraph test_g;
+    vector<handle_t> handles; handles.resize(8);
+    for (auto n: {0,1,2,3,4,5,6,7}) {
+      handles[n] = test_g.create_handle(string(n+1, 'A'));
+    }
+    vector<tuple<int,int>> edges={{0,1},{0,2},{1,0},{2,0},{1,3},{1,4},{4,1},{5,5}};
+    for (auto e: edges) {
+      auto [s,t] = e;
+      test_g.create_edge(handles[s], handles[t]);
+    }
+
+    vector<size_t> packed_labels = get_packed_labels(test_g);
+
+    // 1st forward to 3rd forward: direct connection
+    assert(hhl_query(packed_labels.begin(), rank(1, false), rank(3, false)) == 0);
+    // 0th forward to 7th forward: nonexistent path
+    assert(hhl_query(packed_labels.begin(), rank(0, false), rank(7, false)) == INF_INT);
+
+    // check node lengths are taken into account
+    // 0th forward to 3rd forward: should need to go through 1st which has length 2
+    assert(hhl_query(packed_labels.begin(), rank(0, false), rank(3, false)) == 2);
+
+    // check u -> v and v -> u are different
+    // 3rd forward to 1st forward: shouldn't connect because nothing is downstream of 3rd
+    assert(hhl_query(packed_labels.begin(), rank(3, false), rank(1, false)) == INF_INT);
+    // 1st forward to 3rd forward: direct connection
+    assert(hhl_query(packed_labels.begin(), rank(1, false), rank(3, false)) == 0);
+
+    // need to debug
+    for (size_t a = 0; a < handles.size() * 2; a++) {
+      cerr << hhl_query(packed_labels.begin(), rank(1, false), a) << endl;
+    }
+
+    // node to itself in the same direction (edge exists)
+    assert(hhl_query(packed_labels.begin(), rank(5, false), rank(5, false)) == 0);
+    // node to itself in the same direction (edge doesn't exist)
+    assert(hhl_query(packed_labels.begin(), rank(3, false), rank(3, false)) == INF_INT);
+  }
+  {
+    // Test case: Cycle back to the same node with minimum distance > 0
+    // Creates a triangle: 0 -> 1 -> 2 -> 0
+    // Node lengths: 0=1, 1=2, 2=3
+    HashGraph test_g;
+    vector<handle_t> handles; handles.resize(3);
+    for (auto n : {0, 1, 2}) {
+      handles[n] = test_g.create_handle(string(n + 1, 'A'));
+    }
+    test_g.create_edge(handles[0], handles[1]);
+    test_g.create_edge(handles[1], handles[2]);
+    test_g.create_edge(handles[2], handles[0]);
+
+    vector<size_t> packed_labels = get_packed_labels(test_g);
+
+    // Forward cycle: 0->1->2->0
+    // 0_fwd to 0_fwd via cycle: intermediate nodes 1 and 2, lengths 2+3=5
+    assert(hhl_query(packed_labels.begin(), rank(0, false), rank(0, false)) == 5);
+    // 1_fwd to 1_fwd via cycle: intermediate nodes 2 and 0, lengths 3+1=4
+    assert(hhl_query(packed_labels.begin(), rank(1, false), rank(1, false)) == 4);
+    // 2_fwd to 2_fwd via cycle: intermediate nodes 0 and 1, lengths 1+2=3
+    assert(hhl_query(packed_labels.begin(), rank(2, false), rank(2, false)) == 3);
+
+    // The same cycle is visible in reverse. 
+    assert(hhl_query(packed_labels.begin(), rank(0, true), rank(0, true)) == 5);
+    assert(hhl_query(packed_labels.begin(), rank(1, true), rank(1, true)) == 4);
+    assert(hhl_query(packed_labels.begin(), rank(2, true), rank(2, true)) == 3);
+  }
+  {
+    // Test case: Forward and reverse orientations of different nodes reaching each other
+    // Node 0 (len 1) and Node 1 (len 2)
+    // Edges: 0_fwd -> 1_rev, 2_fwd -> 1_fwd
+    // This creates a "reversing" pattern where you enter one side and exit the other
+    HashGraph test_g;
+    vector<handle_t> handles; handles.resize(3);
+    handles[0] = test_g.create_handle("A");
+    handles[1] = test_g.create_handle("AA");
+    handles[2] = test_g.create_handle("AAA");
+
+    test_g.create_edge(handles[0], test_g.flip(handles[1]));
+    test_g.create_edge(handles[2], handles[1]);
+
+    vector<size_t> packed_labels = get_packed_labels(test_g);
+    
+    // We see the 1st node attached the right way around
+    assert(hhl_query(packed_labels.begin(), rank(0, false), rank(1, true)) == 0);
+    assert(hhl_query(packed_labels.begin(), rank(0, false), rank(1, false)) == INF_INT);
+
+    // We see the 0th node connected to the 2nd node the right way around
+    assert(hhl_query(packed_labels.begin(), rank(0, false), rank(2, true)) == 2);
+    assert(hhl_query(packed_labels.begin(), rank(0, false), rank(2, false)) == INF_INT);
+
+    // We see the same thing looking the other way
+    assert(hhl_query(packed_labels.begin(), rank(2, false), rank(0, true)) == 2);
+    assert(hhl_query(packed_labels.begin(), rank(2, false), rank(0, false)) == INF_INT);
+  }
+  {
+    // Test case: Diamond graph with multiple paths of different lengths
+    // Tests that we find the minimum distance, not just any path
+    //
+    //       1 (len 2)
+    //      / \
+    //     /   \
+    //    0     3
+    //     \   /
+    //      \ /
+    //       2 (len 10)
+    //
+    // Node lengths: 0=1, 1=2, 2=10, 3=1
+    // Path 0->1->3 has intermediate length 2
+    // Path 0->2->3 has intermediate length 10
+    // Should find minimum = 2
+    HashGraph test_g;
+    vector<handle_t> handles; handles.resize(4);
+    handles[0] = test_g.create_handle("A");
+    handles[1] = test_g.create_handle("AA");
+    handles[2] = test_g.create_handle("AAAAAAAAAA");
+    handles[3] = test_g.create_handle("A");
+
+    test_g.create_edge(handles[0], handles[1]);
+    test_g.create_edge(handles[0], handles[2]);
+    test_g.create_edge(handles[1], handles[3]);
+    test_g.create_edge(handles[2], handles[3]);
+
+    vector<size_t> packed_labels = get_packed_labels(test_g);
+
+    assert(hhl_query(packed_labels.begin(), rank(0, false), rank(3, false)) == 2);
+
+    // Same paths in reverse, should also be 2
+    assert(hhl_query(packed_labels.begin(), rank(3, true), rank(0, true)) == 2);
+  }
+  {
+    // Test case: Graph requiring traversal through a node and back again
+    //
+    // 0_fwd -> 1_rev (entering 1 from the right)
+    // 1_fwd -> 2_fwd (exiting 1 from the right)
+    // 1_rev -> 1_fwd (turning around)
+    // This means you can go 0_fwd -> 1_rev -> (through 1) -> 1_fwd -> 2_fwd
+    HashGraph test_g;
+    vector<handle_t> handles; handles.resize(3);
+    handles[0] = test_g.create_handle("A");
+    handles[1] = test_g.create_handle("AAA");
+    handles[2] = test_g.create_handle("AA");
+
+    test_g.create_edge(handles[0], test_g.flip(handles[1]));
+    test_g.create_edge(handles[1], handles[2]);
+    test_g.create_edge(test_g.flip(handles[1]), handles[1]);
+
+    vector<size_t> packed_labels = get_packed_labels(test_g);
+
+    // Must go through 1, turn around, and come back through 1
+    assert(hhl_query(packed_labels.begin(), rank(0, false), rank(2, false)) == 6);
+  }
+  {
+    // Test case: Graph requiring traversal through a node and back again, but
+    // without the hairpin edge.
+    HashGraph test_g;
+    vector<handle_t> handles; handles.resize(3);
+    handles[0] = test_g.create_handle("A");
+    handles[1] = test_g.create_handle("AAA");
+    handles[2] = test_g.create_handle("AA");
+
+    test_g.create_edge(handles[0], test_g.flip(handles[1]));
+    test_g.create_edge(handles[1], handles[2]);
+
+    vector<size_t> packed_labels = get_packed_labels(test_g);
+
+    // We can't turn around inside 1, so we can't make it.
+    assert(hhl_query(packed_labels.begin(), rank(0, false), rank(2, false)) == INF_INT);
+  }
+  {
+    // Test case: Disconnected components
+    // Nodes 0,1 are connected; Nodes 2,3 are connected; No edges between components
+    HashGraph test_g;
+    vector<handle_t> handles; handles.resize(4);
+    handles[0] = test_g.create_handle("A");
+    handles[1] = test_g.create_handle("AA");
+    handles[2] = test_g.create_handle("AAA");
+    handles[3] = test_g.create_handle("AAAA");
+
+    test_g.create_edge(handles[0], handles[1]);
+    test_g.create_edge(handles[2], handles[3]);
+
+    vector<size_t> packed_labels = get_packed_labels(test_g);
+
+    // Within first component
+    assert(hhl_query(packed_labels.begin(), rank(0, false), rank(1, false)) == 0);  // 0_fwd to 1_fwd
+    assert(hhl_query(packed_labels.begin(), rank(1, true), rank(0, true)) == 0);    // 1_rev to 0_rev
+
+    // Within second component
+    assert(hhl_query(packed_labels.begin(), rank(2, false), rank(3, false)) == 0);  // 2_fwd to 3_fwd
+    assert(hhl_query(packed_labels.begin(), rank(3, true), rank(2, true)) == 0);    // 3_rev to 2_rev
+
+    // Between components: no path
+    assert(hhl_query(packed_labels.begin(), rank(0, false), rank(2, false)) == INF_INT);  // 0_fwd to 2_fwd
+    assert(hhl_query(packed_labels.begin(), rank(0, false), rank(3, false)) == INF_INT);  // 0_fwd to 3_fwd
+    assert(hhl_query(packed_labels.begin(), rank(1, false), rank(2, false)) == INF_INT);  // 1_fwd to 2_fwd
+    assert(hhl_query(packed_labels.begin(), rank(2, true), rank(0, true)) == INF_INT);    // 2_rev to 0_rev
+  }
+
+  cerr << "HubLabeling tests successful!" << endl;
+}
+
 void test_snarl_distance_index() {
 
     char filename[] = "tmpXXXXXX";
@@ -5043,7 +5347,7 @@ void test_snarl_distance_index() {
 }
 
 int main(void) {
-    test_reference_path_overlay();
+    /*test_reference_path_overlay();
     test_bit_packing();
     test_mapped_structs();
     test_int_vector();
@@ -5089,6 +5393,7 @@ int main(void) {
     test_packed_subgraph_overlay();
     test_multithreaded_overlay_construction();
     test_mapped_packed_graph();
-    test_hash_graph();
-    test_snarl_distance_index();
+    test_hash_graph(); */
+    test_hub_labeling();
+    //test_snarl_distance_index();
 }

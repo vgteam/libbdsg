@@ -18,8 +18,8 @@ OPTION(USE_INSTALLED_LIBHANDLEGRAPH "Use the version of libhandlegraph installed
 # TODO: We can only do out-of-source builds!
 # TODO: How do we error out meaningfully on in-source builds?
 
-# We build using c++14
-set(CMAKE_CXX_STANDARD 14)
+# We build using c++20
+set(CMAKE_CXX_STANDARD 20)
 # We need library paths to be relative in the build directories so we can let
 # the libraries in our Python module find each other when we package them into
 # a wheel. This only works on CMake 3.14+; older CMake we have to bully with
@@ -142,6 +142,8 @@ endif()
 
 # Find other system dependencies
 pkg_check_modules(Jansson REQUIRED IMPORTED_TARGET jansson)
+
+find_package(Boost REQUIRED)
 
 # Find our bdsg package directory where input sources and dependencies are
 set(bdsg_DIR "${CMAKE_CURRENT_SOURCE_DIR}/bdsg")
@@ -306,6 +308,7 @@ add_library(bdsg_objs OBJECT
   ${bdsg_DIR}/src/strand_split_overlay.cpp
   ${bdsg_DIR}/src/utility.cpp
   ${bdsg_DIR}/src/vectorizable_overlays.cpp
+  ${bdsg_DIR}/src/ch.cpp
   ${bdsg_DIR}/src/snarl_distance_index.cpp
   )
 
@@ -324,7 +327,8 @@ set(bdsg_TARGET_DEPS
   bbhash
   sparsepp
   mio::mio
-  PkgConfig::Jansson)
+  PkgConfig::Jansson
+  Boost::boost)
 
 set(bdsg_LIBS
   ${bdsg_TARGET_DEPS}
@@ -338,7 +342,7 @@ target_include_directories(bdsg_objs PUBLIC ${bdsg_INCLUDES})
 set_target_properties(bdsg_objs PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
 
 if (CMAKE_MAJOR_VERSION EQUAL "3" AND (CMAKE_MINOR_VERSION EQUAL "10" OR CMAKE_MINOR_VERSION EQUAL "11"))
-    # Before CMake 3.12 we can't ise target_link_libraries on an object library to convey the need to use depencies' include directories
+    # Before CMake 3.12 we can't use target_link_libraries on an object library to convey the need to use depencies' include directories
     get_target_property(sdsl_INCLUDE sdsl INTERFACE_INCLUDE_DIRECTORIES)
     target_include_directories(bdsg_objs PUBLIC ${sdsl_INCLUDE})
     get_target_property(hopscotch_map_INCLUDE tsl::hopscotch_map INTERFACE_INCLUDE_DIRECTORIES)

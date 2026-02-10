@@ -1264,7 +1264,10 @@ private:
 
         //How big is the entire snarl record?
         static size_t distance_vector_size(record_t type, size_t node_count);
-        static size_t record_size (record_t type, size_t node_count) ;
+        //vec_size parameter only needed for oversized snarls
+        //represents size of hub labeling-related data
+        //the value needed should be the first entry after the fixed-size record data
+        static size_t record_size (record_t type, size_t node_count, size_t vec_size) ;
         size_t record_size() ;
 
         //Get the index into the distance vector for the calculating distance between the given node sides
@@ -1298,9 +1301,33 @@ private:
 
         SnarlRecordWriter();
 
-        SnarlRecordWriter (size_t node_count, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, record_t type);
+        SnarlRecordWriter (size_t node_count, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, record_t type, size_t vec_size);
         SnarlRecordWriter(bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, size_t pointer);
 
+        /**
+         * Set size of hub labels flat vector (hub_labels).
+         * Only used for oversized snarls.
+         *
+         * May only be called once.
+         *
+         * TODO: Make separate SnarlRecordWriter for oversized snarls?
+         *
+         * Putting vec_size in the SNARL_RECORD_SIZE'th slot due to it being the first one after the header
+         */
+        void set_vec_size(size_t vec_size);
+        
+        /**
+         * Set an entry in the vector holding the hub label data.
+         * Only used for oversized snarls.
+         *
+         * set_vec_size() must be called first.
+         */
+        void set_vec_entry(size_t index, size_t value);
+
+        /**
+         * Set a distance matrix entry.
+         * Not used for oversized snarls.
+         */
         void set_distance(size_t rank1, bool right_side1, size_t rank2, bool right_side2, size_t distance);
 
         void set_distance_start_start(size_t value);
@@ -1470,7 +1497,7 @@ private:
          */
 
         //Add a snarl to the end of the chain and return a SnarlRecordWriter pointing to it
-        SnarlRecordWriter add_snarl(size_t snarl_size, record_t type, size_t previous_child_offset); 
+        SnarlRecordWriter add_snarl(size_t snarl_size, record_t type, size_t vec_size, size_t previous_child_offset); 
         SimpleSnarlRecordWriter add_simple_snarl(size_t snarl_size, record_t type, size_t previous_child_offset); 
         //Add a node to the end of a chain and return the offset of the record it got added to
         //If new_record is true, make a new trivial snarl record for the node
@@ -1548,13 +1575,26 @@ public:
      */
     enum temp_record_t {TEMP_CHAIN=0, TEMP_SNARL, TEMP_NODE, TEMP_ROOT};
 
+    /**
+     * Type for referring to some temporary index (for a node, chain, etc.) in
+     * a TemporaryDistanceIndex. Holds a tag for the type of object being
+     * indexed, and then a number used to look it up.
+     *
+     * For a node, the number is the node ID.
+     *
+     * For anything else, it's the position in the corresponding vector of
+     * temporary indexes in the TemporaryDistanceIndex where the thing's
+     * temporary index is stored.
+     */
+    using temp_record_ref_t = std::pair<SnarlDistanceIndex::temp_record_t, size_t>;
+
     class TemporaryDistanceIndex{
     public:
         TemporaryDistanceIndex();
         ~TemporaryDistanceIndex();
 
         //Get a string of the start and end of a structure
-        std::string structure_start_end_as_string(pair<temp_record_t, size_t> index) const;
+        std::string structure_start_end_as_string(temp_record_ref_t index) const;
     
         handlegraph::nid_t min_node_id=0;
         handlegraph::nid_t max_node_id=0;
@@ -1579,7 +1619,7 @@ public:
             size_t tree_depth=0; //TODO: This isn't used but I left it because I couldn't get the python bindings to build when I changed it
             //Type of the parent and offset into the appropriate vector
             //(TEMP_ROOT, 0) if this is a root level chain
-            pair<temp_record_t, size_t> parent;
+            temp_record_ref_t parent;
             size_t min_length=0;//Including boundary nodes
             size_t max_length = 0;
 
@@ -1601,7 +1641,7 @@ public:
             bool is_tip = false;
             bool loopable = true; //If this is a looping snarl, this is false if the last snarl is not start-end connected
 
-            vector<pair<temp_record_t, size_t>> children; //All children, both nodes and snarls, in order
+            vector<temp_record_ref_t> children; //All children, both nodes and snarls, in order
             //Distances for the chain, one entry per node
             //TODO This would probably be more efficient as a vector of a struct of five ints
             vector<size_t> prefix_sum;
@@ -1615,7 +1655,7 @@ public:
             size_t get_max_record_length(bool include_distances) const;
         };
         struct TemporarySnarlRecord : TemporaryRecord{
-            pair<temp_record_t, size_t> parent;
+            temp_record_ref_t parent;
             handlegraph::nid_t start_node_id;
             size_t start_node_length=0;
             handlegraph::nid_t end_node_id;
@@ -1644,11 +1684,13 @@ public:
             bool is_tip = false;
             bool is_root_snarl = false;
             bool include_distances = true;
-            vector<pair<temp_record_t, size_t>> children; //All children, nodes and chains, in arbitrary order
+            vector<temp_record_ref_t> children; //All children, nodes and chains, in arbitrary order
             unordered_set<size_t> tippy_child_ranks; //The ranks of children that are tips
             //vector<tuple<pair<size_t, bool>, pair<size_t, bool>, size_t>> distances;
             unordered_map<pair<pair<size_t, bool>, pair<size_t, bool>>, size_t> distances;
-                     
+            //linearized hub labels (if not empty, this is an oversized snarl)
+            vector<size_t> hub_labels;
+         
             //How long is the record going to be in the distance index?
             size_t get_max_record_length() const ;
         };
@@ -1658,7 +1700,7 @@ public:
             rank_in_parent(0), reversed_in_parent(false){
             }
             handlegraph::nid_t node_id;
-            pair<temp_record_t, size_t> parent;
+            temp_record_ref_t parent;
             size_t node_length=0;
             size_t rank_in_parent=0;
             size_t root_snarl_index = std::numeric_limits<size_t>::max();
@@ -1677,12 +1719,67 @@ public:
                 return NODE_RECORD_SIZE;} 
         };
 
-
-        vector<pair<temp_record_t, size_t>> components;
-        vector<pair<temp_record_t, size_t>> root_snarl_components;
+        vector<temp_record_ref_t> components;
+        vector<temp_record_ref_t> root_snarl_components;
         vector<TemporaryChainRecord> temp_chain_records;
         vector<TemporarySnarlRecord> temp_snarl_records;
+        /// Holds temporary indexes for all the nodes.
+        /// 
+        /// While temporary snarl and chain records are stored at more or less
+        /// arbitrary indexes, temporary node records are laid out by node ID,
+        /// with the one for the node with ID min_node_id at index 0. This means
+        /// you can look up the TemporaryNodeRecord for a node by its ID, and
+        /// that some positions in the vector are empty temporary indexes for
+        /// nonexistent nodes. 
         vector<TemporaryNodeRecord> temp_node_records;
+
+        inline TemporaryChainRecord& get_chain(const temp_record_ref_t& ref) {
+            if (ref.first != TEMP_CHAIN) {
+                throw std::invalid_argument("Trying to look up a non-chain as a chain");
+            }
+            return temp_chain_records.at(ref.second);
+        }
+
+        inline const TemporaryChainRecord& get_chain(const temp_record_ref_t& ref) const {
+            if (ref.first != TEMP_CHAIN) {
+                throw std::invalid_argument("Trying to look up a non-chain as a chain");
+            }
+            return temp_chain_records.at(ref.second);
+        }
+
+        inline TemporarySnarlRecord& get_snarl(const temp_record_ref_t& ref) {
+            if (ref.first != TEMP_SNARL) {
+                throw std::invalid_argument("Trying to look up a non-snarl as a snarl");
+            }
+            return temp_snarl_records.at(ref.second);
+        }
+
+        inline const TemporarySnarlRecord& get_snarl(const temp_record_ref_t& ref) const {
+            if (ref.first != TEMP_SNARL) {
+                throw std::invalid_argument("Trying to look up a non-snarl as a snarl");
+            }
+            return temp_snarl_records.at(ref.second);
+        }
+
+        inline TemporaryNodeRecord& get_node(const temp_record_ref_t& ref) {
+            if (ref.first != TEMP_NODE) {
+                throw std::invalid_argument("Trying to look up a non-node as a node");
+            }
+            // Nodes use a node ID in the ref, not an index.
+            return temp_node_records.at(ref.second - min_node_id);
+        }
+
+        inline const TemporaryNodeRecord& get_node(const temp_record_ref_t& ref) const {
+            if (ref.first != TEMP_NODE) {
+                throw std::invalid_argument("Trying to look up a non-node as a node");
+            }
+            // Nodes use a node ID in the ref, not an index.
+            return temp_node_records.at(ref.second - min_node_id);
+        }
+
+        // Roots never need to be looked up.
+
+        //whether the entire index has any oversized snarls or not
         bool use_oversized_snarls = false;
         size_t most_oversized_snarl_size = 0;
         friend class SnarlDistanceIndex;
