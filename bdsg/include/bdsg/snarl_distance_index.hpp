@@ -621,12 +621,14 @@ public:
     ///SIMPLE_SNARL is a snarl with all children connecting only to the boundary nodes in one direction (ie, a bubble).
     ///TRIVIAL_SNARL represents consecutive nodes in a chain. 
     ///NODE represents a node that is a trivial chain. A node can only be the child of a snarl.
-    ///OVERSIZED_SNARL only stores distances to the boundaries.
+    ///OVERSIZED_SNARL stores hub labeling data to compute distances.
     ///ROOT_SNARL represents a connected component of the root. It has no start or end node so 
     ///   its children technically belong to the root.
     ///MULTICOMPONENT_CHAIN can represent a chain with snarls that are not start-end connected.
     ///    The chain is split up into components between these snarls, each node is tagged with
     ///    which component it belongs to.
+    ///
+    /// TODO: What is a CHILDREN record? Is it ever used?
     ///
     enum record_t {ROOT=1, 
                    NODE, DISTANCED_NODE, 
@@ -1700,12 +1702,18 @@ public:
             handlegraph::nid_t end_node_id;
             size_t end_node_length=0;
             size_t node_count=0;
-            size_t min_length = std::numeric_limits<size_t>::max(); //Not including boundary nodes
+            /// Minimum distance across the snarl from start to end, not
+            /// including boundary nodes.
+            size_t min_length = std::numeric_limits<size_t>::max(); 
             size_t max_length = 0;
             size_t max_distance = 0;
             size_t tree_depth = 0; //TODO: This isn't used but I left it because I couldn't get the python bindings to build when I changed it
 
+            /// Minimum distance from the start back to itself within the
+            /// snarl, not including boundary nodes.
             size_t distance_start_start = std::numeric_limits<size_t>::max();
+            /// Minimum distance from the end back to itself within the snarl,
+            /// not including boundary nodes.
             size_t distance_end_end = std::numeric_limits<size_t>::max();
 
             size_t rank_in_parent=0;

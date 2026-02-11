@@ -1,6 +1,7 @@
 //#define debug_distance_indexing
 //#define debug_snarl_traversal
 //#define debug_distances
+//#define debug_parent
 //#define debug_distance_paths
 
 #include "bdsg/snarl_distance_index.hpp"
@@ -512,7 +513,7 @@ net_handle_t SnarlDistanceIndex::get_parent(const net_handle_t& child) const {
         throw runtime_error("error: trying to find the parent of the root");
     } else if (get_record_type(snarl_tree_records->at(get_record_offset(child))) == SIMPLE_SNARL ||
                get_record_type(snarl_tree_records->at(get_record_offset(child))) == DISTANCED_SIMPLE_SNARL) {
-#ifdef debug_distances 
+#ifdef debug_parent 
     std::cerr << "Child " << net_handle_as_string(child) << " has simple snarl record type " << stringify(get_record_type(snarl_tree_records->at(get_record_offset(child)))) << " and current handle type " << stringify(get_handle_type(child)) << std::endl;
 #endif
 
@@ -521,14 +522,14 @@ net_handle_t SnarlDistanceIndex::get_parent(const net_handle_t& child) const {
             // If this is a node, then return it as a chain
             // TODO: Why can a simple snarl need to look like a node itself?
             // TODO: Why can a simple snarl need to look like a chain? Because the node needs to look like a chain?
-#ifdef debug_distances
+#ifdef debug_parent
             std::cerr << "We were looking at a simple snarl as a node; project it as a chain." << std::endl;
 #endif
             return get_net_handle_from_values(get_record_offset(child), child_connectivity, 
                                               CHAIN_HANDLE, get_node_record_offset(child));
         } else if (get_handle_type(child) == CHAIN_HANDLE) {
             //If this is a chain, then return the same thing as a snarl
-#ifdef debug_distances
+#ifdef debug_parent
             std::cerr << "We were looking at a simple snarl as a chain; project it as a snarl." << std::endl;
 #endif
             return get_net_handle_from_values(get_record_offset(child), START_END, SNARL_HANDLE, 1);
@@ -543,7 +544,7 @@ net_handle_t SnarlDistanceIndex::get_parent(const net_handle_t& child) const {
     SnarlTreeRecord parent_record(parent_pointer, &snarl_tree_records);
     net_handle_record_t parent_type = parent_record.get_record_handle_type();
 
-#ifdef debug_distances 
+#ifdef debug_parent 
     std::cerr << "Parent of " << net_handle_as_string(child) << " at " << parent_pointer << " has record type " << stringify(parent_record.get_record_type()) << std::endl;
 #endif
     
@@ -566,7 +567,7 @@ net_handle_t SnarlDistanceIndex::get_parent(const net_handle_t& child) const {
         //If this is a node and it's parent is not a chain, we want to pretend that its 
         //parent is a chain version of the child
         net_handle_t projected = get_net_handle_from_values(get_record_offset(child), child_connectivity, CHAIN_HANDLE, get_node_record_offset(child));
-#ifdef debug_distances 
+#ifdef debug_parent 
         std::cerr << "Parent of " << net_handle_as_string(child) << " projected as " << net_handle_as_string(projected) << std::endl;
 #endif
 
@@ -1248,6 +1249,10 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
     } else if (is_chain(parent)) {
         if (get_record_handle_type(get_record_type(snarl_tree_records->at(get_record_offset(parent)))) == NODE_HANDLE ||
             get_record_handle_type(get_record_type(snarl_tree_records->at(get_record_offset(parent)))) == SNARL_HANDLE) {
+            // TODO: Why would this happen?
+#ifdef debug_distances
+        std::cerr << "=>They are not reachable because this chain is really a node or snarl(???)" << std::endl;
+#endif
             return std::numeric_limits<size_t>::max();
         }
         ChainRecord chain_record(parent, &snarl_tree_records);
@@ -1344,6 +1349,10 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
                 //If the snarls are adjacent (and not the same snarl)
             return node_length2;//return the node length
         }
+        
+#ifdef debug_distances
+        std::cerr << "=>Measure chain distance between chain ranks " << rank_in_chain1 << " and " << rank_in_chain2 << std::endl;
+#endif
 
         return sum(chain_record.get_distance(rank_in_chain1, go_left1,
                                               node_length1, prefix_sum1,
@@ -1428,15 +1437,11 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
             // But that's weird and makes no sense that we would need to do
             // that!
             //
-            // Because this function takes the destination as facing back
-            // towards the start, but hhl_query takes it as facing along the
-            // connecting path, we need to flip the second orientation one more
-            // time.
-            size_t distance = hhl_query(length_data_it + 1, bgid(rank1, rev1 ^ !is_sentinel(child1), true), bgid(rank2, !(rev2 ^ !is_sentinel(child2)), false));
-            if (distance == bdsg::INF_INT) {
-                // Promote unreachable sentinel to wider type.
-                distance = std::numeric_limits<size_t>::max();
-            }
+            // Because the function we're in takes the destination as facing
+            // back towards the start, but hhl_query takes it as facing along
+            // the connecting path, we need to flip the second orientation one
+            // more time.
+            size_t distance = promote_distance<size_t>(hhl_query(length_data_it + 1, bgid(rank1, rev1 ^ !is_sentinel(child1), true), bgid(rank2, !(rev2 ^ !is_sentinel(child2)), false)));
 #ifdef debug_distances
             cerr << "               Resulting distance: " << distance << endl;
 #endif
@@ -5281,10 +5286,18 @@ size_t SnarlDistanceIndex::ChainRecord::get_distance(size_t rank1, bool left_sid
         throw runtime_error("error: Trying to get chain distances from a node");
     }
 #endif
-
-    if (get_record_type() == MULTICOMPONENT_CHAIN) {
+    
+    record_t record_type = get_record_type();
+    if (record_type == MULTICOMPONENT_CHAIN) {
         if (component1 != component2) {
+#ifdef debug_distances
+            std::cerr << "Ranks " << rank1 << " and " << rank2 << " are in different multicomponent chain components." << std::endl;
+#endif
             if (is_looping_chain) {
+#ifdef debug_distances
+                std::cerr << "Chain is looping." << std::endl;
+#endif
+
                 //If this is a looping chain, then the first/last node could be in two
                 //components
                 return get_distance_taking_chain_loop(rank1, left_side1, node_length1, 
@@ -5292,9 +5305,14 @@ size_t SnarlDistanceIndex::ChainRecord::get_distance(size_t rank1, bool left_sid
                             rank2, left_side2, node_length2,
                             prefix_sum2, forward_loop2, reverse_loop2, end_component2);
             } else {
+#ifdef debug_distances
+                std::cerr << "Chain is not looping." << std::endl;
+#endif
                 return std::numeric_limits<size_t>::max();
             }
         }
+    } else if (record_type != CHAIN && record_type != DISTANCED_CHAIN) {
+        std::cerr << "Warning: weird record type for chain: " << stringify(record_type) << std::endl;
     }
 
 
@@ -5305,30 +5323,50 @@ size_t SnarlDistanceIndex::ChainRecord::get_distance(size_t rank1, bool left_sid
         if (rank1 == rank2) {
             //If these are the same node, then the path would need to go around the node
             distance = sum(sum(forward_loop1,reverse_loop2),node_length1);
+#ifdef debug_distances
+            std::cerr << "Distance around shared node is " << distance << std::endl;
+#endif
         } else {
             distance = minus(prefix_sum2 - prefix_sum1, node_length1);
+#ifdef debug_distances
+            std::cerr << "Distance forward along chain is " << distance << std::endl;
+#endif
         }
     } else if (!left_side1 && !left_side2) {
         //Right side of 1 and right side of 2
         if (rank1 == rank2) {
             distance = forward_loop2;
-
+#ifdef debug_distances
+            std::cerr << "Distance on right self loop is " << distance << std::endl;
+#endif
         } else {
             distance = minus( sum(sum(prefix_sum2 - prefix_sum1, node_length2), forward_loop2),
                          node_length1);
+#ifdef debug_distances
+            std::cerr << "Distance from right to other right is " << distance << std::endl;
+#endif
         }
     } else if (left_side1 && left_side2) {
         //Left side of 1 and left side of 2
         if (rank1 == rank2) {
             distance = reverse_loop1;
+#ifdef debug_distances
+            std::cerr << "Distance on left slef loop is " << distance << std::endl;
+#endif
 
         } else {
             distance = sum(prefix_sum2 - prefix_sum1, reverse_loop1);
+#ifdef debug_distances
+            std::cerr << "Distance from left to other left " << distance << std::endl;
+#endif
         }
     } else {
         //Left side of 1 and right side of 2
         distance = sum(sum(sum(prefix_sum2 - prefix_sum1, reverse_loop1),
                         forward_loop2), node_length2);
+#ifdef debug_distances
+            std::cerr << "Distance back along chain is " << distance << std::endl;
+#endif
 
     }
     if (is_looping_chain) {
@@ -5336,6 +5374,9 @@ size_t SnarlDistanceIndex::ChainRecord::get_distance(size_t rank1, bool left_sid
                             prefix_sum1, forward_loop1, reverse_loop1, end_component1,
                             rank2, left_side2, node_length2,
                             prefix_sum2, forward_loop2, reverse_loop2, end_component2));
+#ifdef debug_distances
+            std::cerr << "After handling looping, distance is " << distance << std::endl;
+#endif
     }
     return distance;
 }
@@ -5906,7 +5947,7 @@ string SnarlDistanceIndex::net_handle_as_string(const net_handle_t& net) const {
     net_handle_record_t type = get_handle_type(net);
     SnarlTreeRecord record (net, &snarl_tree_records);
     net_handle_record_t record_type = record.get_record_handle_type();
-    string result = stringify(type) + "@" + std::to_string(get_record_offset(net)) + "=";
+    string result = stringify(type) + " ";
     if (type == ROOT_HANDLE) {
         if (record.get_record_type() == ROOT_SNARL || record.get_record_type() == DISTANCED_ROOT_SNARL) {
             result += "root snarl";

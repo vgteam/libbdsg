@@ -18,6 +18,15 @@ namespace bdsg {
 #define DIST_UINT uint32_t
 #define ARR2D_OFFSET 1
 
+/// Allow promoting a DIST_UINT to a different type, translating infinities to the type's max limit.
+template<typename OtherInt>
+OtherInt promote_distance(DIST_UINT val) {
+    if (val == INF_INT) {
+        return std::numeric_limits<OtherInt>::max();
+    }
+    return (OtherInt) val;
+}
+
 typedef int NodeId;
 typedef int NodesideId;
 typedef enum EnterDir {OTHER_NODESIDE=0,OTHER_NODE=1} EnterDir;

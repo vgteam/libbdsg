@@ -38,7 +38,8 @@ NODE_UINT bgid(const handle_t& h, const bdsg::HashGraph& hg);
  * For net graphs, we need to distinguish between source and destination status
  * to allow turning around within a child chain without traversing the full
  * length of the chain. Each child chain needs to be represented by a subgraph
- * with different in and out "port" nodes in each orientation.
+ * with different in and out "port" nodes in each orientation. The source port
+ * is the one you would leave the node from in that orientation.
  */
 NODE_UINT bgid(size_t net_rank, bool is_reverse, bool is_source);
 
