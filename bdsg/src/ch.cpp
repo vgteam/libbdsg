@@ -3,8 +3,8 @@ file for quickly playing around with stuff
 */
 #include "bdsg/ch.hpp"
 
-//#define debug_boost_graph
-//#define debug_create
+#define debug_boost_graph
+#define debug_create
 
 namespace bdsg {
 bdsg::HashGraph make_test() {

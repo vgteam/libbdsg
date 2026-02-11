@@ -1,6 +1,6 @@
-//#define debug_distance_indexing
+#define debug_distance_indexing
 //#define debug_snarl_traversal
-//#define debug_distances
+#define debug_distances
 //#define debug_parent
 //#define debug_distance_paths
 
@@ -1395,7 +1395,11 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
 #endif
 
         if (get_record_type(snarl_tree_records->at(get_record_offset(parent))) == DISTANCED_SIMPLE_SNARL) {
-            return SimpleSnarlRecord(parent, &snarl_tree_records).get_distance(rank1, rev1, rank2, rev2);
+            auto result = SimpleSnarlRecord(parent, &snarl_tree_records).get_distance(rank1, rev1, rank2, rev2);
+#ifdef debug_distances
+            std::cerr << "             Retrieving simple snarl value: " << result << endl;
+#endif
+            return result;
         } else if (get_record_type(snarl_tree_records->at(get_record_offset(parent))) == OVERSIZED_SNARL) {
 #ifdef debug_distances
             cerr << "             Performing HHL query" << endl;
@@ -1449,13 +1453,25 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
           
         } else if (rank1 == 0 && rank2 == 0 && !snarl_is_root) {
             //Start to start is stored in the snarl
-            return SnarlRecord(parent, &snarl_tree_records).get_distance_start_start();
+            auto result = SnarlRecord(parent, &snarl_tree_records).get_distance_start_start();
+#ifdef debug_distances
+            std::cerr << "             Retrieving snarl start-start value: " << result << endl;
+#endif
+            return result;
         } else if ((rank1 == 0 && rank2 == 1) || (rank1 == 1 && rank2 == 0) && !snarl_is_root) {
             //start to end / end to start is stored in the snarl
-            return SnarlRecord(parent, &snarl_tree_records).get_min_length();
+            auto result = SnarlRecord(parent, &snarl_tree_records).get_min_length();
+#ifdef debug_distances
+            std::cerr << "             Retrieving snarl min-length value: " << result << endl;
+#endif
+            return result;
         } else if (rank1 == 1 && rank2 == 1 && !snarl_is_root) {
             //end to end is stored in the snarl
-            return SnarlRecord(parent, &snarl_tree_records).get_distance_end_end();
+            auto result = SnarlRecord(parent, &snarl_tree_records).get_distance_end_end();
+#ifdef debug_distances
+            std::cerr << "             Retrieving snarl end-end value: " << result << endl;
+#endif
+            return result;
         } else if ((rank1 == 0 || rank1 == 1 || rank2 == 0 || rank2 == 1) && !snarl_is_root) {
             //If one node is a boundary and the other is a child
             size_t boundary_rank = (rank1 == 0 || rank1 == 1) ? rank1 : rank2;
@@ -1463,37 +1479,51 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
             bool internal_is_reversed = (rank1 == 0 || rank1 == 1) ? rev2 : rev1;
             if (is_trivial_chain( internal_child) ) {
                 //Child is just a node pretending to be a chain
+                size_t result;
                 if (boundary_rank == 0 && !internal_is_reversed) {
                     //Start to left of child
-                    return NodeRecord(internal_child, &snarl_tree_records).get_distance_left_start();
+                    result = NodeRecord(internal_child, &snarl_tree_records).get_distance_left_start();
                 } else if (boundary_rank == 0 && internal_is_reversed) {
                     //Start to right of child
-                    return NodeRecord(internal_child, &snarl_tree_records).get_distance_right_start();
+                    result = NodeRecord(internal_child, &snarl_tree_records).get_distance_right_start();
                 } else if (boundary_rank == 1 && !internal_is_reversed) {
                     //End to left of child
-                    return NodeRecord(internal_child, &snarl_tree_records).get_distance_left_end();
+                    result = NodeRecord(internal_child, &snarl_tree_records).get_distance_left_end();
                 } else {
                     //End to right of child
-                    return NodeRecord(internal_child, &snarl_tree_records).get_distance_right_end();
+                    result = NodeRecord(internal_child, &snarl_tree_records).get_distance_right_end();
                 }
+#ifdef debug_distances
+                std::cerr << "             Retrieving node record value: " << result << endl;
+#endif
+                return result;
             } else {
                 //Child is an actual chain
+                size_t result;
                 if (boundary_rank == 0 && !internal_is_reversed) {
                     //Start to left of child
-                    return ChainRecord(internal_child, &snarl_tree_records).get_distance_left_start();
+                    result = ChainRecord(internal_child, &snarl_tree_records).get_distance_left_start();
                 } else if (boundary_rank == 0 && internal_is_reversed) {
                     //Start to right of child
-                    return ChainRecord(internal_child, &snarl_tree_records).get_distance_right_start();
+                    result = ChainRecord(internal_child, &snarl_tree_records).get_distance_right_start();
                 } else if (boundary_rank == 1 && !internal_is_reversed) {
                     //End to left of child
-                    return ChainRecord(internal_child, &snarl_tree_records).get_distance_left_end();
+                    result = ChainRecord(internal_child, &snarl_tree_records).get_distance_left_end();
                 } else {
                     //End to right of child
-                    return ChainRecord(internal_child, &snarl_tree_records).get_distance_right_end();
+                    result = ChainRecord(internal_child, &snarl_tree_records).get_distance_right_end();
                 }
+#ifdef debug_distances
+                std::cerr << "             Retrieving chain record value: " << result << endl;
+#endif
+                return result;
             }
         } else {
-           return SnarlRecord(parent, &snarl_tree_records).get_distance(rank1, rev1, rank2, rev2);
+            auto result = SnarlRecord(parent, &snarl_tree_records).get_distance(rank1, rev1, rank2, rev2);
+#ifdef debug_distances
+            std::cerr << "             Retrieving snarl record value: " << result << endl;
+#endif
+            return result;
         }
     } else {
         throw runtime_error("error: Trying to find distance in the wrong type of handle");
