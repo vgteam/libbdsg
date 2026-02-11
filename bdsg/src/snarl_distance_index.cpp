@@ -1251,7 +1251,7 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
             get_record_handle_type(get_record_type(snarl_tree_records->at(get_record_offset(parent)))) == SNARL_HANDLE) {
             // TODO: Why would this happen?
 #ifdef debug_distances
-        std::cerr << "=>They are not reachable because this chain is really a node or snarl(???)" << std::endl;
+        std::cerr << "=>They are not reachable because this chain is really a node or snarl(?!)" << std::endl;
 #endif
             return std::numeric_limits<size_t>::max();
         }
@@ -1366,20 +1366,20 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
 
     } else if (is_snarl(parent)) {
         bool snarl_is_root = is_root_snarl(parent);
-        size_t rank1, rank2; bool rev1, rev2;
+        size_t rank1, rank2; bool dir1, dir2;
         if (is_sentinel(child1)) {
             rank1 = starts_at(child1) == START ? 0 : 1;
-            rev1 = false;
+            dir1 = false;
         } else {
             rank1 = get_rank_in_parent(child1);
-            rev1 = !child_ends_at_start1;
+            dir1 = !child_ends_at_start1;
         }
         if (is_sentinel(child2)) {
             rank2 = starts_at(child2) == START ? 0 : 1;
-            rev2 = false;
+            dir2 = false;
         } else {
             rank2 = get_rank_in_parent(child2);
-            rev2 = !child_ends_at_start2;
+            dir2 = !child_ends_at_start2;
         }
         if ((is_sentinel(child1) && starts_at(child1) == ends_at(child1)) ||
             (is_sentinel(child2) && starts_at(child2) == ends_at(child2)) ) {
@@ -1391,11 +1391,11 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
         }
 
 #ifdef debug_distances
-        cerr << "             between ranks " << rank1 << " " << rev1 << " " << rank2 << " " << rev2 << endl;
+        cerr << "             between ranks " << rank1 << " " << dir1 << " " << rank2 << " " << dir2 << endl;
 #endif
 
         if (get_record_type(snarl_tree_records->at(get_record_offset(parent))) == DISTANCED_SIMPLE_SNARL) {
-            auto result = SimpleSnarlRecord(parent, &snarl_tree_records).get_distance(rank1, rev1, rank2, rev2);
+            auto result = SimpleSnarlRecord(parent, &snarl_tree_records).get_distance(rank1, dir1, rank2, dir2);
 #ifdef debug_distances
             std::cerr << "             Retrieving simple snarl value: " << result << endl;
 #endif
@@ -1433,19 +1433,23 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
             // TODO: Probably need to also flip for is_reversed_in_parent() to
             // account for this.
             //
-            // TODO: rev1 and rev2 seem to actually be backwards for
-            // non-sentinel children (rev1 is true if child1's traversal
-            // *doesn't* end at its start, and thus ends at its end). Right now
-            // we address this by flipping them. We flip them and query
-            // going out the end of child 1 if its traversal ends at its end.
-            // But that's weird and makes no sense that we would need to do
-            // that!
+            // TODO: dir1 and dir2 aren't just normal is_reverse flags. 
             //
-            // Because the function we're in takes the destination as facing
-            // back towards the start, but hhl_query takes it as facing along
-            // the connecting path, we need to flip the second orientation one
-            // more time.
-            size_t distance = promote_distance<size_t>(hhl_query(length_data_it + 1, bgid(rank1, rev1 ^ !is_sentinel(child1), true), bgid(rank2, !(rev2 ^ !is_sentinel(child2)), false)));
+            // For a sentinel rank 1 (end node) as rank1, dir1 false needs to mean into the snarl (so start of end node, reverse strand).
+            // For a sentinel rank 0 (start node) as rank1, dir1 false needs to mean into the snarl (so end of start node, forward strand).
+            //
+            // For a node as rank2, with its end connected to rank1, dir2 true needs to mean towards the thing attached to its end. If we're not a source, that means it must be reverse strand.
+            
+            size_t from_port = bgid(rank1, dir1 ^ (rank1 == 1), true);
+#ifdef debug_distances
+            std::cerr << "               Query from vertex " << from_port << " = rank " << rank1 << " " << (dir1 ? "rev" : "fd") << " " << (is_sentinel(child1)? "sentinel" : "non-sentinel") << ", source" << std::endl;
+#endif
+            size_t to_port = bgid(rank2, dir2, false);
+#ifdef debug_distances
+            std::cerr << "               Query to vertex " << to_port << " = rank " << rank2 << " " << (dir2 ? "rev" : "fd") << " " << (is_sentinel(child2)? "sentinel" : "non-sentinel") << ", non-source" << std::endl;
+#endif
+
+            size_t distance = promote_distance<size_t>(hhl_query(length_data_it + 1, from_port, to_port));
 #ifdef debug_distances
             cerr << "               Resulting distance: " << distance << endl;
 #endif
@@ -1476,7 +1480,7 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
             //If one node is a boundary and the other is a child
             size_t boundary_rank = (rank1 == 0 || rank1 == 1) ? rank1 : rank2;
             const net_handle_t& internal_child = (rank1 == 0 || rank1 == 1) ? child2 : child1;
-            bool internal_is_reversed = (rank1 == 0 || rank1 == 1) ? rev2 : rev1;
+            bool internal_is_reversed = (rank1 == 0 || rank1 == 1) ? dir2 : dir1;
             if (is_trivial_chain( internal_child) ) {
                 //Child is just a node pretending to be a chain
                 size_t result;
@@ -1519,7 +1523,7 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
                 return result;
             }
         } else {
-            auto result = SnarlRecord(parent, &snarl_tree_records).get_distance(rank1, rev1, rank2, rev2);
+            auto result = SnarlRecord(parent, &snarl_tree_records).get_distance(rank1, dir1, rank2, dir2);
 #ifdef debug_distances
             std::cerr << "             Retrieving snarl record value: " << result << endl;
 #endif
