@@ -1644,8 +1644,10 @@ public:
             bool is_tip = false;
             bool is_root_snarl = false;
             bool include_distances = true;
-            vector<pair<temp_record_t, size_t>> children; //All children, nodes and chains, in arbitrary order
-            unordered_set<size_t> tippy_child_ranks; //The ranks of children that are tips
+            //All children, nodes and chains, in arbitrary order
+            vector<pair<temp_record_t, size_t>> children; 
+            //The ranks & orientations of children that are tips
+            unordered_map<size_t, bool> tippy_child_ranks; 
             //vector<tuple<pair<size_t, bool>, pair<size_t, bool>, size_t>> distances;
             unordered_map<pair<pair<size_t, bool>, pair<size_t, bool>>, size_t> distances;
                      
