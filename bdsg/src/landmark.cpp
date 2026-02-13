@@ -122,7 +122,7 @@ void fill_other_nodeside_dists(SdslArray2D& dist_table, HashGraph& g) {
       if (dist_table.get(i,ns) != INF_INT) {
         NodesideId other_ns = other_nodeside(ns);
         NodeId node = nodeside_to_node(ns);
-        dist_table.set(i, other_ns, min(addInt(dist_table.get(i,ns), g.get_length(g.get_handle(node))), static_cast<int>(dist_table.get(i,other_ns)))); 
+        dist_table.set(i, other_ns, min(addInt(dist_table.get(i,ns), demote_distance(g.get_length(g.get_handle(node)))), static_cast<int>(dist_table.get(i,other_ns)))); 
       }
     }
   }
@@ -259,8 +259,8 @@ SdslArray2D dijkstra(bdsg::HashGraph& g, NodesideId start, NodesideId stop_ns, i
     } 
     else {
       //came here from a nodeside of a node that =/= cur_nodeside's node
-      handle_t handle = g.get_handle(node_id, !nodeside_left(cur_nodeside));  
-      int handle_len = g.get_length(handle);
+      handle_t handle = g.get_handle(node_id, !nodeside_left(cur_nodeside));
+      int handle_len = demote_distance(g.get_length(handle));
 
       NodesideId other_ns = other_nodeside(cur_nodeside);
       //handle_t cur_handle = self_loop[cur_nodeside] ? g.flip(handle):handle;
@@ -269,7 +269,7 @@ SdslArray2D dijkstra(bdsg::HashGraph& g, NodesideId start, NodesideId stop_ns, i
       } 
       discover_nodeside(
         other_ns, OTHER_NODESIDE,
-        cur_dist == INF_INT ? INF_INT : cur_dist+handle_len, 
+        addInt(cur_dist, handle_len), 
         path_lengths, nodeside_queue
       );
     }
@@ -449,7 +449,7 @@ int oracle_query(NodesideId source, NodesideId target, OracleInfo& oracle, HashG
     
     NodeId lm = lm_node_vec[closest_lm_ind[ns]];
     //auto lm_nodesides = get_node_nodesides(lm);
-    int lm_length = g.get_length(g.get_handle(lm));
+    int lm_length = demote_distance(g.get_length(g.get_handle(lm)));
     int closest_lm_ns_ind = closest_lm_ind[ns]*2;
 
     //Array2D::index_gen ind_gen; 

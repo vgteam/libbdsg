@@ -27,6 +27,24 @@ OtherInt promote_distance(DIST_UINT val) {
     return (OtherInt) val;
 }
 
+/// Allow demoting a DIST_UINT from a different type, translating infinities
+/// from the type's max limit and erroring on unrepresentably large values.
+template<typename OtherInt>
+DIST_UINT demote_distance(OtherInt val) {
+    if (val == std::numeric_limits<OtherInt>::max()) {
+        return INF_INT;
+    }
+    if (val > (OtherInt) INF_INT) {
+        throw std::overflow_error("Cannot store excessively wide value " + std::to_string(val) + " in " + std::to_string(DIST_NBITS) + " bits for hub labeling");
+    }
+    return (DIST_UINT) val;
+}
+
+/// Sum two distances, propagating infinities.
+/// Does not check for overlfow.
+/// TODO: We're not really sure if our distances are ints or uints and we freely mix them when we shouldn't.
+int addInt(int a, int b);
+
 typedef int NodeId;
 typedef int NodesideId;
 typedef enum EnterDir {OTHER_NODESIDE=0,OTHER_NODE=1} EnterDir;
@@ -142,8 +160,6 @@ public:
     return col_itr; 
   }
 };
-
-int addInt(int a, int b);
 
 /*
 following functions assume input graph node ids go from 1...N

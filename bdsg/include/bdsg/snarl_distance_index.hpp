@@ -1,7 +1,7 @@
 #ifndef BDSG_SNARL_DISTANCE_HPP_INCLUDED
 #define BDSG_SNARL_DISTANCE_HPP_INCLUDED
 
-//#define debug_distance_indexing
+#define debug_distance_indexing
 //#define count_allocations
 
 #include <handlegraph/snarl_decomposition.hpp>
@@ -582,9 +582,11 @@ public:
     ///and end.
     net_handle_t get_parent_traversal(const net_handle_t& traversal_start, const net_handle_t& traversal_end) const;
 
-
 private:
-
+    
+    // TODO: This is apparently private because it does not actually work, and right now just prints a message to that effect.
+    // handlegraph::algorithms::for_each_handle_in_shortest_path() is available instead, but it doesn't use the index.
+    //
     ///Function to walk through the shortest path between the two nodes+orientations. Orientation is the same as for minimum_distance - 
     ///traverses from the first node going forward to the second node going forward.
     ///Calls iteratee on each node of the shortest path between the nodes and the distance to the start of that node
@@ -1687,8 +1689,8 @@ public:
             //TODO This would probably be more efficient as a vector of a struct of five ints
             vector<size_t> prefix_sum;
             vector<size_t> max_prefix_sum;
-            vector<size_t> forward_loops;
-            vector<size_t> backward_loops;
+            vector<size_t> forward_loops; // If no loop is possible, an entry will be std::numeric_limits<size_t>::max()
+            vector<size_t> backward_loops; // If no loop is possible, an entry will be std::numeric_limits<size_t>::max()
             vector<size_t> chain_components;//Which component does each node belong to, usually all 0s
 
 

@@ -1438,9 +1438,11 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
             // For a sentinel rank 1 (end node) as rank1, dir1 false needs to mean into the snarl (so start of end node, reverse strand).
             // For a sentinel rank 0 (start node) as rank1, dir1 false needs to mean into the snarl (so end of start node, forward strand).
             //
+            // For a node as rank1, with its end connected to rank2, dir1 true needs to mean towards the thing attached to its end. If we're a source, that means it must be forward strand.
+            //
             // For a node as rank2, with its end connected to rank1, dir2 true needs to mean towards the thing attached to its end. If we're not a source, that means it must be reverse strand.
             
-            size_t from_port = bgid(rank1, dir1 ^ (rank1 == 1), true);
+            size_t from_port = bgid(rank1, !dir1 ^ (rank1 == 0), true);
 #ifdef debug_distances
             std::cerr << "               Query from vertex " << from_port << " = rank " << rank1 << " " << (dir1 ? "rev" : "fd") << " " << (is_sentinel(child1)? "sentinel" : "non-sentinel") << ", source" << std::endl;
 #endif

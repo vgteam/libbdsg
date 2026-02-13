@@ -4,7 +4,7 @@ file for quickly playing around with stuff
 #include "bdsg/ch.hpp"
 
 #define debug_boost_graph
-#define debug_create
+//#define debug_create
 
 namespace bdsg {
 bdsg::HashGraph make_test() {
@@ -124,24 +124,28 @@ CHOverlay make_boost_graph(const SnarlDistanceIndex::TemporaryDistanceIndex& tem
       end_handle = hgraph->get_handle(record.end_node_id, record.end_node_rev);
 
       // Fetch straight-through distance.
-      // TODO: What value does this have if straight-through is unreachable? Then we want INF_INT.
-      start_end_distance = record.min_length;
+      // Will be std::numeric_limits<size_t>::max() if unconnected.
+      start_end_distance = demote_distance(record.min_length);
 
       // Fetch looping distances (thanks Xian!)
-      // TODO: What's the representation for "not connected"? Is it not having a value or is it having a sentinel value we need to translate to INF_INT here?
-      if (!record.forward_loops.empty()) {
+      // If no loop is actually possible, the loop value will be std::numeric_limits<size_t>::max()
+      if (!record.forward_loops.empty() && record.forward_loops[0] != std::numeric_limits<size_t>::max()) {
         // We know a chain always has a first child that's a node, so we can
         // get the start node length.
         auto& first_child = record.children.front();
         assert(first_child.first == bdsg::SnarlDistanceIndex::TEMP_NODE);
-        DIST_UINT start_node_length = temp_index.get_node(first_child).node_length;
-        start_start_distance = record.forward_loops[0] + (2 * start_node_length);
+        DIST_UINT start_node_length = demote_distance(temp_index.get_node(first_child).node_length);
+        // We know nothing can be infinite-distance here.
+        // TODO: Check for overflow?
+        start_start_distance = demote_distance(record.forward_loops[0]) + 2 * start_node_length;
       } else {
         start_start_distance = INF_INT;
       }
-      if (!record.backward_loops.empty()) {
+      if (!record.backward_loops.empty() && record.backward_loops.back() != std::numeric_limits<size_t>::max()) {
         // The end node length is already helpfully stored for us.
-        end_end_distance = record.backward_loops.back() + (2 * record.end_node_length);
+        // // We know nothing can be infinite-distance here.
+        // TODO: Check for overflow?
+        end_end_distance = record.backward_loops.back() + 2 * demote_distance(record.end_node_length);
       } else {
         end_end_distance = INF_INT;
       }
