@@ -1,7 +1,7 @@
 #ifndef BDSG_SNARL_DISTANCE_HPP_INCLUDED
 #define BDSG_SNARL_DISTANCE_HPP_INCLUDED
 
-#define debug_distance_indexing
+//#define debug_distance_indexing
 //#define count_allocations
 
 #include <handlegraph/snarl_decomposition.hpp>
