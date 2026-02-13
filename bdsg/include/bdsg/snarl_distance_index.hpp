@@ -820,10 +820,10 @@ private:
     const static size_t MIN_NODE_ID_OFFSET = 4;
     const static size_t MAX_TREE_DEPTH_OFFSET = 5;
 
-    // While the version number is 3, store it in a bit masked way
+    // While the version number is 4, store it in a bit masked way
     // to avoid getting confused with old indexes without version numbers
     // that start with component count
-    const static size_t CURRENT_VERSION_NUMBER = 3;
+    const static size_t CURRENT_VERSION_NUMBER = 4;
     /// Arbitrary large number which doens't overflow the number of bits we give
     const static size_t VERSION_NUMBER_SENTINEL = (1 << 10) - 1;
 
