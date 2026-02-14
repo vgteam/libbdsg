@@ -824,6 +824,8 @@ private:
     // to avoid getting confused with old indexes without version numbers
     // that start with component count
     const static size_t CURRENT_VERSION_NUMBER = 4;
+    // A verion to allow though but warn about
+    const static size_t WARN_VERSION_NUMBER = 4;
     /// Arbitrary large number which doens't overflow the number of bits we give
     const static size_t VERSION_NUMBER_SENTINEL = (1 << 10) - 1;
 
