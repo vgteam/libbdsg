@@ -199,6 +199,8 @@ public:
     void serialize_members(std::ostream& out) const;
     void deserialize_members(std::istream& in);
 
+    /// Call when loading a distance index; will error if wrong version
+    void check_version_on_load() const;
 
     virtual uint32_t get_magic_number() const;
     std::string get_prefix() const;
@@ -820,10 +822,12 @@ private:
     const static size_t MIN_NODE_ID_OFFSET = 4;
     const static size_t MAX_TREE_DEPTH_OFFSET = 5;
 
-    // While the version number is 3, store it in a bit masked way
+    // While the version number is 4, store it in a bit masked way
     // to avoid getting confused with old indexes without version numbers
     // that start with component count
-    const static size_t CURRENT_VERSION_NUMBER = 3;
+    const static size_t CURRENT_VERSION_NUMBER = 4;
+    // A verion to allow though but warn about
+    const static size_t WARN_VERSION_NUMBER = 3;
     /// Arbitrary large number which doens't overflow the number of bits we give
     const static size_t VERSION_NUMBER_SENTINEL = (1 << 10) - 1;
 
@@ -1644,8 +1648,10 @@ public:
             bool is_tip = false;
             bool is_root_snarl = false;
             bool include_distances = true;
-            vector<pair<temp_record_t, size_t>> children; //All children, nodes and chains, in arbitrary order
-            unordered_set<size_t> tippy_child_ranks; //The ranks of children that are tips
+            //All children, nodes and chains, in arbitrary order
+            vector<pair<temp_record_t, size_t>> children; 
+            //The ranks & orientations of children that are tips
+            unordered_map<size_t, bool> tippy_child_ranks; 
             //vector<tuple<pair<size_t, bool>, pair<size_t, bool>, size_t>> distances;
             unordered_map<pair<pair<size_t, bool>, pair<size_t, bool>>, size_t> distances;
                      

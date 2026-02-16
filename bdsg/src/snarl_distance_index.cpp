@@ -1066,11 +1066,7 @@ void SnarlDistanceIndex::deserialize(int fd) {
     //This gets called by TriviallySerializable::deserialize(filename), which
     //doesn't check for the prefix, so this should expect it
     snarl_tree_records.load(fd, get_prefix());
-    RootRecord root_record (get_root(), &snarl_tree_records);
-    if (root_record.get_version_number() != CURRENT_VERSION_NUMBER) {
-        throw runtime_error("error: Trying to load a SnarlDistanceIndex which is not version " +
-                            std::to_string(CURRENT_VERSION_NUMBER) + "; try regenerating the index");
-    }
+    check_version_on_load();
 }
 
 void SnarlDistanceIndex::serialize_members(std::ostream& out) const {
@@ -1082,10 +1078,22 @@ void SnarlDistanceIndex::deserialize_members(std::istream& in){
     //This gets called by Serializable::deserialize(istream), which has already
     //read the prefix, so don't expect the prefix
     snarl_tree_records.load_after_prefix(in, get_prefix());
+    check_version_on_load();
+}
+
+void SnarlDistanceIndex::check_version_on_load() const {
     RootRecord root_record (get_root(), &snarl_tree_records);
     if (root_record.get_version_number() != CURRENT_VERSION_NUMBER) {
-        throw runtime_error("error: Trying to load a SnarlDistanceIndex which is not version " +
-                            std::to_string(CURRENT_VERSION_NUMBER) + "; try regenerating the index");
+        if (root_record.get_version_number() == WARN_VERSION_NUMBER) {
+            cerr << "WARNING: loading in a SnarlDistanceIndex which is v" << WARN_VERSION_NUMBER
+                 << " instead of the up-to-date v" << CURRENT_VERSION_NUMBER << endl;
+            cerr << "Upgrading to the latest version will improve alignments from vg giraffe's chaining mode " << endl
+                 << "(i.e. if long-read alignment from hifi, r10, or also sr-chaining)" << endl;
+        } else {
+            throw runtime_error("error: Trying to load a SnarlDistanceIndex which is v" +
+                                std::to_string(root_record.get_version_number()) + " instead of the up-to-date v" +
+                                std::to_string(CURRENT_VERSION_NUMBER) + "; try regenerating the index");
+        }
     }
 }
 
