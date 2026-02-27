@@ -42,11 +42,17 @@ class ReferencePathOverlay : public PathPositionHandleGraph {
         
 public:
     
-    /// Create a ReferencePathOverlay indexing all non-hidden paths in the
-    /// backing graph (which show up in for_each_path_handle()). For path names
-    /// in extra_path_names, look them up and index them too, even if they are
-    /// hidden.
-    ReferencePathOverlay(const PathHandleGraph* graph, const std::unordered_set<std::string>& extra_path_names = {});
+    /// Create a ReferencePathOverlay indexing paths in the backing graph.
+    /// If all_paths is true, indexes all paths visible via for_each_path_handle().
+    /// If false (default), indexes only REFERENCE and GENERIC sense paths.
+    /// For path names in extra_path_names, look them up and index them too,
+    /// even if they are hidden.
+    ReferencePathOverlay(const PathHandleGraph* graph, bool all_paths = false);
+
+    /// Same, but also indexes hidden paths listed in extra_path_names.
+    ReferencePathOverlay(const PathHandleGraph* graph,
+                         const std::unordered_set<std::string>& extra_path_names,
+                         bool all_paths = false);
     ReferencePathOverlay() = default;
     ~ReferencePathOverlay() = default;
     

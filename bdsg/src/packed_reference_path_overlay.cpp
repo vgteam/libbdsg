@@ -23,6 +23,25 @@ PackedReferencePathOverlay::PackedReferencePathOverlay(const PathHandleGraph* gr
     this->last_step_to_path_idx.resize(get_thread_count(), 0);
 }
 
+PackedReferencePathOverlay::PackedReferencePathOverlay(const PathHandleGraph* graph, bool all_paths)
+    : PackedPositionOverlay(), all_paths(all_paths) {
+    // Can't use delegating constructor because we need all_paths set before
+    // index_path_positions runs (it calls for_each_path_handle which uses our override).
+    this->graph = graph;
+    this->steps_per_index = 20000000;
+    index_path_positions();
+    this->last_step_to_path_idx.resize(get_thread_count(), 0);
+}
+
+bool PackedReferencePathOverlay::for_each_path_handle_impl(const std::function<bool(const path_handle_t&)>& iteratee) const {
+    if (all_paths) {
+        return graph->for_each_path_handle(iteratee);
+    } else {
+        std::unordered_set<PathSense> senses = {PathSense::REFERENCE, PathSense::GENERIC};
+        return graph->for_each_path_matching(&senses, nullptr, nullptr, iteratee);
+    }
+}
+
 path_handle_t PackedReferencePathOverlay::get_path_handle_of_step(const step_handle_t& step_handle) const {
     // this index-scanning logic mimics that in for_each_step_on_handle_impl below
     // (tradeoff of parallel construction vs faster lookup)
