@@ -18,6 +18,8 @@
 #include <sstream> // __str__
 #include <streambuf>
 #include <string>
+#include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -966,6 +968,19 @@ struct PyCallBack_bdsg_HashGraph : public bdsg::HashGraph {
 			return pybind11::detail::cast_safe<_binder_ret_1>(std::move(o));
 		}
 		return PathMetadata::get_subrange(a0);
+	}
+	bool for_each_path_matching_impl(const class std::unordered_set<enum handlegraph::PathSense> * a0, const class std::unordered_set<std::string > * a1, const class std::unordered_set<std::string > * a2, const class std::function<bool (const struct handlegraph::path_handle_t &)> & a3) const override {
+		pybind11::gil_scoped_acquire gil;
+		pybind11::function overload = pybind11::get_overload(static_cast<const bdsg::HashGraph *>(this), "for_each_path_matching_impl");
+		if (overload) {
+			auto o = overload.operator()<pybind11::return_value_policy::reference>(a0, a1, a2, a3);
+			if (pybind11::detail::cast_is_temporary_value_reference<bool>::value) {
+				static pybind11::detail::override_caster_t<bool> caster;
+				return pybind11::detail::cast_ref<bool>(std::move(o), caster);
+			}
+			return pybind11::detail::cast_safe<bool>(std::move(o));
+		}
+		return PathMetadata::for_each_path_matching_impl(a0, a1, a2, a3);
 	}
 	bool for_each_step_of_sense_impl(const struct handlegraph::handle_t & a0, const enum handlegraph::PathSense & a1, const class std::function<bool (const struct handlegraph::step_handle_t &)> & a2) const override {
 		pybind11::gil_scoped_acquire gil;
