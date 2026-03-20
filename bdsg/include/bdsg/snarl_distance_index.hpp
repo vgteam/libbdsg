@@ -640,55 +640,77 @@ public:
     // decomposable to flags, we use these accessors to look at facets of it.
 
     constexpr static bool has_distances(record_t type) {
-        return type == DISTANCED_NODE || type == DISTANCED_TRIVIAL_SNARL || type == DISTANCED_SIMPLE_SNARL
+        return type == DISTANCED_NODE
+            || type == DISTANCED_TRIVIAL_SNARL || type == DISTANCED_SIMPLE_SNARL
             || type == DISTANCED_REGULAR_SNARL || type == OVERSIZED_REGULAR_SNARL
-            || type == DISTANCED_SNARL || type == OVERSIZED_SNARL || type == DISTANCED_ROOT_SNARL 
+            || type == DISTANCED_SNARL || type == OVERSIZED_SNARL
+            || type == DISTANCED_ROOT_SNARL 
             || type == DISTANCED_CHAIN || type == MULTICOMPONENT_CHAIN;
     }
     constexpr static bool is_root_snarl(record_t type) {
-        return type == ROOT_SNARL || type == DISTANCED_ROOT_SNARL;
+        return type == ROOT_SNARL
+            || type == DISTANCED_ROOT_SNARL;
     }
     constexpr static bool is_any_root(record_t type) {
-        return is_root_snarl(type) || type == ROOT;
+        return is_root_snarl(type)
+            || type == ROOT;
     }
     constexpr static bool is_node(record_t type) {
-        return type == NODE || type == DISTANCED_NODE;
+        return type == NODE
+            || type == DISTANCED_NODE;
     }
     constexpr static bool is_chain(record_t type) {
-        return type == CHAIN || type == DISTANCED_CHAIN || type == MULTICOMPONENT_CHAIN;
+        return type == CHAIN
+            || type == DISTANCED_CHAIN
+            || type == MULTICOMPONENT_CHAIN;
     }
     constexpr static bool is_trivial_snarl(record_t type) {
-        return type == TRIVIAL_SNARL || type == DISTANCED_TRIVIAL_SNARL;
+        return type == TRIVIAL_SNARL
+            || type == DISTANCED_TRIVIAL_SNARL;
     }
     constexpr static bool is_simple_snarl(record_t type) {
-        return type == SIMPLE_SNARL || type == DISTANCED_SIMPLE_SNARL;
+        return type == SIMPLE_SNARL
+            || type == DISTANCED_SIMPLE_SNARL;
     }
     constexpr static bool is_oversized_snarl(record_t type) {
-        return type == OVERSIZED_SNARL || type == OVERSIZED_REGULAR_SNARL;
+        return type == OVERSIZED_SNARL
+            || type == OVERSIZED_REGULAR_SNARL;
     }
     /// Determine if a record type is a regular (but not simple or trivial) snarl. 
     constexpr static bool is_regular_snarl(record_t type) {
-        return type == REGULAR_SNARL || type == DISTANCED_REGULAR_SNARL || OVERSIZED_REGULAR_SNARL;
+        return type == REGULAR_SNARL
+            || type == DISTANCED_REGULAR_SNARL
+            || type == OVERSIZED_REGULAR_SNARL;
     }
     /// Determine if a record type is a snarl that isn't also a root or a
     /// simple (or trivial) snarl. A "nonsimple" snarl is implicitly
     /// nontrivial.
     constexpr static bool is_nonroot_nonsimple_snarl(record_t type) {
         return is_regular_snarl(type)
-            || type == SNARL || type == DISTANCED_SNARL || type == OVERSIZED_SNARL;
+            || type == SNARL
+            || type == DISTANCED_SNARL
+            || type == OVERSIZED_SNARL;
     }
     constexpr static bool is_nonsimple_snarl(record_t type) {
-        return is_nonroot_nonsimple_snarl(type) || is_root_snarl(type);
+        return is_nonroot_nonsimple_snarl(type)
+            || is_root_snarl(type);
     }
     constexpr static bool is_nonroot_nontrivial_snarl(record_t type) {
-        return is_nonroot_nonsimple_snarl(type) || type == SIMPLE_SNARL || type == DISTANCED_SIMPLE_SNARL;
+        return is_nonroot_nonsimple_snarl(type)
+            || type == SIMPLE_SNARL
+            || type == DISTANCED_SIMPLE_SNARL;
     }
     constexpr static bool is_nontrivial_snarl(record_t type) {
-        return is_nonroot_nontrivial_snarl(type) || is_root_snarl(type);
+        return is_nonroot_nontrivial_snarl(type)
+            || is_root_snarl(type);
     }
     /// Make sure a record_t is a known type other than CHILDREN
     constexpr static bool is_any_nonchildren(record_t type) {
-        return is_any_root(type) || is_node(type) || is_chain(type) || is_nonroot_nontrivial_snarl(type) || is_trivial_snarl(type);
+        return is_any_root(type)
+            || is_node(type)
+            || is_chain(type)
+            || is_nonroot_nontrivial_snarl(type)
+            || is_trivial_snarl(type);
     }
 
     constexpr static record_t encode_root_snarl(bool has_distances) {

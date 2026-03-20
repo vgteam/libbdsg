@@ -1,4 +1,4 @@
-//#define debug_distance_indexing
+#define debug_distance_indexing
 //#define debug_snarl_traversal
 //#define debug_distances
 //#define debug_parent
@@ -3909,12 +3909,12 @@ void SnarlDistanceIndex::SnarlTreeRecordWriter::set_rank_in_parent(size_t rank) 
         (*records)->at(record_offset + SNARL_MIN_LENGTH_OFFSET) = rank;
         return;
     } else if (is_nonroot_nontrivial_snarl(type))  {
-        cerr << "SETTING THE RANK OF A SNARL WHICH I'M PRETTY SURE DOESN'T MEAN ANYTHING" << endl;
+        cerr << "SETTING THE RANK OF A " << stringify(type) << " SNARL WHICH I'M PRETTY SURE DOESN'T MEAN ANYTHING" << endl;
         return;
     } else if (is_chain(type))  {
         offset = record_offset + CHAIN_RANK_OFFSET;
     } else {
-        throw runtime_error("error: trying to access a snarl tree node of the wrong type");
+        throw runtime_error("error: trying to set rank of a snarl tree node of the wrong type: " + stringify(type));
     }
 #ifdef debug_distance_indexing
     cerr << offset << " set rank in parent to be " << rank << endl;
@@ -3982,7 +3982,7 @@ void SnarlDistanceIndex::SnarlTreeRecordWriter::set_start_node(handlegraph::nid_
     } else if (is_root_snarl(type)) {
         throw runtime_error("error: set the start node of a root snarl");
     } else {
-        throw runtime_error("error: trying to access a snarl tree node of the wrong type");
+        throw runtime_error("error: trying to set start on a snarl tree node of the wrong type: " + stringify(type));
     }
 #ifdef debug_distance_indexing
     cerr << offset << " set start node to be " << id << " facing " << (rev ? "rev" : "fd") << endl;
@@ -4003,7 +4003,7 @@ void SnarlDistanceIndex::SnarlTreeRecordWriter::set_end_node(handlegraph::nid_t 
     } else if (is_root_snarl(type)) {
         throw runtime_error("error: set the end node of a root snarl");
     } else {
-        throw runtime_error("error: trying to access a snarl tree node of the wrong type");
+        throw runtime_error("error: trying to set end on a snarl tree node of the wrong type: " + stringify(type));
     }
 #ifdef debug_distance_indexing
     cerr << offset << " set end node to be " << id << " facing " << (rev ? "rev" : "fd") << endl;
