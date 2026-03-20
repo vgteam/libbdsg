@@ -688,7 +688,7 @@ public:
     }
     /// Make sure a record_t is a known type other than CHILDREN
     constexpr static bool is_any_nonchildren(record_t type) {
-        return is_any_root(type) || is_node(type) || is_chain(type) || is_nonroot_nontrivial_snarl(type) || is_trivival_snarl(type);
+        return is_any_root(type) || is_node(type) || is_chain(type) || is_nonroot_nontrivial_snarl(type) || is_trivial_snarl(type);
     }
 
     constexpr static record_t encode_root_snarl(bool has_distances) {
@@ -705,7 +705,7 @@ public:
                 throw runtime_error("error: oversized snarl must have distances");
             }
             if (is_regular) {
-                return REGULAR_OVERSIZED_SNARL;
+                return OVERSIZED_REGULAR_SNARL;
             } else {
                 return OVERSIZED_SNARL;
             }

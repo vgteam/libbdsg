@@ -183,11 +183,11 @@ bool SnarlDistanceIndex::is_oversized_snarl(const net_handle_t& net) const {
 
 bool SnarlDistanceIndex::is_dag(const net_handle_t& snarl) const {
     record_t record_type = SnarlTreeRecord(snarl, &snarl_tree_records).get_record_type();
-    if ( is_nontrivial_snarl(type) && !has_distances(type) ) {
+    if ( is_nontrivial_snarl(record_type) && !has_distances(record_type) ) {
         //If this is a snarl but didn't store distances
         cerr << "warning: checking if a snarl is a dag in an index without distances. Returning true" << endl;
         return true; 
-    } else if (is_nonsimple_snarl(type)) {
+    } else if (is_nonsimple_snarl(record_type)) {
         //If this is any kind of non-simple snarl
         //(We already ruled out not having distances)
 
@@ -573,7 +573,7 @@ SnarlDecomposition::endpoint_t SnarlDistanceIndex::ends_at(const net_handle_t& t
 
 size_t SnarlDistanceIndex::get_rank_in_parent(const net_handle_t& net) const {
     size_t tag = snarl_tree_records->at(get_record_offset(net));
-    if (is_trivial_snarl(get_record_type(tag)) {
+    if (is_trivial_snarl(get_record_type(tag))) {
         return TrivialSnarlRecord(get_record_offset(net), &snarl_tree_records).get_rank_in_parent(get_node_record_offset(net));
     } else if (is_simple_snarl(get_record_type(tag))) {
         if (is_snarl(net)) {
@@ -3586,7 +3586,7 @@ size_t SnarlDistanceIndex::SnarlTreeRecord::get_rank_in_parent() const {
     } else if (is_root_snarl(type)) {
         //For root snarls, the rank gets stored in the length slot
         return (*records)->at( record_offset + SNARL_MIN_LENGTH_OFFSET);
-    } else if (is_nontrivial_nonroot_snarl(type))  {
+    } else if (is_nonroot_nontrivial_snarl(type))  {
         return record_offset;
     } else if (is_chain(type))  {
         return (*records)->at(record_offset + CHAIN_RANK_OFFSET) >> 1;
@@ -3620,7 +3620,7 @@ handlegraph::nid_t SnarlDistanceIndex::SnarlTreeRecord::get_start_id() const {
     } else if (is_trivial_snarl(type)) {
         TrivialSnarlRecord trivial_snarl_record(record_offset, records);
         return trivial_snarl_record.get_node_id(0);
-    } else if (is_nontrivial_nonroot_snarl(type))  {
+    } else if (is_nonroot_nontrivial_snarl(type))  {
         //To get the start node of a snarl, get the thing to the left of it in the chain
         ChainRecord parent_record (get_parent_record_offset(), records);
         size_t node_offset = is_simple_snarl(type) ? 1 : 0;
@@ -3641,7 +3641,7 @@ bool SnarlDistanceIndex::SnarlTreeRecord::get_start_orientation() const {
     } else if (is_node(type) || is_trivial_snarl(type)) {
         //cerr << "warning: Looking for the start of a node" << endl;
         return false;
-    } else if (is_nontrivial_nonroot_snarl(type))  {
+    } else if (is_nonroot_nontrivial_snarl(type))  {
         ChainRecord parent_record (get_parent_record_offset(), records);
         size_t node_offset = is_simple_snarl(type) ? 1 : 0;
         //Get the next node in the chain (going left)
@@ -3667,7 +3667,7 @@ handlegraph::nid_t SnarlDistanceIndex::SnarlTreeRecord::get_end_id() const {
     } else if (is_trivial_snarl(type)) {
         TrivialSnarlRecord trivial_snarl_record(record_offset, records);
         return trivial_snarl_record.get_node_id(trivial_snarl_record.get_node_count()-1);
-    } else if (is_nontrivial_nonroot_snarl(type))  {
+    } else if (is_nonroot_nontrivial_snarl(type))  {
         //For a snarl, walk right in the chain
         ChainRecord parent_record (get_parent_record_offset(), records);
         size_t node_offset = is_simple_snarl(type) ? 1 : 0;
@@ -3908,7 +3908,7 @@ void SnarlDistanceIndex::SnarlTreeRecordWriter::set_rank_in_parent(size_t rank) 
     } else if (is_root_snarl(type)) {
         (*records)->at(record_offset + SNARL_MIN_LENGTH_OFFSET) = rank;
         return;
-    } else if (is_nontrivial_nonroot_snarl(type))  {
+    } else if (is_nonroot_nontrivial_snarl(type))  {
         cerr << "SETTING THE RANK OF A SNARL WHICH I'M PRETTY SURE DOESN'T MEAN ANYTHING" << endl;
         return;
     } else if (is_chain(type))  {
@@ -5484,7 +5484,7 @@ net_handle_t SnarlDistanceIndex::ChainRecord::get_next_child(const net_handle_t&
     size_t next_pointer =  get_record_offset(net_handle) + 
                             (go_left ? -(*records)->at(get_record_offset(net_handle)-2)-2 : (*records)->at(get_record_offset(net_handle)-1)+2);
 
-    if (SnarlDistanceIndex::is_nonsimple_nonroot_snarl(SnarlDistanceIndex::get_record_type((*records)->at(next_pointer)))) {
+    if (SnarlDistanceIndex::is_nonroot_nonsimple_snarl(SnarlDistanceIndex::get_record_type((*records)->at(next_pointer)))) {
         //If the next thing is a snarl, then just return the snarl going in the direction we just moved in
         return get_net_handle_from_values(next_pointer, (go_left ? END_START : START_END), SNARL_HANDLE); 
     } else if (SnarlDistanceIndex::is_simple_snarl(SnarlDistanceIndex::get_record_type((*records)->at(next_pointer)))) {
@@ -5709,7 +5709,7 @@ size_t SnarlDistanceIndex::ChainRecordWriter::add_node(nid_t node_id, size_t nod
     }
 
     if (previous_child_offset == 0
-            || SnarlDistanceIndex::is_nonroot_nontrivial_snarl(SnarlDistanceIndex::get_record_type((*records)->at(previous_child_offset)) 
+            || SnarlDistanceIndex::is_nonroot_nontrivial_snarl(SnarlDistanceIndex::get_record_type((*records)->at(previous_child_offset))) 
             || TrivialSnarlRecord(previous_child_offset, records).get_node_count() == MAX_TRIVIAL_SNARL_NODE_COUNT
             || reverse_loop == 0 || new_record) {
         //If the last thing was a snarl or nothing (previous_child_offset == 0, meaning that this is the 
