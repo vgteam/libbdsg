@@ -427,8 +427,12 @@ public:
     /// Returns true if the given net handle refers to (a traversal of) a regular snarl
     /// A regular snarl is the same as a simple snarl, except that the children may be
     /// nested chains, rather than being restricted to nodes, as long as the
-    /// nested chains don't allow reversals. 
+    /// nested chains don't allow reversals.
     bool is_regular_snarl(const net_handle_t& net) const;
+
+    ///Returns the number of direct children of a snarl (not counting boundary nodes).
+    ///O(1) — reads the stored count directly from the record without iterating.
+    size_t get_snarl_child_count(const net_handle_t& net) const;
 
     ///Returns true if the given net handle refers to (a traversal of) a chain.
     bool is_chain(const net_handle_t& net) const;

@@ -637,6 +637,15 @@ bool SnarlDistanceIndex::has_distances() const {
     return has_distances(get_node_net_handle(root_record.get_min_node_id())); 
 }
 
+size_t SnarlDistanceIndex::get_snarl_child_count(const net_handle_t& net) const {
+    record_t specific_type = SnarlTreeRecord(net, &snarl_tree_records).get_record_type();
+    if (is_simple_snarl(specific_type)) {
+        return SimpleSnarlRecord(net, &snarl_tree_records).get_node_count();
+    } else {
+        return SnarlRecord(net, &snarl_tree_records).get_node_count();
+    }
+}
+
 bool SnarlDistanceIndex::for_each_child_impl(const net_handle_t& traversal, const std::function<bool(const net_handle_t&)>& iteratee) const {
 #ifdef debug_snarl_traversal
     cerr << "Go through children of " << net_handle_as_string(traversal) << endl;
@@ -1405,48 +1414,15 @@ size_t SnarlDistanceIndex::distance_in_snarl(const net_handle_t& parent,
     
     if (get_record_type(snarl_tree_records->at(get_record_offset(parent))) == DISTANCED_SIMPLE_SNARL) {
         return SimpleSnarlRecord(parent, &snarl_tree_records).get_distance(rank1, right_side1, rank2, right_side2);
-    } else if (is_oversized_snarl(get_record_type(snarl_tree_records->at(get_record_offset(parent)))) 
+    } else if (is_oversized_snarl(get_record_type(snarl_tree_records->at(get_record_offset(parent))))
         && !(rank1 == 0 || rank1 == 1 || rank2 == 0 || rank2 == 1) ) {
-        //If this is an oversized snarl and we're looking for internal distances, then we didn't store the
-        //distance and we have to find it using dijkstra's algorithm
-        if (graph == nullptr) {
-            if (size_limit_warnings.load() < max_num_size_limit_warnings) {
-                int warning_num = const_cast<SnarlDistanceIndex*>(this)->size_limit_warnings++;
-                if (warning_num < max_num_size_limit_warnings) {
-                    std::string msg = "warning: Trying to find the distance in an oversized snarl with zip codes. Returning inf\n";
-                    if (warning_num + 1 == max_num_size_limit_warnings) {
-                        msg += "suppressing further warnings\n";
-                    }
-                    std::cerr << msg;
-                }
-            }
-            return std::numeric_limits<size_t>::max();
-        } else {
-            net_handle_t net1 = get_snarl_child_from_rank(parent, rank1);  
-            if (!right_side1) {
-                net1 = flip(net1);
-            }
-            net_handle_t net2 = get_snarl_child_from_rank(parent, rank2);  
-            if (right_side2) {
-                net2 = flip(net2);
-            }
-            handle_t handle1 = get_handle(net1, graph); 
-            handle_t handle2 = get_handle(net2, graph);
+        //If this is an oversized snarl and we're looking for internal distances, use the hub labels.
+        auto record_it = snarl_tree_records->begin() + get_record_offset(parent);
+        auto length_data_it = record_it + SNARL_RECORD_SIZE;
+        size_t from_port = bgid(rank1, !right_side1 ^ (rank1 == 0), true);
+        size_t to_port   = bgid(rank2,  right_side2,                false);
+        return promote_distance<size_t>(hhl_query(length_data_it + 1, from_port, to_port));
 
-            size_t distance = std::numeric_limits<size_t>::max();
-            handlegraph::algorithms::dijkstra(graph, handle1, [&](const handle_t& reached, size_t dist) {
-                if (reached == handle2) {
-                    distance = dist;
-                    return false;
-                } else if (dist > distance_limit) {
-                    distance = std::numeric_limits<size_t>::max();
-                    return false;
-                }
-                return true;
-            }, false);
-            return distance;
-        }
-        
     } else if (rank1 == 0 && rank2 == 0 && !snarl_is_root) {
         //Start to start is stored in the snarl
         return SnarlRecord(parent, &snarl_tree_records).get_distance_start_start();
