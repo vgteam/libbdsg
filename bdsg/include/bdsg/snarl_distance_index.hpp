@@ -428,6 +428,8 @@ public:
     /// A regular snarl is the same as a simple snarl, except that the children may be
     /// nested chains, rather than being restricted to nodes, as long as the
     /// nested chains don't allow reversals.
+    ///
+    /// Simple and trivial snarls also count as regular snarls.
     bool is_regular_snarl(const net_handle_t& net) const;
 
     ///Returns the number of direct children of a snarl (not counting boundary nodes).
@@ -680,17 +682,25 @@ public:
         return type == OVERSIZED_SNARL
             || type == OVERSIZED_REGULAR_SNARL;
     }
-    /// Determine if a record type is a regular (but not simple or trivial) snarl. 
-    constexpr static bool is_regular_snarl(record_t type) {
+    /// Determine if a record type is a regular, but not a not simple (or
+    /// trivial), snarl. Root snarls cannot be regular.
+    constexpr static bool is_regular_nonsimple_snarl(record_t type) {
         return type == REGULAR_SNARL
             || type == DISTANCED_REGULAR_SNARL
             || type == OVERSIZED_REGULAR_SNARL;
+    }
+    /// Determine if a record type is a regular snarl. Root snarls cannot be
+    /// regular. Counts simple and trivial snarls as regular.
+    constexpr static bool is_regular_snarl(record_t type) {
+        return is_regular_nonsimple_snarl(type)
+            || is_simple_snarl(type)
+            || is_trivial_snarl(type);
     }
     /// Determine if a record type is a snarl that isn't also a root or a
     /// simple (or trivial) snarl. A "nonsimple" snarl is implicitly
     /// nontrivial.
     constexpr static bool is_nonroot_nonsimple_snarl(record_t type) {
-        return is_regular_snarl(type)
+        return is_regular_nonsimple_snarl(type)
             || type == SNARL
             || type == DISTANCED_SNARL
             || type == OVERSIZED_SNARL;
@@ -1848,6 +1858,8 @@ public:
             bool end_node_rev;
             bool is_trivial;
             bool is_simple;
+            /// Set to true if the snarl is regular (see SnarlDistanceIndex::is_regular_snarl()).
+            /// If is_simple is true, this must also be set to true when filling in the TemporarySnarlRecord.
             bool is_regular;
             bool is_tip = false;
             bool is_root_snarl = false;
