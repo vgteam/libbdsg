@@ -426,18 +426,17 @@ public:
     ///edges are allowed
     bool is_simple_snarl(const net_handle_t& net) const;
 
-    ///Returns true if the given net handle refers to (a traversal of) a regular snarl
-    ///A regular snarl is the same as a simple snarl, except that the children may be
-    ///nested chains, rather than being restricted to nodes 
-    // If the distance index doesn't store distances then this needs a graph to check edges
-    // If allow_internal_loops is true, then a snarl can still be considered a regular snarl if one of 
-    // its children allows a path to change direction inside of it. For example, if a path leaving 
-    // the start node can reach the start node again, but not by taking any edges contained within  
-    // the netgraph of the snarl, then this snarl would be considered regular with allow_internal_loops=true,
-    // but irregular with allow_internal_loops=false 
-    // If there are not distances in the distance index, then it is computationally very expensive to check for internal loops,
-    // so this will throw an error if allow_internal_loops is false and there are no distances
-    bool is_regular_snarl(const net_handle_t& net, bool allow_internal_loops=false, const handlegraph::HandleGraph* graph = nullptr) const;
+    /// Returns true if the given net handle refers to (a traversal of) a regular snarl
+    /// A regular snarl is the same as a simple snarl, except that the children may be
+    /// nested chains, rather than being restricted to nodes, as long as the
+    /// nested chains don't allow reversals.
+    ///
+    /// Simple and trivial snarls also count as regular snarls.
+    bool is_regular_snarl(const net_handle_t& net) const;
+
+    ///Returns the number of direct children of a snarl (not counting boundary nodes).
+    ///O(1) — reads the stored count directly from the record without iterating.
+    size_t get_snarl_child_count(const net_handle_t& net) const;
 
     ///Returns true if the given net handle refers to (a traversal of) a chain.
     bool is_chain(const net_handle_t& net) const;
@@ -637,21 +636,143 @@ public:
     ///
     /// TODO: What is a CHILDREN record? Is it ever used?
     ///
+    /// These MUST match the order in record_t_as_string!
     enum record_t {ROOT=1, 
                    NODE, DISTANCED_NODE, 
                    TRIVIAL_SNARL, DISTANCED_TRIVIAL_SNARL,
                    SIMPLE_SNARL, DISTANCED_SIMPLE_SNARL,
-                   SNARL, DISTANCED_SNARL,  OVERSIZED_SNARL, 
+                   REGULAR_SNARL, DISTANCED_REGULAR_SNARL, OVERSIZED_REGULAR_SNARL,
+                   SNARL, DISTANCED_SNARL, OVERSIZED_SNARL, 
                    ROOT_SNARL, DISTANCED_ROOT_SNARL,
                    CHAIN, DISTANCED_CHAIN, MULTICOMPONENT_CHAIN,
                    CHILDREN};
-    // TODO: Doesn't this need to be inline? And isn't const not allowed on a
-    // static method? Is this just making the bool const?
-    const static bool has_distances(record_t type) {
-        return type == DISTANCED_NODE || type == DISTANCED_TRIVIAL_SNARL || type == DISTANCED_SIMPLE_SNARL
-            || type == DISTANCED_SNARL || type == OVERSIZED_SNARL || type == DISTANCED_ROOT_SNARL 
+
+    // Because the record_t encodes a complex taxonomy of snarls not *quite*
+    // decomposable to flags, we use these accessors to look at facets of it.
+
+    constexpr static bool has_distances(record_t type) {
+        return type == DISTANCED_NODE
+            || type == DISTANCED_TRIVIAL_SNARL || type == DISTANCED_SIMPLE_SNARL
+            || type == DISTANCED_REGULAR_SNARL || type == OVERSIZED_REGULAR_SNARL
+            || type == DISTANCED_SNARL || type == OVERSIZED_SNARL
+            || type == DISTANCED_ROOT_SNARL 
             || type == DISTANCED_CHAIN || type == MULTICOMPONENT_CHAIN;
     }
+    constexpr static bool is_root_snarl(record_t type) {
+        return type == ROOT_SNARL
+            || type == DISTANCED_ROOT_SNARL;
+    }
+    constexpr static bool is_any_root(record_t type) {
+        return is_root_snarl(type)
+            || type == ROOT;
+    }
+    constexpr static bool is_node(record_t type) {
+        return type == NODE
+            || type == DISTANCED_NODE;
+    }
+    constexpr static bool is_chain(record_t type) {
+        return type == CHAIN
+            || type == DISTANCED_CHAIN
+            || type == MULTICOMPONENT_CHAIN;
+    }
+    constexpr static bool is_trivial_snarl(record_t type) {
+        return type == TRIVIAL_SNARL
+            || type == DISTANCED_TRIVIAL_SNARL;
+    }
+    constexpr static bool is_simple_snarl(record_t type) {
+        return type == SIMPLE_SNARL
+            || type == DISTANCED_SIMPLE_SNARL;
+    }
+    constexpr static bool is_oversized_snarl(record_t type) {
+        return type == OVERSIZED_SNARL
+            || type == OVERSIZED_REGULAR_SNARL;
+    }
+    /// Determine if a record type is a regular, but not a not simple (or
+    /// trivial), snarl. Root snarls cannot be regular.
+    constexpr static bool is_regular_nonsimple_snarl(record_t type) {
+        return type == REGULAR_SNARL
+            || type == DISTANCED_REGULAR_SNARL
+            || type == OVERSIZED_REGULAR_SNARL;
+    }
+    /// Determine if a record type is a regular snarl. Root snarls cannot be
+    /// regular. Counts simple and trivial snarls as regular.
+    constexpr static bool is_regular_snarl(record_t type) {
+        return is_regular_nonsimple_snarl(type)
+            || is_simple_snarl(type)
+            || is_trivial_snarl(type);
+    }
+    /// Determine if a record type is a snarl that isn't also a root or a
+    /// simple (or trivial) snarl. A "nonsimple" snarl is implicitly
+    /// nontrivial.
+    constexpr static bool is_nonroot_nonsimple_snarl(record_t type) {
+        return is_regular_nonsimple_snarl(type)
+            || type == SNARL
+            || type == DISTANCED_SNARL
+            || type == OVERSIZED_SNARL;
+    }
+    constexpr static bool is_nonsimple_snarl(record_t type) {
+        return is_nonroot_nonsimple_snarl(type)
+            || is_root_snarl(type);
+    }
+    constexpr static bool is_nonroot_nontrivial_snarl(record_t type) {
+        return is_nonroot_nonsimple_snarl(type)
+            || type == SIMPLE_SNARL
+            || type == DISTANCED_SIMPLE_SNARL;
+    }
+    constexpr static bool is_nontrivial_snarl(record_t type) {
+        return is_nonroot_nontrivial_snarl(type)
+            || is_root_snarl(type);
+    }
+    /// Make sure a record_t is a known type other than CHILDREN
+    constexpr static bool is_any_nonchildren(record_t type) {
+        return is_any_root(type)
+            || is_node(type)
+            || is_chain(type)
+            || is_nonroot_nontrivial_snarl(type)
+            || is_trivial_snarl(type);
+    }
+
+    constexpr static record_t encode_root_snarl(bool has_distances) {
+        return has_distances ? DISTANCED_ROOT_SNARL : ROOT_SNARL;
+    }
+
+    constexpr static record_t encode_simple_snarl(bool has_distances) {
+        return has_distances ? DISTANCED_SIMPLE_SNARL : SIMPLE_SNARL;
+    }
+
+    constexpr static record_t encode_nonroot_nonsimple_snarl(bool has_distances, bool is_regular, bool is_oversized) {
+        if (is_oversized) {
+            if (!has_distances) {
+                throw runtime_error("error: oversized snarl must have distances");
+            }
+            if (is_regular) {
+                return OVERSIZED_REGULAR_SNARL;
+            } else {
+                return OVERSIZED_SNARL;
+            }
+        } else if (is_regular) {
+            return has_distances ? DISTANCED_REGULAR_SNARL : REGULAR_SNARL;
+        } else {
+            return has_distances ? DISTANCED_SNARL : SNARL;
+        }
+    }
+
+    constexpr static record_t encode_node(bool has_distances) {
+        return has_distances ? DISTANCED_NODE : NODE;
+    }
+
+    constexpr static record_t encode_chain(bool has_distances, bool is_multicomponent) {
+        if (is_multicomponent) {
+            if (!has_distances) {
+                throw runtime_error("error: multicomponent chain must have distances");
+            }
+            return MULTICOMPONENT_CHAIN;
+        } else {
+            return has_distances ? DISTANCED_CHAIN : CHAIN;
+        }
+    }
+
+    
 
 
     
@@ -659,14 +780,12 @@ public:
     ///for example a simple snarl record is used to represent a snarl, and the nodes/trivial chains in it.
     ///This will return whatever is higher on the snarl tree. A simple snarl will be considered a snarl,
     ///a root snarl will be considered a root, etc
-    const static net_handle_record_t get_record_handle_type(record_t type) {
+    constexpr static net_handle_record_t get_record_handle_type(record_t type) {
         if (type == ROOT || type == ROOT_SNARL || type == DISTANCED_ROOT_SNARL) {
             return ROOT_HANDLE;
         } else if (type == NODE || type == DISTANCED_NODE || type == TRIVIAL_SNARL || type == DISTANCED_TRIVIAL_SNARL) {
             return NODE_HANDLE;
-        } else if (type == SNARL || type == DISTANCED_SNARL || 
-                   type ==  OVERSIZED_SNARL ||
-                   type == SIMPLE_SNARL || type == DISTANCED_SIMPLE_SNARL) {
+        } else if (is_nonroot_nontrivial_snarl(type)) {
             return SNARL_HANDLE;
         } else if (type == CHAIN || type == DISTANCED_CHAIN || type == MULTICOMPONENT_CHAIN) {
             return CHAIN_HANDLE;
@@ -688,25 +807,25 @@ public:
 
 
     ///The offset into records that this handle points to
-    const static size_t get_record_offset (const handlegraph::net_handle_t& net_handle) {
+    inline static size_t get_record_offset (const handlegraph::net_handle_t& net_handle) {
         return handlegraph::as_integer(net_handle) >> 15;
     }
     ///The offset of a node in a trivial snarl (0 if it isn't a node in a trivial snarl)
-    const static size_t get_node_record_offset (const handlegraph::net_handle_t& net_handle) {
+    inline static size_t get_node_record_offset (const handlegraph::net_handle_t& net_handle) {
         return (handlegraph::as_integer(net_handle) >> 7 ) & MAX_TRIVIAL_SNARL_NODE_COUNT; //Get 8 bits after last 7
     }
-    const static connectivity_t get_connectivity (const handlegraph::net_handle_t& net_handle){
+    inline static connectivity_t get_connectivity (const handlegraph::net_handle_t& net_handle){
         size_t connectivity_as_int = (handlegraph::as_integer(net_handle)>>3) & 15; //Get 4 bits after last 3
         assert (connectivity_as_int <= 9);
         return static_cast<connectivity_t>(connectivity_as_int);
     }
-    const static net_handle_record_t get_handle_type (const handlegraph::net_handle_t& net_handle) {
+    inline static net_handle_record_t get_handle_type (const handlegraph::net_handle_t& net_handle) {
         size_t record_type = handlegraph::as_integer(net_handle) & 7; //Get last 3 bits
         assert (record_type <= 4);
         return static_cast<net_handle_record_t>(record_type);
     }
 
-    const static handlegraph::net_handle_t get_net_handle_from_values(size_t pointer, connectivity_t connectivity, 
+    inline static handlegraph::net_handle_t get_net_handle_from_values(size_t pointer, connectivity_t connectivity, 
                                                                       net_handle_record_t type, size_t node_offset=0) {
         if (pointer > ((size_t)1 << (64-BITS_FOR_TRIVIAL_NODE_OFFSET-3-4))-1) {
             throw runtime_error("error: don't have space in net handle for record offset");
@@ -731,7 +850,7 @@ public:
 
 
     ///Get the offset into snarl_tree_records for the pointer to a node record.
-    const static size_t get_node_pointer_offset (const handlegraph::nid_t& id, const handlegraph::nid_t& min_node_id, size_t component_count) {
+    inline static size_t get_node_pointer_offset (const handlegraph::nid_t& id, const handlegraph::nid_t& min_node_id, size_t component_count) {
         size_t node_records_offset = component_count + ROOT_RECORD_SIZE; 
         size_t offset = (id-min_node_id)*2;
         return node_records_offset + offset; 
@@ -742,7 +861,7 @@ public:
     //    return ((offset-node_records_offset) / NODE_RECORD_SIZE) + min_node_id;
     //}
 
-    const static connectivity_t endpoints_to_connectivity(endpoint_t start, endpoint_t end) {
+    inline static connectivity_t endpoints_to_connectivity(endpoint_t start, endpoint_t end) {
         if (start == START && end == START) {
             return START_START;
         } else if (start == START && end == END) {
@@ -765,7 +884,7 @@ public:
             throw runtime_error("error: invalid endpoints");
         }
     }
-    const static endpoint_t get_start_endpoint(connectivity_t connectivity) {
+    inline static endpoint_t get_start_endpoint(connectivity_t connectivity) {
         endpoint_t start_endpoint;
         if (connectivity == START_START || connectivity == START_END || connectivity == START_TIP){
             start_endpoint = START;
@@ -778,10 +897,10 @@ public:
         }
         return start_endpoint;
     }
-    const static endpoint_t get_start_endpoint(net_handle_t net) {
+    inline static endpoint_t get_start_endpoint(net_handle_t net) {
         return get_start_endpoint(get_connectivity(net));
     }
-    const static endpoint_t get_end_endpoint(connectivity_t connectivity) {
+    inline static endpoint_t get_end_endpoint(connectivity_t connectivity) {
         endpoint_t end_endpoint;
         if (connectivity == START_START || connectivity == END_START || connectivity == TIP_START){
             end_endpoint = START;
@@ -794,10 +913,10 @@ public:
         }
         return end_endpoint;
     }
-    const static endpoint_t get_end_endpoint(const net_handle_t& net) {
+    inline static endpoint_t get_end_endpoint(const net_handle_t& net) {
         return get_end_endpoint(get_connectivity(net));
     }
-    const static pair<endpoint_t, endpoint_t> connectivity_to_endpoints(const connectivity_t& connectivity) {
+    inline static pair<endpoint_t, endpoint_t> connectivity_to_endpoints(const connectivity_t& connectivity) {
         return make_pair(get_start_endpoint(connectivity), get_end_endpoint(connectivity));
     }
 
@@ -834,11 +953,11 @@ private:
     const static size_t MIN_NODE_ID_OFFSET = 4;
     const static size_t MAX_TREE_DEPTH_OFFSET = 5;
 
-    // While the version number is 4, store it in a bit masked way
+    // We store the version number in a bit masked way
     // to avoid getting confused with old indexes without version numbers
-    // that start with component count
+    // that start with component count (also likely to be a small number).
     const static size_t CURRENT_VERSION_NUMBER = 4;
-    // A verion to allow though but warn about
+    // A version to allow though but warn about
     const static size_t WARN_VERSION_NUMBER = 3;
     /// Arbitrary large number which doens't overflow the number of bits we give
     const static size_t VERSION_NUMBER_SENTINEL = (1 << 10) - 1;
@@ -1696,8 +1815,16 @@ public:
             //TODO This would probably be more efficient as a vector of a struct of five ints
             vector<size_t> prefix_sum;
             vector<size_t> max_prefix_sum;
-            vector<size_t> forward_loops; // If no loop is possible, an entry will be std::numeric_limits<size_t>::max()
-            vector<size_t> backward_loops; // If no loop is possible, an entry will be std::numeric_limits<size_t>::max()
+            /// Forward looping distances. If no loop is possible, an entry
+            /// will be std::numeric_limits<size_t>::max(). If any loop is
+            /// possible anywhere along the chain, the first entry will contain
+            /// a possible loop distance.
+            vector<size_t> forward_loops;
+            /// Backward lopping distances. If no loop is possible, an entry
+            /// will be std::numeric_limits<size_t>::max(). If any lopp is
+            /// possible anywhere along the chain, the last entry will contain
+            /// a possible loop distance.
+            vector<size_t> backward_loops; 
             vector<size_t> chain_components;//Which component does each node belong to, usually all 0s
 
 
@@ -1734,9 +1861,12 @@ public:
 
             bool reversed_in_parent;
             bool start_node_rev;
+            // The end node is reverse if it points back into the snarl, not along it.
             bool end_node_rev;
             bool is_trivial;
             bool is_simple;
+            /// Set to true if the snarl is regular (see SnarlDistanceIndex::is_regular_snarl()).
+            /// If is_simple is true, this must also be set to true when filling in the TemporarySnarlRecord.
             bool is_regular = false;
             bool is_tip = false;
             bool is_root_snarl = false;
