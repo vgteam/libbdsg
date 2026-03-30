@@ -763,6 +763,14 @@ net_handle_t SnarlDistanceIndex::get_snarl_child_from_rank(const net_handle_t& s
     }
 }
 
+size_t SnarlDistanceIndex::get_snarl_child_count(const net_handle_t& net) const {
+    if (is_simple_snarl(net)) {
+        return SimpleSnarlRecord(net, &snarl_tree_records).get_node_count();
+    } else {
+        return SnarlRecord(net, &snarl_tree_records).get_node_count();
+    }
+}
+
 bool SnarlDistanceIndex::has_distances(const net_handle_t& net) const {
     return has_distances(SnarlTreeRecord(net, &snarl_tree_records).get_record_type()); 
 }
