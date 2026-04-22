@@ -42,6 +42,33 @@ NODE_UINT rev_bgid(NODE_UINT n) {
   return n ^ 1;
 }
 
+std::ostream& operator<<(std::ostream& out, const CHOverlay& ov) {
+  out << "Vertices: " << num_vertices(ov) << ", Edges: " << num_edges(ov) << std::endl;
+  out << "--- Nodes ---" << std::endl;
+  for (auto v : boost::make_iterator_range(vertices(ov))) {
+    const NodeProp& np = ov[v];
+    out << "Node " << v << ": seqlen=" << np.seqlen
+              << " max_out=" << np.max_out
+              << " contracted_neighbors=" << np.contracted_neighbors
+              << " level=" << np.level
+              << " arc_cover=" << np.arc_cover
+              << " contracted=" << (np.contracted ? "true" : "false")
+              // Skip new_id since it is not always initialized; it's only
+              // initialized when make_contraction_hierarchy is run.
+              << std::endl;
+  }
+  out << "--- Edges ---";
+  for (auto e : boost::make_iterator_range(edges(ov))) {
+    const EdgeProp& ep = ov[e];
+    out << std::endl << "Edge " << source(e, ov) << " -> " << target(e, ov)
+              << ": contracted=" << (ep.contracted ? "true" : "false")
+              << " weight=" << ep.weight
+              << " arc_cover=" << ep.arc_cover
+              << " ori=" << (ep.ori ? "true" : "false");
+    // Make sure not to end with a newline.
+  }
+}
+
 CHOverlay make_boost_graph(const bdsg::HashGraph& hg) {
   NODE_UINT node_count = hg.get_node_count();
   CHOverlay g(node_count*2);

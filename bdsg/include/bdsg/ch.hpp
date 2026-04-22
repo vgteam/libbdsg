@@ -10,6 +10,8 @@ file for quickly playing around with stuff
 #include <boost/graph/biconnected_components.hpp>
 #include <bdsg/snarl_distance_index.hpp>
 
+#include <iostream>
+
 //#define debug_binary_intersection
 //#define debug_hhl_query
 
@@ -76,6 +78,10 @@ typedef struct EdgeProp {
 
 typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::bidirectionalS, NodeProp, EdgeProp> CHOverlay;
 typedef boost::filtered_graph<CHOverlay, function<bool(CHOverlay::edge_descriptor)>> ContractedGraph;
+
+/// Allow outputting CHOverlay objects. Output text does not end with a
+/// newline.
+std::ostream& operator<<(std::ostream& out, const CHOverlay& ov);
 
 /**
  * Build the intermediate hub labeling computation data structure ("Boost
