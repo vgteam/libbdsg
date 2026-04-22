@@ -647,6 +647,7 @@ public:
     // Because the record_t encodes a complex taxonomy of snarls not *quite*
     // decomposable to flags, we use these accessors to look at facets of it.
 
+    /// Return true if records of the given type have stored distances.
     constexpr static bool has_distances(record_t type) {
         return type == DISTANCED_NODE
             || type == DISTANCED_TRIVIAL_SNARL || type == DISTANCED_SIMPLE_SNARL
@@ -655,31 +656,39 @@ public:
             || type == DISTANCED_ROOT_SNARL 
             || type == DISTANCED_CHAIN || type == MULTICOMPONENT_CHAIN;
     }
+    /// Return true if the given record type represents a root snarl.
     constexpr static bool is_root_snarl(record_t type) {
         return type == ROOT_SNARL
             || type == DISTANCED_ROOT_SNARL;
     }
+    /// Return true if the given record type represents a root or a root snarl.
     constexpr static bool is_any_root(record_t type) {
         return is_root_snarl(type)
             || type == ROOT;
     }
+    /// Return true if the given record type represents a node.
     constexpr static bool is_node(record_t type) {
         return type == NODE
             || type == DISTANCED_NODE;
     }
+    /// Return true if the given record type represents a chain.
     constexpr static bool is_chain(record_t type) {
         return type == CHAIN
             || type == DISTANCED_CHAIN
             || type == MULTICOMPONENT_CHAIN;
     }
+    /// Return true if the given record type represents a trivial snarl.
     constexpr static bool is_trivial_snarl(record_t type) {
         return type == TRIVIAL_SNARL
             || type == DISTANCED_TRIVIAL_SNARL;
     }
+    /// Return true if the given record type represents a simple (but not a
+    /// trivial) snarl.
     constexpr static bool is_simple_snarl(record_t type) {
         return type == SIMPLE_SNARL
             || type == DISTANCED_SIMPLE_SNARL;
     }
+    /// Return true if the given record type represents an oversized snarl.
     constexpr static bool is_oversized_snarl(record_t type) {
         return type == OVERSIZED_SNARL
             || type == OVERSIZED_REGULAR_SNARL;
@@ -707,15 +716,21 @@ public:
             || type == DISTANCED_SNARL
             || type == OVERSIZED_SNARL;
     }
+    /// Return true if the given record type represents a snarl that is not
+    /// simple or trivial.
     constexpr static bool is_nonsimple_snarl(record_t type) {
         return is_nonroot_nonsimple_snarl(type)
             || is_root_snarl(type);
     }
+    /// Return true if the given record type represents a snarl that is not
+    /// simple or trivial, and also isn't a root snarl.
     constexpr static bool is_nonroot_nontrivial_snarl(record_t type) {
         return is_nonroot_nonsimple_snarl(type)
             || type == SIMPLE_SNARL
             || type == DISTANCED_SIMPLE_SNARL;
     }
+    /// Return true if the given record type represents a snarl that is not
+    /// trivial.
     constexpr static bool is_nontrivial_snarl(record_t type) {
         return is_nonroot_nontrivial_snarl(type)
             || is_root_snarl(type);
@@ -728,15 +743,19 @@ public:
             || is_nonroot_nontrivial_snarl(type)
             || is_trivial_snarl(type);
     }
-
+    
+    /// Encode the type of a root snarl that may or may not have distances.
     constexpr static record_t encode_root_snarl(bool has_distances) {
         return has_distances ? DISTANCED_ROOT_SNARL : ROOT_SNARL;
     }
-
+    
+    /// Encode the type of a simple snarl that may or may not have distances.
     constexpr static record_t encode_simple_snarl(bool has_distances) {
         return has_distances ? DISTANCED_SIMPLE_SNARL : SIMPLE_SNARL;
     }
 
+    /// Encode the type of a snarl that isn't a root snarl or a simple (or trivial) snarl.
+    /// It may have distances, it may be regular, and it may be oversized.
     constexpr static record_t encode_nonroot_nonsimple_snarl(bool has_distances, bool is_regular, bool is_oversized) {
         if (is_oversized) {
             if (!has_distances) {
@@ -753,11 +772,14 @@ public:
             return has_distances ? DISTANCED_SNARL : SNARL;
         }
     }
-
+    
+    /// Encode the type of a node that may or may not have distances.
     constexpr static record_t encode_node(bool has_distances) {
         return has_distances ? DISTANCED_NODE : NODE;
     }
-
+    
+    /// Encode the type of a chain.
+    /// It may have distances, and it may be a multicomponent chain.
     constexpr static record_t encode_chain(bool has_distances, bool is_multicomponent) {
         if (is_multicomponent) {
             if (!has_distances) {
@@ -769,10 +791,6 @@ public:
         }
     }
 
-    
-
-
-    
     ///Given the type of the record, return the handle type. Some record types can represent multiple things,
     ///for example a simple snarl record is used to represent a snarl, and the nodes/trivial chains in it.
     ///This will return whatever is higher on the snarl tree. A simple snarl will be considered a snarl,
@@ -1917,17 +1935,18 @@ public:
         /// that some positions in the vector are empty temporary indexes for
         /// nonexistent nodes. 
         vector<TemporaryNodeRecord> temp_node_records;
-
+        
+        /// Look up a chain from a temporary record reference.
+        /// Throws an error if the reference is not to a chain or is out of bounds.
         inline TemporaryChainRecord& get_chain(const temp_record_ref_t& ref) {
-            if (ref.first != TEMP_CHAIN) {
-                throw std::invalid_argument("Trying to look up a non-chain as a chain");
-            }
-            if (ref.second >= temp_chain_records.size()) {
-                throw std::out_of_range("Trying to look up chain " + std::to_string(ref.second) + " but temporary index only has " + std::to_string(temp_chain_records.size()) + " chains");
-            }
-            return temp_chain_records[ref.second];
+            // Delegate to the const version and un-const the result. See
+            // <https://stackoverflow.com/a/47369227>
+            return const_cast<TemporaryChainRecord&>(std::as_const(*this).get_chain(ref));
         }
 
+        /// Look up a chain from a temporary record reference.
+        /// Throws an error if the reference is not to a chain or is out of bounds.
+        /// This version can be used when the object is const.
         inline const TemporaryChainRecord& get_chain(const temp_record_ref_t& ref) const {
             if (ref.first != TEMP_CHAIN) {
                 throw std::invalid_argument("Trying to look up a non-chain as a chain");
@@ -1937,17 +1956,16 @@ public:
             }
             return temp_chain_records[ref.second];
         }
-
+        
+        /// Look up a snarl from a temporary record reference.
+        /// Throws an error if the reference is not to a snarl or is out of bounds.
         inline TemporarySnarlRecord& get_snarl(const temp_record_ref_t& ref) {
-            if (ref.first != TEMP_SNARL) {
-                throw std::invalid_argument("Trying to look up a non-snarl as a snarl");
-            }
-            if (ref.second >= temp_snarl_records.size()) {
-                throw std::out_of_range("Trying to look up snarl " + std::to_string(ref.second) + " but temporary index only has " + std::to_string(temp_snarl_records.size()) + " snarls");
-            }
-            return temp_snarl_records[ref.second];
+            return const_cast<TemporarySnarlRecord&>(std::as_const(*this).get_snarl(ref));
         }
-
+        
+        /// Look up a snarl from a temporary record reference.
+        /// Throws an error if the reference is not to a snarl or is out of bounds.
+        /// This version can be used when the object is const.
         inline const TemporarySnarlRecord& get_snarl(const temp_record_ref_t& ref) const {
             if (ref.first != TEMP_SNARL) {
                 throw std::invalid_argument("Trying to look up a non-snarl as a snarl");
@@ -1957,21 +1975,16 @@ public:
             }
             return temp_snarl_records[ref.second];
         }
-
+        
+        /// Look up a node from a temporary record reference.
+        /// Throws an error if the reference is not to a node or is out of bounds.
         inline TemporaryNodeRecord& get_node(const temp_record_ref_t& ref) {
-            if (ref.first != TEMP_NODE) {
-                throw std::invalid_argument("Trying to look up a non-node as a node");
-            }
-            if (ref.second < min_node_id) {
-                throw std::out_of_range("Trying to look up node " + std::to_string(ref.second) + " but temporary index starts at node " + std::to_string(min_node_id));
-            }
-            if (ref.second >= temp_node_records.size() + min_node_id) {
-                throw std::out_of_range("Trying to look up node " + std::to_string(ref.second) + " but temporary index only goes up until node " + std::to_string(temp_node_records.size() + min_node_id));
-            }
-            // Nodes use a node ID in the ref, not an index.
-            return temp_node_records[ref.second - min_node_id];
+            return const_cast<TemporaryNodeRecord&>(std::as_const(*this).get_node(ref));
         }
-
+        
+        /// Look up a node from a temporary record reference.
+        /// Throws an error if the reference is not to a node or is out of bounds.
+        /// This version can be used when the object is const.
         inline const TemporaryNodeRecord& get_node(const temp_record_ref_t& ref) const {
             if (ref.first != TEMP_NODE) {
                 throw std::invalid_argument("Trying to look up a non-node as a node");

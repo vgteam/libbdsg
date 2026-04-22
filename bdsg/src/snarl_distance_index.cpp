@@ -387,8 +387,6 @@ net_handle_t SnarlDistanceIndex::get_parent(const net_handle_t& child) const {
         //If this is a simple snarl and a node or chain, then the parent offset doesn't change
         if (get_handle_type(child) == NODE_HANDLE) {
             // If this is a node, then return it as a chain
-            // TODO: Why can a simple snarl need to look like a node itself?
-            // TODO: Why can a simple snarl need to look like a chain? Because the node needs to look like a chain?
 #ifdef debug_parent
             std::cerr << "We were looking at a simple snarl as a node; project it as a chain." << std::endl;
 #endif
@@ -450,6 +448,8 @@ net_handle_t SnarlDistanceIndex::get_bound(const net_handle_t& snarl, bool get_e
         // snarl record looking like a chain (maybe because the node it was
         // looking like needs to look like a chain now). ChainRecord promises
         // to know how to interpret all of them.
+        // TODO: the concepts involved in things looking like other things
+        // should be documented somewhere.
         ChainRecord chain_record(snarl, &snarl_tree_records);
         size_t offset;
         size_t node_offset;
@@ -1062,11 +1062,12 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
     cerr << "\t\tChild parents are " << net_handle_as_string(canonical(child1_parent)) << " and " << net_handle_as_string(canonical(child2_parent)) << endl;
 
     if (canonical(parent) != canonical(child1_parent) || canonical(parent) != canonical(child2_parent)) {
-        std::cerr << "Error: parent mismatch!" << std::endl;
-        std::cerr << as_integer(canonical(parent)) << " = " << net_handle_as_string(canonical(parent)) << std::endl;
-        std::cerr << as_integer(canonical(child1_parent)) << " = " << net_handle_as_string(canonical(child1_parent)) << std::endl;
-        std::cerr << as_integer(canonical(child2_parent)) << " = " << net_handle_as_string(canonical(child2_parent)) << std::endl;
-        assert(false);
+        std::stringstream ss;
+        ss << "Error: parent mismatch!" << std::endl;
+        ss << as_integer(canonical(parent)) << " = " << net_handle_as_string(canonical(parent)) << std::endl;
+        ss << as_integer(canonical(child1_parent)) << " = " << net_handle_as_string(canonical(child1_parent)) << std::endl;
+        ss << as_integer(canonical(child2_parent)) << " = " << net_handle_as_string(canonical(child2_parent)) << std::endl;
+        throw std::runtime_error(ss.str());
     }
 #endif
 
@@ -1127,9 +1128,8 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
     } else if (is_chain(parent)) {
         if (get_record_handle_type(get_record_type(snarl_tree_records->at(get_record_offset(parent)))) == NODE_HANDLE ||
             get_record_handle_type(get_record_type(snarl_tree_records->at(get_record_offset(parent)))) == SNARL_HANDLE) {
-            // TODO: Why would this happen?
 #ifdef debug_distances
-        std::cerr << "=>They are not reachable because this chain is really a node or snarl(?!)" << std::endl;
+        std::cerr << "=>They are not reachable because this \"chain\" is really a node or snarl" << std::endl;
 #endif
             return std::numeric_limits<size_t>::max();
         }
@@ -1308,10 +1308,7 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
             // appears in us. (So even not-reversed won't mean local forward
             // orientation if is_reversed_in_parent() is true for that child).
             //
-            // TODO: Probably need to also flip for is_reversed_in_parent() to
-            // account for this.
-            //
-            // TODO: dir1 and dir2 aren't just normal is_reverse flags. 
+            // Note that dir1 and dir2 aren't just normal is_reverse flags. 
             //
             // For a sentinel rank 1 (end node) as rank1, dir1 false needs to mean into the snarl (so start of end node, reverse strand).
             // For a sentinel rank 0 (start node) as rank1, dir1 false needs to mean into the snarl (so end of start node, forward strand).
@@ -4150,7 +4147,7 @@ SnarlDistanceIndex::SnarlRecord::SnarlRecord (net_handle_t net, const bdsg::yomo
 
 size_t SnarlDistanceIndex::SnarlRecord::distance_vector_size(record_t type, size_t node_count) {
     if (!is_nonsimple_snarl(type)) {
-        throw runtime_error("error: this is not a snarl");
+        throw runtime_error("error: trying to get size of distance matrix for something other than a snarl that would have one");
     }
     if (has_distances(type)) {
         if (is_oversized_snarl(type)) {
@@ -5212,7 +5209,7 @@ size_t SnarlDistanceIndex::ChainRecord::get_distance(size_t rank1, bool left_sid
         if (rank1 == rank2) {
             distance = reverse_loop1;
 #ifdef debug_distances
-            std::cerr << "Distance on left slef loop is " << distance << std::endl;
+            std::cerr << "Distance on left self loop is " << distance << std::endl;
 #endif
 
         } else {

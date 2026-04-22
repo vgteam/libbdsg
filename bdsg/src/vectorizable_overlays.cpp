@@ -4,6 +4,8 @@
 
 namespace bdsg {
 
+const size_t VectorizableOverlay::MIN_ITEMS_PER_THREAD = 1024;
+
 VectorizableOverlay::VectorizableOverlay(const HandleGraph* graph) :
     underlying_graph(graph) {
     assert(underlying_graph != nullptr);
@@ -175,7 +177,7 @@ void VectorizableOverlay::index_nodes_and_edges() {
     
     // We limit threading on small inputs.
     auto limited_threads = [&](size_t batch) {
-        return std::max<size_t>(1, std::min<size_t>(batch / 1024, get_thread_count()));
+        return std::max<size_t>(1, std::min<size_t>(batch / MIN_ITEMS_PER_THREAD, get_thread_count()));
     };
 
     // Make edge PMHF. Does its own threading. Do it first so we can drop the edge buffer.
