@@ -209,7 +209,9 @@ add_library(sparsepp INTERFACE)
 target_include_directories(sparsepp INTERFACE "${bdsg_DIR}/deps/sparsepp/")
 
 # mio (header only)
-add_subdirectory("${bdsg_DIR}/deps/mio")
+if (NOT TARGET mio::mio)
+    add_subdirectory("${bdsg_DIR}/deps/mio")
+endif()
 
 if (BUILD_PYTHON_BINDINGS)
 
