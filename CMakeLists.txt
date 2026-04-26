@@ -168,7 +168,9 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 endif()
 
 # hopscotch_map (required by DYNAMIC, gives a "tsl::hopscotch_map" target)
-add_subdirectory("${bdsg_DIR}/deps/hopscotch-map")
+if (NOT TARGET tsl::hopscotch_map)
+    add_subdirectory("${bdsg_DIR}/deps/hopscotch-map")
+endif()
 
 # DYNAMIC (header only)
 # Does not ship its own install step or define a target, so we make our own target
