@@ -189,7 +189,9 @@ elseif (TARGET handlegraph_objs)
     message("Using libhandlegraph built by another CMake")
 else ()
     message("Using bundled libhandlegraph")
-    add_subdirectory("${bdsg_DIR}/deps/libhandlegraph")
+    if (NOT TARGET handlegraph_shared AND NOT TARGET handlegraph)
+        add_subdirectory("${bdsg_DIR}/deps/libhandlegraph")
+    endif()
 endif()
 
 
