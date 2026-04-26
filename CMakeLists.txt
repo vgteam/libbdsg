@@ -158,7 +158,9 @@ include(ExternalProject)
 
 # sdsl-lite (gives an "sdsl" target)
 set(BUILD_SHARED_LIBS ON CACHE BOOL "Build sdsl-lite shared libraries")
-add_subdirectory("${bdsg_DIR}/deps/sdsl-lite")
+if (NOT TARGET sdsl)
+    add_subdirectory("${bdsg_DIR}/deps/sdsl-lite")
+endif()
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     # It produces divsufsort and divsufsort64 targets that don't know they need OMP on Mac.
     set_target_properties(divsufsort PROPERTIES LINK_FLAGS "-lomp")
