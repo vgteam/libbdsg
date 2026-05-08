@@ -86,7 +86,7 @@ public:
     bool operator>(const IndexingIterator& other) const;
 
     /// Determine if this iterator is at or after another.
-    /// Result is undefined if itrators are to different collecitons.
+    /// Result is undefined if iterators are to different collections.
     bool operator>=(const IndexingIterator& other) const;
     
 private:
