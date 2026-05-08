@@ -78,7 +78,7 @@ public:
     bool operator<(const IndexingIterator& other) const;
 
     /// Determine if this iterator is before or at another.
-    /// Result is undefined if iterators are to different collecitons.
+    /// Result is undefined if iterators are to different collections.
     bool operator<=(const IndexingIterator& other) const;
 
     /// Determine if this iterator is strictly after another.
