@@ -68,7 +68,7 @@ public:
     /// Indexing into iterator. Even though we type this as reference, remember
     /// that we don't actually implement writing to our "references" and just
     /// use the value type.
-    /// Result is undefined if itrators are to different collecitons.
+    /// Result is undefined if iterators are to different collections.
     reference operator[](difference_type offset) const;
 
     // Comaprable iterator methods (TODO: Is there an STL concept name for this?)
