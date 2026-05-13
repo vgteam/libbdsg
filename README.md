@@ -94,6 +94,8 @@ The documentation can then be found at `docs/_build/html/index.html`.
 - [`BBHash/alltypes`](https://github.com/rizkg/BBHash/tree/alltypes) 
 - [`jansson`](https://github.com/akheron/jansson)
 
+There is also a dependency on [`Boost`](https://www.boost.org/).
+
 The build process with `make` assumes that these libraries and their headers have been installed in a place on the system where the compiler can find them (e.g. in `CPLUS_INCLUDE_PATH`).
 
 #### Easy `make` installation
