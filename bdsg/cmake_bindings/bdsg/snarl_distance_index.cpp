@@ -15,11 +15,11 @@
 #include <tuple>
 #include <utility>
 
+#include <pybind11/pybind11.h>
 #include <bdsg/internal/binder_hook_compile.hpp>
 #include <fstream>
 #include <functional>
 #include <pybind11/functional.h>
-#include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
 #include <string>
