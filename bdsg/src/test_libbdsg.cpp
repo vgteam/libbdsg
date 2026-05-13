@@ -5414,7 +5414,7 @@ void test_snarl_distance_index() {
 }
 
 int main(void) {
-  /*test_reference_path_overlay();
+  test_reference_path_overlay();
   test_bit_packing();
   test_mapped_structs();
   test_int_vector();
@@ -5460,7 +5460,7 @@ int main(void) {
   test_packed_subgraph_overlay();
   test_multithreaded_overlay_construction();
   test_mapped_packed_graph();
-  test_hash_graph(); */
+  test_hash_graph();
   test_hub_labeling();
-  // test_snarl_distance_index();
+  test_snarl_distance_index();
 }
