@@ -973,7 +973,7 @@ private:
     // that start with component count
     const static size_t CURRENT_VERSION_NUMBER = 5;
     // A version to allow though but warn about
-    const static size_t WARN_VERSION_NUMBER = 4;
+    const static size_t WARN_VERSION_NUMBER = 9999; //placeholder value
     /// Arbitrary large number which doens't overflow the number of bits we give
     const static size_t VERSION_NUMBER_SENTINEL = (1 << 10) - 1;
 
