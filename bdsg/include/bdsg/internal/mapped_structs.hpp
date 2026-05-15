@@ -1879,7 +1879,6 @@ CompatIntVector<Alloc>::ConstProxy::operator uint64_t () const {
 template<typename Alloc>
 auto CompatIntVector<Alloc>::at(size_t index) -> Proxy {
     if (index > size()) {
-        assert(false);
         throw std::out_of_range("Accessing index " + std::to_string(index) +
             " in integer vector of length " + std::to_string(size()));
     }
