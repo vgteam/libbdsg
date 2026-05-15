@@ -1,6 +1,8 @@
 /*
 file for the contraction hierarchy method
 */
+#ifndef BDSG_CH_HPP_INCLUDED
+#define BDSG_CH_HPP_INCLUDED
 
 #include <bdsg/hash_graph.hpp>
 #include <bdsg/snarl_distance_index.hpp>
@@ -369,3 +371,5 @@ void write_to_gr(CHOverlay &ov, string out_path);
 
 vector<CHOverlay::vertex_descriptor> read_node_order(string in_path);
 } // namespace bdsg
+
+#endif
