@@ -208,23 +208,15 @@ public:
     std::string get_prefix() const;
     
     /* Allow for preloading the index for more accurate timing of algorithms
-     *
-     */
-    /* that use it, if it fits in memory. If blocking is true, waits for the
-     *
-     */
-    /* index to be paged in. Otherwise, just tells the OS that we will want to
-     *
-     */
-    /* use it.
+     * that use it, if it fits in memory. If blocking is true, waits for the
+     * index to be paged in. Otherwise, just tells the OS that we will want to
+     * use it.
      *
      */
     void preload(bool blocking = false) const;
 
 
-//////////////////////////////////*  How we define different properties of a net handle
-     *
-     */
+/////////////////////////////////   How we define different properties of a net handle?
 
     public:
 
@@ -234,22 +226,15 @@ public:
                             TIP_START, TIP_END, TIP_TIP};
 
     /* Type of a net_handle_t, which may not be the type of the record
+     * This is to allow a node record to be seen as a chain from the perspective of a handle.
+     * And to allow a simple snarl record to be seen as a node, a chain, or a snarl.
      *
-     */
-    /* This is to allow a node record to be seen as a chain from the perspective of a handle.
-     *
-     */
-    /* And to allow a simple snarl record to be seen as a node, a chain, or a snarl.
-     *
-     */
-    /* TODO: What does that really mean? Why can that happen?
+     * TODO: What does that really mean? Why can that happen?
      *
      */
     enum net_handle_record_t {ROOT_HANDLE=0, NODE_HANDLE, SNARL_HANDLE, CHAIN_HANDLE, SENTINEL_HANDLE};
 
-///////////////////////////*  functions for distance calculations using net_handle_t's 
-     *
-     */
+/////////////////////////////  functions for distance calculations using net_handle_t's 
 
 public:
 
@@ -417,9 +402,7 @@ public:
 public:
 
 
-////////////////* SnarlDecomposition methods
-     *
-     */
+////////////////// SnarlDecomposition methods
 
     ///Get a net handle referring to a tip-to-tip traversal of the contents of the root snarl.
     net_handle_t get_root() const ;
@@ -450,20 +433,13 @@ public:
     ///edges are allowed
     bool is_simple_snarl(const net_handle_t& net) const;
 
-    /* Returns true if the given net handle refers to (a traversal of) a regular snarl
+    /* Returns true if the given net handle refers to (a traversal of) a regular snarl.
      *
-     */
-    /* A regular snarl is the same as a simple snarl, except that the children may be
+     * A regular snarl is the same as a simple snarl, except that the children may be
+     * nested chains, rather than being restricted to nodes, as long as the
+     * nested chains don't allow reversals.
      *
-     */
-    /* nested chains, rather than being restricted to nodes, as long as the
-     *
-     */
-    /* nested chains don't allow reversals.
-     *
-     */
-    ///
-    /* Simple and trivial snarls also count as regular snarls.
+     * Simple and trivial snarls also count as regular snarls.
      *
      */
     bool is_regular_snarl(const net_handle_t& net) const;
@@ -650,44 +626,28 @@ private:
                                           vector<pair<net_handle_t, size_t>>* to_duplicate) const;
 
 
-////////////////////////////* How to interpret net_handle_ts
-     *
-     */
-//
+////////////////////////////// How to interpret net_handle_ts
+
 public:
 
     ///A record_t is the type of structure that a record can be.
-    /* The actual distance index is stored as a series of "records" for each snarl/node/chain. 
-     *
-     */
-    /* The record type defines what is stored in a record
-     *
-     */
-    ///
+    ///The actual distance index is stored as a series of "records" for each snarl/node/chain. 
+    ///The record type defines what is stored in a record.
+
     ///NODE, SNARL, and CHAIN indicate that they don't store distances.
     ///SIMPLE_SNARL is a snarl with all children connecting only to the boundary nodes in one direction (ie, a bubble).
     ///TRIVIAL_SNARL represents consecutive nodes in a chain. 
     ///NODE represents a node that is a trivial chain. A node can only be the child of a snarl.
     ///OVERSIZED_SNARL stores hub labeling data to compute distances.
     ///ROOT_SNARL represents a connected component of the root. It has no start or end node so 
-    /*   its children technically belong to the root.
-     *
-     */
+    ///its children technically belong to the root.
     ///MULTICOMPONENT_CHAIN can represent a chain with snarls that are not start-end connected.
-    /*    The chain is split up into components between these snarls, each node is tagged with
-     *
-     */
-    /*    which component it belongs to.
-     *
-     */
+    ///The chain is split up into components between these snarls, each node is tagged with
+    ///which component it belongs to.
     ///
-    /* TODO: What is a CHILDREN record? Is it ever used?
-     *
-     */
+    ///TODO: What is a CHILDREN record? Is it ever used?
     ///
-    /* These MUST match the order in record_t_as_string!
-     *
-     */
+    /// These MUST match the order in record_t_as_string!
     enum record_t {ROOT=1, 
                    NODE, DISTANCED_NODE, 
                    TRIVIAL_SNARL, DISTANCED_TRIVIAL_SNARL,
@@ -1045,9 +1005,7 @@ public:
 
 
     
-////////////////////////////////////////*  The actual distance index
-     *
-     */
+//////////////////////////////////////////  The actual distance index
     
 private:
 
@@ -1274,9 +1232,7 @@ private:
      * 
      * The remainder of the tag will be the record_t of the record
      */
-    /////////* Methods for interpreting the tags for each snarl tree record
-     *
-     */
+    /////////// Methods for interpreting the tags for each snarl tree record
 
     const static record_t get_record_type(const size_t tag) {return static_cast<record_t>(tag >> 9);}
 
@@ -1294,11 +1250,8 @@ private:
     const static bool is_externally_end_end_connected(const size_t tag) {return tag & 256;}
 
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////*  SnarlTreeRecord class for interpreting the records in a distance index
-     *
-     */
-//
+//////////////////////////////// SnarlTreeRecord class for interpreting the records in a distance index
+
 /* Define a struct for interpreting each type of snarl tree node record (For node, snarl, chain)
  *
  * This is meant to be a layer in between snarl_tree_records and the public interface.
@@ -1735,9 +1688,7 @@ private:
         size_t get_distance_left_end();
         size_t get_distance_right_end();
 
-        ////////////////////////* methods for navigating the snarl tree from this chain
-     *
-     */
+        ////////////////////////// methods for navigating the snarl tree from this chain
 
         //Get the offset into snarl_tree_records of the first node in the chain
         size_t get_first_node_offset() const; 
@@ -1809,9 +1760,8 @@ private:
 
 
 private:
-    ////////////////////* More methods for dealing with net_handle_ts
-     *
-     */
+    ////////////////////// More methods for dealing with net_handle_ts
+
     SnarlTreeRecord get_snarl_tree_record(const handlegraph::net_handle_t& net_handle) const {
         return SnarlTreeRecord(get_record_offset(net_handle), &snarl_tree_records);
     }
