@@ -1,5 +1,5 @@
 /*
-file for quickly playing around with stuff
+Hub labeling with contraction hierarchy node ordering.
 */
 #include "bdsg/ch.hpp"
 
