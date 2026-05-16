@@ -334,7 +334,6 @@ CHOverlay make_boost_graph(const SnarlDistanceIndex::TemporaryDistanceIndex& tem
 
 
 int edge_diff(ContractedGraph::vertex_descriptor nid, ContractedGraph& ch, CHOverlay& ov, vector<DIST_UINT>& node_dists, int hop_limit = 2) {
-  //using namespace boost;
   auto [out_start, out_end] = out_edges(nid, ch);
   auto [in_start, in_end] = in_edges(nid, ch);
 
