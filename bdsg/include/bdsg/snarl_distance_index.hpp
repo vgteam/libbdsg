@@ -1562,9 +1562,10 @@ private:
 
         //How big is the entire snarl record?
         static size_t distance_vector_size(record_t type, size_t node_count);
-        //vec_size parameter only needed for oversized snarls
-        //represents size of hub labeling-related data
-        //the value needed should be the first entry after the fixed-size record data
+        /* vec_size parameter only needed for oversized snarls
+         * represents size of hub labeling-related data
+         * the value needed should be the first entry after the fixed-size record data
+         */
         static size_t record_size (record_t type, size_t node_count, size_t vec_size) ;
         size_t record_size() ;
 
