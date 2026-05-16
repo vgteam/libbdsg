@@ -7,24 +7,6 @@ Hub labeling with contraction hierarchy node ordering.
 //#define debug_create
 
 namespace bdsg {
-bdsg::HashGraph make_test() {
-  bdsg::HashGraph g;
-  vector<handle_t> h; h.resize(13);
-  for (int i = 1; i <= 12; i++) {
-    h[i] = g.create_handle("A");
-  }
-  g.create_edge(h[1], h[2]); g.create_edge(h[2], h[3]);
-  g.create_edge(h[2], h[4]); g.create_edge(h[2], h[11]);
-  g.create_edge(h[2], g.flip(h[7])); g.create_edge(h[3], h[5]);
-  g.create_edge(h[4], h[6]); g.create_edge(h[4], h[7]);
-  g.create_edge(h[5], h[4]); g.create_edge(h[5], h[6]);
-  g.create_edge(h[6], h[8]); g.create_edge(h[7], h[8]);
-  g.create_edge(h[7], h[9]); g.create_edge(h[7], h[10]);
-  g.create_edge(g.flip(h[7]), g.flip(h[10])); 
-  g.create_edge(h[9], g.flip(h[10])); g.create_edge(h[11], h[12]);
-  g.create_edge(h[12], g.flip(h[1]));
-  return g;
-}
 
 NODE_UINT bgid(const handle_t& h, const bdsg::HashGraph& hg) {
   auto nid = hg.get_id(h);  
