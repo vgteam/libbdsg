@@ -1609,7 +1609,6 @@ private:
          *
          * May only be called once.
          *
-         * TODO: Make separate SnarlRecordWriter for oversized snarls?
          *
          * Putting vec_size in the SNARL_RECORD_SIZE'th slot due to it being the first one after the header
          */
