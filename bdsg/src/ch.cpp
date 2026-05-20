@@ -346,8 +346,7 @@ int edge_diff(ContractedGraph::vertex_descriptor nid, ContractedGraph& ch, CHOve
     DIST_UINT stop_dist = in_w + ov[nid].seqlen + ov[nid].max_out; 
     
     std::priority_queue<tuple<DIST_UINT, int>, vector<tuple<DIST_UINT, int>>, greater<tuple<DIST_UINT, int>>> q;
-    auto [_, __] = out_edges(in_node, ch);
-    std::for_each(_, __, [&](auto edge) { q.emplace(ch[edge].weight, target(edge, ch)); });
+    for (auto edge : boost::make_iterator_range(out_edges(in_node, ch))) { q.emplace(ch[edge].weight, target(edge, ch)); }
     int num_iter = 0; 
     vector<int> to_reset;
     //five hops limit idea from https://turing.iem.thm.de/routeplanning/hwy/contract.pdf
@@ -357,15 +356,14 @@ int edge_diff(ContractedGraph::vertex_descriptor nid, ContractedGraph& ch, CHOve
       if (cur_dist > stop_dist) { break; }
       q.pop();
       
-      std::tie(_, __) = out_edges(cur_node, ch);
-      std::for_each(_, __, [&](auto edge) { 
+      for (auto edge : boost::make_iterator_range(out_edges(cur_node, ch))) { 
         DIST_UINT new_dist = ch[edge].weight + cur_dist + ov[cur_node].seqlen;
         auto t = target(edge,ch);
         if (new_dist < node_dists[t]) {
           q.emplace(new_dist, t); 
           node_dists[t] = new_dist;
         }
-      }); 
+      } 
       num_iter += 1;
     }
     
@@ -401,10 +399,9 @@ void contract(CHOverlay::vertex_descriptor nid, ContractedGraph& ch, CHOverlay& 
     
     
     std::priority_queue<tuple<DIST_UINT, int>, vector<tuple<DIST_UINT, int>>, greater<tuple<DIST_UINT, int>>> q;
-    auto [_, __] = out_edges(in_node, ch);
-    std::for_each(_, __, [&](auto edge) { 
+    for (auto edge : boost::make_iterator_range(out_edges(in_node, ch))) { 
       q.emplace(ch[edge].weight, target(edge, ch));  
-    });
+    }
 
     int num_iter = 0; 
     vector<int> to_reset;
@@ -414,15 +411,14 @@ void contract(CHOverlay::vertex_descriptor nid, ContractedGraph& ch, CHOverlay& 
       if (cur_dist > stop_dist) { break; }
       q.pop();
       
-      std::tie(_, __) = out_edges(cur_node, ch);
-      std::for_each(_, __, [&](auto edge) { 
+      for (auto edge : boost::make_iterator_range(out_edges(cur_node, ch))) { 
         DIST_UINT new_dist = ch[edge].weight + cur_dist + ov[cur_node].seqlen;
         auto t = target(edge,ch);
         if (new_dist < node_dists[t]) {
           q.emplace(new_dist, t); 
           node_dists[t] = new_dist;
         }
-      }); 
+      } 
       
       num_iter += 1;
     }
@@ -727,14 +723,13 @@ void down_dijk(int node, CHOverlay& ov, vector<DIST_UINT>& node_dists, vector<ve
 
   std::priority_queue<tuple<DIST_UINT, int>, vector<tuple<DIST_UINT, int>>, greater<tuple<DIST_UINT, int>>> q; 
  
-  auto [_, __] = out_edges(in_node, ov);
-  std::for_each(_, __, [&](auto edge) { 
+  for (auto edge : boost::make_iterator_range(out_edges(in_node, ov))) { 
     auto t = target(edge, ov);  
     
     if (!ov[edge].ori) { return; } 
     q.emplace(ov[edge].weight, t); 
     node_dists[t] = ov[edge].weight;
-  });
+  }
 
   vector<int> to_reset;
  
@@ -749,8 +744,7 @@ void down_dijk(int node, CHOverlay& ov, vector<DIST_UINT>& node_dists, vector<ve
     labels_back[cur_node].emplace_back(ov[node].new_id, cur_dist);
 
     
-    std::tie(_, __) = out_edges(cur_node, ov);
-    std::for_each(_, __, [&](auto edge) { 
+    for (auto edge : boost::make_iterator_range(out_edges(cur_node, ov))) { 
       auto t = target(edge, ov);  
       
       if (!ov[edge].ori) { return; } 
@@ -759,7 +753,7 @@ void down_dijk(int node, CHOverlay& ov, vector<DIST_UINT>& node_dists, vector<ve
         q.emplace(new_dist, t); 
         node_dists[t] = new_dist;
       }
-    }); 
+    } 
   } 
 
   node_dists[node] = INF_INT;
@@ -776,14 +770,13 @@ void down_dijk_back(int node, CHOverlay& ov, vector<DIST_UINT>& node_dists, vect
   //std::priority_queue<tuple<DIST_UINT, int>, vector<tuple<DIST_UINT, int>>, greater<tuple<DIST_UINT, int>>> q;
   vector<tuple<DIST_UINT, CHOverlay::vertex_descriptor>> q; if (ov[node].new_id < 100) { q.reserve(num_vertices(ov)/2); } 
   
-  auto [_, __] = in_edges(in_node, ov);
-  std::for_each(_, __, [&](auto edge) {
+  for (auto edge : boost::make_iterator_range(in_edges(in_node, ov))) {
     auto s = source(edge, ov);
     
     if (!ov[edge].ori) { return; } 
     q.emplace_back(ov[edge].weight, s); 
     node_dists[s] = ov[edge].weight;
-  });
+  }
   make_heap(q.begin(), q.end(), greater<tuple<DIST_UINT, CHOverlay::vertex_descriptor>>());
   
   vector<int> to_reset; if (ov[node].new_id < 100) { to_reset.reserve(num_vertices(ov)/2); } 
@@ -800,8 +793,7 @@ void down_dijk_back(int node, CHOverlay& ov, vector<DIST_UINT>& node_dists, vect
     if (check_dist <= cur_dist) {continue;} 
     labels[cur_node].emplace_back(ov[node].new_id, cur_dist+ov[node].seqlen);
     
-    std::tie(_, __) = in_edges(cur_node, ov);
-    std::for_each(_, __, [&](auto edge) { 
+    for (auto edge : boost::make_iterator_range(in_edges(cur_node, ov))) { 
       auto t = source(edge, ov);  
       
       if (!ov[edge].ori) { return; } 
@@ -811,7 +803,7 @@ void down_dijk_back(int node, CHOverlay& ov, vector<DIST_UINT>& node_dists, vect
         push_heap(q.begin(), q.end(), greater<tuple<DIST_UINT, CHOverlay::vertex_descriptor>>()); 
         node_dists[t] = new_dist;
       }
-    }); 
+    } 
                                                                  
   }  
   
@@ -826,14 +818,13 @@ void test_dijk(int node, CHOverlay& ov, vector<DIST_UINT>& node_dists, vector<ve
   auto in_node = node; //node_dists[node] = 0;
  
   std::priority_queue<tuple<DIST_UINT, int>, vector<tuple<DIST_UINT, int>>, greater<tuple<DIST_UINT, int>>> q;
-  auto [_, __] = out_edges(in_node, ov);
-  std::for_each(_, __, [&](auto edge) { 
+  for (auto edge : boost::make_iterator_range(out_edges(in_node, ov))) { 
     auto t = target(edge, ov);  
     
     if (!ov[edge].ori) { return; }
     q.emplace(ov[edge].weight, t); 
     node_dists[t] = ov[edge].weight;
-  });
+  }
 
   vector<int> to_reset;
  
@@ -843,8 +834,7 @@ void test_dijk(int node, CHOverlay& ov, vector<DIST_UINT>& node_dists, vector<ve
 
     if (cur_dist > node_dists[cur_node]) { continue; }
   
-    std::tie(_, __) = out_edges(cur_node, ov);
-    std::for_each(_, __, [&](auto edge) { 
+    for (auto edge : boost::make_iterator_range(out_edges(cur_node, ov))) { 
       auto t = target(edge, ov);  
      
       if (!ov[edge].ori) { return; }
@@ -853,7 +843,7 @@ void test_dijk(int node, CHOverlay& ov, vector<DIST_UINT>& node_dists, vector<ve
         q.emplace(new_dist, t); 
         node_dists[t] = new_dist;
       }
-    }); 
+    } 
   }
 
   for (int cur_node = 0; cur_node < static_cast<int>(num_vertices(ov)); cur_node++) {
@@ -878,14 +868,13 @@ void test_dijk_back(int node, CHOverlay& ov, vector<DIST_UINT>& node_dists, vect
   auto in_node = node;
  
   std::priority_queue<tuple<DIST_UINT, int>, vector<tuple<DIST_UINT, int>>, greater<tuple<DIST_UINT, int>>> q;
-  auto [_, __] = in_edges(in_node, ov);
-  std::for_each(_, __, [&](auto edge) { 
+  for (auto edge : boost::make_iterator_range(in_edges(in_node, ov))) { 
     auto s = source(edge, ov);  
     
     if (!ov[edge].ori) { return; }
     q.emplace(ov[edge].weight, s); 
     node_dists[s] = ov[edge].weight;
-  });
+  }
 
   vector<int> to_reset;
  
@@ -895,8 +884,7 @@ void test_dijk_back(int node, CHOverlay& ov, vector<DIST_UINT>& node_dists, vect
 
     if (cur_dist > node_dists[cur_node]) { continue; }
   
-    std::tie(_, __) = in_edges(cur_node, ov);
-    std::for_each(_, __, [&](auto edge) { 
+    for (auto edge : boost::make_iterator_range(in_edges(cur_node, ov))) { 
       auto s = source(edge, ov);  
       //if (ov[t].new_id <= ov[node].new_id) { return; }
       if (!ov[edge].ori) { return; }
@@ -905,7 +893,7 @@ void test_dijk_back(int node, CHOverlay& ov, vector<DIST_UINT>& node_dists, vect
         q.emplace(new_dist, s); 
         node_dists[s] = new_dist;
       }
-    }); 
+    } 
   }
   for (auto cur_node = 0u; cur_node < num_vertices(ov); cur_node++) {
     DIST_UINT check_dist = binary_intersection_ch(labels[cur_node], labels_back[node]);
