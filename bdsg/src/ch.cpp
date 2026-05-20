@@ -460,7 +460,6 @@ void contract(CHOverlay::vertex_descriptor nid, ContractedGraph& ch, CHOverlay& 
     should_not_contract[in_node] = true;  
   });
 
-  //std::tie(out_start, out_end) = out_edges(nid, ch);
   std::for_each(out_start, out_end, [&](ContractedGraph::edge_descriptor eid) {
     auto out_node = target(eid, ch);
     ov[out_node].contracted_neighbors += 1;  
@@ -693,29 +692,6 @@ DIST_UINT binary_intersection_ch(vector<HubRecord>& v1, vector<HubRecord>& v2) {
   }  
   return min_dist;
 }
-/*                           
-template <typename ItrType>
-ItrType get_dist_itr(ItrType start_itr, ItrType hub_itr) {
-  auto node_count = *start_itr;
-  auto last_fwd_end_bound_itr = next(start_itr, 1+node_count);
-  if (hub_itr >= next(start_itr, *last_fwd_end_bound_itr)) {
-    //backwards label
-    auto first_back_bound_itr = next(start_itr, 1+node_count+1); 
-    auto last_back_bound_itr = next(start_itr, 1+node_count+1+node_count);
-    auto jump_to_dist = (*last_back_bound_itr) - *first_back_bound_itr;
-    return next(hub_itr, jump_to_dist);
-  } else {
-    //forwards label
-    auto first_fwd_bound_itr = next(start_itr, 1); 
-    auto last_fwd_bound_itr = next(start_itr, 1+node_count);
-    auto jump_to_dist = (*last_fwd_bound_itr) - *first_fwd_bound_itr;
-    return next(hub_itr, jump_to_dist); 
-  }
-}
-*/
-
-
-
 
 
 void down_dijk(int node, CHOverlay& ov, vector<DIST_UINT>& node_dists, vector<vector<HubRecord>>& labels, vector<vector<HubRecord>>& labels_back) {
