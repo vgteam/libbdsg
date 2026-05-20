@@ -386,7 +386,7 @@ int edge_diff(ContractedGraph::vertex_descriptor nid, ContractedGraph& ch, CHOve
   return ediff;  
 }
 
-void contract(CHOverlay::vertex_descriptor nid, ContractedGraph& ch, CHOverlay& ov, vector<DIST_UINT>& node_dists, vector<bool>& shouldnt_contract, int hop_limit = 2) {
+void contract(CHOverlay::vertex_descriptor nid, ContractedGraph& ch, CHOverlay& ov, vector<DIST_UINT>& node_dists, vector<bool>& should_not_contract, int hop_limit = 2) {
   auto [out_start, out_end] = out_edges(nid, ch);
   auto [in_start, in_end] = in_edges(nid, ch);
   
@@ -457,7 +457,7 @@ void contract(CHOverlay::vertex_descriptor nid, ContractedGraph& ch, CHOverlay& 
     ov[in_node].contracted_neighbors += 1;
     ov[in_node].level = max(ov[in_node].level, ov[nid].level); 
     ch[eid].contracted = true;
-    shouldnt_contract[in_node] = true;  
+    should_not_contract[in_node] = true;  
   });
 
   //std::tie(out_start, out_end) = out_edges(nid, ch);
@@ -466,7 +466,7 @@ void contract(CHOverlay::vertex_descriptor nid, ContractedGraph& ch, CHOverlay& 
     ov[out_node].contracted_neighbors += 1;  
     ov[out_node].level = max(ov[out_node].level, ov[nid].level); 
     ch[eid].contracted = true;  
-    shouldnt_contract[out_node] = true;  
+    should_not_contract[out_node] = true;  
   }); 
 
   ov[nid].contracted = true;
