@@ -332,24 +332,48 @@ CHOverlay make_boost_graph(const SnarlDistanceIndex::TemporaryDistanceIndex& tem
   return ov;
 }
 
-
+/* Gets edge difference term for node priority calculation in contraction hierarchy build.
+ * See Geisberger et al. for more details: https://turing.iem.thm.de/routeplanning/hwy/contract.pdf
+ * Also updates the arc cover term for a node. 
+ * Arc cover = H(node) term of Abraham et al: https://www.microsoft.com/en-us/research/wp-content/uploads/2011/05/hl-sea.pdf
+ */
 int edge_diff(ContractedGraph::vertex_descriptor nid, ContractedGraph& ch, CHOverlay& ov, vector<DIST_UINT>& node_dists, int hop_limit = 2) {
   auto [out_start, out_end] = out_edges(nid, ch);
   auto [in_start, in_end] = in_edges(nid, ch);
 
+  // Reset the arc_cover accumulator. arc_cover tracks how many original
+  // (pre-contraction) edges are represented by each shortcut
   ov[nid].arc_cover = 0; 
   int eadd = 0; 
+
+  // For each in-neighbor V of U
   //thanks https://theboostcpplibraries.com/boost.graph-vertices-and-edges for iteration code
   std::for_each(in_start, in_end, [&](ContractedGraph::edge_descriptor eid) {
     auto in_node = source(eid, ch);
     DIST_UINT in_w = ch[eid].weight;
-    DIST_UINT stop_dist = in_w + ov[nid].seqlen + ov[nid].max_out; 
     
+    // --- Witness search ---
+    // We need to find (approximately) how many shortcut edges will be required to preserve distances
+    // upon deleting U.
+    // First, we do Dijkstra at this in-neighbor V.
+    // Second, we check if the path V->U->W, where W is an out-neighbor of U
+    // has distance V->W, if so it is counted as a necessary shortcut.
     std::priority_queue<tuple<DIST_UINT, int>, vector<tuple<DIST_UINT, int>>, greater<tuple<DIST_UINT, int>>> q;
     for (auto edge : boost::make_iterator_range(out_edges(in_node, ch))) { q.emplace(ch[edge].weight, target(edge, ch)); }
     int num_iter = 0; 
     vector<int> to_reset;
-    //five hops limit idea from https://turing.iem.thm.de/routeplanning/hwy/contract.pdf
+
+    // The furthest out-neighbor W we'd ever need a shortcut to is bounded by
+    // in_w + seqlen(U) + max_out(U), where max_out is the heaviest out-edge
+    // weight from U. Any Dijkstra path longer than this can't possibly be a
+    // witness for *any* V->U->W shortcut, so we can stop early.
+    DIST_UINT stop_dist = in_w + ov[nid].seqlen + ov[nid].max_out; 
+    
+    //hop limit idea from https://turing.iem.thm.de/routeplanning/hwy/contract.pdf
+    // Explore paths from V, stop condition is any one of:
+    // 1) hop_limit steps (limit needed to avoid long runtimes)
+    // 2) reaching stop_dist
+    // 3) all nodes visited
     while ((!q.empty()) && (num_iter < hop_limit)) {
       auto [cur_dist, cur_node] = q.top();
       to_reset.push_back(cur_node);
@@ -367,19 +391,28 @@ int edge_diff(ContractedGraph::vertex_descriptor nid, ContractedGraph& ch, CHOve
       num_iter += 1;
     }
     
+    // --- Shortcut necessity check ---
+    // For each out-neighbor W of U (i.e. edge U -> W exists), check whether
+    // the path V->U->W is necessary as a shortcut.
     std::for_each(out_start, out_end, [&](ContractedGraph::edge_descriptor eid2) { 
+      // Cost of the path through U: dist(V,U) + seqlen(U) + dist(U,W)
+      // If no witness path V->...->W was found with equal or shorter distance
+      // (node_dists[W] would reflect that), then this shortcut is required.
       if (in_w+ch[nid].seqlen+ch[eid2].weight <= node_dists[target(eid2, ch)]) {
         eadd += 1;
+        // Accumulate arc coverage: the shortcut "inherits" the coverage of
+        // both the incoming and outgoing original edges it replaces.
         ov[nid].arc_cover += (ov[eid].arc_cover + ov[eid2].arc_cover);
       }
-      
     });
 
+    // Reset node_dists for the next in-neighbor's search.
     for (auto n: to_reset) { node_dists[n] = INF_INT; }
 
     while (!q.empty()) { node_dists[get<1>(q.top())] = INF_INT; q.pop(); }
   });  
 
+  // edges_removed = every in-edge + every out-edge of U (all get deleted on contraction).
   int edel = out_degree(nid, ch) + in_degree(nid, ch);
   int ediff = eadd - edel;
   
