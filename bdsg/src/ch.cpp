@@ -547,7 +547,7 @@ void make_contraction_hierarchy(CHOverlay& ov) {
   
   ContractedGraph contracted_g(ov, contracted_filter);
   vector<bool> skip(num_vertices(ov), false); 
-  int num_con = 0; 
+  int num_contractions = 0; 
   
   vector<DIST_UINT> node_dists(num_vertices(ov), INF_INT);  
 
@@ -564,35 +564,35 @@ void make_contraction_hierarchy(CHOverlay& ov) {
       if (ov[i].contracted || skip[i]) { continue; }  
       int edif = edge_diff(i, contracted_g, ov, node_dists, 250); 
       
-      int min_pri = INF_INT;
+      int min_priority = INF_INT;
 
       auto [out_start, out_end] = out_edges(i, contracted_g);
       auto [in_start, in_end] = in_edges(i, contracted_g);
       std::for_each(out_start, out_end, [&] (auto out_edge) {   
         auto neigh = target(out_edge, ov);
         if (skip[neigh]) {return;} 
-        int neigh_edif = edge_diff(neigh, contracted_g, ov, node_dists, 250); 
+        int neigh_edge_difference = edge_diff(neigh, contracted_g, ov, node_dists, 250); 
        
-        int neigh_pri = (2*neigh_edif) + (1*ov[neigh].contracted_neighbors) + (5*(ov[neigh].level+1)) + ov[neigh].arc_cover;
+        int neigh_priority = (2*neigh_edge_difference) + (1*ov[neigh].contracted_neighbors) + (5*(ov[neigh].level+1)) + ov[neigh].arc_cover;
         
-        if (neigh_pri < min_pri) { min_pri = neigh_pri; } 
+        if (neigh_priority < min_priority) { min_priority = neigh_priority; } 
       
       });
 
       std::for_each(in_start, in_end, [&] (auto in_edge) {  
         auto neigh = source(in_edge, ov);
         if (skip[neigh]) {return;} 
-        int neigh_edif = edge_diff(neigh, contracted_g, ov, node_dists, 250);  
+        int neigh_edge_difference = edge_diff(neigh, contracted_g, ov, node_dists, 250);  
        
-        int neigh_pri = (2*neigh_edif) + (1*ov[neigh].contracted_neighbors) + (5*(ov[neigh].level+1)) + ov[neigh].arc_cover;
+        int neigh_priority = (2*neigh_edge_difference) + (1*ov[neigh].contracted_neighbors) + (5*(ov[neigh].level+1)) + ov[neigh].arc_cover;
  
-        if (neigh_pri < min_pri) { min_pri = neigh_pri; }
+        if (neigh_priority < min_priority) { min_priority = neigh_priority; }
       
       }); 
  
       int priority = (2*edif) + (1*ov[i].contracted_neighbors) + (5*(ov[i].level+1)) + ov[i].arc_cover;
       
-      if ((priority <= min_pri)) {
+      if ((priority <= min_priority)) {
         
         std::for_each(out_start, out_end, [&] (auto out_edge) {   
           auto neigh = target(out_edge, ov);
@@ -613,10 +613,10 @@ void make_contraction_hierarchy(CHOverlay& ov) {
      
       if (ov[i].contracted) { continue; }
       if ((!skip[i])) {
-        ov[i].new_id = num_vertices(ov)-1-num_con;
+        ov[i].new_id = num_vertices(ov)-1-num_contractions;
         contract(i, contracted_g, ov, node_dists, skip, 250);
         skip[i] = true;
-        num_con += 1;
+        num_contractions += 1;
       }
     }  
 
@@ -639,10 +639,10 @@ void make_contraction_hierarchy(CHOverlay& ov) {
   for (int i = 0; i < num_vertices(ov); i+=1) {
     if (ov[i].contracted) { continue; }
 
-    int edif = edge_diff(i, contracted_g, ov, node_dists, 1000);
+    int edge_difference = edge_diff(i, contracted_g, ov, node_dists, 1000);
     
     //priority formula based off that given in https://www.microsoft.com/en-us/research/wp-content/uploads/2011/05/hl-sea.pdf
-    int priority = (2*edif) + (1*ov[i].contracted_neighbors) + (5*(ov[i].level+1)) + ov[i].arc_cover;
+    int priority = (2*edge_difference) + (1*ov[i].contracted_neighbors) + (5*(ov[i].level+1)) + ov[i].arc_cover;
     queue_objs.emplace_back(priority, i);
   } 
   make_heap(queue_objs.begin(), queue_objs.end(), greater<tuple<int, CHOverlay::vertex_descriptor>>());
@@ -658,17 +658,17 @@ void make_contraction_hierarchy(CHOverlay& ov) {
     pop_heap(queue_objs.begin(), queue_objs.end(), greater<tuple<int, CHOverlay::vertex_descriptor>>());
     
     int hop_limit = 1000;
-    int edif = edge_diff(node, contracted_g, ov, node_dists, hop_limit);
+    int edge_difference = edge_diff(node, contracted_g, ov, node_dists, hop_limit);
    
-    int new_pri = ((2*edif)+ (1*ov[node].contracted_neighbors)) + (5*(ov[node].level+1)) + ov[node].arc_cover;
+    int recomputed_priority = ((2*edge_difference)+ (1*ov[node].contracted_neighbors)) + (5*(ov[node].level+1)) + ov[node].arc_cover;
     
-    if (new_pri > get<0>(queue_objs.back())) {
+    if (recomputed_priority > get<0>(queue_objs.back())) {
       // After recomputing priority, the priority is actually greater than the next-lowest-priority entry.
       // Put this back so we can get that one instead.
       // First we need to put what's the current last item back in its proper place.
       push_heap(queue_objs.begin(), queue_objs.end(), greater<tuple<int, CHOverlay::vertex_descriptor>>());
       // Then we put this item back and heapify everything
-      queue_objs.emplace_back(new_pri, node); 
+      queue_objs.emplace_back(recomputed_priority, node); 
       push_heap(queue_objs.begin(), queue_objs.end(), greater<tuple<int, CHOverlay::vertex_descriptor>>());
       // Then we find the new smallest-priority item.
       pop_heap(queue_objs.begin(), queue_objs.end(), greater<tuple<int, CHOverlay::vertex_descriptor>>()); 
@@ -684,8 +684,8 @@ void make_contraction_hierarchy(CHOverlay& ov) {
 #endif
     
    
-    ov[node].new_id = num_vertices(ov)-1-num_con;
-    contract(node, contracted_g, ov, node_dists, skip, hop_limit); num_con += 1;
+    ov[node].new_id = num_vertices(ov)-1-num_contractions;
+    contract(node, contracted_g, ov, node_dists, skip, hop_limit); num_contractions += 1;
   }
   
   // Pop the remaining nodes off the queue, assign hub ordering accordingly.
@@ -695,8 +695,8 @@ void make_contraction_hierarchy(CHOverlay& ov) {
     //preparing for next pop
     pop_heap(queue_objs.begin(), queue_objs.end(), greater<tuple<int, CHOverlay::vertex_descriptor>>());
     
-    ov[node].new_id = num_vertices(ov)-1-num_con;
-    num_con += 1;
+    ov[node].new_id = num_vertices(ov)-1-num_contractions;
+    num_contractions += 1;
   }
 
   auto ori_filter = [&](CHOverlay::edge_descriptor eid) { return !(ov[eid].ori); }; 
