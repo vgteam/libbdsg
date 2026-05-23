@@ -419,10 +419,25 @@ int edge_diff(ContractedGraph::vertex_descriptor nid, ContractedGraph& ch, CHOve
   return ediff;  
 }
 
+/* Contract node `nid` out of the graph by:
+ *   1. Running a "witness search" for each in-neighbor to find whether a
+ *      shortcut edge is actually needed to preserve shortest paths.
+ *   2. Adding shortcut edges u → v for every (u → nid → v) pair where no
+ *      alternative path exists.
+ *   3. Marking all edges incident to `nid` as contracted (so the filtered
+ *      ContractedGraph view stops seeing them) and updating bookkeeping on
+ *      neighbouring nodes.
+ *
+ * The key invariant of contraction hierarchies: after we remove nid from the
+ * graph, every shortest path that *used* to pass through nid must still be
+ * reachable via a direct shortcut edge, so that later distance queries never
+ * need to consider nid again.
+ */
 void contract(CHOverlay::vertex_descriptor nid, ContractedGraph& ch, CHOverlay& ov, vector<DIST_UINT>& node_dists, vector<bool>& should_not_contract, int hop_limit = 2) {
   auto [out_start, out_end] = out_edges(nid, ch);
   auto [in_start, in_end] = in_edges(nid, ch);
   
+  //TODO: this part is similar to edge_diff, refactor to eliminate redundancy?
   //thanks https://theboostcpplibraries.com/boost.graph-vertices-and-edges for iteration code
   std::for_each(in_start, in_end, [&](ContractedGraph::edge_descriptor eid) {
     auto in_node = source(eid, ch);
@@ -484,7 +499,20 @@ void contract(CHOverlay::vertex_descriptor nid, ContractedGraph& ch, CHOverlay& 
     while (!q.empty()) { node_dists[get<1>(q.top())] = INF_INT; q.pop(); }   
   }); 
                             
-  //update contracted neighbor counts
+  // ── Mark nid's edges as contracted and update neighbour metadata ──
+  //
+  // The ContractedGraph filter uses the `contracted` flag to hide edges, so
+  // setting it here effectively removes nid from future witness searches and
+  // edge-difference calculations.
+  //
+  // contracted_neighbors and level are part of the priority formula used when
+  // choosing which node to contract next: nodes adjacent to many already-
+  // contracted nodes (or near high-level nodes) are deprioritised so we build
+  // a good hierarchy.
+  //
+  // should_not_contract[neighbour] = true prevents a neighbour from being
+  // contracted in the same "round", ensuring the independence heuristic that
+  // keeps the contraction order sensible.
   std::for_each(in_start, in_end, [&](ContractedGraph::edge_descriptor eid) {
     auto in_node = source(eid, ch);
     ov[in_node].contracted_neighbors += 1;
