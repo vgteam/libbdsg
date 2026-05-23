@@ -285,7 +285,7 @@ CHOverlay make_boost_graph(const SnarlDistanceIndex::TemporaryDistanceIndex& tem
 
   for (auto [handle_in, vertex_id_in] : handle_bgnid_map) {
     // The map contains inward-facing orientations of every handle.
-    // So get the outward-facing versioin.
+    // So get the outward-facing version.
     handle_t handle = hgraph->flip(handle_in);
     NODE_UINT vertex_id = rev_bgid(vertex_id_in);
 
@@ -679,7 +679,7 @@ void make_contraction_hierarchy(CHOverlay& ov) {
     int new_pri = ((2*edif)+ (1*ov[node].contracted_neighbors)) + (5*(ov[node].level+1)) + ov[node].arc_cover;
     
     if (new_pri > get<0>(queue_objs.back())) {
-      // After recomputing priority, the priority is actually greater than the nex-tlowest-priority entry.
+      // After recomputing priority, the priority is actually greater than the next-lowest-priority entry.
       // Put this back so we can get that one instead.
       // First we need to put what's the current last item back in its proper place.
       push_heap(queue_objs.begin(), queue_objs.end(), greater<tuple<int, CHOverlay::vertex_descriptor>>());
