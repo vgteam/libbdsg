@@ -1,6 +1,8 @@
 #ifndef BDSG_INDEXING_ITERATOR_HPP_INCLUDED 
 #define BDSG_INDEXING_ITERATOR_HPP_INCLUDED
 
+#include <iterator>
+
 namespace bdsg {
 /**
  * A forward iterator for anything vector-like (PackedVector, PagedVector,
