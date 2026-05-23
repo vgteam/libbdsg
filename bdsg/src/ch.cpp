@@ -2,6 +2,7 @@
 Hub labeling with contraction hierarchy node ordering.
 */
 #include "bdsg/ch.hpp"
+#include <cstdint>
 
 //#define debug_boost_graph
 //#define debug_create
@@ -534,7 +535,7 @@ void contract(CHOverlay::vertex_descriptor nid, ContractedGraph& ch, CHOverlay& 
 
 /* Builds the contraction hierarchy and assigns the hub ordering.
  * kinda does the staggered hop limit idea from https://www.microsoft.com/en-us/research/wp-content/uploads/2011/05/hl-sea.pdf
- * but simpler (one hop limit for most nodes, a higher one for a few of the last ones off the queue)
+ * but simpler (one hop limit for initial round(s), a higher one for most of the ones after those)
  */
 void make_contraction_hierarchy(CHOverlay& ov) {
 #ifdef debug_create
@@ -550,8 +551,13 @@ void make_contraction_hierarchy(CHOverlay& ov) {
   
   vector<DIST_UINT> node_dists(num_vertices(ov), INF_INT);  
 
-
-  for (int rnd = 0; rnd < 1; rnd++) {  
+  // Do initial round(s).
+  // These round(s) do not use a priority queue.
+  // This helps speed things up as the initial number of nodes can be very large.
+  // A sufficiently 'stringy' graph should have about half of the nodes 
+  // eliminated in the first round. 
+  uint8_t num_starting_rounds = 1;
+  for (uint8_t rnd = 0; rnd < num_starting_rounds; rnd++) {  
     std::fill(skip.begin(), skip.end(), false);  
     
     for (NODE_UINT i = 0; i < num_vertices(ov); i+=1) {
@@ -597,7 +603,6 @@ void make_contraction_hierarchy(CHOverlay& ov) {
           auto neigh = source(in_edge, ov);
           skip[neigh] = true;
         });
-        //}
        
       } else {
         skip[i] = true;
@@ -625,10 +630,8 @@ void make_contraction_hierarchy(CHOverlay& ov) {
 #ifdef debug_create
   cerr << "left over: " << num_vertices(ov) - num_con << endl; 
 #endif
-  //std::fill(skip.begin(), skip.end(), false);  
-  //for (auto n: arti_pts) { skip[n] = true; }
 
-  // We maintain a priority queue that lest us find the smallest-priority item.
+  // We maintain a priority queue that lets us find the smallest-priority item.
   //
   // We keep all but the last item heap-ified, and the smallest-priority item
   // last, as our invariant.
@@ -645,8 +648,11 @@ void make_contraction_hierarchy(CHOverlay& ov) {
   make_heap(queue_objs.begin(), queue_objs.end(), greater<tuple<int, CHOverlay::vertex_descriptor>>());
   pop_heap(queue_objs.begin(), queue_objs.end(), greater<tuple<int, CHOverlay::vertex_descriptor>>()); 
  
- 
-  while (queue_objs.size() > 2) { 
+  // Priority-queue-using hub order assignment.
+  // Stop when a certain number of nodes are left
+  // as they may take an enormous amount of time to finish otherwise.
+  uint8_t early_stop_threshold = 2;
+  while (queue_objs.size() > early_stop_threshold) { 
     auto [pri, node] = queue_objs.back(); queue_objs.pop_back();
     //preparing for next pop
     pop_heap(queue_objs.begin(), queue_objs.end(), greater<tuple<int, CHOverlay::vertex_descriptor>>());
@@ -671,10 +677,10 @@ void make_contraction_hierarchy(CHOverlay& ov) {
     ov[node].level += 1;
  
 #ifdef debug_create
-    //if (queue_objs.size() % 100 == 1) {
-    cerr << "remaining: " << queue_objs.size() << ", deg: " << (double)num_edges(ov)/num_vertices(ov) << endl;
-    cerr << "lv: " << ov[node].level << endl;
-    //}
+    if (queue_objs.size() % 100 == 1) {
+      cerr << "remaining: " << queue_objs.size() << ", deg: " << (double)num_edges(ov)/num_vertices(ov) << endl;
+      cerr << "lv: " << ov[node].level << endl;
+    }
 #endif
     
    
@@ -682,31 +688,19 @@ void make_contraction_hierarchy(CHOverlay& ov) {
     contract(node, contracted_g, ov, node_dists, skip, hop_limit); num_con += 1;
   }
   
+  // Pop the remaining nodes off the queue, assign hub ordering accordingly.
+  // So long as these are few in number, performance should not be hurt too badly.
   while (!queue_objs.empty()) {  
     auto [pri, node] = queue_objs.back(); queue_objs.pop_back();
     //preparing for next pop
     pop_heap(queue_objs.begin(), queue_objs.end(), greater<tuple<int, CHOverlay::vertex_descriptor>>());
     
-    
-    //cerr << "in out: " << in_degree(node, ov) << " " << out_degree(node, ov) << endl;
     ov[node].new_id = num_vertices(ov)-1-num_con;
-    //contract(node, contracted_g, ov, node_dists, skip, 50); 
     num_con += 1;
   }
 
   auto ori_filter = [&](CHOverlay::edge_descriptor eid) { return !(ov[eid].ori); }; 
   remove_edge_if(ori_filter, ov);
-  
-  vector<tuple<int,int>> v2; v2.reserve(num_vertices(ov));
-  for (auto i = 0u; i < num_vertices(ov); i+=1) {
-    v2.emplace_back(in_degree(i,ov)*out_degree(i,ov), i);
-  }
-  sort(v2.rbegin(), v2.rend());
-  /* 
-  for (int i: {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}) {
-    auto [p, n] = v2[i];
-    cerr << n << " (" << ov[n].new_id << "): " << in_degree(n,ov) << " " << out_degree(n,ov) << endl;
-  } */
 }
 
 DIST_UINT binary_intersection_ch(vector<HubRecord>& v1, vector<HubRecord>& v2) {
