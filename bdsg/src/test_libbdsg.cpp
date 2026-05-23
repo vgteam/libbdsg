@@ -5157,11 +5157,6 @@ void test_hub_labeling() {
     assert(hhl_query(packed_labels.begin(), rank(1, false), rank(3, false)) ==
            0);
 
-    // need to debug
-    for (size_t a = 0; a < handles.size() * 2; a++) {
-      cerr << hhl_query(packed_labels.begin(), rank(1, false), a) << endl;
-    }
-
     // node to itself in the same direction (edge exists)
     assert(hhl_query(packed_labels.begin(), rank(5, false), rank(5, false)) ==
            0);
