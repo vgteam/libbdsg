@@ -95,7 +95,10 @@ public:
         
     /// Returns the i-th value
     inline uint64_t get(const size_t& i) const;
-        
+
+    /// Returns the i-th value (vector-like access).
+    inline uint64_t operator[](size_t i) const { return get(i); }
+
     /// Add a value to the end
     inline void push_back(const uint64_t& value);
 
@@ -211,7 +214,10 @@ public:
     
     /// Returns the i-th value
     inline uint64_t get(const size_t& i) const;
-    
+
+    /// Returns the i-th value (vector-like access).
+    inline uint64_t operator[](size_t i) const { return get(i); }
+
     /// Add a value to the end
     inline void push_back(const uint64_t& value);
 
@@ -324,7 +330,10 @@ public:
     
     /// Returns the i-th value
     inline uint64_t get(const size_t& i) const;
-    
+
+    /// Returns the i-th value (vector-like access).
+    inline uint64_t operator[](size_t i) const { return get(i); }
+
     /// Add a value to the end
     inline void push_back(const uint64_t& value);
 
@@ -429,7 +438,10 @@ public:
     
     /// Returns the i-th value
     inline uint64_t get(const size_t& i) const;
-    
+
+    /// Returns the i-th value (vector-like access).
+    inline uint64_t operator[](size_t i) const { return get(i); }
+
     /// Add a value to the front
     inline void push_front(const uint64_t& value);
 

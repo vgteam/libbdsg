@@ -19,7 +19,7 @@ public:
     using value_type = uint64_t;
     using difference_type = typename std::make_signed<size_t>::type;
     using pointer = void;
-    using reference = uint64_t;
+    using reference = decltype(std::declval<const VectorLike&>()[0]);
 
     //Constructors
     IndexingIterator() = default; 
@@ -34,7 +34,7 @@ public:
     IndexingIterator operator++(int);
 
     /// Dereference operator - returns value at current position
-    uint64_t operator*() const;
+    reference operator*() const;
 
     /// Equality comparison
     bool operator==(const IndexingIterator& other) const;
@@ -123,8 +123,8 @@ IndexingIterator<VectorLike> IndexingIterator<VectorLike>::operator++(int) {
 }
 
 template<typename VectorLike>
-uint64_t IndexingIterator<VectorLike>::operator*() const {
-    return vec_ptr->get(index);
+typename IndexingIterator<VectorLike>::reference IndexingIterator<VectorLike>::operator*() const {
+    return (*vec_ptr)[index];
 }
 
 template<typename VectorLike>

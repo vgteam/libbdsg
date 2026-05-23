@@ -1114,9 +1114,6 @@ public:
      * Get a proxy reference to read the given index.
      */
     ConstProxy operator[](size_t index) const;
-    
-    //get() needed for iterators (or compiler won't be happy)
-    inline uint64_t get(size_t index) const { return (*this)[index]; };
 
     // Compatibility with SDSL-lite serialization
     
