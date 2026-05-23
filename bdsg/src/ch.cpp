@@ -975,7 +975,7 @@ vector<size_t> pack_labels(const vector<vector<HubRecord>>& labels, const vector
 
   flat_label_vec.resize(flat_vec_size);   
 
-  //copy info into vec (fwd)
+  //copy forward label information into flat_label_vec
   size_t jump_to_dist = flat_label_vec[label_count+1] - flat_label_vec[1];
   for (size_t i = 0; i < labels.size(); i++) {
     auto& label = labels[i];
@@ -986,7 +986,7 @@ vector<size_t> pack_labels(const vector<vector<HubRecord>>& labels, const vector
     }
   }
  
-  //copy info into vec (back)
+  //copy forward label information into flat_label_vec
   jump_to_dist = flat_label_vec[(label_count+1)+label_count+1] - flat_label_vec[label_count+1+1];
   for (size_t i = 0; i < labels_back.size(); i++) {
     auto& label = labels_back[i];
