@@ -572,14 +572,11 @@ void make_contraction_hierarchy(CHOverlay& ov) {
   
   vector<DIST_UINT> node_dists(num_vertices(ov), INF_INT);  
 
-  vector<int> nodes; nodes.resize(num_vertices(ov));
-  iota(nodes.begin(), nodes.end(), 0); 
 
   for (int rnd = 0; rnd < 1; rnd++) {  
     std::fill(skip.begin(), skip.end(), false);  
     
-    //for (NODE_UINT i = 0; i < num_vertices(ov); i+=1) {
-    for (auto i: nodes) {
+    for (NODE_UINT i = 0; i < num_vertices(ov); i+=1) {
       if (ov[i].contracted || skip[i]) { continue; }  
       int edif = edge_diff(i, contracted_g, ov, node_dists, 250); 
       
