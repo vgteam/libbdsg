@@ -932,14 +932,11 @@ void create_labels(vector<vector<HubRecord>>& labels, vector<vector<HubRecord>>&
   for (auto j = 0u; j < num_vertices(ov); j++) { 
     
 #ifdef debug_create
-    //if (j % 100 == 1) { 
     cerr << j << "th node, " << v[j] << endl;
 #endif
 
-    //cerr << "starting dijkstra: " << endl;
     down_dijk_back(v[j], ov, node_dists, labels, labels_back);
   
-    //cerr << "starting rev dijkstra: " << endl;
     down_dijk(v[j], ov, node_dists, labels, labels_back);
   } 
 }
