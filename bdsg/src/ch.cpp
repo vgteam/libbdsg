@@ -532,32 +532,10 @@ void contract(CHOverlay::vertex_descriptor nid, ContractedGraph& ch, CHOverlay& 
   ov[nid].contracted = true;
 } 
 
-int get_hop_limit(CHOverlay& ov) {
-  //staggered hop limit idea from https://www.microsoft.com/en-us/research/wp-content/uploads/2011/05/hl-sea.pdf
-  int l = 1;
-  double deg = (double)num_edges(ov)/num_vertices(ov); 
-  if (deg >= 1) {
-    l = 1;
-  } 
-  
-  if (deg >= 2) {
-    l = 1;
-  } 
-
-  if (deg >= 3) {
-    l = 2;
-  }
-
-  if (deg >= 5) {
-    l = 3;
-  }
-
-  if (deg >= 7) {
-    l = 5;
-  } 
-  return l; 
-}
-
+/* Builds the contraction hierarchy and assigns the hub ordering.
+ * kinda does the staggered hop limit idea from https://www.microsoft.com/en-us/research/wp-content/uploads/2011/05/hl-sea.pdf
+ * but simpler (one hop limit for most nodes, a higher one for a few of the last ones off the queue)
+ */
 void make_contraction_hierarchy(CHOverlay& ov) {
 #ifdef debug_create
   cerr << "starting degree: " << (double)num_edges(ov)/num_vertices(ov) << endl;
@@ -673,7 +651,7 @@ void make_contraction_hierarchy(CHOverlay& ov) {
     //preparing for next pop
     pop_heap(queue_objs.begin(), queue_objs.end(), greater<tuple<int, CHOverlay::vertex_descriptor>>());
     
-    int hop_limit = 1000;//get_hop_limit(ov);
+    int hop_limit = 1000;
     int edif = edge_diff(node, contracted_g, ov, node_dists, hop_limit);
    
     int new_pri = ((2*edif)+ (1*ov[node].contracted_neighbors)) + (5*(ov[node].level+1)) + ov[node].arc_cover;
