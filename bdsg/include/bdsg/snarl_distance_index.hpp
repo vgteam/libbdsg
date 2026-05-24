@@ -653,10 +653,11 @@ public:
                    TRIVIAL_SNARL, DISTANCED_TRIVIAL_SNARL,
                    SIMPLE_SNARL, DISTANCED_SIMPLE_SNARL,
                    REGULAR_SNARL, DISTANCED_REGULAR_SNARL, OVERSIZED_REGULAR_SNARL,
-                   SNARL, DISTANCED_SNARL, OVERSIZED_SNARL, 
+                   SNARL, DISTANCED_SNARL, OVERSIZED_SNARL,
                    ROOT_SNARL, DISTANCED_ROOT_SNARL,
                    CHAIN, DISTANCED_CHAIN, MULTICOMPONENT_CHAIN,
-                   CHILDREN};
+                   CHILDREN,
+                   OVERSIZED_ROOT_SNARL};
 
     // Because the record_t encodes a complex taxonomy of snarls not *quite*
     // decomposable to flags, we use these accessors to look at facets of it.
@@ -669,7 +670,7 @@ public:
             || type == DISTANCED_TRIVIAL_SNARL || type == DISTANCED_SIMPLE_SNARL
             || type == DISTANCED_REGULAR_SNARL || type == OVERSIZED_REGULAR_SNARL
             || type == DISTANCED_SNARL || type == OVERSIZED_SNARL
-            || type == DISTANCED_ROOT_SNARL 
+            || type == DISTANCED_ROOT_SNARL || type == OVERSIZED_ROOT_SNARL
             || type == DISTANCED_CHAIN || type == MULTICOMPONENT_CHAIN;
     }
 
@@ -678,7 +679,8 @@ public:
      */
     constexpr static bool is_root_snarl(record_t type) {
         return type == ROOT_SNARL
-            || type == DISTANCED_ROOT_SNARL;
+            || type == DISTANCED_ROOT_SNARL
+            || type == OVERSIZED_ROOT_SNARL;
     }
 
     /*Return true if the given record type represents a root or a root snarl.
@@ -727,7 +729,8 @@ public:
      */
     constexpr static bool is_oversized_snarl(record_t type) {
         return type == OVERSIZED_SNARL
-            || type == OVERSIZED_REGULAR_SNARL;
+            || type == OVERSIZED_REGULAR_SNARL
+            || type == OVERSIZED_ROOT_SNARL;
     }
 
     /* Determine if a record type is a regular, but not a not simple (or
@@ -804,7 +807,13 @@ public:
     /* Encode the type of a root snarl that may or may not have distances.
      *
      */
-    constexpr static record_t encode_root_snarl(bool has_distances) {
+    constexpr static record_t encode_root_snarl(bool has_distances, bool is_oversized = false) {
+        if (is_oversized) {
+            if (!has_distances) {
+                throw runtime_error("error: oversized root snarl must have distances");
+            }
+            return OVERSIZED_ROOT_SNARL;
+        }
         return has_distances ? DISTANCED_ROOT_SNARL : ROOT_SNARL;
     }
     
@@ -862,7 +871,7 @@ public:
     ///This will return whatever is higher on the snarl tree. A simple snarl will be considered a snarl,
     ///a root snarl will be considered a root, etc
     constexpr static net_handle_record_t get_record_handle_type(record_t type) {
-        if (type == ROOT || type == ROOT_SNARL || type == DISTANCED_ROOT_SNARL) {
+        if (type == ROOT || type == ROOT_SNARL || type == DISTANCED_ROOT_SNARL || type == OVERSIZED_ROOT_SNARL) {
             return ROOT_HANDLE;
         } else if (type == NODE || type == DISTANCED_NODE || type == TRIVIAL_SNARL || type == DISTANCED_TRIVIAL_SNARL) {
             return NODE_HANDLE;

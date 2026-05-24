@@ -21,7 +21,8 @@ const vector<std::string> SnarlDistanceIndex::record_t_as_string = {
     "SNARL", "DISTANCED_SNARL", "OVERSIZED_SNARL", 
     "ROOT_SNARL", "DISTANCED_ROOT_SNARL",
     "CHAIN", "DISTANCED_CHAIN", "MULTICOMPONENT_CHAIN",
-    "CHILDREN"
+    "CHILDREN",
+    "OVERSIZED_ROOT_SNARL"
 };
 const vector<std::string> SnarlDistanceIndex::connectivity_t_as_string = {
     "START_START", "START_END", "START_TIP", 
@@ -126,12 +127,15 @@ size_t SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord::get_max
         return SimpleSnarlRecord::record_size(node_count, include_distances); 
     } else {
          if (parent.first == TEMP_ROOT) {
+             if (!hub_labels.empty()) {
+                 return SnarlRecord::record_size(encode_root_snarl(true, true), node_count, hub_labels.size());
+             }
              //TODO: Why is node_count being added?
              return SnarlRecord::record_size(encode_root_snarl(include_distances), node_count, 0) + node_count;
          } else if (!(hub_labels.empty())) {
             return SnarlRecord::record_size(encode_nonroot_nonsimple_snarl(true, is_regular, true), node_count, hub_labels.size());
          } else {
-            //TODO: Why is node_count being added? 
+            //TODO: Why is node_count being added?
             return SnarlRecord::record_size(encode_nonroot_nonsimple_snarl(include_distances, is_regular, false), node_count, 0) + node_count;
          }
     }
@@ -170,7 +174,7 @@ bool SnarlDistanceIndex::is_snarl(const net_handle_t& net) const {
 #ifdef debug_distances
 if(get_handle_type(net) == SNARL_HANDLE){
     assert(SnarlTreeRecord(net, &snarl_tree_records).get_record_handle_type() == SNARL_HANDLE ||
-        is_root_snarl(SnarlTreeRecord(net, &snarl_tree_records).get_record_type());
+        is_root_snarl(SnarlTreeRecord(net, &snarl_tree_records).get_record_type()));
     assert(get_node_record_offset(net) == 0 || get_node_record_offset(net) == 1);
 }
 #endif
@@ -254,7 +258,7 @@ bool SnarlDistanceIndex::is_chain(const net_handle_t& net) const {
 if (get_handle_type(net) ==CHAIN_HANDLE) {
     assert(SnarlTreeRecord(net, &snarl_tree_records).get_record_handle_type() == CHAIN_HANDLE ||
     SnarlTreeRecord(net, &snarl_tree_records).get_record_handle_type() == NODE_HANDLE ||
-    is_simple_snarl(SnarlTreeRecord(net, &snarl_tree_records).get_record_type());
+    is_simple_snarl(SnarlTreeRecord(net, &snarl_tree_records).get_record_type()));
 }
 #endif
     return get_handle_type(net) == CHAIN_HANDLE;
@@ -1088,40 +1092,64 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
             cerr << "=>The children are in different root components" << endl;
 #endif
             return std::numeric_limits<size_t>::max();
-        } else if (get_record_type(snarl_tree_records->at(parent_record_offset1)) != DISTANCED_ROOT_SNARL){
-            //If they are in the same connected component, but it is not a root snarl
-#ifdef debug_distances
-            cerr << "=>They are in a connected component of the root; checking external connectivity" << endl;
-#endif
-            if (get_record_offset(child1) == get_record_offset(child2)) {
-                //If they are the same child of the root but not in a snarl, then check the external connectivity
-                if (child_ends_at_start1 && child_ends_at_start2) {
-                    return has_external_connectivity(child1, START, START) ? 0 : std::numeric_limits<size_t>::max();
-                } else if (!child_ends_at_start1 && !child_ends_at_start2) {
-                    return has_external_connectivity(child1, END, END) ? 0 : std::numeric_limits<size_t>::max();
-                } else if ((child_ends_at_start1 && !child_ends_at_start2) ||
-                            (!child_ends_at_start1 && child_ends_at_start2)) {
-                    if (has_external_connectivity(child1, START, END)) {
-                        //If we can take an edge around the snarl
-                        return 0;
-                    } else if (has_external_connectivity(child1, START, START) && has_external_connectivity(child1, END, END)) {
-                        //If we can take the loops on the two ends of the snarl, walk through the snarl
-                        return minimum_length(child1);
-                    }
-                }             
-            }
-            return std::numeric_limits<size_t>::max();
         } else {
+            record_t root_record_type = get_record_type(snarl_tree_records->at(parent_record_offset1));
+            if (root_record_type != DISTANCED_ROOT_SNARL && root_record_type != OVERSIZED_ROOT_SNARL) {
+                //If they are in the same connected component, but it is not a root snarl
 #ifdef debug_distances
-            cerr << "=>They are in a snarl, check distance in snarl" << endl;
-            cerr << "\tsnarl at offset " << parent_record_offset1 << " with ranks " << get_rank_in_parent(child1) << " " << get_rank_in_parent(child2) << endl;
-#endif                                                                                 
-            //They are in the same root snarl, so find the distance between them.
-            // We know this isn't a simple snarl.
-            SnarlRecord snarl_record(parent_record_offset1, &snarl_tree_records);
+                cerr << "=>They are in a connected component of the root; checking external connectivity" << endl;
+#endif
+                if (get_record_offset(child1) == get_record_offset(child2)) {
+                    //If they are the same child of the root but not in a snarl, then check the external connectivity
+                    if (child_ends_at_start1 && child_ends_at_start2) {
+                        return has_external_connectivity(child1, START, START) ? 0 : std::numeric_limits<size_t>::max();
+                    } else if (!child_ends_at_start1 && !child_ends_at_start2) {
+                        return has_external_connectivity(child1, END, END) ? 0 : std::numeric_limits<size_t>::max();
+                    } else if ((child_ends_at_start1 && !child_ends_at_start2) ||
+                                (!child_ends_at_start1 && child_ends_at_start2)) {
+                        if (has_external_connectivity(child1, START, END)) {
+                            //If we can take an edge around the snarl
+                            return 0;
+                        } else if (has_external_connectivity(child1, START, START) && has_external_connectivity(child1, END, END)) {
+                            //If we can take the loops on the two ends of the snarl, walk through the snarl
+                            return minimum_length(child1);
+                        }
+                    }
+                }
+                return std::numeric_limits<size_t>::max();
+            } else if (root_record_type == OVERSIZED_ROOT_SNARL) {
+#ifdef debug_distances
+                cerr << "=>They are in an oversized root snarl, performing HHL query" << endl;
+                cerr << "\tsnarl at offset " << parent_record_offset1 << " with ranks " << get_rank_in_parent(child1) << " " << get_rank_in_parent(child2) << endl;
+#endif
+                //Oversized root snarls store hub labels in their record. Ranks in
+                //root snarls are always >= 2 (no boundary), so the rank==0 special
+                //case in the non-root HHL branch reduces to zero here.
+                size_t rank1 = get_rank_in_parent(child1);
+                size_t rank2 = get_rank_in_parent(child2);
+                bool dir1 = !child_ends_at_start1;
+                bool dir2 = !child_ends_at_start2;
+                auto record_it      = snarl_tree_records->begin() + parent_record_offset1;
+                auto length_data_it = record_it + SNARL_RECORD_SIZE;
+                size_t from_port = bgid(rank1, !dir1, true);
+                size_t to_port   = bgid(rank2,  dir2, false);
+                size_t result = promote_distance<size_t>(hhl_query(length_data_it + 1, from_port, to_port));
+                cerr << "[DBG root-HHL] child1=" << net_handle_as_string(child1) << " child2=" << net_handle_as_string(child2)
+                     << " rank1=" << rank1 << " dir1=" << dir1 << " rank2=" << rank2 << " dir2=" << dir2
+                     << " result=" << result << endl;
+                return result;
+            } else {
+#ifdef debug_distances
+                cerr << "=>They are in a snarl, check distance in snarl" << endl;
+                cerr << "\tsnarl at offset " << parent_record_offset1 << " with ranks " << get_rank_in_parent(child1) << " " << get_rank_in_parent(child2) << endl;
+#endif
+                //They are in the same root snarl, so find the distance between them.
+                // We know this isn't a simple snarl.
+                SnarlRecord snarl_record(parent_record_offset1, &snarl_tree_records);
 
-            return snarl_record.get_distance(get_rank_in_parent(child1), !child_ends_at_start1, 
-                                             get_rank_in_parent(child2), !child_ends_at_start2);
+                return snarl_record.get_distance(get_rank_in_parent(child1), !child_ends_at_start1,
+                                                 get_rank_in_parent(child2), !child_ends_at_start2);
+            }
         }
 
 
@@ -6612,10 +6640,11 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
 #endif
 
                 bool ignore_distances = (snarl_size_limit == 0) || only_top_level_chain_distances;
-                //This is a root-level snarl
-                record_t record_type = encode_root_snarl(!ignore_distances);
-
                 const TemporaryDistanceIndex::TemporarySnarlRecord& temp_snarl_record = temp_index->get_snarl(current_record_index);
+                bool is_oversized = !temp_snarl_record.hub_labels.empty();
+                //This is a root-level snarl
+                record_t record_type = encode_root_snarl(!ignore_distances, is_oversized);
+
                 record_to_offset.emplace(make_pair(temp_index_i,current_record_index), snarl_tree_records->size());
 
                 SnarlRecordWriter snarl_record_constructor (temp_snarl_record.node_count, &snarl_tree_records, record_type, temp_snarl_record.hub_labels.size());
@@ -6625,19 +6654,20 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
 
                 //Add distances and record connectivity
 
-                if (!ignore_distances ) {
-
-
-                    for (const auto& it : temp_snarl_record.distances) {
-                        const pair<size_t, bool> node_rank1 = it.first.first;
-                        const pair<size_t, bool> node_rank2 = it.first.second;
-                        const size_t distance = it.second;
-                        //If we are keeping track of distances and either this is a small enough snarl,
-                        //or the snarl is too big but we are looking at the boundaries
+                if (!ignore_distances) {
+                    if (is_oversized) {
+                        //Copy the packed hub-label vector into the record.
+                        for (size_t i = 0; i < temp_snarl_record.hub_labels.size(); i++) {
+                            snarl_record_constructor.set_vec_entry(i, temp_snarl_record.hub_labels.at(i));
+                        }
+                    } else {
+                        for (const auto& it : temp_snarl_record.distances) {
+                            const pair<size_t, bool> node_rank1 = it.first.first;
+                            const pair<size_t, bool> node_rank2 = it.first.second;
+                            const size_t distance = it.second;
 #ifdef debug_distance_indexing
-                        assert(distance <= temp_snarl_record.max_distance);
+                            assert(distance <= temp_snarl_record.max_distance);
 #endif
-                        if ((temp_snarl_record.node_count <= snarl_size_limit)) {
                             snarl_record_constructor.set_distance(node_rank1.first, node_rank1.second,
                              node_rank2.first, node_rank2.second, distance);
 #ifdef debug_distance_indexing

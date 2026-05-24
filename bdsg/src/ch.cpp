@@ -621,14 +621,14 @@ void make_contraction_hierarchy(CHOverlay& ov) {
     }  
 
 #ifdef debug_create
-    cerr << "num contr: " << num_con << endl;
+    cerr << "num contr: " << num_contractions << endl;
     cerr << "after round " << rnd+1 << " degree: " << (double)num_edges(ov)/num_vertices(ov) << endl;
 #endif
   }
   
 
 #ifdef debug_create
-  cerr << "left over: " << num_vertices(ov) - num_con << endl; 
+  cerr << "left over: " << num_vertices(ov) - num_contractions << endl; 
 #endif
 
   // We maintain a priority queue that lets us find the smallest-priority item.
