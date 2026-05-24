@@ -1133,11 +1133,7 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
                 auto length_data_it = record_it + SNARL_RECORD_SIZE;
                 size_t from_port = bgid(rank1, !dir1, true);
                 size_t to_port   = bgid(rank2,  dir2, false);
-                size_t result = promote_distance<size_t>(hhl_query(length_data_it + 1, from_port, to_port));
-                cerr << "[DBG root-HHL] child1=" << net_handle_as_string(child1) << " child2=" << net_handle_as_string(child2)
-                     << " rank1=" << rank1 << " dir1=" << dir1 << " rank2=" << rank2 << " dir2=" << dir2
-                     << " result=" << result << endl;
-                return result;
+                return promote_distance<size_t>(hhl_query(length_data_it + 1, from_port, to_port));
             } else {
 #ifdef debug_distances
                 cerr << "=>They are in a snarl, check distance in snarl" << endl;

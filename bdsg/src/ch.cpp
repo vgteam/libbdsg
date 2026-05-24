@@ -228,12 +228,15 @@ CHOverlay make_boost_graph(const SnarlDistanceIndex::TemporaryDistanceIndex& tem
       }
     }
     
-    // Map inward orientations of start and end handles
-    if (child_net_rank != 0) {
+    // Map inward orientations of start and end handles.
+    // Root snarls have no boundary nodes, so ranks 0 and 1 are real children
+    // (not the snarl start/end sentinels) and must be mapped like any other
+    // child. The rank-0/1 skips only apply to non-root snarls.
+    if (temp_snarl_record.is_root_snarl || child_net_rank != 0) {
       // We can arrive at the start of everything but our own start.
       handle_bgnid_map[start_handle] = bgid(child_net_rank, false, false);
     }
-    if (child_net_rank != 1) {
+    if (temp_snarl_record.is_root_snarl || child_net_rank != 1) {
       // We can arrive at the end of everything but our own end.
       handle_bgnid_map[hgraph->flip(end_handle)] = bgid(child_net_rank, true, false);
     }
