@@ -19,16 +19,9 @@ using namespace handlegraph;
  * An overlay that adds fast access to paths in addition to allowing path
  * position queries on them.
  *
- * TODO: Won't work properly with paths hidden from for_each_path_handle on the
- * backing graph and don't appear in extra_path_names, since they won't be
- * indexed.
- *
- * We also won't pass any kind of queries through to the backing graph for
- * queries we expect to be able to fulfil from the index. Unkike in
- * PackedPositionOverlay, we now expect the index to have some path data in it,
- * not just offset tables that we wouldn't expect to use for hidden (i,e,
- * haplotype) paths. We should make the overlay transparent so hidden paths
- * work properly, or remove hidden paths.
+ * Unkike in PackedPositionOverlay, we now expect the index to have some path
+ * data in it, not just offset tables, so we only present paths that have been
+ * indexed (by default, REFERENCE and GENERIC sense paths).
  */
 class PackedReferencePathOverlay : public PackedPositionOverlay {
 
@@ -37,21 +30,34 @@ protected:
 
 public:
     
-    /// Make a PackedReferencePathOverlay. Do the indexing and compute the
-    /// additional indexes that the base class doesn't have.
+    /// Make a PackedReferencePathOverlay with path filtering.
+    ///
+    /// If all_paths is true, indexes all paths visible via
+    /// for_each_path_handle().
+    ///
+    /// If false, indexes only REFERENCE and GENERIC sense paths, plus those in
+    /// extra_path_names.
+    ///
+    /// Do the indexing and compute the additional indexes that the base class
+    /// doesn't have.
+    PackedReferencePathOverlay(const PathHandleGraph* graph, bool all_paths, const std::unordered_set<std::string>& extra_path_names = {}, size_t steps_per_index = 20000000);
+
+    /// Make a PackedReferencePathOverlay indexing REFERENCE and GENERIC paths,
+    /// plus those in extra_path_names. 
     PackedReferencePathOverlay(const PathHandleGraph* graph, const std::unordered_set<std::string>& extra_path_names = {}, size_t steps_per_index = 20000000);
 
-    /// Make a PackedReferencePathOverlay with path filtering.
-    /// If all_paths is true, indexes all paths visible via for_each_path_handle().
-    /// If false, indexes only REFERENCE and GENERIC sense paths.
-    PackedReferencePathOverlay(const PathHandleGraph* graph, bool all_paths);
-    
     // We assume that tracing out a path is fast in the backing graph, but
     // finding visits on nodes is slow. We override the reverse lookups to go
     // from graph nodes to paths.
 
     /// overload this to use the cache 
     virtual path_handle_t get_path_handle_of_step(const step_handle_t& step_handle) const;
+
+    /// Override to filter paths to those that are indexed. 
+    bool has_path(const std::string& path_name) const;
+    
+    /// Override to filter paths to those that are indexed.
+    size_t get_path_count() const;
 
 protected:
 
@@ -60,7 +66,7 @@ protected:
 
     // PathHandleGraph interface
 
-    /// Override to filter paths based on all_paths flag.
+    /// Override to filter paths to those that are indexed. 
     bool for_each_path_handle_impl(const std::function<bool(const path_handle_t&)>& iteratee) const;
 
     /// Calls the given function for each step of the given handle on a path.

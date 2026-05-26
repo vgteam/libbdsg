@@ -27,19 +27,28 @@ using namespace handlegraph;
  * An overlay that adds the PathPositionHandleGraph interface to a static PathHandleGraph
  * by augmenting it with compressed index data structures.
  *
- * TODO: Make the overlay transparent so that paths hidden in the base graph
- * remain accessible through the path metadata queries. 
+ * In this implementation (though not necessarily in descendant classes), the
+ * overlay is semi-transparent: paths which are not indexed still exist and can
+ * be worked with, but position requests involving them will throw
+ * std::logic_error.
  */
 class PackedPositionOverlay : public PathPositionHandleGraph, public ExpandingOverlayGraph {
 
 protected:
     PackedPositionOverlay() = default;
 
+    /// Make a new PackedPositionOverlay, filling in the graph and
+    /// steps_per_index members but not actually building the indexes.
+    PackedPositionOverlay(const PathHandleGraph* graph, size_t steps_per_index);
+
 public:
     
-    /// Make a new PackedPositionOverlay, on the given graph. Glom short paths
-    /// together to make internal indexes each over at least the given number
-    /// of steps. Indexes any hidden paths that appear in extra_path_names.
+    /// Make a new PackedPositionOverlay, on the given graph, indexing GENERIC
+    /// and REFERENCE sense paths.
+    ///
+    /// Glom short paths together to make internal indexes each over at least
+    /// the given number of steps. Indexes any hidden paths that appear in
+    /// extra_path_names.
     PackedPositionOverlay(const PathHandleGraph* graph, const std::unordered_set<std::string>& extra_path_names = {}, size_t steps_per_index = 20000000);
     PackedPositionOverlay(const PackedPositionOverlay& other) = default;
     PackedPositionOverlay(PackedPositionOverlay&& other) = default;
@@ -249,8 +258,10 @@ protected:
     };
     
     /// Construct the index over path positions.
-    /// Always includes paths with names in the given set, even if they are hidden.
-    void index_path_positions(const std::unordered_set<std::string>& extra_path_names = {});
+    ///
+    /// If all_paths is set, indexes all paths. Otherwise, indexes REFERENCE
+    /// and GENERIC sense paths, plus those in the given set.
+    void index_path_positions(bool all_paths, const std::unordered_set<std::string>& extra_path_names = {});
     
     /// Get the length in steps of the given path. Also do any scanning necessary for the path to generate per-path user data.
     virtual size_t scan_path(const path_handle_t& path_handle, void*& user_data);

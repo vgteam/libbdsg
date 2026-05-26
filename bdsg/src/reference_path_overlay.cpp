@@ -397,7 +397,15 @@ size_t ReferencePathOverlay::get_path_count() const {
 }
 
 bool ReferencePathOverlay::has_path(const std::string& path_name) const {
-    return graph->has_path(path_name);
+    if (!graph->has_path(path_name)) {
+        return false;
+    }
+    path_handle_t path = graph->get_path_handle(path_name);
+    if (!reference_paths.count(path)) {
+        // Path was in base graph but was not indexed
+        return false;
+    }
+    return true;
 }
 
 path_handle_t ReferencePathOverlay::get_path_handle(const std::string& path_name) const {

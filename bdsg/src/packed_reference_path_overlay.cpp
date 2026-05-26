@@ -9,37 +9,50 @@
 
 namespace bdsg {
 
-PackedReferencePathOverlay::PackedReferencePathOverlay(const PathHandleGraph* graph, const std::unordered_set<std::string>& extra_path_names, size_t steps_per_index) : PackedPositionOverlay() {
+PackedReferencePathOverlay::PackedReferencePathOverlay(const PathHandleGraph* graph, bool all_paths, const std::unordered_set<std::string>& extra_path_names, size_t steps_per_index) : PackedPositionOverlay(graph, steps_per_index), all_paths(all_paths) {
     // We can't just chain to the base class constructor with these arguments
     // because we need virtual methods in this class to be available before the
-    // index build starts.
-    this->graph = graph;
-    this->steps_per_index = steps_per_index;
+    // index build starts, so we can build the extra indexes we add in there.
+    // See
+    // <https://isocpp.org/wiki/faq/strange-inheritance#calling-virtuals-from-ctors>.
 
     // Now do the index build
-    index_path_positions(extra_path_names);
+    index_path_positions(all_paths, extra_path_names);
 
     // initialize the index cache
     this->last_step_to_path_idx.resize(get_thread_count(), 0);
 }
 
-PackedReferencePathOverlay::PackedReferencePathOverlay(const PathHandleGraph* graph, bool all_paths)
-    : PackedPositionOverlay(), all_paths(all_paths) {
-    // Can't use delegating constructor because we need all_paths set before
-    // index_path_positions runs (it calls for_each_path_handle which uses our override).
-    this->graph = graph;
-    this->steps_per_index = 20000000;
-    index_path_positions();
-    this->last_step_to_path_idx.resize(get_thread_count(), 0);
+PackedReferencePathOverlay::PackedReferencePathOverlay(const PathHandleGraph* graph, const std::unordered_set<std::string>& extra_path_names, size_t steps_per_index) : PackedReferencePathOverlay(graph, false, extra_path_names, steps_per_index) {
+    // Nothing to do!
+}
+
+bool PackedReferencePathOverlay::has_path(const std::string& path_name) const {
+    if (!graph->has_path(path_name)) {
+        // Path is not in backing graph at all
+        return false;
+    }
+    path_handle_t path = graph->get_path_handle(path_name);
+    if (!path_range.count(as_integer(path))) {
+        // Path is not indexed, so say it doesn't exist.
+        return false;
+    }
+    return true;
+}
+
+size_t PackedReferencePathOverlay::get_path_count() const {
+    return path_range.size();
 }
 
 bool PackedReferencePathOverlay::for_each_path_handle_impl(const std::function<bool(const path_handle_t&)>& iteratee) const {
-    if (all_paths) {
-        return graph->for_each_path_handle(iteratee);
-    } else {
-        std::unordered_set<PathSense> senses = {PathSense::REFERENCE, PathSense::GENERIC};
-        return graph->for_each_path_matching(&senses, nullptr, nullptr, iteratee);
+    // Loop over the index keys, which are path handles.
+    // We assume indexing is done already.
+    for (auto& kv : path_range) {
+        if (!iteratee(as_path_handle(kv.first))) {
+            return false;
+        }
     }
+    return true;
 }
 
 path_handle_t PackedReferencePathOverlay::get_path_handle_of_step(const step_handle_t& step_handle) const {
@@ -66,8 +79,8 @@ path_handle_t PackedReferencePathOverlay::get_path_handle_of_step(const step_han
         idx_hint = index_num;
         return as_path_handle(visit_index.step_to_path.get(hash));
     }
-    // should never happen, but we fall back on the backing graph
-    return this->graph->get_path_handle_of_step(step_handle);
+    // If we can't find it, raise an error
+    throw std::runtime_error("Tried to get path handle of step not on any indexed path");
 }
 
 bool PackedReferencePathOverlay::for_each_step_on_handle_impl(const handle_t& handle,
