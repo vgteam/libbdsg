@@ -44,12 +44,21 @@ protected:
 public:
     
     /// Make a new PackedPositionOverlay, on the given graph, indexing GENERIC
-    /// and REFERENCE sense paths.
+    /// and REFERENCE sense paths (or all paths if all_paths is set), plus any
+    /// paths that appear in extra_path_names.
     ///
     /// Glom short paths together to make internal indexes each over at least
-    /// the given number of steps. Indexes any hidden paths that appear in
+    /// the given number of steps.
+    PackedPositionOverlay(const PathHandleGraph* graph, bool all_paths, const std::unordered_set<std::string>& extra_path_names = {}, size_t steps_per_index = 20000000);
+    
+    /// Make a new PackedPositionOverlay, on the given graph, indexing GENERIC
+    /// and REFERENCE sense paths, plus any paths that appear in
     /// extra_path_names.
+    ///
+    /// Glom short paths together to make internal indexes each over at least
+    /// the given number of steps.
     PackedPositionOverlay(const PathHandleGraph* graph, const std::unordered_set<std::string>& extra_path_names = {}, size_t steps_per_index = 20000000);
+    
     PackedPositionOverlay(const PackedPositionOverlay& other) = default;
     PackedPositionOverlay(PackedPositionOverlay&& other) = default;
     ~PackedPositionOverlay() = default;

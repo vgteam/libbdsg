@@ -4080,7 +4080,13 @@ void test_path_position_overlays() {
         step_handle_t s1 = graph.append_step(p1, h1);
         step_handle_t s2 = graph.append_step(p1, h2);
         step_handle_t s3 = graph.append_step(p1, h4);
-        
+
+        path_handle_t p2 = graph.create_path(PathSense::HAPLOTYPE, "somebody", "chr1", 1, 0, PathMetadata::NO_SUBRANGE);
+        step_handle_t p2s1 = graph.append_step(p2, h1);
+        step_handle_t p2s2 = graph.append_step(p2, h2);
+        step_handle_t p2s3 = graph.append_step(p2, h4);
+        std::string p2_name = graph.get_path_name(p2);
+
         // static position overlays
         {
             vector<PathPositionHandleGraph*> overlays;
@@ -4094,6 +4100,7 @@ void test_path_position_overlays() {
             for (PathPositionHandleGraph* implementation : overlays) {
                 PathPositionHandleGraph& overlay = *implementation;
                 
+                // Generic path should be indexed
                 assert(overlay.get_path_length(p1) == 9);
                 
                 assert(overlay.get_position_of_step(s1) == 0);
@@ -4112,6 +4119,16 @@ void test_path_position_overlays() {
                 assert(overlay.get_step_at_position(p1, 9) == overlay.path_end(p1));
                 assert(overlay.get_step_at_position(p1, 10) == overlay.path_end(p1));
                 assert(overlay.get_step_at_position(p1, 1000) == overlay.path_end(p1));
+                
+                // Haplotype path should not be indexed, but should exist
+                assert(overlay.has_path(p2_name));
+                assert(overlay.get_path_handle(p2_name) == p2);
+                try {
+                    overlay.get_path_length(p2);
+                    assert(false);
+                } catch(const std::logic_error& e) {
+                    // This is the exception we promise.
+                }
             }
         }
         
@@ -4252,11 +4269,18 @@ void test_packed_reference_path_overlay() {
         step_handle_t s2_1 = graph.append_step(p2, graph.flip(h4));
         step_handle_t s2_2 = graph.append_step(p2, graph.flip(h3));
         step_handle_t s2_3 = graph.append_step(p2, graph.flip(h1));
+
+        path_handle_t p3 = graph.create_path(PathSense::HAPLOTYPE, "somebody", "chr1", 1, 0, PathMetadata::NO_SUBRANGE);
+        step_handle_t p3s1 = graph.append_step(p3, h1);
+        step_handle_t p3s2 = graph.append_step(p3, h2);
+        step_handle_t p3s3 = graph.append_step(p3, h4);
+        std::string p3_name = graph.get_path_name(p3);
         
         {
         
             PackedReferencePathOverlay overlay(&graph);
-                
+            
+            // Generic paths should be indexed
             assert(overlay.get_path_length(p1) == 9);
             
             assert(overlay.get_position_of_step(s1) == 0);
@@ -4275,6 +4299,9 @@ void test_packed_reference_path_overlay() {
             assert(overlay.get_step_at_position(p1, 9) == overlay.path_end(p1));
             assert(overlay.get_step_at_position(p1, 10) == overlay.path_end(p1));
             assert(overlay.get_step_at_position(p1, 1000) == overlay.path_end(p1));
+
+            // Haplotype path should not exist in the overlay
+            assert(!overlay.has_path(p3_name));
             
             bool found1 = false;
             bool found2 = false;
@@ -4382,10 +4409,17 @@ void test_reference_path_overlay() {
         auto s1 = graph.append_step(p, h1);
         auto s2 = graph.append_step(p, h2);
         auto s3 = graph.append_step(p, h4);
+
+        path_handle_t p2 = graph.create_path(PathSense::HAPLOTYPE, "somebody", "chr1", 1, 0, PathMetadata::NO_SUBRANGE);
+        step_handle_t p2s1 = graph.append_step(p2, h1);
+        step_handle_t p2s2 = graph.append_step(p2, h2);
+        step_handle_t p2s3 = graph.append_step(p2, h4);
+        std::string p2_name = graph.get_path_name(p2);
         
         {
             ReferencePathOverlay ref_overlay(&graph);
             
+            // Generic path should be indexed
             auto os1 = ref_overlay.path_begin(p);
             auto os2 = ref_overlay.get_next_step(os1);
             auto os3 = ref_overlay.get_next_step(os2);
@@ -4415,6 +4449,9 @@ void test_reference_path_overlay() {
             assert(ref_overlay.get_position_of_step(os1) == 0);
             assert(ref_overlay.get_position_of_step(os2) == 4);
             assert(ref_overlay.get_position_of_step(os3) == 6);
+
+            // Haplotype path should not exist in the overlay
+            assert(!ref_overlay.has_path(p2_name));
             
             for (size_t i = 0; i < 25; ++i) {
                 if (i < 4) {

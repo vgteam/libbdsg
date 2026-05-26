@@ -3,7 +3,7 @@
 namespace bdsg {
 
     PositionOverlay::PositionOverlay(PathHandleGraph* graph, const std::unordered_set<std::string>& extra_path_names) : graph(graph) {
-        index_path_positions(extra_path_names);
+        index_path_positions(false, extra_path_names);
     }
 
     PositionOverlay::PositionOverlay() {
@@ -164,7 +164,13 @@ namespace bdsg {
     }
     
     size_t PositionOverlay::get_path_length(const path_handle_t& path_handle) const {
-        const auto& path_step_by_position = step_by_position.at(path_handle);
+        auto found = step_by_position.find(path_handle);
+        if (found == step_by_position.end()) {
+            // This path is not indexed.
+            throw std::logic_error("Path " + get_graph()->get_path_name(path_handle) + " is not indexed for " + std::string(__func__));
+        }
+
+        const auto& path_step_by_position = found->second;
         auto last = path_step_by_position.rbegin();
         if (last == path_step_by_position.rend()) {
             return 0;
@@ -178,13 +184,27 @@ namespace bdsg {
     }
     
     size_t PositionOverlay::get_position_of_step(const step_handle_t& step) const {
-        return offset_by_step.at(step) - min_path_offset.at(get_path_handle_of_step(step));
+        path_handle_t path_handle = get_path_handle_of_step(step);
+        auto found = min_path_offset.find(path_handle);
+        if (found == min_path_offset.end()) {
+            // This path is not indexed.
+            throw std::logic_error("Path " + get_graph()->get_path_name(path_handle) + " is not indexed for " + std::string(__func__));
+        }
+
+        return offset_by_step.at(step) - found->second;
     }
     
     step_handle_t PositionOverlay::get_step_at_position(const path_handle_t& path,
                                                         const size_t& position) const {
         
-        int64_t lookup_position = position + min_path_offset.at(path);
+        auto found = min_path_offset.find(path);
+        if (found == min_path_offset.end()) {
+            // This path is not indexed.
+            throw std::logic_error("Path " + get_graph()->get_path_name(path) + " is not indexed for " + std::string(__func__));
+        }
+
+        // TODO: Why isn't this a subtraction?
+        int64_t lookup_position = position + found->second;
         
         const auto& path_step_by_position = step_by_position.at(path);
         if (path_step_by_position.empty()) {
@@ -205,7 +225,7 @@ namespace bdsg {
         return handle;
     }
     
-    void PositionOverlay::index_path_positions(const std::unordered_set<std::string>& extra_path_names) {
+    void PositionOverlay::index_path_positions(bool all_paths, const std::unordered_set<std::string>& extra_path_names) {
         
         auto visit_path = [&](const path_handle_t& path) {
             int64_t offset = 0;
@@ -217,8 +237,9 @@ namespace bdsg {
                 offset += get_graph()->get_length(get_graph()->get_handle_of_step(step));
             });
         };
-
-        get_graph()->for_each_path_handle(visit_path);
+        
+        std::unordered_set<PathSense> senses = {PathSense::REFERENCE, PathSense::GENERIC};
+        get_graph()->for_each_path_matching(all_paths ? nullptr : &senses, nullptr, nullptr, visit_path);
 
         for (auto& name : extra_path_names) {
             path_handle_t path = get_graph()->get_path_handle(name);
@@ -229,16 +250,22 @@ namespace bdsg {
         }
     }
     
-    MutablePositionOverlay::MutablePositionOverlay(MutablePathDeletableHandleGraph* graph) : PositionOverlay(graph), mutable_graph(graph) {
-        
+    MutablePositionOverlay::MutablePositionOverlay(MutablePathDeletableHandleGraph* graph, bool all_paths, const std::unordered_set<std::string>& extra_path_names) 
+        : PositionOverlay(graph),
+          mutable_graph(graph),
+          all_paths(all_paths),
+          extra_path_names(extra_path_names)
+    {
+        // Nothing to do!
     }
-    
-    MutablePositionOverlay::MutablePositionOverlay() {
+    MutablePositionOverlay::MutablePositionOverlay(MutablePathDeletableHandleGraph* graph, const std::unordered_set<std::string>& extra_path_names)
+        : MutablePositionOverlay(graph, false, extra_path_names) {
         
+        // Nothing to do!
     }
     
     MutablePositionOverlay::~MutablePositionOverlay() {
-        
+        // Nothing to do!
     }
     
     handle_t MutablePositionOverlay::create_handle(const std::string& sequence) {
@@ -347,24 +374,36 @@ namespace bdsg {
     
     path_handle_t MutablePositionOverlay::create_path_handle(const string& name, bool is_circular) {
         path_handle_t path_handle = get_graph()->create_path_handle(name, is_circular);
+        // New paths are always indexed (until we reindex).
         min_path_offset[path_handle] = 0;
         step_by_position[path_handle] = map<int64_t, step_handle_t>();
+        // Remember we want to re-index this one if we reindex
+        extra_path_names.insert(get_path_name(path_handle));
         return path_handle;
     }
     
     step_handle_t MutablePositionOverlay::append_step(const path_handle_t& path, const handle_t& to_append) {
-        int64_t position = get_path_length(path) + min_path_offset[path];
         step_handle_t step = get_graph()->append_step(path, to_append);
-        step_by_position[path][position] = step;
-        offset_by_step[step] = position;
+
+        auto found = min_path_offset.find(path);
+        if (found != min_path_offset.end()) {
+            // Update the index if the path is indexed
+            int64_t position = get_path_length(path) + found->second;
+            step_by_position[path][position] = step;
+            offset_by_step[step] = position;
+        }
         return step;
     }
     
     step_handle_t MutablePositionOverlay::prepend_step(const path_handle_t& path, const handle_t& to_prepend) {
-        min_path_offset[path] -= get_length(to_prepend);
         step_handle_t step = get_graph()->prepend_step(path, to_prepend);
-        offset_by_step[step] = min_path_offset[path];
-        step_by_position[path][min_path_offset[path]] = step;
+        
+        auto found = min_path_offset.find(path);
+        if (found != min_path_offset.end()) {
+            found->second -= get_length(to_prepend);
+            offset_by_step[step] = found->second;
+            step_by_position[path][found->second] = step;
+        }
         return step;
     }
     
@@ -372,24 +411,38 @@ namespace bdsg {
                                                                                const step_handle_t& segment_end,
                                                                                const vector<handle_t>& new_segment) {
         
-        // TODO: there really is no way to do this efficiently since it can shift the offsets downstream...
         
-        int64_t offset = offset_by_step[segment_begin];
-        
-        // erase the records of all steps from the beginning of the segment onwards
-        auto& path_step_by_position = step_by_position[get_path_handle_of_step(segment_begin)];
-        path_step_by_position.erase(path_step_by_position.find(offset), path_step_by_position.end());
-        for (auto step = segment_begin; step != path_end(get_path_handle_of_step(segment_begin)); step = get_next_step(step)) {
-            offset_by_step.erase(step);
+        path_handle_t path = get_path_handle_of_step(segment_begin);
+        auto found = step_by_position.find(path);
+        int64_t offset;
+        if (found != step_by_position.end()) {
+            // This path is indexed, so update the index
+
+            // TODO: there really is no way to do this efficiently since it can shift the offsets downstream...
+            
+            offset = offset_by_step[segment_begin];
+            
+            // erase the records of all steps from the beginning of the segment onwards
+            auto& path_step_by_position = found->second;
+            path_step_by_position.erase(path_step_by_position.find(offset), path_step_by_position.end());
+            for (auto step = segment_begin; step != path_end(path); step = get_next_step(step)) {
+                offset_by_step.erase(step);
+            }
         }
-        
+
+        // Do the rewrite and invalidate/replace steps
         auto new_range = get_graph()->rewrite_segment(segment_begin, segment_end, new_segment);
-        
-        // reindex the new suffix of the path
-        for (auto step = new_range.first; step != path_end(get_path_handle_of_step(new_range.first)); step = get_next_step(step)) {
-            offset_by_step[step] = offset;
-            path_step_by_position[offset] = step;
-            offset += get_length(get_handle_of_step(step));
+
+        if (found != step_by_position.end()) {
+
+            auto& path_step_by_position = found->second;
+            
+            // reindex the new suffix of the path
+            for (auto step = new_range.first; step != path_end(path); step = get_next_step(step)) {
+                offset_by_step[step] = offset;
+                path_step_by_position[offset] = step;
+                offset += get_length(get_handle_of_step(step));
+            }
         }
         
         return new_range;
@@ -405,48 +458,54 @@ namespace bdsg {
         step_by_position.clear();
         offset_by_step.clear();
         min_path_offset.clear();
-        index_path_positions();
+        index_path_positions(this->all_paths, this->extra_path_names);
     }
     
     void MutablePositionOverlay::reindex_contiguous_segment(const step_handle_t& step) {
         
-        // we may have already re-annotated this occurrence starting from a different step
-        if (offset_by_step.count(step)) {
-            return;
-        }
-        
-        // walk backwards until the beginning of the path or a step that still has its
-        // position recorded
-        auto walker = step;
-        while (!offset_by_step.count(walker)
-               && walker != path_begin(get_path_handle_of_step(step))) {
-            walker = get_previous_step(walker);
-        }
-        
-        // compute the position of the next step without an offset annotation
-        int64_t position;
-        if (offset_by_step.count(walker)) {
-            position = (min_path_offset[get_path_handle_of_step(step)]
-                        + offset_by_step[walker]
-                        + get_length(get_handle_of_step(walker)));
-            // point the walker at the next unindexed position
-            walker = get_next_step(walker);
-        }
-        else {
-            // we must have have hit path_begin to have exited the previous while loop
-            position = min_path_offset[get_path_handle_of_step(step)];
-        }
-        
-        // add position annotations for all of the new handles (can also soak up adjacent
-        // occurrences of the same node on this path)
-        auto& path_step_by_position = step_by_position[get_path_handle_of_step(step)];
-        for (; walker != path_end(get_path_handle_of_step(step)) && !offset_by_step.count(walker);
-             walker = get_next_step(walker)) {
+        path_handle_t path = get_path_handle_of_step(step);
+        auto found = min_path_offset.find(path);
+        if (found != min_path_offset.end()) {
+            // The path is indexed, so update the index
+
+            // we may have already re-annotated this occurrence starting from a different step
+            if (offset_by_step.count(step)) {
+                return;
+            }
             
-            path_step_by_position[position] = walker;
-            offset_by_step[walker] = position;
+            // walk backwards until the beginning of the path or a step that still has its
+            // position recorded
+            auto walker = step;
+            while (!offset_by_step.count(walker)
+                   && walker != path_begin(path)) {
+                walker = get_previous_step(walker);
+            }
             
-            position += get_length(get_handle_of_step(walker));
+            // compute the position of the next step without an offset annotation
+            int64_t position;
+            if (offset_by_step.count(walker)) {
+                position = (found->second
+                            + offset_by_step[walker]
+                            + get_length(get_handle_of_step(walker)));
+                // point the walker at the next unindexed position
+                walker = get_next_step(walker);
+            }
+            else {
+                // we must have have hit path_begin to have exited the previous while loop
+                position = found->second;
+            }
+            
+            // add position annotations for all of the new handles (can also soak up adjacent
+            // occurrences of the same node on this path)
+            auto& path_step_by_position = step_by_position[path];
+            for (; walker != path_end(path) && !offset_by_step.count(walker);
+                 walker = get_next_step(walker)) {
+                
+                path_step_by_position[position] = walker;
+                offset_by_step[walker] = position;
+                
+                position += get_length(get_handle_of_step(walker));
+            }
         }
     }
     

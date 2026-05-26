@@ -61,9 +61,6 @@ public:
 
 protected:
 
-    /// Whether to index all paths (true) or only REFERENCE and GENERIC paths (false).
-    bool all_paths = true;
-
     // PathHandleGraph interface
 
     /// Override to filter paths to those that are indexed. 

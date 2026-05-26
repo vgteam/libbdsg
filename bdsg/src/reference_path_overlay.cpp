@@ -13,13 +13,10 @@ namespace bdsg {
 using namespace std;
 using namespace handlegraph;
 
-ReferencePathOverlay::ReferencePathOverlay(const PathHandleGraph* graph, bool all_paths)
-    : ReferencePathOverlay(graph, std::unordered_set<std::string>{}, all_paths) {
-}
-
 ReferencePathOverlay::ReferencePathOverlay(const PathHandleGraph* graph,
-                                           const std::unordered_set<std::string>& extra_path_names,
-                                           bool all_paths) : graph(graph) {
+                                           bool all_paths,
+                                           const std::unordered_set<std::string>& extra_path_names)
+    : graph(graph) {
 
     std::unordered_map<path_handle_t, size_t> cached_step_counts;
 
@@ -326,6 +323,12 @@ ReferencePathOverlay::ReferencePathOverlay(const PathHandleGraph* graph,
     for (auto& worker : workers) {
         worker.join();
     }
+}
+
+ReferencePathOverlay::ReferencePathOverlay(const PathHandleGraph* graph, const std::unordered_set<std::string>& extra_path_names)
+    : ReferencePathOverlay(graph, false, extra_path_names) {
+
+    // Nothing to do!
 }
 
 bool ReferencePathOverlay::has_node(nid_t node_id) const {

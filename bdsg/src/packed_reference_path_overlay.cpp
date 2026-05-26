@@ -9,7 +9,7 @@
 
 namespace bdsg {
 
-PackedReferencePathOverlay::PackedReferencePathOverlay(const PathHandleGraph* graph, bool all_paths, const std::unordered_set<std::string>& extra_path_names, size_t steps_per_index) : PackedPositionOverlay(graph, steps_per_index), all_paths(all_paths) {
+PackedReferencePathOverlay::PackedReferencePathOverlay(const PathHandleGraph* graph, bool all_paths, const std::unordered_set<std::string>& extra_path_names, size_t steps_per_index) : PackedPositionOverlay(graph, steps_per_index) {
     // We can't just chain to the base class constructor with these arguments
     // because we need virtual methods in this class to be available before the
     // index build starts, so we can build the extra indexes we add in there.

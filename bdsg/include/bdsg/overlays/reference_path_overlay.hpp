@@ -35,14 +35,15 @@ public:
     
     /// Create a ReferencePathOverlay indexing paths in the backing graph.
     /// If all_paths is true, indexes all paths.
-    /// If false (default), indexes only REFERENCE and GENERIC sense paths.
-    /// For path names in extra_path_names, look them up and index them too.
-    ReferencePathOverlay(const PathHandleGraph* graph, bool all_paths = false);
+    /// If false (default), indexes only REFERENCE and GENERIC sense paths,
+    /// plus those listed in extra_path_names.
+    ReferencePathOverlay(const PathHandleGraph* graph, bool all_paths, const std::unordered_set<std::string>& extra_path_names = {});
 
-    /// Same, but also indexes hidden paths listed in extra_path_names.
-    ReferencePathOverlay(const PathHandleGraph* graph,
-                         const std::unordered_set<std::string>& extra_path_names,
-                         bool all_paths = false);
+    /// Create a ReferencePathOverlay indexing paths in the backing graph.
+    /// If all_paths is true, indexes all paths.
+    /// If false (default), indexes only REFERENCE and GENERIC sense paths.
+    ReferencePathOverlay(const PathHandleGraph* graph, const std::unordered_set<std::string>& extra_path_names = {});
+    
     ReferencePathOverlay() = default;
     ~ReferencePathOverlay() = default;
     

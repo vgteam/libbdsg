@@ -11,9 +11,13 @@ PackedPositionOverlay::PackedPositionOverlay(const PathHandleGraph* graph, size_
     // Nothing to do!
 }
 
-PackedPositionOverlay::PackedPositionOverlay(const PathHandleGraph* graph, const std::unordered_set<std::string>& extra_path_names, size_t steps_per_index) : PackedPositionOverlay(graph, steps_per_index) {
+PackedPositionOverlay::PackedPositionOverlay(const PathHandleGraph* graph, bool all_paths, const std::unordered_set<std::string>& extra_path_names, size_t steps_per_index) : PackedPositionOverlay(graph, steps_per_index) {
     // Actually build the index
-    index_path_positions(false, extra_path_names);
+    index_path_positions(all_paths, extra_path_names);
+}
+
+PackedPositionOverlay::PackedPositionOverlay(const PathHandleGraph* graph, const std::unordered_set<std::string>& extra_path_names, size_t steps_per_index): PackedPositionOverlay(graph, false, extra_path_names, steps_per_index) {
+    // Nothing to do!
 }
 
 bool PackedPositionOverlay::has_node(nid_t node_id) const {
