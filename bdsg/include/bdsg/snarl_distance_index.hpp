@@ -2120,24 +2120,16 @@ public:
         }
         
         /* Look up a node from a temporary record reference.
-     *
-     */
-        /* Throws an error if the reference is not to a node or is out of bounds.
-     *
-     */
+         * Throws an error if the reference is not to a node or is out of bounds.
+         */
         inline TemporaryNodeRecord& get_node(const temp_record_ref_t& ref) {
             return const_cast<TemporaryNodeRecord&>(std::as_const(*this).get_node(ref));
         }
         
         /* Look up a node from a temporary record reference.
-     *
-     */
-        /* Throws an error if the reference is not to a node or is out of bounds.
-     *
-     */
-        /* This version can be used when the object is const.
-     *
-     */
+         * Throws an error if the reference is not to a node or is out of bounds.
+         * This version can be used when the object is const.
+         */
         inline const TemporaryNodeRecord& get_node(const temp_record_ref_t& ref) const {
             if (ref.first != TEMP_NODE) {
                 throw std::invalid_argument("Trying to look up a non-node as a node");
