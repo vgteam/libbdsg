@@ -1524,11 +1524,11 @@ private:
 
         //How big is the entire snarl record?
         static size_t distance_vector_size(record_t type, size_t node_count);
-        /* vec_size parameter only needed for oversized snarls
+        /* hhl_size parameter only needed for oversized snarls
          * represents size of hub labeling-related data
          * the value needed should be the first entry after the fixed-size record data
          */
-        static size_t record_size (record_t type, size_t node_count, size_t vec_size) ;
+        static size_t record_size (record_t type, size_t node_count, size_t hhl_size) ;
         size_t record_size() ;
 
         //Get the index into the distance vector for the calculating distance between the given node sides
@@ -1562,7 +1562,7 @@ private:
 
         SnarlRecordWriter();
 
-        SnarlRecordWriter (size_t node_count, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, record_t type, size_t vec_size);
+        SnarlRecordWriter (size_t node_count, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, record_t type, size_t hhl_size);
         SnarlRecordWriter(bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, size_t pointer);
 
         /**
@@ -1572,17 +1572,17 @@ private:
          * May only be called once.
          *
          *
-         * Putting vec_size in the SNARL_RECORD_SIZE'th slot due to it being the first one after the header
+         * Putting hhl_size in the SNARL_RECORD_SIZE'th slot due to it being the first one after the header
          */
-        void set_vec_size(size_t vec_size);
-        
+        void set_hhl_size(size_t hhl_size);
+
         /**
          * Set an entry in the vector holding the hub label data.
          * Only used for oversized snarls.
          *
-         * set_vec_size() must be called first.
+         * set_hhl_size() must be called first.
          */
-        void set_vec_entry(size_t index, size_t value);
+        void set_hhl_entry(size_t index, size_t value);
 
         /**
          * Set a distance matrix entry.
@@ -1757,7 +1757,7 @@ private:
          */
 
         //Add a snarl to the end of the chain and return a SnarlRecordWriter pointing to it
-        SnarlRecordWriter add_snarl(size_t snarl_size, record_t type, size_t vec_size, size_t previous_child_offset); 
+        SnarlRecordWriter add_snarl(size_t snarl_size, record_t type, size_t hhl_size, size_t previous_child_offset); 
         SimpleSnarlRecordWriter add_simple_snarl(size_t snarl_size, record_t type, size_t previous_child_offset); 
         //Add a node to the end of a chain and return the offset of the record it got added to
         //If new_record is true, make a new trivial snarl record for the node
