@@ -4193,23 +4193,14 @@ size_t SnarlDistanceIndex::SnarlRecord::distance_vector_size(record_t type, size
 
 size_t SnarlDistanceIndex::SnarlRecord::record_size (record_t type, size_t node_count, size_t hhl_size) {
     if (is_oversized_snarl(type)) {
-      // Oversized snarls need the fixed-size header, the slot for the length
-      // of the packed hub label vector, and the packed hub label vector
-      // itself.
+      // Oversized snarls need the fixed-size header and the packed hub label
+      // vector.
 
-      // TODO: Can we stop storing the packed hub label vector length? Do we
-      // ever use it???
-      return SNARL_RECORD_SIZE + 1 + hhl_size;
+      return SNARL_RECORD_SIZE + hhl_size;
     } else {
       // Normal snarl records need the fixed-size header and the distance matrix
       return SNARL_RECORD_SIZE + distance_vector_size(type, node_count);
     }
-}
-size_t SnarlDistanceIndex::SnarlRecord::record_size() {
-   record_t type = get_record_type();
-   //hhl_size only for oversized snarls
-   size_t hhl_size = (*records)->at(record_offset + SNARL_RECORD_SIZE);
-   return record_size(type, get_node_count(), hhl_size);
 }
 
 size_t SnarlDistanceIndex::SnarlRecord::get_distance_start_start() const {
@@ -4251,10 +4242,6 @@ SnarlDistanceIndex::SnarlRecordWriter::SnarlRecordWriter (size_t node_count, bds
     set_node_count(node_count);
     set_record_type(type);
     
-    if (is_oversized_snarl(type)) {
-       set_hhl_size(hhl_size);
-    }
-
 #ifdef count_allocations
     cerr << "new_snarl\t" << extra_size << "\t" << (*records)->size() << endl;
 #endif
@@ -4404,24 +4391,12 @@ void SnarlDistanceIndex::SnarlRecordWriter::set_node_count(size_t node_count) {
     (*records)->at(record_offset + SNARL_NODE_COUNT_OFFSET) = node_count;
 }
 
-void SnarlDistanceIndex::SnarlRecordWriter::set_hhl_size(size_t hhl_size) {
-#ifdef debug_distance_indexing
-    cerr << record_offset + SNARL_RECORD_SIZE << " set hhl_size " << hhl_size << endl;
-    assert(hhl_size > 0);
-    assert((*records)->at(record_offset + SNARL_RECORD_SIZE) == 0);
-#endif
-
-    (*records)->at(record_offset + SNARL_RECORD_SIZE) = hhl_size;
-}
-
 void SnarlDistanceIndex::SnarlRecordWriter::set_hhl_entry(size_t index, size_t value) {
 #ifdef debug_distance_indexing
-    cerr << record_offset + SNARL_RECORD_SIZE + 1 + index << " set hhl_entry " << value << endl;
-    assert(index < (*records)->at(record_offset + SNARL_RECORD_SIZE));
-    assert((*records)->at(record_offset + SNARL_RECORD_SIZE + 1 + index) == 0);
+    cerr << record_offset + SNARL_RECORD_SIZE + index << " set hhl_entry " << value << endl;
+    assert((*records)->at(record_offset + SNARL_RECORD_SIZE + index) == 0);
 #endif
-    // The hub label data sits right after its size, after the end of the fixed-size header.
-    (*records)->at(record_offset + SNARL_RECORD_SIZE + 1 + index) = value;
+    (*records)->at(record_offset + SNARL_RECORD_SIZE + index) = value;
 }
 
 

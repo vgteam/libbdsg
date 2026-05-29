@@ -1526,10 +1526,8 @@ private:
         static size_t distance_vector_size(record_t type, size_t node_count);
         /* hhl_size parameter only needed for oversized snarls
          * represents size of hub labeling-related data
-         * the value needed should be the first entry after the fixed-size record data
          */
         static size_t record_size (record_t type, size_t node_count, size_t hhl_size) ;
-        size_t record_size() ;
 
         //Get the index into the distance vector for the calculating distance between the given node sides
         static size_t get_distance_vector_offset(size_t rank1, bool right_side1, size_t rank2, 
@@ -1566,21 +1564,8 @@ private:
         SnarlRecordWriter(bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, size_t pointer);
 
         /**
-         * Set size of hub labels flat vector (hub_labels).
-         * Only used for oversized snarls.
-         *
-         * May only be called once.
-         *
-         *
-         * Putting hhl_size in the SNARL_RECORD_SIZE'th slot due to it being the first one after the header
-         */
-        void set_hhl_size(size_t hhl_size);
-
-        /**
          * Set an entry in the vector holding the hub label data.
          * Only used for oversized snarls.
-         *
-         * set_hhl_size() must be called first.
          */
         void set_hhl_entry(size_t index, size_t value);
 
