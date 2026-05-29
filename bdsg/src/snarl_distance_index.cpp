@@ -4175,7 +4175,7 @@ size_t SnarlDistanceIndex::SnarlRecord::distance_vector_size(record_t type, size
     }
     if (has_distances(type)) {
         if (is_oversized_snarl(type)) {
-            // For oversized snarls, vec_size for the hub labeling data is accounted separately.
+            // For oversized snarls, hhl_size for the hub labeling data is accounted separately.
             return 0;
         } else {
             // Must be a distanced non-simple snarl or root snarl.
@@ -4191,15 +4191,15 @@ size_t SnarlDistanceIndex::SnarlRecord::distance_vector_size(record_t type, size
     }
 }
 
-size_t SnarlDistanceIndex::SnarlRecord::record_size (record_t type, size_t node_count, size_t vec_size) { 
-    if (is_oversized_snarl(type)) { 
+size_t SnarlDistanceIndex::SnarlRecord::record_size (record_t type, size_t node_count, size_t hhl_size) {
+    if (is_oversized_snarl(type)) {
       // Oversized snarls need the fixed-size header, the slot for the length
       // of the packed hub label vector, and the packed hub label vector
       // itself.
-      
+
       // TODO: Can we stop storing the packed hub label vector length? Do we
       // ever use it???
-      return SNARL_RECORD_SIZE + 1 + vec_size;
+      return SNARL_RECORD_SIZE + 1 + hhl_size;
     } else {
       // Normal snarl records need the fixed-size header and the distance matrix
       return SNARL_RECORD_SIZE + distance_vector_size(type, node_count);
@@ -4207,9 +4207,9 @@ size_t SnarlDistanceIndex::SnarlRecord::record_size (record_t type, size_t node_
 }
 size_t SnarlDistanceIndex::SnarlRecord::record_size() {
    record_t type = get_record_type();
-   //vec_size only for oversized snarls
-   size_t vec_size = (*records)->at(record_offset + SNARL_RECORD_SIZE);
-   return record_size(type, get_node_count(), vec_size);
+   //hhl_size only for oversized snarls
+   size_t hhl_size = (*records)->at(record_offset + SNARL_RECORD_SIZE);
+   return record_size(type, get_node_count(), hhl_size);
 }
 
 size_t SnarlDistanceIndex::SnarlRecord::get_distance_start_start() const {
@@ -4227,7 +4227,7 @@ size_t SnarlDistanceIndex::SnarlRecord::get_distance_end_end() const {
     return stored_value == 0 ? std::numeric_limits<size_t>::max() : stored_value - 1;
 }
 
-SnarlDistanceIndex::SnarlRecordWriter::SnarlRecordWriter (size_t node_count, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, record_t type, size_t vec_size){
+SnarlDistanceIndex::SnarlRecordWriter::SnarlRecordWriter (size_t node_count, bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector>* records, record_t type, size_t hhl_size){
     //Constructor for making a new record, including allocating memory.
     //Assumes that this is the latest record being made, so pointer will be the end of
     //the array and we need to allocate extra memory past it
@@ -4239,8 +4239,8 @@ SnarlDistanceIndex::SnarlRecordWriter::SnarlRecordWriter (size_t node_count, bds
     SnarlRecord::record_offset = (*records)->size();
     SnarlRecord::records = records;
     
-    //vec_size only used for oversized snarls
-    size_t extra_size = record_size(type, node_count, vec_size);
+    //hhl_size only used for oversized snarls
+    size_t extra_size = record_size(type, node_count, hhl_size);
 #ifdef debug_distance_indexing
     if (is_oversized_snarl(type)) {
             cerr << "oversized" << endl;
@@ -4252,8 +4252,8 @@ SnarlDistanceIndex::SnarlRecordWriter::SnarlRecordWriter (size_t node_count, bds
     set_record_type(type);
     
     if (is_oversized_snarl(type)) {
-       set_vec_size(vec_size);
-    } 
+       set_hhl_size(hhl_size);
+    }
 
 #ifdef count_allocations
     cerr << "new_snarl\t" << extra_size << "\t" << (*records)->size() << endl;
@@ -4404,25 +4404,25 @@ void SnarlDistanceIndex::SnarlRecordWriter::set_node_count(size_t node_count) {
     (*records)->at(record_offset + SNARL_NODE_COUNT_OFFSET) = node_count;
 }
 
-void SnarlDistanceIndex::SnarlRecordWriter::set_vec_size(size_t vec_size) {
+void SnarlDistanceIndex::SnarlRecordWriter::set_hhl_size(size_t hhl_size) {
 #ifdef debug_distance_indexing
-    cerr << record_offset + SNARL_RECORD_SIZE << " set vec_size " << vec_size << endl;
-    assert(vec_size > 0);
+    cerr << record_offset + SNARL_RECORD_SIZE << " set hhl_size " << hhl_size << endl;
+    assert(hhl_size > 0);
     assert((*records)->at(record_offset + SNARL_RECORD_SIZE) == 0);
 #endif
 
-    (*records)->at(record_offset + SNARL_RECORD_SIZE) = vec_size;
+    (*records)->at(record_offset + SNARL_RECORD_SIZE) = hhl_size;
 }
 
-void SnarlDistanceIndex::SnarlRecordWriter::set_vec_entry(size_t index, size_t value) {
+void SnarlDistanceIndex::SnarlRecordWriter::set_hhl_entry(size_t index, size_t value) {
 #ifdef debug_distance_indexing
-    cerr << record_offset + SNARL_RECORD_SIZE + 1 + index << " set vec entry " << value << endl;
+    cerr << record_offset + SNARL_RECORD_SIZE + 1 + index << " set hhl_entry " << value << endl;
     assert(index < (*records)->at(record_offset + SNARL_RECORD_SIZE));
     assert((*records)->at(record_offset + SNARL_RECORD_SIZE + 1 + index) == 0);
 #endif
     // The hub label data sits right after its size, after the end of the fixed-size header.
     (*records)->at(record_offset + SNARL_RECORD_SIZE + 1 + index) = value;
-} 
+}
 
 
 size_t SnarlDistanceIndex::SnarlRecord::get_child_record_pointer() const {
@@ -5628,9 +5628,9 @@ void SnarlDistanceIndex::ChainRecordWriter::set_distance_right_end(size_t distan
 }
 
 //Add a snarl to the end of the chain and return a SnarlRecordWriter pointing to it
-SnarlDistanceIndex::SnarlRecordWriter SnarlDistanceIndex::ChainRecordWriter::add_snarl(size_t snarl_size, record_t type, size_t vec_size, size_t previous_child_offset) {
+SnarlDistanceIndex::SnarlRecordWriter SnarlDistanceIndex::ChainRecordWriter::add_snarl(size_t snarl_size, record_t type, size_t hhl_size, size_t previous_child_offset) {
 
-    size_t snarl_record_size = SnarlRecord::record_size(type, snarl_size, vec_size);
+    size_t snarl_record_size = SnarlRecord::record_size(type, snarl_size, hhl_size);
 #ifdef debug_distance_indexing
     cerr << (*records)->size() << " Adding child snarl length to the end of the array " << endl;
     cerr << "Previous child was at " << previous_child_offset << endl;
@@ -5648,7 +5648,7 @@ SnarlDistanceIndex::SnarlRecordWriter SnarlDistanceIndex::ChainRecordWriter::add
     (*records)->resize(start_i+1);
     (*records)->at(start_i) = snarl_record_size;
     (*records)->reserve(start_i + snarl_record_size);
-    SnarlRecordWriter snarl_record(snarl_size, records, type, vec_size);
+    SnarlRecordWriter snarl_record(snarl_size, records, type, hhl_size);
     snarl_record.set_parent_record_offset(get_offset());
 #ifdef debug_distance_indexing
     cerr << (*records)->size() << " Adding child snarl length to the end of the array " << endl;
@@ -6457,7 +6457,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                                     // We need to copy the packed hub label vector into place.
                                     for (size_t i = 0; i < temp_snarl_record.hub_labels.size(); i++) {
                                         // TODO: Make this an std::copy or something.
-                                        snarl_record_constructor.set_vec_entry(i, temp_snarl_record.hub_labels.at(i));
+                                        snarl_record_constructor.set_hhl_entry(i, temp_snarl_record.hub_labels.at(i));
                                     }
                                     // TODO: When should we call
                                     // snarl_record_constructor.set_tip_tip_connected()?
@@ -6654,7 +6654,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                     if (is_oversized) {
                         //Copy the packed hub-label vector into the record.
                         for (size_t i = 0; i < temp_snarl_record.hub_labels.size(); i++) {
-                            snarl_record_constructor.set_vec_entry(i, temp_snarl_record.hub_labels.at(i));
+                            snarl_record_constructor.set_hhl_entry(i, temp_snarl_record.hub_labels.at(i));
                         }
                     } else {
                         for (const auto& it : temp_snarl_record.distances) {
