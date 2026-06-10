@@ -430,26 +430,6 @@ void bind_bdsg_snarl_distance_index(std::function< pybind11::module &(std::strin
 			.export_values();
 
 
-		pybind11::enum_<bdsg::SnarlDistanceIndex::record_t>(cl, "record_t", pybind11::arithmetic(), "A record_t is the type of structure that a record can be.\n The actual distance index is stored as a series of \"records\" for each snarl/node/chain. \n The record type defines what is stored in a record\n\nNODE, SNARL, and CHAIN indicate that they don't store distances.\nSIMPLE_SNARL is a snarl with all children connecting only to the boundary nodes in one direction (ie, a bubble).\nTRIVIAL_SNARL represents consecutive nodes in a chain. \nNODE represents a node that is a trivial chain. A node can only be the child of a snarl.\nOVERSIZED_SNARL only stores distances to the boundaries.\nROOT_SNARL represents a connected component of the root. It has no start or end node so \n   its children technically belong to the root.\nMULTICOMPONENT_CHAIN can represent a chain with snarls that are not start-end connected.\n    The chain is split up into components between these snarls, each node is tagged with\n    which component it belongs to.")
-			.value("ROOT", bdsg::SnarlDistanceIndex::ROOT)
-			.value("NODE", bdsg::SnarlDistanceIndex::NODE)
-			.value("DISTANCED_NODE", bdsg::SnarlDistanceIndex::DISTANCED_NODE)
-			.value("TRIVIAL_SNARL", bdsg::SnarlDistanceIndex::TRIVIAL_SNARL)
-			.value("DISTANCED_TRIVIAL_SNARL", bdsg::SnarlDistanceIndex::DISTANCED_TRIVIAL_SNARL)
-			.value("SIMPLE_SNARL", bdsg::SnarlDistanceIndex::SIMPLE_SNARL)
-			.value("DISTANCED_SIMPLE_SNARL", bdsg::SnarlDistanceIndex::DISTANCED_SIMPLE_SNARL)
-			.value("SNARL", bdsg::SnarlDistanceIndex::SNARL)
-			.value("DISTANCED_SNARL", bdsg::SnarlDistanceIndex::DISTANCED_SNARL)
-			.value("OVERSIZED_SNARL", bdsg::SnarlDistanceIndex::OVERSIZED_SNARL)
-			.value("ROOT_SNARL", bdsg::SnarlDistanceIndex::ROOT_SNARL)
-			.value("DISTANCED_ROOT_SNARL", bdsg::SnarlDistanceIndex::DISTANCED_ROOT_SNARL)
-			.value("CHAIN", bdsg::SnarlDistanceIndex::CHAIN)
-			.value("DISTANCED_CHAIN", bdsg::SnarlDistanceIndex::DISTANCED_CHAIN)
-			.value("MULTICOMPONENT_CHAIN", bdsg::SnarlDistanceIndex::MULTICOMPONENT_CHAIN)
-			.value("CHILDREN", bdsg::SnarlDistanceIndex::CHILDREN)
-			.export_values();
-
-
 		pybind11::enum_<bdsg::SnarlDistanceIndex::temp_record_t>(cl, "temp_record_t", pybind11::arithmetic(), "")
 			.value("TEMP_CHAIN", bdsg::SnarlDistanceIndex::TEMP_CHAIN)
 			.value("TEMP_SNARL", bdsg::SnarlDistanceIndex::TEMP_SNARL)
@@ -541,8 +521,6 @@ void bind_bdsg_snarl_distance_index(std::function< pybind11::module &(std::strin
 		cl.def("has_distances", (bool (bdsg::SnarlDistanceIndex::*)(const struct handlegraph::net_handle_t &) const) &bdsg::SnarlDistanceIndex::has_distances, "Does this net handle store distances?\n\nC++: bdsg::SnarlDistanceIndex::has_distances(const struct handlegraph::net_handle_t &) const --> bool", pybind11::arg("net"));
 		cl.def("has_distances", (bool (bdsg::SnarlDistanceIndex::*)() const) &bdsg::SnarlDistanceIndex::has_distances, "Does the distance index in general store distances?\n\nC++: bdsg::SnarlDistanceIndex::has_distances() const --> bool");
 		cl.def("get_parent_traversal", (struct handlegraph::net_handle_t (bdsg::SnarlDistanceIndex::*)(const struct handlegraph::net_handle_t &, const struct handlegraph::net_handle_t &) const) &bdsg::SnarlDistanceIndex::get_parent_traversal, "Get a net handle for traversals of a snarl or chain that contains\nthe given oriented bounding node traversals or sentinels. Given two\nsentinels for a snarl, produces a net handle to a start-to-end,\nend-to-end, end-to-start, or start-to-start traversal of that snarl.\nGiven handles to traversals of the bounding nodes of a chain, similarly\nproduces a net handle to a traversal of the chain.\n\nFor a chain, either or both handles can also be a snarl containing tips,\nfor a tip-to-start, tip-to-end, start-to-tip, end-to-tip, or tip-to-tip\ntraversal. Similarly, for a snarl, either or both handles can be a chain\nin the snarl that contains internal tips, or that has no edges on the\nappropriate end.\n\nMay only be called if a path actually exists between the given start\nand end.\n\nC++: bdsg::SnarlDistanceIndex::get_parent_traversal(const struct handlegraph::net_handle_t &, const struct handlegraph::net_handle_t &) const --> struct handlegraph::net_handle_t", pybind11::arg("traversal_start"), pybind11::arg("traversal_end"));
-		cl.def_static("has_distances", (const bool (*)(enum bdsg::SnarlDistanceIndex::record_t)) &bdsg::SnarlDistanceIndex::has_distances, "C++: bdsg::SnarlDistanceIndex::has_distances(enum bdsg::SnarlDistanceIndex::record_t) --> const bool", pybind11::arg("type"));
-		cl.def_static("get_record_handle_type", (const enum bdsg::SnarlDistanceIndex::net_handle_record_t (*)(enum bdsg::SnarlDistanceIndex::record_t)) &bdsg::SnarlDistanceIndex::get_record_handle_type, "Given the type of the record, return the handle type. Some record types can represent multiple things,\nfor example a simple snarl record is used to represent a snarl, and the nodes/trivial chains in it.\nThis will return whatever is higher on the snarl tree. A simple snarl will be considered a snarl,\na root snarl will be considered a root, etc\n\nC++: bdsg::SnarlDistanceIndex::get_record_handle_type(enum bdsg::SnarlDistanceIndex::record_t) --> const enum bdsg::SnarlDistanceIndex::net_handle_record_t", pybind11::arg("type"));
 		cl.def_static("get_record_offset", (const unsigned long (*)(const struct handlegraph::net_handle_t &)) &bdsg::SnarlDistanceIndex::get_record_offset, "The offset into records that this handle points to\n\nC++: bdsg::SnarlDistanceIndex::get_record_offset(const struct handlegraph::net_handle_t &) --> const unsigned long", pybind11::arg("net_handle"));
 		cl.def_static("get_node_record_offset", (const unsigned long (*)(const struct handlegraph::net_handle_t &)) &bdsg::SnarlDistanceIndex::get_node_record_offset, "The offset of a node in a trivial snarl (0 if it isn't a node in a trivial snarl)\n\nC++: bdsg::SnarlDistanceIndex::get_node_record_offset(const struct handlegraph::net_handle_t &) --> const unsigned long", pybind11::arg("net_handle"));
 		cl.def_static("get_connectivity", (const enum bdsg::SnarlDistanceIndex::connectivity_t (*)(const struct handlegraph::net_handle_t &)) &bdsg::SnarlDistanceIndex::get_connectivity, "C++: bdsg::SnarlDistanceIndex::get_connectivity(const struct handlegraph::net_handle_t &) --> const enum bdsg::SnarlDistanceIndex::connectivity_t", pybind11::arg("net_handle"));
