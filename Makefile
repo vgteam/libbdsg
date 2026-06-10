@@ -28,7 +28,9 @@ OBJS += $(OBJ_DIR)/snarl_distance_index.o
 OBJS += $(OBJ_DIR)/strand_split_overlay.o 
 OBJS += $(OBJ_DIR)/utility.o
 
-CXXFLAGS :=-MMD -MP -O3 -Werror=return-type -std=c++14 -ggdb -g -I$(INC_DIR) $(CXXFLAGS)
+# See also: standard in CMakeLists.txt
+# # See also: standard in make_and_run_binder.py
+CXXFLAGS :=-MMD -MP -O3 -Werror=return-type -std=c++17 -ggdb -g -I$(INC_DIR) $(CXXFLAGS)
 
 ifeq ($(shell uname -s),Darwin)
 	CXXFLAGS := $(CXXFLAGS) -Xpreprocessor -fopenmp
