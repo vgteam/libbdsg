@@ -35,7 +35,7 @@ def clone_repos():
         parent = os.getcwd()
         os.chdir('binder')
         # See also: Binder commit defined in CMakeLists.txt for header files.
-        subprocess.check_call(['git', 'checkout', '46ec0e88137d368eeedafecfa123004f8ad028d1'])
+        subprocess.check_call(['git', 'checkout', '93efb505172ce0ef34faa1f69a8e8f2b7455ce18'])
         os.chdir(parent)
     if not glob.glob("binder/build/pybind11"):
         print("pybind11 not found, cloning repo...")
@@ -69,7 +69,7 @@ def build_binder():
             '--pybind11',
             os.path.join(os.getcwd(), 'build/pybind11'),
             '--llvm-version',
-            '14.0.5'
+            '19.1.7'
         ]
         subprocess.check_call(build_command)
     return "binder/" + glob.glob('./build/*/*/bin/')[0] + "binder"
@@ -234,6 +234,9 @@ def make_bindings_code(all_includes_fn, binder_executable):
     # proj_include = " -I".join(proj_include)
     proj_include = [f'-I{i}' for i in proj_include]
     
+    
+    # See also: standard in CMakeLists.txt
+    # See also: standard in Makefile
     command = [binder_executable,
         "--root-module", python_module_name,
         "--prefix", f'{bindings_dir}/',
@@ -241,7 +244,7 @@ def make_bindings_code(all_includes_fn, binder_executable):
         "--config", "config.cfg",
         all_includes_fn,
         "--",
-        "-std=c++14",
+        "-std=c++17",
         f'-I{this_project_include}']
     if platform.system() == 'Darwin':
         # We need the MacOS SDK, which provides the C standard library and also a C++ STL, at least as of Apple Clang 14.

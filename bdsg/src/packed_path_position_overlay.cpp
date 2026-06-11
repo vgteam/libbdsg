@@ -7,8 +7,17 @@
 
 namespace bdsg {
 
-PackedPositionOverlay::PackedPositionOverlay(const PathHandleGraph* graph, const std::unordered_set<std::string>& extra_path_names, size_t steps_per_index) : graph(graph), steps_per_index(steps_per_index) {
-    index_path_positions(extra_path_names);
+PackedPositionOverlay::PackedPositionOverlay(const PathHandleGraph* graph, size_t steps_per_index) : graph(graph), steps_per_index(steps_per_index) {
+    // Nothing to do!
+}
+
+PackedPositionOverlay::PackedPositionOverlay(const PathHandleGraph* graph, bool all_paths, const std::unordered_set<std::string>& extra_path_names, size_t steps_per_index) : PackedPositionOverlay(graph, steps_per_index) {
+    // Actually build the index
+    index_path_positions(all_paths, extra_path_names);
+}
+
+PackedPositionOverlay::PackedPositionOverlay(const PathHandleGraph* graph, const std::unordered_set<std::string>& extra_path_names, size_t steps_per_index): PackedPositionOverlay(graph, false, extra_path_names, steps_per_index) {
+    // Nothing to do!
 }
 
 bool PackedPositionOverlay::has_node(nid_t node_id) const {
@@ -162,7 +171,13 @@ bool PackedPositionOverlay::for_each_step_of_sense_impl(const handle_t& visited,
 
 
 size_t PackedPositionOverlay::get_path_length(const path_handle_t& path_handle) const {
-    const auto& range = path_range.at(as_integer(path_handle));
+    auto found = path_range.find(as_integer(path_handle));
+    if (found == path_range.end()) {
+        // We're working on an un-indexed path
+        throw std::logic_error("Path " + graph->get_path_name(path_handle) + " is not indexed for " + std::string(__func__));
+    }
+
+    const auto& range = found->second;
     if (range.start == range.end) {
         return 0;
     }
@@ -178,7 +193,12 @@ size_t PackedPositionOverlay::get_position_of_step(const step_handle_t& step) co
         return get_path_length(path);
     }
     else {
-        auto& range = path_range.at(as_integer(path));
+        auto found = path_range.find(as_integer(path));
+        if (found == path_range.end()) {
+            // We're working on an un-indexed path
+            throw std::logic_error("Path " + graph->get_path_name(path) + " is not indexed for " + std::string(__func__));
+        }
+        auto& range = found->second;
         const boomphf::mphf<step_handle_t, StepHash>& const_step_hash = indexes[range.index_number].step_hash.back();
         // We can't use the lookup function on a const mphf, because it isn't
         // marked const. But it is thread safe and really ought to be const. So
@@ -191,7 +211,13 @@ size_t PackedPositionOverlay::get_position_of_step(const step_handle_t& step) co
 step_handle_t PackedPositionOverlay::get_step_at_position(const path_handle_t& path,
                                                           const size_t& position) const {
     
-    const auto& range = path_range.at(as_integer(path));
+    auto found = path_range.find(as_integer(path));
+    if (found == path_range.end()) {
+        // We're working on an un-indexed path
+        throw std::logic_error("Path " + graph->get_path_name(path) + " is not indexed for " + std::string(__func__));
+    }
+
+    const auto& range = found->second;
     
     // check if position it outside the range (handles edge case of an empty path too)
     if (position >= get_path_length(path)) {
@@ -222,21 +248,22 @@ handle_t PackedPositionOverlay::get_underlying_handle(const handle_t& handle) co
     return handle;
 }
 
-void PackedPositionOverlay::index_path_positions(const std::unordered_set<std::string>& extra_path_names) {
+void PackedPositionOverlay::index_path_positions(bool all_paths, const std::unordered_set<std::string>& extra_path_names) {
     
     // I'm not sure how to pass handles to OMP tasks by value, when we'd return
     // out of the functions that created the tasks and are holding the tasks'
     // locals. So first we'll collect all the path handles.
     // TODO: deduplicate with BBHashHelper's copy of all the path handles?
     std::vector<path_handle_t> path_handles;
-    for_each_path_handle([&](const path_handle_t& path_handle) {
+    std::unordered_set<PathSense> senses = {PathSense::REFERENCE, PathSense::GENERIC};
+    graph->for_each_path_matching(all_paths ? nullptr : &senses, nullptr, nullptr, [&](const path_handle_t& path_handle) {
         path_handles.push_back(path_handle);
     });
     if (!extra_path_names.empty()) {
         // Skip any named paths we already visited
         std::unordered_set<path_handle_t> seen(path_handles.begin(), path_handles.end());
         for (auto& name : extra_path_names) {
-            path_handle_t path = get_path_handle(name);
+            path_handle_t path = graph->get_path_handle(name);
             if (!seen.count(path)) {
                 // But remember to visit any we haven't yet.
                 path_handles.push_back(path);

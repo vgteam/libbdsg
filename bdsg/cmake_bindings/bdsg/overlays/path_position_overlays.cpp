@@ -11,10 +11,12 @@
 #include <handlegraph/path_metadata.hpp>
 #include <handlegraph/path_position_handle_graph.hpp>
 #include <handlegraph/types.hpp>
-#include <iterator>
 #include <memory>
 #include <sstream> // __str__
 #include <string>
+#include <string_view>
+#include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -35,7 +37,7 @@
 	PYBIND11_MAKE_OPAQUE(std::shared_ptr<void>)
 #endif
 
-// bdsg::MutablePositionOverlay file:bdsg/overlays/path_position_overlays.hpp line:261
+// bdsg::MutablePositionOverlay file:bdsg/overlays/path_position_overlays.hpp line:268
 struct PyCallBack_bdsg_MutablePositionOverlay : public bdsg::MutablePositionOverlay {
 	using bdsg::MutablePositionOverlay::MutablePositionOverlay;
 
@@ -1299,11 +1301,8 @@ struct PyCallBack_bdsg_SubgraphOverlay : public bdsg::SubgraphOverlay {
 
 void bind_bdsg_overlays_path_position_overlays(std::function< pybind11::module &(std::string const &namespace_) > &M)
 {
-	{ // bdsg::MutablePositionOverlay file:bdsg/overlays/path_position_overlays.hpp line:261
+	{ // bdsg::MutablePositionOverlay file:bdsg/overlays/path_position_overlays.hpp line:268
 		pybind11::class_<bdsg::MutablePositionOverlay, std::shared_ptr<bdsg::MutablePositionOverlay>, PyCallBack_bdsg_MutablePositionOverlay, bdsg::PositionOverlay, handlegraph::MutablePathDeletableHandleGraph> cl(M("bdsg"), "MutablePositionOverlay", "");
-		cl.def( pybind11::init<class handlegraph::MutablePathDeletableHandleGraph *>(), pybind11::arg("graph") );
-
-		cl.def( pybind11::init( [](){ return new bdsg::MutablePositionOverlay(); }, [](){ return new PyCallBack_bdsg_MutablePositionOverlay(); } ) );
 		cl.def( pybind11::init( [](PyCallBack_bdsg_MutablePositionOverlay const &o){ return new PyCallBack_bdsg_MutablePositionOverlay(o); } ) );
 		cl.def( pybind11::init( [](bdsg::MutablePositionOverlay const &o){ return new bdsg::MutablePositionOverlay(o); } ) );
 		cl.def("create_handle", (struct handlegraph::handle_t (bdsg::MutablePositionOverlay::*)(const std::string &)) &bdsg::MutablePositionOverlay::create_handle, "Create a new node with the given sequence and return the handle.\n\nC++: bdsg::MutablePositionOverlay::create_handle(const std::string &) --> struct handlegraph::handle_t", pybind11::arg("sequence"));

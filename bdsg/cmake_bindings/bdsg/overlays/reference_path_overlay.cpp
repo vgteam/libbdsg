@@ -6,10 +6,10 @@
 #include <handlegraph/path_metadata.hpp>
 #include <handlegraph/path_position_handle_graph.hpp>
 #include <handlegraph/types.hpp>
-#include <iterator>
 #include <memory>
 #include <sstream> // __str__
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -32,7 +32,7 @@
 	PYBIND11_MAKE_OPAQUE(std::shared_ptr<void>)
 #endif
 
-// bdsg::ReferencePathOverlay file:bdsg/overlays/reference_path_overlay.hpp line:41
+// bdsg::ReferencePathOverlay file:bdsg/overlays/reference_path_overlay.hpp line:32
 struct PyCallBack_bdsg_ReferencePathOverlay : public bdsg::ReferencePathOverlay {
 	using bdsg::ReferencePathOverlay::ReferencePathOverlay;
 
@@ -1048,7 +1048,7 @@ struct PyCallBack_bdsg_VectorizableOverlay : public bdsg::VectorizableOverlay {
 
 void bind_bdsg_overlays_reference_path_overlay(std::function< pybind11::module &(std::string const &namespace_) > &M)
 {
-	{ // bdsg::ReferencePathOverlay file:bdsg/overlays/reference_path_overlay.hpp line:41
+	{ // bdsg::ReferencePathOverlay file:bdsg/overlays/reference_path_overlay.hpp line:32
 		pybind11::class_<bdsg::ReferencePathOverlay, std::shared_ptr<bdsg::ReferencePathOverlay>, PyCallBack_bdsg_ReferencePathOverlay, handlegraph::PathPositionHandleGraph> cl(M("bdsg"), "ReferencePathOverlay", "");
 		cl.def( pybind11::init( [](){ return new bdsg::ReferencePathOverlay(); }, [](){ return new PyCallBack_bdsg_ReferencePathOverlay(); } ) );
 		cl.def( pybind11::init( [](PyCallBack_bdsg_ReferencePathOverlay const &o){ return new PyCallBack_bdsg_ReferencePathOverlay(o); } ) );

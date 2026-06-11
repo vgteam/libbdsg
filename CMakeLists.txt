@@ -18,8 +18,10 @@ OPTION(USE_INSTALLED_LIBHANDLEGRAPH "Use the version of libhandlegraph installed
 # TODO: We can only do out-of-source builds!
 # TODO: How do we error out meaningfully on in-source builds?
 
-# We build using c++14
-set(CMAKE_CXX_STANDARD 14)
+# We build using c++17
+# See also: standard in make_and_run_binder.py
+# See also: standard in Makefile
+set(CMAKE_CXX_STANDARD 17)
 # We need library paths to be relative in the build directories so we can let
 # the libraries in our Python module find each other when we package them into
 # a wheel. This only works on CMake 3.14+; older CMake we have to bully with
@@ -207,7 +209,7 @@ if (BUILD_PYTHON_BINDINGS)
 
     # Binder (because some generated bindings depend on headers packaged with Binder)
     # See also: Binder commit defined in make_and_run_binder.py which actually generates bindings.
-    set(BINDER_COMMIT 46ec0e88137d368eeedafecfa123004f8ad028d1)
+    set(BINDER_COMMIT 93efb505172ce0ef34faa1f69a8e8f2b7455ce18)
     ExternalProject_Add(binder
       GIT_REPOSITORY "https://github.com/RosettaCommons/binder.git"
       GIT_TAG "${BINDER_COMMIT}"
