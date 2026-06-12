@@ -49,13 +49,9 @@ test: all $(BIN_DIR)/test_libbdsg
 docs:
 	cd $(DOC_DIR) && $(MAKE) html
 
-.pre-build:
-	@if [ ! -d $(LIB_DIR) ]; then mkdir -p $(LIB_DIR); fi
-	@if [ ! -d $(OBJ_DIR) ]; then mkdir -p $(OBJ_DIR); fi
-	@if [ ! -d $(BIN_DIR) ]; then mkdir -p $(BIN_DIR); fi
-
-# run .pre-build before we make anything at all.
--include .pre-build
+$(shell if [ ! -d $(LIB_DIR) ]; then mkdir -p $(LIB_DIR); fi)
+$(shell if [ ! -d $(OBJ_DIR) ]; then mkdir -p $(OBJ_DIR); fi)
+$(shell if [ ! -d $(BIN_DIR) ]; then mkdir -p $(BIN_DIR); fi)
 
 # Make sure to pull in dependency files
 include $(wildcard $(OBJ_DIR)/*.d)
