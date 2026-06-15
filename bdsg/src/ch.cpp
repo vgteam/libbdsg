@@ -823,7 +823,7 @@ void down_dijk_back(int node, CHOverlay& ov, vector<DIST_UINT>& node_dists, vect
 } 
 
 void test_dijk(int node, CHOverlay& ov, vector<DIST_UINT>& node_dists, vector<vector<HubRecord>>& labels, vector<vector<HubRecord>>& labels_back) {
-  auto in_node = node; //node_dists[node] = 0;
+  auto in_node = node;
  
   std::priority_queue<tuple<DIST_UINT, int>, vector<tuple<DIST_UINT, int>>, greater<tuple<DIST_UINT, int>>> q;
   for (auto edge : boost::make_iterator_range(out_edges(in_node, ov))) { 
