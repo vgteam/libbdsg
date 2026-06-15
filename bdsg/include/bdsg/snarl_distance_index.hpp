@@ -199,19 +199,17 @@ public:
     void serialize_members(std::ostream& out) const;
     void deserialize_members(std::istream& in);
 
-    /* Call when loading a distance index; will error if wrong version
-     *
+    /** Call when loading a distance index; will error if wrong version
      */
     void check_version_on_load() const;
 
     virtual uint32_t get_magic_number() const;
     std::string get_prefix() const;
     
-    /* Allow for preloading the index for more accurate timing of algorithms
+    /** Allow for preloading the index for more accurate timing of algorithms
      * that use it, if it fits in memory. If blocking is true, waits for the
      * index to be paged in. Otherwise, just tells the OS that we will want to
      * use it.
-     *
      */
     void preload(bool blocking = false) const;
 
@@ -225,12 +223,11 @@ public:
                             END_START, END_END, END_TIP, 
                             TIP_START, TIP_END, TIP_TIP};
 
-    /* Type of a net_handle_t, which may not be the type of the record
+    /** Type of a net_handle_t, which may not be the type of the record
      * This is to allow a node record to be seen as a chain from the perspective of a handle.
      * And to allow a simple snarl record to be seen as a node, a chain, or a snarl.
      *
      * TODO: What does that really mean? Why can that happen?
-     *
      */
     enum net_handle_record_t {ROOT_HANDLE=0, NODE_HANDLE, SNARL_HANDLE, CHAIN_HANDLE, SENTINEL_HANDLE};
 
@@ -433,14 +430,13 @@ public:
     ///edges are allowed
     bool is_simple_snarl(const net_handle_t& net) const;
 
-    /* Returns true if the given net handle refers to (a traversal of) a regular snarl.
+    /** Returns true if the given net handle refers to (a traversal of) a regular snarl.
      *
      * A regular snarl is the same as a simple snarl, except that the children may be
      * nested chains, rather than being restricted to nodes, as long as the
      * nested chains don't allow reversals.
      *
      * Simple and trivial snarls also count as regular snarls.
-     *
      */
     bool is_regular_snarl(const net_handle_t& net) const;
 
@@ -556,12 +552,10 @@ public:
     ///For 0 or 1, returns the sentinel facing in. Otherwise return the child as a chain going START_END
     net_handle_t get_snarl_child_from_rank(const net_handle_t& snarl, const size_t& rank) const;
 
-    /* Does this net handle store distances?
-     *
+    /** Does this net handle store distances?
      */
     bool has_distances(const net_handle_t& net) const;
-    /* Does the distance index in general store distances?
-     *
+    /** Does the distance index in general store distances?
      */
     bool has_distances() const;
 
@@ -662,8 +656,7 @@ public:
     // Because the record_t encodes a complex taxonomy of snarls not *quite*
     // decomposable to flags, we use these accessors to look at facets of it.
 
-    /*Return true if records of the given type have stored distances.
-     *
+    /** Return true if records of the given type have stored distances.
      */
     constexpr static bool has_distances(record_t type) {
         return type == DISTANCED_NODE
@@ -674,8 +667,7 @@ public:
             || type == DISTANCED_CHAIN || type == MULTICOMPONENT_CHAIN;
     }
 
-    /*Return true if the given record type represents a root snarl.
-     *
+    /** Return true if the given record type represents a root snarl.
      */
     constexpr static bool is_root_snarl(record_t type) {
         return type == ROOT_SNARL
@@ -683,33 +675,29 @@ public:
             || type == OVERSIZED_ROOT_SNARL;
     }
 
-    /*Return true if the given record type represents a root or a root snarl.
-     *
+    /** Return true if the given record type represents a root or a root snarl.
      */
     constexpr static bool is_any_root(record_t type) {
         return is_root_snarl(type)
             || type == ROOT;
     }
 
-    /*Return true if the given record type represents a node.
-     *
+    /** Return true if the given record type represents a node.
      */
     constexpr static bool is_node(record_t type) {
         return type == NODE
             || type == DISTANCED_NODE;
     }
 
-    /* Return true if the given record type represents a chain.
-     *
-     */ 
+    /** Return true if the given record type represents a chain.
+     */
     constexpr static bool is_chain(record_t type) {
         return type == CHAIN
             || type == DISTANCED_CHAIN
             || type == MULTICOMPONENT_CHAIN;
     }
 
-    /* Return true if the given record type represents a trivial snarl.
-     *
+    /** Return true if the given record type represents a trivial snarl.
      */
     constexpr static bool is_trivial_snarl(record_t type) {
         return type == TRIVIAL_SNARL
@@ -724,8 +712,7 @@ public:
             || type == DISTANCED_SIMPLE_SNARL;
     }
 
-    /* Return true if the given record type represents an oversized snarl.
-     *
+    /** Return true if the given record type represents an oversized snarl.
      */
     constexpr static bool is_oversized_snarl(record_t type) {
         return type == OVERSIZED_SNARL
@@ -733,9 +720,8 @@ public:
             || type == OVERSIZED_ROOT_SNARL;
     }
 
-    /* Determine if a record type is a regular, but not a not simple (or
+    /** Determine if a record type is a regular, but not a not simple (or
      * trivial), snarl. Root snarls cannot be regular.
-     *
      */
     constexpr static bool is_regular_nonsimple_snarl(record_t type) {
         return type == REGULAR_SNARL
@@ -743,9 +729,8 @@ public:
             || type == OVERSIZED_REGULAR_SNARL;
     }
 
-    /* Determine if a record type is a regular snarl. Root snarls cannot be
+    /** Determine if a record type is a regular snarl. Root snarls cannot be
      * regular. Counts simple and trivial snarls as regular.
-     *
      */
     constexpr static bool is_regular_snarl(record_t type) {
         return is_regular_nonsimple_snarl(type)
@@ -753,10 +738,9 @@ public:
             || is_trivial_snarl(type);
     }
 
-    /* Determine if a record type is a snarl that isn't also a root or a
+    /** Determine if a record type is a snarl that isn't also a root or a
      * simple (or trivial) snarl. A "nonsimple" snarl is implicitly
      * nontrivial.
-     *
      */
     constexpr static bool is_nonroot_nonsimple_snarl(record_t type) {
         return is_regular_nonsimple_snarl(type)
@@ -765,18 +749,16 @@ public:
             || type == OVERSIZED_SNARL;
     }
 
-    /* Return true if the given record type represents a snarl that is not
+    /** Return true if the given record type represents a snarl that is not
      * simple or trivial.
-     *
      */
     constexpr static bool is_nonsimple_snarl(record_t type) {
         return is_nonroot_nonsimple_snarl(type)
             || is_root_snarl(type);
     }
 
-    /* Return true if the given record type represents a snarl that is not
+    /** Return true if the given record type represents a snarl that is not
      * simple or trivial, and also isn't a root snarl.
-     *
      */
     constexpr static bool is_nonroot_nontrivial_snarl(record_t type) {
         return is_nonroot_nonsimple_snarl(type)
@@ -784,17 +766,15 @@ public:
             || type == DISTANCED_SIMPLE_SNARL;
     }
 
-    /* Return true if the given record type represents a snarl that is not
+    /** Return true if the given record type represents a snarl that is not
      * trivial.
-     *
      */
     constexpr static bool is_nontrivial_snarl(record_t type) {
         return is_nonroot_nontrivial_snarl(type)
             || is_root_snarl(type);
     }
 
-    /* Make sure a record_t is a known type other than CHILDREN
-     *
+    /** Make sure a record_t is a known type other than CHILDREN
      */
     constexpr static bool is_any_nonchildren(record_t type) {
         return is_any_root(type)
@@ -804,8 +784,7 @@ public:
             || is_trivial_snarl(type);
     }
     
-    /* Encode the type of a root snarl that may or may not have distances.
-     *
+    /** Encode the type of a root snarl that may or may not have distances.
      */
     constexpr static record_t encode_root_snarl(bool has_distances, bool is_oversized = false) {
         if (is_oversized) {
@@ -817,16 +796,14 @@ public:
         return has_distances ? DISTANCED_ROOT_SNARL : ROOT_SNARL;
     }
     
-    /* Encode the type of a simple snarl that may or may not have distances.
-     *
+    /** Encode the type of a simple snarl that may or may not have distances.
      */
     constexpr static record_t encode_simple_snarl(bool has_distances) {
         return has_distances ? DISTANCED_SIMPLE_SNARL : SIMPLE_SNARL;
     }
 
-    /* Encode the type of a snarl that isn't a root snarl or a simple (or trivial) snarl.
+    /** Encode the type of a snarl that isn't a root snarl or a simple (or trivial) snarl.
      * It may have distances, it may be regular, and it may be oversized.
-     *
      */
     constexpr static record_t encode_nonroot_nonsimple_snarl(bool has_distances, bool is_regular, bool is_oversized) {
         if (is_oversized) {
@@ -845,8 +822,7 @@ public:
         }
     }
     
-    /* Encode the type of a node that may or may not have distances.
-     *
+    /** Encode the type of a node that may or may not have distances.
      */
     constexpr static record_t encode_node(bool has_distances) {
         return has_distances ? DISTANCED_NODE : NODE;
@@ -1021,16 +997,15 @@ private:
     ///This vector is the entire distance index. It is split up into "records" that are defined below
     bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector> snarl_tree_records;
 
-/*
+/** 
  * These are used to interpret snarl_tree_records, which is just a vector of ints.
  * Uses a SnarlTreeRecord as the main class for defining and interpreting the records.
  * SnarlTreeRecords are given a base pointer, which points to the start of the record
  * Each record starts with a "tag", which defines which type of record it is. The 
  * contents of the record are defined below: 
-*/
+ */
     
-    /*Root record
-    
+    /** Root record
      * - The (single) root vector has the format:
      *   [root tag, # connected components (N), # nodes (M), min_node_id, max depth [pointer to node/snarl/chain record] x N], [pointer to node+ node offset] x M]
      *   The root vector stores the root of every connected component, which can be a 
@@ -1049,12 +1024,10 @@ private:
     const static size_t CURRENT_VERSION_NUMBER = 5;
     // A version to allow though but warn about
     const static size_t WARN_VERSION_NUMBER = 9999; //placeholder value
-    /* Arbitrary large number which doens't overflow the number of bits we give
-     *
-     */
+    // Arbitrary large number which doens't overflow the number of bits we give
     const static size_t VERSION_NUMBER_SENTINEL = (1 << 10) - 1;
 
-    /*Node record
+    /** Node record
      * - A node record for nodes in snarls/roots. These are interpreted as either trivial chains or nodes.
      *   These will be interspersed between chains more or less based on where they are in the snarl tree
      *   [node tag, node id, pointer to parent, node length, rank in parent, distances to snarl bounds(x4)]
@@ -1071,8 +1044,7 @@ private:
     const static size_t NODE_DISTANCE_LEFT_END_OFFSET = 7;
     const static size_t NODE_DISTANCE_RIGHT_END_OFFSET = 8;
  
-    /*Chain record
-
+    /** Chain record
      * - A chain record for each chain, which contains interspersed node and snarl records:
      *   The nodes are all stored in a "TrivialSnarl", which is a bunch of nodes with no snarls between them
      *   [chain tag, #nodes, pointer to parent, min length, max length, rank in parent, start, end, pointer to last child, depth, distances to snarl bounds (x4),
@@ -1100,18 +1072,17 @@ private:
     const static size_t CHAIN_DISTANCE_LEFT_END_OFFSET = 12;
     const static size_t CHAIN_DISTANCE_RIGHT_END_OFFSET = 13;
 
-    /*Trivial snarl record (which occurs within a chain) representing nodes in a chain
+    /** Trivial snarl record (which occurs within a chain) representing nodes in a chain
      * These contain up to 128 nodes with nothing between them
      * TODO: There isn't really a good reason why they only contain up to 128 nodes- it's just because I was having unrelated problems when I wrote it and I thought it might help and never undid it
-
+     *
      *   [trivial snarl tag, pointer to parent, node count, prefix sum, fd loop, rev loop, component]
-
+     *
      * The record is followed by [node id+orientation, right prefix sum] for each node in the trivial snarl
      * So the total length of the distanced trivial snarl is 8+2*#nodes, and the length of a distanceless
      * trivial snarl is 8+#nodes
      * The right prefix sum is the sum from the start of the trivial chain to the right side of the node (relative to the chain)
      * The node_record_offset in a net_handle_t to a trivial snarl points to a node in the trivial snarl
- 
      */
     const static size_t BITS_FOR_TRIVIAL_NODE_OFFSET = 8;
     const static size_t MAX_TRIVIAL_SNARL_NODE_COUNT =  (1 << BITS_FOR_TRIVIAL_NODE_OFFSET) -1;
@@ -1125,7 +1096,7 @@ private:
     const static size_t TRIVIAL_SNARL_REVERSE_LOOP_OFFSET = 6;
     const static size_t TRIVIAL_SNARL_COMPONENT_OFFSET = 7;
    
-    /*Snarl record (which occurs within a chain)
+    /** Snarl record (which occurs within a chain)
      * 
      * - A snarl record for each snarl, which are stuck in chains
      *   [snarl tag, # nodes, pointer to parent, min length, max length, rank in parent, 
@@ -1148,9 +1119,9 @@ private:
     const static size_t SNARL_DISTANCE_END_END_OFFSET = 6;
     const static size_t SNARL_CHILD_RECORD_OFFSET = 7;
 
-    /*A simple snarl for bubbles with only nodes with two edges, one to each bound
+    /** A simple snarl for bubbles with only nodes with two edges, one to each bound
      * [simple snarl tag, node count+length, parent, [node id, node length]xN
-    */
+     */
     const static size_t SIMPLE_SNARL_RECORD_SIZE = 3;
     //This one stores the node count and min and max lengths of the snarl
     //It'll take 26 bits: 11 for each length
@@ -1158,7 +1129,7 @@ private:
     const static size_t SIMPLE_SNARL_NODE_COUNT_AND_LENGTHS_OFFSET = 1;
     const static size_t SIMPLE_SNARL_PARENT_OFFSET = 2;
 
-     /*  At the end is the (single) child vector, listing children in snarls
+    /**  At the end is the (single) child vector, listing children in snarls
      *   [child vector tag, (pointer to records) x N
      *   Each snarl will have a pointer into here, and will also know how many children it has
      *   This is at the end of the index because it is only really used when looking for all children
@@ -1230,7 +1201,7 @@ public:
 
 
 private:
-    /*
+    /**
      *
      * The "tags" for defining what kind of record we're looking at. These are the first entry in any 
      * record. They will be a record_t and a bit vector indicating connectivity.
@@ -1261,7 +1232,7 @@ private:
 
 //////////////////////////////// SnarlTreeRecord class for interpreting the records in a distance index
 
-/* Define a struct for interpreting each type of snarl tree node record (For node, snarl, chain)
+/** Define a struct for interpreting each type of snarl tree node record (For node, snarl, chain)
  *
  * This is meant to be a layer in between snarl_tree_records and the public interface.
  * Each net_handle_t has a pointer to the start of a record in snarl_tree_records. 
@@ -1892,31 +1863,17 @@ public:
             //TODO This would probably be more efficient as a vector of a struct of five ints
             vector<size_t> prefix_sum;
             vector<size_t> max_prefix_sum;
-            /* Forward looping distances. If no loop is possible, an entry
-     *
-     */
-            /* will be std::numeric_limits<size_t>::max(). If any loop is
-     *
-     */
-            /* possible anywhere along the chain, the first entry will contain
-     *
-     */
-            /* a possible loop distance.
-     *
-     */
+            /** Forward looping distances. If no loop is possible, an entry
+             * will be std::numeric_limits<size_t>::max(). If any loop is
+             * possible anywhere along the chain, the first entry will contain
+             * a possible loop distance.
+             */
             vector<size_t> forward_loops;
-            /* Backward lopping distances. If no loop is possible, an entry
-     *
-     */
-            /* will be std::numeric_limits<size_t>::max(). If any lopp is
-     *
-     */
-            /* possible anywhere along the chain, the last entry will contain
-     *
-     */
-            /* a possible loop distance.
-     *
-     */
+            /** Backward lopping distances. If no loop is possible, an entry
+             * will be std::numeric_limits<size_t>::max(). If any lopp is
+             * possible anywhere along the chain, the last entry will contain
+             * a possible loop distance.
+             */
             vector<size_t> backward_loops; 
             vector<size_t> chain_components;//Which component does each node belong to, usually all 0s
 
@@ -1931,30 +1888,21 @@ public:
             handlegraph::nid_t end_node_id;
             size_t end_node_length=0;
             size_t node_count=0;
-            /* Minimum distance across the snarl from start to end, not
-     *
-     */
-            /* including boundary nodes.
-     *
-     */
+            /** Minimum distance across the snarl from start to end, not
+             * including boundary nodes.
+             */
             size_t min_length = std::numeric_limits<size_t>::max(); 
             size_t max_length = 0;
             size_t max_distance = 0;
             size_t tree_depth = 0; //TODO: This isn't used but I left it because I couldn't get the python bindings to build when I changed it
 
-            /* Minimum distance from the start back to itself within the
-     *
-     */
-            /* snarl, not including boundary nodes.
-     *
-     */
+            /** Minimum distance from the start back to itself within the
+             * snarl, not including boundary nodes.
+             */
             size_t distance_start_start = std::numeric_limits<size_t>::max();
-            /* Minimum distance from the end back to itself within the snarl,
-     *
-     */
-            /* not including boundary nodes.
-     *
-     */
+            /** Minimum distance from the end back to itself within the snarl,
+             * not including boundary nodes.
+             */
             size_t distance_end_end = std::numeric_limits<size_t>::max();
 
             size_t rank_in_parent=0;
@@ -1970,12 +1918,9 @@ public:
             bool end_node_rev;
             bool is_trivial;
             bool is_simple;
-            /* Set to true if the snarl is regular (see SnarlDistanceIndex::is_regular_snarl()).
-     *
-     */
-            /* If is_simple is true, this must also be set to true when filling in the TemporarySnarlRecord.
-     *
-     */
+            /** Set to true if the snarl is regular (see SnarlDistanceIndex::is_regular_snarl()).
+             * If is_simple is true, this must also be set to true when filling in the TemporarySnarlRecord.
+             */
             bool is_regular = false;
             bool is_tip = false;
             bool is_root_snarl = false;
@@ -2020,51 +1965,31 @@ public:
         vector<temp_record_ref_t> root_snarl_components;
         vector<TemporaryChainRecord> temp_chain_records;
         vector<TemporarySnarlRecord> temp_snarl_records;
-        /* Holds temporary indexes for all the nodes.
-     *
-     */
+        /** Holds temporary indexes for all the nodes.
+         */
         /// 
-        /* While temporary snarl and chain records are stored at more or less
-     *
-     */
-        /* arbitrary indexes, temporary node records are laid out by node ID,
-     *
-     */
-        /* with the one for the node with ID min_node_id at index 0. This means
-     *
-     */
-        /* you can look up the TemporaryNodeRecord for a node by its ID, and
-     *
-     */
-        /* that some positions in the vector are empty temporary indexes for
-     *
-     */
-        /* nonexistent nodes. 
-     *
-     */
+        /** While temporary snarl and chain records are stored at more or less
+         * arbitrary indexes, temporary node records are laid out by node ID,
+         * with the one for the node with ID min_node_id at index 0. This means
+         * you can look up the TemporaryNodeRecord for a node by its ID, and
+         * that some positions in the vector are empty temporary indexes for
+         * nonexistent nodes. 
+         */
         vector<TemporaryNodeRecord> temp_node_records;
         
-        /* Look up a chain from a temporary record reference.
-     *
-     */
-        /* Throws an error if the reference is not to a chain or is out of bounds.
-     *
-     */
+        /** Look up a chain from a temporary record reference.
+         * Throws an error if the reference is not to a chain or is out of bounds.
+         */
         inline TemporaryChainRecord& get_chain(const temp_record_ref_t& ref) {
             // Delegate to the const version and un-const the result. See
             // <https://stackoverflow.com/a/47369227>
             return const_cast<TemporaryChainRecord&>(std::as_const(*this).get_chain(ref));
         }
 
-        /* Look up a chain from a temporary record reference.
-     *
-     */
-        /* Throws an error if the reference is not to a chain or is out of bounds.
-     *
-     */
-        /* This version can be used when the object is const.
-     *
-     */
+        /** Look up a chain from a temporary record reference.
+         * Throws an error if the reference is not to a chain or is out of bounds.
+         * This version can be used when the object is const.
+         */
         inline const TemporaryChainRecord& get_chain(const temp_record_ref_t& ref) const {
             if (ref.first != TEMP_CHAIN) {
                 throw std::invalid_argument("Trying to look up a non-chain as a chain");
@@ -2075,25 +2000,17 @@ public:
             return temp_chain_records[ref.second];
         }
         
-        /* Look up a snarl from a temporary record reference.
-     *
-     */
-        /* Throws an error if the reference is not to a snarl or is out of bounds.
-     *
-     */
+        /** Look up a snarl from a temporary record reference.
+         * Throws an error if the reference is not to a snarl or is out of bounds.
+         */
         inline TemporarySnarlRecord& get_snarl(const temp_record_ref_t& ref) {
             return const_cast<TemporarySnarlRecord&>(std::as_const(*this).get_snarl(ref));
         }
         
-        /* Look up a snarl from a temporary record reference.
-     *
-     */
-        /* Throws an error if the reference is not to a snarl or is out of bounds.
-     *
-     */
-        /* This version can be used when the object is const.
-     *
-     */
+        /** Look up a snarl from a temporary record reference.
+         * Throws an error if the reference is not to a snarl or is out of bounds.
+         * This version can be used when the object is const.
+         */
         inline const TemporarySnarlRecord& get_snarl(const temp_record_ref_t& ref) const {
             if (ref.first != TEMP_SNARL) {
                 throw std::invalid_argument("Trying to look up a non-snarl as a snarl");
