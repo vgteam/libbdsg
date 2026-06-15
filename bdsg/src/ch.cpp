@@ -776,7 +776,6 @@ void down_dijk_back(int node, CHOverlay& ov, vector<DIST_UINT>& node_dists, vect
   labels[node].emplace_back(ov[node].new_id, 0); 
   node_dists[node] = 0;
 
-  //std::priority_queue<tuple<DIST_UINT, int>, vector<tuple<DIST_UINT, int>>, greater<tuple<DIST_UINT, int>>> q;
   vector<tuple<DIST_UINT, CHOverlay::vertex_descriptor>> q; if (ov[node].new_id < 100) { q.reserve(num_vertices(ov)/2); } 
   
   for (auto edge : boost::make_iterator_range(in_edges(in_node, ov))) {
