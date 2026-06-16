@@ -369,33 +369,6 @@ void build_forward_labels(int node, CHOverlay &ov,
                           vector<vector<HubRecord>> &labels,
                           vector<vector<HubRecord>> &labels_back);
 
-/**
- * Debug-only verification helper (not called in normal operation).
- *
- * Recomputes the true shortest distances from node by a full forward Dijkstra
- * and compares them against the distances obtained by querying the built
- * backward labels (binary_intersection_ch of labels_back[cur] against
- * labels[node]), printing any mismatch to cerr. Mirrors build_backward_labels.
- */
-void verify_backward_labels(int node, CHOverlay &ov,
-                            vector<DIST_UINT> &node_dists,
-                            vector<vector<HubRecord>> &labels,
-                            vector<vector<HubRecord>> &labels_back);
-
-/**
- * Debug-only verification helper (not called in normal operation).
- *
- * Recomputes the true shortest distances to node by a full backward Dijkstra
- * and compares them against the distances obtained by querying the built
- * forward labels (binary_intersection_ch of labels[cur] against
- * labels_back[node]), printing any mismatch to cerr. Mirrors
- * build_forward_labels.
- */
-void verify_forward_labels(int node, CHOverlay &ov,
-                           vector<DIST_UINT> &node_dists,
-                           vector<vector<HubRecord>> &labels,
-                           vector<vector<HubRecord>> &labels_back);
-
 void create_labels(vector<vector<HubRecord>> &labels,
                    vector<vector<HubRecord>> &labels_rev, CHOverlay &ov);
 
@@ -416,12 +389,7 @@ void create_labels(vector<vector<HubRecord>> &labels,
 vector<size_t> pack_labels(const vector<vector<HubRecord>> &labels,
                            const vector<vector<HubRecord>> &labels_back);
 
-// not necessary stuff
-void write_to_csv(CHOverlay &ov, string out_path);
 
-void write_to_gr(CHOverlay &ov, string out_path);
-
-vector<CHOverlay::vertex_descriptor> read_node_order(string in_path);
 } // namespace bdsg
 
 #endif
