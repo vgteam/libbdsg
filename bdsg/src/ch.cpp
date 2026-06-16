@@ -536,7 +536,7 @@ void contract(CHOverlay::vertex_descriptor nid, ContractedGraph& ch, CHOverlay& 
   ov[nid].contracted = true;
 } 
 
-/* Builds the contraction hierarchy and assigns the hub ordering.
+/** Builds the contraction hierarchy and assigns the hub ordering.
  * kinda does the staggered hop limit idea from https://www.microsoft.com/en-us/research/wp-content/uploads/2011/05/hl-sea.pdf
  * but simpler (one hop limit for initial round(s), a higher one for most of the ones after those)
  */
@@ -727,10 +727,15 @@ DIST_UINT binary_intersection_ch(vector<HubRecord>& v1, vector<HubRecord>& v2) {
 }
 
 
-void down_dijk(int node, CHOverlay& ov, vector<DIST_UINT>& node_dists, vector<vector<HubRecord>>& labels, vector<vector<HubRecord>>& labels_back) {
+/** Pruned forward Dijkstra from node, appending node as a hub to the backward
+ * labels (labels_back) of the nodes it reaches. See build_backward_labels() in
+ * ch.hpp. The check_dist comparison prunes branches whose distance the
+ * existing labels already cover, and node_dists is left reset to INF_INT.
+ */
+void build_backward_labels(int node, CHOverlay& ov, vector<DIST_UINT>& node_dists, vector<vector<HubRecord>>& labels, vector<vector<HubRecord>>& labels_back) {
   auto in_node = node;
 
-  std::priority_queue<tuple<DIST_UINT, int>, vector<tuple<DIST_UINT, int>>, greater<tuple<DIST_UINT, int>>> q; 
+  std::priority_queue<tuple<DIST_UINT, int>, vector<tuple<DIST_UINT, int>>, greater<tuple<DIST_UINT, int>>> q;
  
   for (auto edge : boost::make_iterator_range(out_edges(in_node, ov))) { 
     auto t = target(edge, ov);  
@@ -771,9 +776,15 @@ void down_dijk(int node, CHOverlay& ov, vector<DIST_UINT>& node_dists, vector<ve
   while (!q.empty()) { node_dists[get<1>(q.top())] = INF_INT; q.pop(); } 
 }
 
-void down_dijk_back(int node, CHOverlay& ov, vector<DIST_UINT>& node_dists, vector<vector<HubRecord>>& labels, vector<vector<HubRecord>>& labels_back) {
+/** Pruned backward Dijkstra from node, appending node as a hub to the forward
+ * labels (labels) of the nodes that can reach it. See build_forward_labels() in
+ * ch.hpp. node seeds its own forward label at distance 0; the check_dist
+ * comparison prunes branches already covered, and node_dists is left reset to
+ * INF_INT.
+ */
+void build_forward_labels(int node, CHOverlay& ov, vector<DIST_UINT>& node_dists, vector<vector<HubRecord>>& labels, vector<vector<HubRecord>>& labels_back) {
   auto in_node = node;
-  labels[node].emplace_back(ov[node].new_id, 0); 
+  labels[node].emplace_back(ov[node].new_id, 0);
   node_dists[node] = 0;
 
   vector<tuple<DIST_UINT, CHOverlay::vertex_descriptor>> q; if (ov[node].new_id < 100) { q.reserve(num_vertices(ov)/2); } 
@@ -822,11 +833,15 @@ void down_dijk_back(int node, CHOverlay& ov, vector<DIST_UINT>& node_dists, vect
   q.clear(); 
 } 
 
-void test_dijk(int node, CHOverlay& ov, vector<DIST_UINT>& node_dists, vector<vector<HubRecord>>& labels, vector<vector<HubRecord>>& labels_back) {
+/** Debug-only check (not called in normal operation): full forward Dijkstra
+ * whose true distances are compared against querying the built backward labels,
+ * reporting mismatches to cerr. See verify_backward_labels() in ch.hpp.
+ */
+void verify_backward_labels(int node, CHOverlay& ov, vector<DIST_UINT>& node_dists, vector<vector<HubRecord>>& labels, vector<vector<HubRecord>>& labels_back) {
   auto in_node = node;
- 
+
   std::priority_queue<tuple<DIST_UINT, int>, vector<tuple<DIST_UINT, int>>, greater<tuple<DIST_UINT, int>>> q;
-  for (auto edge : boost::make_iterator_range(out_edges(in_node, ov))) { 
+  for (auto edge : boost::make_iterator_range(out_edges(in_node, ov))) {
     auto t = target(edge, ov);  
     
     if (!ov[edge].ori) { return; }
@@ -872,11 +887,15 @@ void test_dijk(int node, CHOverlay& ov, vector<DIST_UINT>& node_dists, vector<ve
   while (!q.empty()) { node_dists[get<1>(q.top())] = INF_INT; q.pop(); } 
 } 
 
-void test_dijk_back(int node, CHOverlay& ov, vector<DIST_UINT>& node_dists, vector<vector<HubRecord>>& labels, vector<vector<HubRecord>>& labels_back) {
+/** Debug-only check (not called in normal operation): full backward Dijkstra
+ * whose true distances are compared against querying the built forward labels,
+ * reporting mismatches to cerr. See verify_forward_labels() in ch.hpp.
+ */
+void verify_forward_labels(int node, CHOverlay& ov, vector<DIST_UINT>& node_dists, vector<vector<HubRecord>>& labels, vector<vector<HubRecord>>& labels_back) {
   auto in_node = node;
- 
+
   std::priority_queue<tuple<DIST_UINT, int>, vector<tuple<DIST_UINT, int>>, greater<tuple<DIST_UINT, int>>> q;
-  for (auto edge : boost::make_iterator_range(in_edges(in_node, ov))) { 
+  for (auto edge : boost::make_iterator_range(in_edges(in_node, ov))) {
     auto s = source(edge, ov);  
     
     if (!ov[edge].ori) { return; }
@@ -937,9 +956,9 @@ void create_labels(vector<vector<HubRecord>>& labels, vector<vector<HubRecord>>&
     cerr << j << "th node, " << v[j] << endl;
 #endif
 
-    down_dijk_back(v[j], ov, node_dists, labels, labels_back);
-  
-    down_dijk(v[j], ov, node_dists, labels, labels_back);
+    build_forward_labels(v[j], ov, node_dists, labels, labels_back);
+
+    build_backward_labels(v[j], ov, node_dists, labels, labels_back);
   } 
 }
 

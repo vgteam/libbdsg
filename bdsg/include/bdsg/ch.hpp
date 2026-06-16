@@ -328,21 +328,73 @@ DIST_UINT hhl_query(ItrType start_itr, size_t rank1, size_t rank2) {
   return dist;
 }
 
-void down_dijk(int node, CHOverlay &ov, vector<DIST_UINT> &node_dists,
-               vector<vector<HubRecord>> &labels,
-               vector<vector<HubRecord>> &labels_rev);
+/**
+ * Run a pruned forward Dijkstra from node over the contraction hierarchy ov,
+ * contributing node (by its CH rank, ov[node].new_id) as a hub to the backward
+ * (in-) labels of the nodes it can reach.
+ *
+ * For each node reachable from node along forward (out-) edges, the candidate
+ * distance is compared against what the already-built labels can already
+ * express (binary_intersection_ch of labels_back[cur] against labels[node]).
+ * If the existing labels do not already cover the distance, node's rank is
+ * appended as a hub to labels_back[cur] and the search continues from cur;
+ * otherwise that branch is pruned.
+ *
+ * node_dists is per-vertex scratch space used to track tentative distances; it
+ * is left reset to INF_INT on return. Paired with build_forward_labels() by
+ * create_labels().
+ */
+void build_backward_labels(int node, CHOverlay &ov,
+                           vector<DIST_UINT> &node_dists,
+                           vector<vector<HubRecord>> &labels,
+                           vector<vector<HubRecord>> &labels_back);
 
-void down_dijk_rev(int node, CHOverlay &ov, vector<DIST_UINT> &node_dists,
-                   vector<vector<HubRecord>> &labels,
-                   vector<vector<HubRecord>> &labels_rev);
+/**
+ * Run a pruned backward Dijkstra from node over the contraction hierarchy graph ov,
+ * contributing node (by its CH rank, ov[node].new_id) as a hub to the forward
+ * (out-) labels of the nodes that can reach it.
+ *
+ * Seeds labels[node] with node itself at distance 0, then explores backward
+ * (in-) edges. For each node from which node is reachable, the candidate
+ * distance is compared against what the already-built labels can already
+ * express (binary_intersection_ch of labels[cur] against labels_back[node]).
+ * If not already covered, node's rank is appended as a hub to labels[cur] and
+ * the search continues; otherwise that branch is pruned.
+ *
+ * node_dists is per-vertex scratch space; it is left reset to INF_INT on
+ * return. Paired with build_backward_labels() by create_labels().
+ */
+void build_forward_labels(int node, CHOverlay &ov,
+                          vector<DIST_UINT> &node_dists,
+                          vector<vector<HubRecord>> &labels,
+                          vector<vector<HubRecord>> &labels_back);
 
-void test_dijk(int node, CHOverlay &ov, vector<DIST_UINT> &node_dists,
-               vector<vector<HubRecord>> &labels,
-               vector<vector<HubRecord>> &labels_rev);
+/**
+ * Debug-only verification helper (not called in normal operation).
+ *
+ * Recomputes the true shortest distances from node by a full forward Dijkstra
+ * and compares them against the distances obtained by querying the built
+ * backward labels (binary_intersection_ch of labels_back[cur] against
+ * labels[node]), printing any mismatch to cerr. Mirrors build_backward_labels.
+ */
+void verify_backward_labels(int node, CHOverlay &ov,
+                            vector<DIST_UINT> &node_dists,
+                            vector<vector<HubRecord>> &labels,
+                            vector<vector<HubRecord>> &labels_back);
 
-void test_dijk_rev(int node, CHOverlay &ov, vector<DIST_UINT> &node_dists,
-                   vector<vector<HubRecord>> &labels,
-                   vector<vector<HubRecord>> &labels_rev);
+/**
+ * Debug-only verification helper (not called in normal operation).
+ *
+ * Recomputes the true shortest distances to node by a full backward Dijkstra
+ * and compares them against the distances obtained by querying the built
+ * forward labels (binary_intersection_ch of labels[cur] against
+ * labels_back[node]), printing any mismatch to cerr. Mirrors
+ * build_forward_labels.
+ */
+void verify_forward_labels(int node, CHOverlay &ov,
+                           vector<DIST_UINT> &node_dists,
+                           vector<vector<HubRecord>> &labels,
+                           vector<vector<HubRecord>> &labels_back);
 
 void create_labels(vector<vector<HubRecord>> &labels,
                    vector<vector<HubRecord>> &labels_rev, CHOverlay &ov);
