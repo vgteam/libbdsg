@@ -29,7 +29,9 @@ OBJS += $(OBJ_DIR)/snarl_distance_index.o
 OBJS += $(OBJ_DIR)/strand_split_overlay.o 
 OBJS += $(OBJ_DIR)/utility.o
 
-CXXFLAGS :=-MMD -MP -O3 -Werror=return-type -std=c++14 -ggdb -g -I$(INC_DIR) $(CXXFLAGS)
+# See also: standard in CMakeLists.txt
+# # See also: standard in make_and_run_binder.py
+CXXFLAGS :=-MMD -MP -O3 -Werror=return-type -std=c++17 -ggdb -g -I$(INC_DIR) $(CXXFLAGS)
 
 ifeq ($(shell uname -s),Darwin)
 	CXXFLAGS := $(CXXFLAGS) -Xpreprocessor -fopenmp
@@ -48,13 +50,9 @@ test: all $(BIN_DIR)/test_libbdsg
 docs:
 	cd $(DOC_DIR) && $(MAKE) html
 
-.pre-build:
-	@if [ ! -d $(LIB_DIR) ]; then mkdir -p $(LIB_DIR); fi
-	@if [ ! -d $(OBJ_DIR) ]; then mkdir -p $(OBJ_DIR); fi
-	@if [ ! -d $(BIN_DIR) ]; then mkdir -p $(BIN_DIR); fi
-
-# run .pre-build before we make anything at all.
--include .pre-build
+$(shell if [ ! -d $(LIB_DIR) ]; then mkdir -p $(LIB_DIR); fi)
+$(shell if [ ! -d $(OBJ_DIR) ]; then mkdir -p $(OBJ_DIR); fi)
+$(shell if [ ! -d $(BIN_DIR) ]; then mkdir -p $(BIN_DIR); fi)
 
 # Make sure to pull in dependency files
 include $(wildcard $(OBJ_DIR)/*.d)

@@ -217,7 +217,7 @@ if (BUILD_PYTHON_BINDINGS)
 
     # Binder (because some generated bindings depend on headers packaged with Binder)
     # See also: Binder commit defined in make_and_run_binder.py which actually generates bindings.
-    set(BINDER_COMMIT 46ec0e88137d368eeedafecfa123004f8ad028d1)
+    set(BINDER_COMMIT 93efb505172ce0ef34faa1f69a8e8f2b7455ce18)
     ExternalProject_Add(binder
       GIT_REPOSITORY "https://github.com/RosettaCommons/binder.git"
       GIT_TAG "${BINDER_COMMIT}"

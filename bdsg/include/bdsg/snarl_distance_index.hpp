@@ -621,8 +621,8 @@ private:
 
 
 ////////////////////////////// How to interpret net_handle_ts
-
-public:
+//
+private:
 
     ///A record_t is the type of structure that a record can be.
     ///The actual distance index is stored as a series of "records" for each snarl/node/chain. 

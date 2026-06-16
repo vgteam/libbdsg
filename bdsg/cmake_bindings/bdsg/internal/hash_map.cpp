@@ -13,11 +13,11 @@
 #include <handlegraph/types.hpp>
 #include <ios>
 #include <istream>
-#include <iterator>
 #include <memory>
 #include <sstream> // __str__
 #include <streambuf>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -1040,11 +1040,6 @@ void bind_bdsg_internal_hash_map(std::function< pybind11::module &(std::string c
 		pybind11::class_<bdsg::wang_hash<long long,void>, std::shared_ptr<bdsg::wang_hash<long long,void>>> cl(M("bdsg"), "wang_hash_long_long_void_t", "");
 		cl.def( pybind11::init( [](){ return new bdsg::wang_hash<long long,void>(); } ) );
 		cl.def("__call__", (unsigned long (bdsg::wang_hash<long long,void>::*)(const long long &) const) &bdsg::wang_hash<long long>::operator(), "C++: bdsg::wang_hash<long long>::operator()(const long long &) const --> unsigned long", pybind11::arg("x"));
-	}
-	{ // bdsg::wang_hash file:bdsg/internal/hash_map.hpp line:120
-		pybind11::class_<bdsg::wang_hash<long,void>, std::shared_ptr<bdsg::wang_hash<long,void>>> cl(M("bdsg"), "wang_hash_long_void_t", "");
-		cl.def( pybind11::init( [](){ return new bdsg::wang_hash<long,void>(); } ) );
-		cl.def("__call__", (unsigned long (bdsg::wang_hash<long,void>::*)(const long &) const) &bdsg::wang_hash<long>::operator(), "C++: bdsg::wang_hash<long>::operator()(const long &) const --> unsigned long", pybind11::arg("x"));
 	}
 	{ // bdsg::wang_hash file:bdsg/internal/hash_map.hpp line:120
 		pybind11::class_<bdsg::wang_hash<char,void>, std::shared_ptr<bdsg::wang_hash<char,void>>> cl(M("bdsg"), "wang_hash_char_void_t", "");

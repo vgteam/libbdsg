@@ -1845,27 +1845,294 @@ void test_deletable_handle_graphs() {
 
     MappedPackedGraph mpg;
     implementations.push_back(&mpg);
+    
+    for (MutablePathDeletableHandleGraph* implementation : implementations) {
+        
+        MutablePathDeletableHandleGraph& graph = *implementation;
+        
+        handle_t h1 = graph.create_handle("AAA");
+        handle_t h2 = graph.create_handle("A");
+        handle_t h3 = graph.create_handle("T");
+        handle_t h4 = graph.create_handle("AAAAA");
+        
+        graph.create_edge(h1, h2);
+        graph.create_edge(h1, h3);
+        graph.create_edge(h2, h4);
+        graph.create_edge(h3, h4);
+        
+        path_handle_t p1 = graph.create_path_handle("p1");
+        step_handle_t s1 = graph.append_step(p1, h1);
+        step_handle_t s2 = graph.append_step(p1, h2);
+        step_handle_t s3 = graph.append_step(p1, h4);
+
+        path_handle_t p2 = graph.create_path(PathSense::HAPLOTYPE, "somebody", "chr1", 1, 0, PathMetadata::NO_SUBRANGE);
+        step_handle_t p2s1 = graph.append_step(p2, h1);
+        step_handle_t p2s2 = graph.append_step(p2, h2);
+        step_handle_t p2s3 = graph.append_step(p2, h4);
+        std::string p2_name = graph.get_path_name(p2);
+
+        // static position overlays
+        {
+            vector<PathPositionHandleGraph*> overlays;
+            
+            PositionOverlay basic_overlay(&graph);
+            PackedPositionOverlay packed_overlay(&graph);
+            
+            overlays.push_back(&basic_overlay);
+            overlays.push_back(&packed_overlay);
+            
+            for (PathPositionHandleGraph* implementation : overlays) {
+                PathPositionHandleGraph& overlay = *implementation;
+                
+                // Generic path should be indexed
+                assert(overlay.get_path_length(p1) == 9);
+                
+                assert(overlay.get_position_of_step(s1) == 0);
+                assert(overlay.get_position_of_step(s2) == 3);
+                assert(overlay.get_position_of_step(s3) == 4);
+                
+                assert(overlay.get_step_at_position(p1, 0) == s1);
+                assert(overlay.get_step_at_position(p1, 1) == s1);
+                assert(overlay.get_step_at_position(p1, 2) == s1);
+                assert(overlay.get_step_at_position(p1, 3) == s2);
+                assert(overlay.get_step_at_position(p1, 4) == s3);
+                assert(overlay.get_step_at_position(p1, 5) == s3);
+                assert(overlay.get_step_at_position(p1, 6) == s3);
+                assert(overlay.get_step_at_position(p1, 7) == s3);
+                assert(overlay.get_step_at_position(p1, 8) == s3);
+                assert(overlay.get_step_at_position(p1, 9) == overlay.path_end(p1));
+                assert(overlay.get_step_at_position(p1, 10) == overlay.path_end(p1));
+                assert(overlay.get_step_at_position(p1, 1000) == overlay.path_end(p1));
+                
+                // Haplotype path should not be indexed, but should exist
+                assert(overlay.has_path(p2_name));
+                assert(overlay.get_path_handle(p2_name) == p2);
+                try {
+                    overlay.get_path_length(p2);
+                    assert(false);
+                } catch(const std::logic_error& e) {
+                    // This is the exception we promise.
+                }
+            }
+        }
+        
+        
+        // mutable position overlay
+        {
+            MutablePositionOverlay overlay(&graph);
+            
+            handle_t h5 = overlay.create_handle("AAAA");
+            
+            overlay.create_edge(h4, h5);
+            overlay.create_edge(h5, h5);
+            
+            step_handle_t s4 = overlay.append_step(p1, h5);
+            
+            assert(overlay.get_path_length(p1) == 13);
+            
+            assert(overlay.get_position_of_step(s4) == 9);
+            
+            assert(overlay.get_step_at_position(p1, 9) == s4);
+            assert(overlay.get_step_at_position(p1, 10) == s4);
+            assert(overlay.get_step_at_position(p1, 11) == s4);
+            assert(overlay.get_step_at_position(p1, 12) == s4);
+            assert(overlay.get_step_at_position(p1, 13) == overlay.path_end(p1));
+            assert(overlay.get_step_at_position(p1, 14) == overlay.path_end(p1));
+            assert(overlay.get_step_at_position(p1, 1000) == overlay.path_end(p1));
+            
+            step_handle_t s5 = overlay.append_step(p1, h5);
+            
+            assert(overlay.get_path_length(p1) == 17);
+            
+            assert(overlay.get_position_of_step(s5) == 13);
+            
+            assert(overlay.get_step_at_position(p1, 13) == s5);
+            assert(overlay.get_step_at_position(p1, 14) == s5);
+            assert(overlay.get_step_at_position(p1, 15) == s5);
+            assert(overlay.get_step_at_position(p1, 16) == s5);
+            assert(overlay.get_step_at_position(p1, 17) == overlay.path_end(p1));
+            assert(overlay.get_step_at_position(p1, 18) == overlay.path_end(p1));
+            assert(overlay.get_step_at_position(p1, 1000) == overlay.path_end(p1));
+            
+            path_handle_t p2 = overlay.create_path_handle("p2");
+            
+            assert(overlay.get_path_length(p2) == 0);
+            
+            step_handle_t s6 = overlay.prepend_step(p2, h3);
+            
+            assert(overlay.get_path_length(p2) == 1);
+            
+            assert(overlay.get_position_of_step(s6) == 0);
+            
+            assert(overlay.get_step_at_position(p2, 0) == s6);
+            assert(overlay.get_step_at_position(p2, 1) == overlay.path_end(p2));
+            assert(overlay.get_step_at_position(p2, 2) == overlay.path_end(p2));
+            assert(overlay.get_step_at_position(p2, 1000) == overlay.path_end(p2));
+            
+            step_handle_t s7 = overlay.prepend_step(p2, h1);
+            
+            assert(overlay.get_path_length(p2) == 4);
+            
+            assert(overlay.get_position_of_step(s7) == 0);
+            assert(overlay.get_position_of_step(s6) == 3);
+            
+            assert(overlay.get_step_at_position(p2, 0) == s7);
+            assert(overlay.get_step_at_position(p2, 1) == s7);
+            assert(overlay.get_step_at_position(p2, 2) == s7);
+            assert(overlay.get_step_at_position(p2, 3) == s6);
+            assert(overlay.get_step_at_position(p2, 4) == overlay.path_end(p2));
+            assert(overlay.get_step_at_position(p2, 5) == overlay.path_end(p2));
+            assert(overlay.get_step_at_position(p2, 1000) == overlay.path_end(p2));
+            
+            handle_t h2_flip = overlay.apply_orientation(overlay.flip(h2));
+            assert(overlay.get_handle_of_step(overlay.get_step_at_position(p1, 3)) == overlay.flip(h2_flip));
+            
+            vector<size_t> offs_1{1};
+            auto parts_1 = overlay.divide_handle(overlay.flip(h1), offs_1);
+            assert(overlay.get_handle_of_step(overlay.get_step_at_position(p1, 0)) == overlay.flip(parts_1[1]));
+            assert(overlay.get_handle_of_step(overlay.get_step_at_position(p1, 1)) == overlay.flip(parts_1[1]));
+            assert(overlay.get_handle_of_step(overlay.get_step_at_position(p1, 2)) == overlay.flip(parts_1[0]));
+            assert(overlay.get_handle_of_step(overlay.get_step_at_position(p1, 3)) == overlay.flip(h2_flip));
+            assert(overlay.get_handle_of_step(overlay.get_step_at_position(p2, 0)) == overlay.flip(parts_1[1]));
+            assert(overlay.get_handle_of_step(overlay.get_step_at_position(p2, 1)) == overlay.flip(parts_1[1]));
+            assert(overlay.get_handle_of_step(overlay.get_step_at_position(p2, 2)) == overlay.flip(parts_1[0]));
+            assert(overlay.get_handle_of_step(overlay.get_step_at_position(p2, 3)) == h3);
+            
+            
+            vector<size_t> offs_2{1, 3};
+            auto parts_2 = overlay.divide_handle(h5, offs_2);
+            assert(overlay.get_handle_of_step(overlay.get_step_at_position(p1, 9)) == parts_2[0]);
+            assert(overlay.get_handle_of_step(overlay.get_step_at_position(p1, 10)) == parts_2[1]);
+            assert(overlay.get_handle_of_step(overlay.get_step_at_position(p1, 11)) == parts_2[1]);
+            assert(overlay.get_handle_of_step(overlay.get_step_at_position(p1, 12)) == parts_2[2]);
+            assert(overlay.get_handle_of_step(overlay.get_step_at_position(p1, 13)) == parts_2[0]);
+            assert(overlay.get_handle_of_step(overlay.get_step_at_position(p1, 14)) == parts_2[1]);
+            assert(overlay.get_handle_of_step(overlay.get_step_at_position(p1, 15)) == parts_2[1]);
+            assert(overlay.get_handle_of_step(overlay.get_step_at_position(p1, 16)) == parts_2[2]);
+            assert(overlay.get_step_at_position(p1, 17) == overlay.path_end(p1));
+            assert(overlay.get_step_at_position(p1, 18) == overlay.path_end(p1));
+            assert(overlay.get_step_at_position(p1, 1000) == overlay.path_end(p1));
+        }
+    }
+    cerr << "PathPositionOverlay tests successful!" << endl;
+}
 
     for (DeletableHandleGraph *implementation : implementations) {
 
       DeletableHandleGraph &graph = *implementation;
 
-      // initialize the graph
+    PackedGraph pg;
+    implementations.push_back(&pg);
+    
+    MappedPackedGraph mpg;
+    implementations.push_back(&mpg);
+    
+    for (MutablePathDeletableHandleGraph* implementation : implementations) {
+        
+        MutablePathDeletableHandleGraph& graph = *implementation;
+        
+        handle_t h1 = graph.create_handle("AAA");
+        handle_t h2 = graph.create_handle("A");
+        handle_t h3 = graph.create_handle("T");
+        handle_t h4 = graph.create_handle("AAAAA");
+        
+        graph.create_edge(h1, h2);
+        graph.create_edge(h1, h3);
+        graph.create_edge(h2, h4);
+        graph.create_edge(h3, h4);
+        
+        path_handle_t p1 = graph.create_path_handle("p1");
+        step_handle_t s1 = graph.append_step(p1, h1);
+        step_handle_t s2 = graph.append_step(p1, h2);
+        step_handle_t s3 = graph.append_step(p1, h4);
+        
+        path_handle_t p2 = graph.create_path_handle("p2");
+        step_handle_t s2_1 = graph.append_step(p2, graph.flip(h4));
+        step_handle_t s2_2 = graph.append_step(p2, graph.flip(h3));
+        step_handle_t s2_3 = graph.append_step(p2, graph.flip(h1));
 
-      handle_t h1 = graph.create_handle("A");
-      handle_t h2 = graph.create_handle("C");
+        path_handle_t p3 = graph.create_path(PathSense::HAPLOTYPE, "somebody", "chr1", 1, 0, PathMetadata::NO_SUBRANGE);
+        step_handle_t p3s1 = graph.append_step(p3, h1);
+        step_handle_t p3s2 = graph.append_step(p3, h2);
+        step_handle_t p3s3 = graph.append_step(p3, h4);
+        std::string p3_name = graph.get_path_name(p3);
+        
+        {
+        
+            PackedReferencePathOverlay overlay(&graph);
+            
+            // Generic paths should be indexed
+            assert(overlay.get_path_length(p1) == 9);
+            
+            assert(overlay.get_position_of_step(s1) == 0);
+            assert(overlay.get_position_of_step(s2) == 3);
+            assert(overlay.get_position_of_step(s3) == 4);
+            
+            assert(overlay.get_step_at_position(p1, 0) == s1);
+            assert(overlay.get_step_at_position(p1, 1) == s1);
+            assert(overlay.get_step_at_position(p1, 2) == s1);
+            assert(overlay.get_step_at_position(p1, 3) == s2);
+            assert(overlay.get_step_at_position(p1, 4) == s3);
+            assert(overlay.get_step_at_position(p1, 5) == s3);
+            assert(overlay.get_step_at_position(p1, 6) == s3);
+            assert(overlay.get_step_at_position(p1, 7) == s3);
+            assert(overlay.get_step_at_position(p1, 8) == s3);
+            assert(overlay.get_step_at_position(p1, 9) == overlay.path_end(p1));
+            assert(overlay.get_step_at_position(p1, 10) == overlay.path_end(p1));
+            assert(overlay.get_step_at_position(p1, 1000) == overlay.path_end(p1));
 
-      graph.create_edge(h1, h2);
-      graph.create_edge(graph.flip(h1), h2);
-
-      // test for the right initial topology
-      bool found1 = false, found2 = false, found3 = false, found4 = false,
-           found5 = false, found6 = false;
-      int count1 = 0, count2 = 0, count3 = 0, count4 = 0;
-
-      graph.follow_edges(h1, false, [&](const handle_t &other) {
-        if (other == h2) {
-          found1 = true;
+            // Haplotype path should not exist in the overlay
+            assert(!overlay.has_path(p3_name));
+            
+            bool found1 = false;
+            bool found2 = false;
+            overlay.for_each_step_on_handle(h1, [&](const step_handle_t& s) {
+                if (s == s1) {
+                    found1 = true;
+                } else if (s == s2_3) {
+                    found2 = true;
+                } else {
+                    assert(false);
+                }
+            });
+            assert(found1);
+            assert(found2);
+            found1 = false;
+            found2 = false;
+            
+            overlay.for_each_step_on_handle(h2, [&](const step_handle_t& s) {
+                if (s == s2) {
+                    found1 = true;
+                } else {
+                    assert(false);
+                }
+            });
+            assert(found1);
+            found1 = false;
+            
+            overlay.for_each_step_on_handle(h3, [&](const step_handle_t& s) {
+                if (s == s2_2) {
+                    found1 = true;
+                } else {
+                    assert(false);
+                }
+            });
+            assert(found1);
+            found1 = false;
+            
+            overlay.for_each_step_on_handle(h4, [&](const step_handle_t& s) {
+                if (s == s3) {
+                    found1 = true;
+                } else if (s == s2_1) {
+                    found2 = true;
+                } else {
+                    assert(false);
+                }
+            });
+            assert(found1);
+            assert(found2);
+            found1 = false;
+            found2 = false;
         }
         count1++;
       });
@@ -1873,14 +2140,123 @@ void test_deletable_handle_graphs() {
         if (other == graph.flip(h2)) {
           found2 = true;
         }
-        count2++;
-      });
-      graph.follow_edges(h2, false, [&](const handle_t &other) { count3++; });
-      graph.follow_edges(h2, true, [&](const handle_t &other) {
-        if (other == h1) {
-          found3 = true;
-        } else if (other == graph.flip(h1)) {
-          found4 = true;
+    }
+    cerr << "PackedReferencePathOverlay tests successful!" << endl;
+}
+
+void test_reference_path_overlay() {
+    
+    vector<MutablePathDeletableHandleGraph*> implementations;
+    
+    HashGraph hg;
+    implementations.push_back(&hg);
+    
+    PackedGraph pg;
+    implementations.push_back(&pg);
+    
+    MappedPackedGraph mpg;
+    implementations.push_back(&mpg);
+    
+    for (MutablePathDeletableHandleGraph* implementation : implementations) {
+        
+        MutablePathDeletableHandleGraph& graph = *implementation;
+        
+        auto h1 = graph.create_handle("AAAA");
+        auto h2 = graph.create_handle("AA");
+        auto h3 = graph.create_handle("A");
+        auto h4 = graph.create_handle("AAAAAA");
+        
+        graph.create_edge(h1, h2);
+        graph.create_edge(h1, h3);
+        graph.create_edge(h2, h4);
+        graph.create_edge(h3, h4);
+        
+        auto p = graph.create_path_handle("p");
+        auto s1 = graph.append_step(p, h1);
+        auto s2 = graph.append_step(p, h2);
+        auto s3 = graph.append_step(p, h4);
+
+        path_handle_t p2 = graph.create_path(PathSense::HAPLOTYPE, "somebody", "chr1", 1, 0, PathMetadata::NO_SUBRANGE);
+        step_handle_t p2s1 = graph.append_step(p2, h1);
+        step_handle_t p2s2 = graph.append_step(p2, h2);
+        step_handle_t p2s3 = graph.append_step(p2, h4);
+        std::string p2_name = graph.get_path_name(p2);
+        
+        {
+            ReferencePathOverlay ref_overlay(&graph);
+            
+            // Generic path should be indexed
+            auto os1 = ref_overlay.path_begin(p);
+            auto os2 = ref_overlay.get_next_step(os1);
+            auto os3 = ref_overlay.get_next_step(os2);
+            
+            assert(ref_overlay.get_next_step(os3) == ref_overlay.path_end(p));
+            assert(ref_overlay.get_previous_step(os1) == ref_overlay.path_front_end(p));
+            
+            assert(ref_overlay.has_next_step(os1));
+            assert(ref_overlay.has_next_step(os2));
+            assert(!ref_overlay.has_next_step(os3));
+            
+            assert(!ref_overlay.has_previous_step(os1));
+            assert(ref_overlay.has_previous_step(os2));
+            assert(ref_overlay.has_previous_step(os3));
+            
+            assert(ref_overlay.get_next_step(os1) == os2);
+            assert(ref_overlay.get_next_step(os2) == os3);
+            assert(ref_overlay.get_next_step(os3) == ref_overlay.path_end(p));
+            assert(ref_overlay.get_previous_step(os1) == ref_overlay.path_front_end(p));
+            assert(ref_overlay.get_previous_step(os2) == os1);
+            assert(ref_overlay.get_previous_step(os3) == os2);
+            
+            assert(ref_overlay.get_step_count(p) == 3);
+            
+            assert(ref_overlay.get_path_length(p) == 12);
+            
+            assert(ref_overlay.get_position_of_step(os1) == 0);
+            assert(ref_overlay.get_position_of_step(os2) == 4);
+            assert(ref_overlay.get_position_of_step(os3) == 6);
+
+            // Haplotype path should not exist in the overlay
+            assert(!ref_overlay.has_path(p2_name));
+            
+            for (size_t i = 0; i < 25; ++i) {
+                if (i < 4) {
+                    assert(ref_overlay.get_step_at_position(p, i) == os1);
+                }
+                else if (i < 6) {
+                    assert(ref_overlay.get_step_at_position(p, i) == os2);
+                }
+                else if (i < 12) {
+                    assert(ref_overlay.get_step_at_position(p, i) == os3);
+                }
+                else {
+                    assert(ref_overlay.get_step_at_position(p, i) == ref_overlay.path_end(p));
+                }
+            }
+            
+            int count = 0;
+            ref_overlay.for_each_step_on_handle(h1, [&](const step_handle_t& s) {
+                assert(s == os1);
+                ++count;
+            });
+            assert(count == 1);
+            count = 0;
+            ref_overlay.for_each_step_on_handle(h2, [&](const step_handle_t& s) {
+                assert(s == os2);
+                ++count;
+            });
+            assert(count == 1);
+            count = 0;
+            ref_overlay.for_each_step_on_handle(h3, [&](const step_handle_t& s) {
+                ++count;
+            });
+            assert(count == 0);
+            count = 0;
+            ref_overlay.for_each_step_on_handle(h4, [&](const step_handle_t& s) {
+                assert(s == os3);
+                ++count;
+            });
+            assert(count == 1);
         }
         count4++;
       });

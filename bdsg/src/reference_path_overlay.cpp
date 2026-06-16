@@ -13,13 +13,10 @@ namespace bdsg {
 using namespace std;
 using namespace handlegraph;
 
-ReferencePathOverlay::ReferencePathOverlay(const PathHandleGraph* graph, bool all_paths)
-    : ReferencePathOverlay(graph, std::unordered_set<std::string>{}, all_paths) {
-}
-
 ReferencePathOverlay::ReferencePathOverlay(const PathHandleGraph* graph,
-                                           const std::unordered_set<std::string>& extra_path_names,
-                                           bool all_paths) : graph(graph) {
+                                           bool all_paths,
+                                           const std::unordered_set<std::string>& extra_path_names)
+    : graph(graph) {
 
     std::unordered_map<path_handle_t, size_t> cached_step_counts;
 
@@ -328,6 +325,12 @@ ReferencePathOverlay::ReferencePathOverlay(const PathHandleGraph* graph,
     }
 }
 
+ReferencePathOverlay::ReferencePathOverlay(const PathHandleGraph* graph, const std::unordered_set<std::string>& extra_path_names)
+    : ReferencePathOverlay(graph, false, extra_path_names) {
+
+    // Nothing to do!
+}
+
 bool ReferencePathOverlay::has_node(nid_t node_id) const {
     return graph->has_node(node_id);
 }
@@ -397,7 +400,15 @@ size_t ReferencePathOverlay::get_path_count() const {
 }
 
 bool ReferencePathOverlay::has_path(const std::string& path_name) const {
-    return graph->has_path(path_name);
+    if (!graph->has_path(path_name)) {
+        return false;
+    }
+    path_handle_t path = graph->get_path_handle(path_name);
+    if (!reference_paths.count(path)) {
+        // Path was in base graph but was not indexed
+        return false;
+    }
+    return true;
 }
 
 path_handle_t ReferencePathOverlay::get_path_handle(const std::string& path_name) const {

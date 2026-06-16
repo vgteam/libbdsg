@@ -26,13 +26,19 @@ using namespace handlegraph;
  * by augmenting it with relatively simple data structures.
  *
  * To also provide mutable methods, see MutablePositionOverlay below.
+ *
+ * Path position queries on unindexed paths will raise std::logic_error.
  */
 class PositionOverlay : public PathPositionHandleGraph, public ExpandingOverlayGraph {
         
 public:
     
-    /// Make a postion overlay on the graph. Indexes any hidden paths that
-    /// appear in extra_path_names.
+    /// Make a postion overlay on the graph. Indexes any REFERENCE and GENERIC
+    /// paths (or all paths if all_paths is set), as well as paths that appear
+    /// in extra_path_names.
+    PositionOverlay(PathHandleGraph* graph, bool all_paths, const std::unordered_set<std::string>& extra_path_names = {});
+    /// Make a postion overlay on the graph. Indexes any REFERENCE and GENERIC
+    /// paths, as well as paths that appear in extra_path_names.
     PositionOverlay(PathHandleGraph* graph, const std::unordered_set<std::string>& extra_path_names = {});
     PositionOverlay();
     ~PositionOverlay();
@@ -231,8 +237,9 @@ public:
 protected:
     
     /// Construct the index over path positions.
-    /// Always includes paths with names in the given set, even if they are hidden.
-    void index_path_positions(const std::unordered_set<std::string>& extra_path_names = {});
+    /// Indexes REFERENCE anf GENERIC sense paths by default, unless all_paths is true.
+    /// Always includes paths with names in the given set.
+    void index_path_positions(bool all_paths, const std::unordered_set<std::string>& extra_path_names = {});
     
     /// The graph we're overlaying
     PathHandleGraph* graph = nullptr;
@@ -267,11 +274,21 @@ class MutablePositionOverlay : public PositionOverlay, public MutablePathDeletab
 
     // TODO: Can we hack around this some other way?
     MutablePathDeletableHandleGraph* mutable_graph;
+
+    // We also need to remember the construction parameters for re-indexing
+    bool all_paths;
+    std::unordered_set<std::string> extra_path_names;
     
 public:
     
-    MutablePositionOverlay(MutablePathDeletableHandleGraph* graph);
-    MutablePositionOverlay();
+    /// Make a postion overlay on the graph. Indexes any REFERENCE and GENERIC
+    /// paths (or all paths if all_paths is set), as well as paths that appear
+    /// in extra_path_names.
+    MutablePositionOverlay(MutablePathDeletableHandleGraph* graph, bool all_paths, const std::unordered_set<std::string>& extra_path_names = {});
+    /// Make a postion overlay on the graph. Indexes any REFERENCE and GENERIC
+    /// paths, as well as paths that appear in extra_path_names.
+    MutablePositionOverlay(MutablePathDeletableHandleGraph* graph, const std::unordered_set<std::string>& extra_path_names = {});
+
     ~MutablePositionOverlay();
     
     ////////////////////////////////////////////////////////////////////////////
