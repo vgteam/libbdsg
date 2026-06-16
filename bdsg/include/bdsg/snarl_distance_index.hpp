@@ -704,7 +704,7 @@ private:
             || type == DISTANCED_TRIVIAL_SNARL;
     }
 
-    /* Return true if the given record type represents a simple (but not a
+    /** Return true if the given record type represents a simple (but not a
      * trivial) snarl.
      */
     constexpr static bool is_simple_snarl(record_t type) {
@@ -828,7 +828,7 @@ private:
         return has_distances ? DISTANCED_NODE : NODE;
     }
     
-    /* Encode the type of a chain.
+    /** Encode the type of a chain.
      * It may have distances, and it may be a multicomponent chain.
      */
     constexpr static record_t encode_chain(bool has_distances, bool is_multicomponent) {
@@ -1138,7 +1138,7 @@ private:
      */ 
 
 private:
-    /*Give each of the enum types a name for printing */
+    /** Give each of the enum types a name for printing */
     // TODO: The names can't be here unless we give up using them in static methods.
     const static vector<std::string> record_t_as_string; // Note that the enum for this one is 1-based but the names are still 0-based
     const static vector<std::string> connectivity_t_as_string;  // Note that the enum for this one is 1-based but the names are still 0-based
@@ -1179,7 +1179,7 @@ private:
     }
 
 
-    /* If this is 0, then don't store distances.
+    /** If this is 0, then don't store distances.
      * Otherwise, for snarls with more children than snarl_size_limit, only store the distances
      * that include boundary nodes (OVERSIZED_SNARL)
      */
@@ -1495,7 +1495,7 @@ private:
 
         //How big is the entire snarl record?
         static size_t distance_vector_size(record_t type, size_t node_count);
-        /* hhl_size parameter only needed for oversized snarls
+        /** hhl_size parameter only needed for oversized snarls
          * represents size of hub labeling-related data
          */
         static size_t record_size (record_t type, size_t node_count, size_t hhl_size) ;
@@ -1699,7 +1699,7 @@ private:
         void set_distance_left_end(size_t distance);
         void set_distance_right_end(size_t distance);
 
-        /* Functions to add children to a chain. Assumes that the chain is well formed up to here.
+        /** Functions to add children to a chain. Assumes that the chain is well formed up to here.
          * These will always be called in order going forward in the chain.
          * The chain is actually composed of snarl records and trivial snarl records, but we 
          * add things by node and snarl.
@@ -2021,14 +2021,14 @@ public:
             return temp_snarl_records[ref.second];
         }
         
-        /* Look up a node from a temporary record reference.
+        /** Look up a node from a temporary record reference.
          * Throws an error if the reference is not to a node or is out of bounds.
          */
         inline TemporaryNodeRecord& get_node(const temp_record_ref_t& ref) {
             return const_cast<TemporaryNodeRecord&>(std::as_const(*this).get_node(ref));
         }
         
-        /* Look up a node from a temporary record reference.
+        /** Look up a node from a temporary record reference.
          * Throws an error if the reference is not to a node or is out of bounds.
          * This version can be used when the object is const.
          */
