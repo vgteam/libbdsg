@@ -336,7 +336,7 @@ CHOverlay make_boost_graph(const SnarlDistanceIndex::TemporaryDistanceIndex& tem
   return ov;
 }
 
-/* Gets edge difference term for node priority calculation in contraction hierarchy build.
+/** Gets edge difference term for node priority calculation in contraction hierarchy build.
  * See Geisberger et al. for more details: https://turing.iem.thm.de/routeplanning/hwy/contract.pdf
  * Also updates the arc cover term for a node. 
  * Arc cover = H(node) term of Abraham et al: https://www.microsoft.com/en-us/research/wp-content/uploads/2011/05/hl-sea.pdf
@@ -423,7 +423,7 @@ int edge_diff(ContractedGraph::vertex_descriptor nid, ContractedGraph& ch, CHOve
   return ediff;  
 }
 
-/* Contract node `nid` out of the graph by:
+/** Contract node `nid` out of the graph by:
  *   1. Running a "witness search" for each in-neighbor to find whether a
  *      shortcut edge is actually needed to preserve shortest paths.
  *   2. Adding shortcut edges u → v for every (u → nid → v) pair where no
@@ -515,8 +515,11 @@ void contract(CHOverlay::vertex_descriptor nid, ContractedGraph& ch, CHOverlay& 
   // a good hierarchy.
   //
   // should_not_contract[neighbour] = true prevents a neighbour from being
-  // contracted in the same "round", ensuring the independence heuristic that
-  // keeps the contraction order sensible.
+  // contracted in the same "round"
+  // This is important because it is suboptimal to have neighboring nodes
+  // of similar node ordering rank, since they will tend to cover the same nodes,
+  // creating redundancy.
+  // Important idea in parallel CH: https://dl.acm.org/doi/10.1145/3721145.3725744
   std::for_each(in_start, in_end, [&](ContractedGraph::edge_descriptor eid) {
     auto in_node = source(eid, ch);
     ov[in_node].contracted_neighbors += 1;
