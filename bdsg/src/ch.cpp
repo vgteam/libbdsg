@@ -837,9 +837,9 @@ void build_forward_labels(int node, CHOverlay& ov, vector<DIST_UINT>& node_dists
 } 
 
 /** Writes labels into two std::vector<vector<HubRecord>
- * Only used inside test_libbdsg.cpp
+ * Also calls label building functions
  */
-void create_labels_test(vector<vector<HubRecord>>& labels, vector<vector<HubRecord>>& labels_back, CHOverlay& ov) { 
+void create_labels(vector<vector<HubRecord>>& labels, vector<vector<HubRecord>>& labels_back, CHOverlay& ov) { 
 #ifdef debug_create
   cerr << "start create labels" << endl;
 #endif

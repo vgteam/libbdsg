@@ -5051,7 +5051,7 @@ void test_hub_labeling() {
     }
     cerr << endl;  */
 
-    create_labels_test(labels_fwd, labels_back, bg);
+    create_labels(labels_fwd, labels_back, bg);
 
     // linearization
     return pack_labels(labels_fwd, labels_back);
