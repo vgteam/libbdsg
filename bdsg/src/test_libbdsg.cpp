@@ -22,7 +22,7 @@
 #include <handlegraph/algorithms/are_equivalent.hpp>
 #include <sys/stat.h>
 
-#include "bdsg/ch.hpp"
+#include "bdsg/ch.hpp" // BINDER_IGNORE because ch.hpp is C++20 + Boost and is not bound
 #include "bdsg/hash_graph.hpp"
 #include "bdsg/internal/mapped_structs.hpp"
 #include "bdsg/internal/packed_structs.hpp"

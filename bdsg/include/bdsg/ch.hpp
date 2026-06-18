@@ -6,13 +6,13 @@ file for the contraction hierarchy method
 
 #include <bdsg/hash_graph.hpp>
 #include <bdsg/snarl_distance_index.hpp>
-#include <boost/graph/adjacency_list.hpp>
-#include <boost/graph/biconnected_components.hpp>
-#include <boost/graph/filtered_graph.hpp>
-#include <boost/graph/graphviz.hpp>
-#include <boost/heap/priority_queue.hpp>
-#include <boost/multi_array.hpp>
-#include <ranges>
+#include <boost/graph/adjacency_list.hpp> // BINDER_IGNORE keep Boost out of the binder include list
+#include <boost/graph/biconnected_components.hpp> // BINDER_IGNORE
+#include <boost/graph/filtered_graph.hpp> // BINDER_IGNORE
+#include <boost/graph/graphviz.hpp> // BINDER_IGNORE
+#include <boost/heap/priority_queue.hpp> // BINDER_IGNORE
+#include <boost/multi_array.hpp> // BINDER_IGNORE
+#include <ranges> // BINDER_IGNORE C++20 header binder parses as C++17
 #include <sdsl/vectors.hpp>
 
 #include <iostream>

@@ -26,37 +26,38 @@
 
 void bind_bdsg_internal_mapped_structs_1(std::function< pybind11::module &(std::string const &namespace_) > &M)
 {
-	{ // bdsg::CompatBackend file:bdsg/internal/mapped_structs.hpp line:1144
+	{ // bdsg::CompatBackend file:bdsg/internal/mapped_structs.hpp line:1150
 		pybind11::class_<bdsg::CompatBackend, std::shared_ptr<bdsg::CompatBackend>> cl(M("bdsg"), "CompatBackend", "Type enum value for selecting data structures that use memory-mappable data\n structures but with the standard allocator.");
 		cl.def( pybind11::init( [](){ return new bdsg::CompatBackend(); } ) );
 	}
-	{ // bdsg::MappedBackend file:bdsg/internal/mapped_structs.hpp line:1155
+	{ // bdsg::MappedBackend file:bdsg/internal/mapped_structs.hpp line:1161
 		pybind11::class_<bdsg::MappedBackend, std::shared_ptr<bdsg::MappedBackend>> cl(M("bdsg"), "MappedBackend", "Type enum value for selecting data structures that use YOMO memory mapping\n and the YOMO allocator.\n\n They can safely exist outside of mapped memory, but are probably slower\n there since YOMO's internal tables still need to be consulted when following\n pointers.");
 		cl.def( pybind11::init( [](){ return new bdsg::MappedBackend(); } ) );
 	}
-	{ // bdsg::VectorFor file:bdsg/internal/mapped_structs.hpp line:1161
+	{ // bdsg::VectorFor file:bdsg/internal/mapped_structs.hpp line:1167
 		pybind11::class_<bdsg::VectorFor<bdsg::MappedBackend>, std::shared_ptr<bdsg::VectorFor<bdsg::MappedBackend>>> cl(M("bdsg"), "VectorFor_bdsg_MappedBackend_t", "");
 		cl.def( pybind11::init( [](){ return new bdsg::VectorFor<bdsg::MappedBackend>(); } ) );
 	}
-	{ // bdsg::IntVectorFor file:bdsg/internal/mapped_structs.hpp line:1167
+	{ // bdsg::IntVectorFor file:bdsg/internal/mapped_structs.hpp line:1173
 		pybind11::class_<bdsg::IntVectorFor<bdsg::MappedBackend>, std::shared_ptr<bdsg::IntVectorFor<bdsg::MappedBackend>>> cl(M("bdsg"), "IntVectorFor_bdsg_MappedBackend_t", "");
 		cl.def( pybind11::init( [](){ return new bdsg::IntVectorFor<bdsg::MappedBackend>(); } ) );
 	}
-	{ // bdsg::VectorFor file:bdsg/internal/mapped_structs.hpp line:1177
+	{ // bdsg::VectorFor file:bdsg/internal/mapped_structs.hpp line:1183
 		pybind11::class_<bdsg::VectorFor<bdsg::CompatBackend>, std::shared_ptr<bdsg::VectorFor<bdsg::CompatBackend>>> cl(M("bdsg"), "VectorFor_bdsg_CompatBackend_t", "");
 		cl.def( pybind11::init( [](){ return new bdsg::VectorFor<bdsg::CompatBackend>(); } ) );
 	}
-	{ // bdsg::IntVectorFor file:bdsg/internal/mapped_structs.hpp line:1183
+	{ // bdsg::IntVectorFor file:bdsg/internal/mapped_structs.hpp line:1189
 		pybind11::class_<bdsg::IntVectorFor<bdsg::CompatBackend>, std::shared_ptr<bdsg::IntVectorFor<bdsg::CompatBackend>>> cl(M("bdsg"), "IntVectorFor_bdsg_CompatBackend_t", "");
 		cl.def( pybind11::init( [](){ return new bdsg::IntVectorFor<bdsg::CompatBackend>(); } ) );
 	}
-	{ // bdsg::PackedDeque file:bdsg/internal/packed_structs.hpp line:491
+	{ // bdsg::PackedDeque file:bdsg/internal/packed_structs.hpp line:404
 		pybind11::class_<bdsg::PackedDeque<bdsg::STLBackend>, std::shared_ptr<bdsg::PackedDeque<bdsg::STLBackend>>> cl(M("bdsg"), "PackedDeque_bdsg_STLBackend_t", "");
 		cl.def( pybind11::init( [](){ return new bdsg::PackedDeque<bdsg::STLBackend>(); } ) );
 		cl.def( pybind11::init( [](bdsg::PackedDeque<bdsg::STLBackend> const &o){ return new bdsg::PackedDeque<bdsg::STLBackend>(o); } ) );
 		cl.def("assign", (class bdsg::PackedDeque<> & (bdsg::PackedDeque<bdsg::STLBackend>::*)(const class bdsg::PackedDeque<> &)) &bdsg::PackedDeque<>::operator=, "C++: bdsg::PackedDeque<>::operator=(const class bdsg::PackedDeque<> &) --> class bdsg::PackedDeque<> &", pybind11::return_value_policy::automatic, pybind11::arg("other"));
 		cl.def("set", (void (bdsg::PackedDeque<bdsg::STLBackend>::*)(const unsigned long &, const unsigned long long &)) &bdsg::PackedDeque<>::set, "C++: bdsg::PackedDeque<>::set(const unsigned long &, const unsigned long long &) --> void", pybind11::arg("i"), pybind11::arg("value"));
 		cl.def("get", (unsigned long long (bdsg::PackedDeque<bdsg::STLBackend>::*)(const unsigned long &) const) &bdsg::PackedDeque<>::get, "C++: bdsg::PackedDeque<>::get(const unsigned long &) const --> unsigned long long", pybind11::arg("i"));
+		cl.def("__getitem__", (unsigned long long (bdsg::PackedDeque<bdsg::STLBackend>::*)(unsigned long) const) &bdsg::PackedDeque<>::operator[], "C++: bdsg::PackedDeque<>::operator[](unsigned long) const --> unsigned long long", pybind11::arg("i"));
 		cl.def("push_front", (void (bdsg::PackedDeque<bdsg::STLBackend>::*)(const unsigned long long &)) &bdsg::PackedDeque<>::push_front, "C++: bdsg::PackedDeque<>::push_front(const unsigned long long &) --> void", pybind11::arg("value"));
 		cl.def("append_front", (void (bdsg::PackedDeque<bdsg::STLBackend>::*)(const unsigned long long &)) &bdsg::PackedDeque<>::append_front, "C++: bdsg::PackedDeque<>::append_front(const unsigned long long &) --> void", pybind11::arg("value"));
 		cl.def("push_back", (void (bdsg::PackedDeque<bdsg::STLBackend>::*)(const unsigned long long &)) &bdsg::PackedDeque<>::push_back, "C++: bdsg::PackedDeque<>::push_back(const unsigned long long &) --> void", pybind11::arg("value"));
@@ -69,7 +70,7 @@ void bind_bdsg_internal_mapped_structs_1(std::function< pybind11::module &(std::
 		cl.def("clear", (void (bdsg::PackedDeque<bdsg::STLBackend>::*)()) &bdsg::PackedDeque<>::clear, "C++: bdsg::PackedDeque<>::clear() --> void");
 		cl.def("memory_usage", (unsigned long (bdsg::PackedDeque<bdsg::STLBackend>::*)() const) &bdsg::PackedDeque<>::memory_usage, "C++: bdsg::PackedDeque<>::memory_usage() const --> unsigned long");
 	}
-	{ // bdsg::PackedSet file:bdsg/internal/packed_structs.hpp line:597
+	{ // bdsg::PackedSet file:bdsg/internal/packed_structs.hpp line:513
 		pybind11::class_<bdsg::PackedSet<bdsg::STLBackend>, std::shared_ptr<bdsg::PackedSet<bdsg::STLBackend>>> cl(M("bdsg"), "PackedSet_bdsg_STLBackend_t", "");
 		cl.def( pybind11::init( [](){ return new bdsg::PackedSet<bdsg::STLBackend>(); } ) );
 		cl.def( pybind11::init( [](bdsg::PackedSet<bdsg::STLBackend> const &o){ return new bdsg::PackedSet<bdsg::STLBackend>(o); } ) );

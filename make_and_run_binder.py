@@ -261,6 +261,9 @@ def make_bindings_code(all_includes_fn, binder_executable):
         command.append(f'-I{homebrew_prefix}/opt/libomp/include')
         command.append('-I/opt/local/include/libomp')
         command.append('-I/usr/local/include')
+        # Also look in the Homebrew include dir, where find_package() in
+        # CMakeLists.txt locates Boost (used by bdsg/ch.hpp).
+        command.append(f'-I{homebrew_prefix}/include')
         print(command)
     else:
         # With current GCC, Clang can't find the multiarch-specific *and*

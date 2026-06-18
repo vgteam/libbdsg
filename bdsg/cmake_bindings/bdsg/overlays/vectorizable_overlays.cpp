@@ -29,7 +29,7 @@
 	PYBIND11_MAKE_OPAQUE(std::shared_ptr<void>)
 #endif
 
-// bdsg::PathVectorizableOverlay file:bdsg/overlays/vectorizable_overlays.hpp line:197
+// bdsg::PathVectorizableOverlay file:bdsg/overlays/vectorizable_overlays.hpp line:201
 struct PyCallBack_bdsg_PathVectorizableOverlay : public bdsg::PathVectorizableOverlay {
 	using bdsg::PathVectorizableOverlay::PathVectorizableOverlay;
 
@@ -751,7 +751,7 @@ struct PyCallBack_bdsg_PathVectorizableOverlay : public bdsg::PathVectorizableOv
 	}
 };
 
-// bdsg::PathPositionVectorizableOverlay file:bdsg/overlays/vectorizable_overlays.hpp line:292
+// bdsg::PathPositionVectorizableOverlay file:bdsg/overlays/vectorizable_overlays.hpp line:296
 struct PyCallBack_bdsg_PathPositionVectorizableOverlay : public bdsg::PathPositionVectorizableOverlay {
 	using bdsg::PathPositionVectorizableOverlay::PathPositionVectorizableOverlay;
 
@@ -1527,7 +1527,7 @@ struct PyCallBack_bdsg_PathPositionVectorizableOverlay : public bdsg::PathPositi
 
 void bind_bdsg_overlays_vectorizable_overlays(std::function< pybind11::module &(std::string const &namespace_) > &M)
 {
-	{ // bdsg::PathVectorizableOverlay file:bdsg/overlays/vectorizable_overlays.hpp line:197
+	{ // bdsg::PathVectorizableOverlay file:bdsg/overlays/vectorizable_overlays.hpp line:201
 		pybind11::class_<bdsg::PathVectorizableOverlay, std::shared_ptr<bdsg::PathVectorizableOverlay>, PyCallBack_bdsg_PathVectorizableOverlay, bdsg::VectorizableOverlay, handlegraph::PathHandleGraph> cl(M("bdsg"), "PathVectorizableOverlay", "");
 		cl.def( pybind11::init<const class handlegraph::PathHandleGraph *>(), pybind11::arg("path_graph") );
 
@@ -1549,7 +1549,7 @@ void bind_bdsg_overlays_vectorizable_overlays(std::function< pybind11::module &(
 		cl.def("get_next_step", (struct handlegraph::step_handle_t (bdsg::PathVectorizableOverlay::*)(const struct handlegraph::step_handle_t &) const) &bdsg::PathVectorizableOverlay::get_next_step, "Returns a handle to the next step on the path. If the given step is the final step\n of a non-circular path, this method has undefined behavior. In a circular path,\n the \"last\" step will loop around to the \"first\" step.\n\nC++: bdsg::PathVectorizableOverlay::get_next_step(const struct handlegraph::step_handle_t &) const --> struct handlegraph::step_handle_t", pybind11::arg("step_handle"));
 		cl.def("get_previous_step", (struct handlegraph::step_handle_t (bdsg::PathVectorizableOverlay::*)(const struct handlegraph::step_handle_t &) const) &bdsg::PathVectorizableOverlay::get_previous_step, "Returns a handle to the previous step on the path. If the given step is the first\n step of a non-circular path, this method has undefined behavior. In a circular path,\n it will loop around from the \"first\" step (i.e. the one returned by path_begin) to\n the \"last\" step.\n\nC++: bdsg::PathVectorizableOverlay::get_previous_step(const struct handlegraph::step_handle_t &) const --> struct handlegraph::step_handle_t", pybind11::arg("step_handle"));
 	}
-	{ // bdsg::PathPositionVectorizableOverlay file:bdsg/overlays/vectorizable_overlays.hpp line:292
+	{ // bdsg::PathPositionVectorizableOverlay file:bdsg/overlays/vectorizable_overlays.hpp line:296
 		pybind11::class_<bdsg::PathPositionVectorizableOverlay, std::shared_ptr<bdsg::PathPositionVectorizableOverlay>, PyCallBack_bdsg_PathPositionVectorizableOverlay, bdsg::PathVectorizableOverlay, handlegraph::PathPositionHandleGraph> cl(M("bdsg"), "PathPositionVectorizableOverlay", "");
 		cl.def( pybind11::init<const class handlegraph::PathPositionHandleGraph *>(), pybind11::arg("path_position_graph") );
 

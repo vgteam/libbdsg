@@ -5,7 +5,7 @@
 //#define debug_distance_paths
 
 #include "bdsg/snarl_distance_index.hpp"
-#include "bdsg/ch.hpp"
+#include "bdsg/ch.hpp" // BINDER_IGNORE because ch.hpp is C++20 + Boost and is not bound
 #include <jansson.h>
 #include <arpa/inet.h>
 
