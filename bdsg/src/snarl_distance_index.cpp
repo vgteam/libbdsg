@@ -1133,7 +1133,7 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
                 auto length_data_it = record_it + SNARL_RECORD_SIZE;
                 size_t from_port = bgid(rank1, !dir1, true);
                 size_t to_port   = bgid(rank2,  dir2, false);
-                return promote_distance<size_t>(hhl_query(length_data_it + 1, from_port, to_port));
+                return promote_distance<size_t>(hhl_query(length_data_it, from_port, to_port));
             } else {
 #ifdef debug_distances
                 cerr << "=>They are in a snarl, check distance in snarl" << endl;
@@ -1306,13 +1306,13 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
 #ifdef debug_distances
             cerr << "             Performing HHL query" << endl;
 #endif
-            // We need to point at the hub labeling data, which lives after the fixed-size snarl record header and the length value
+            // We need to point at the hub labeling data, which lives right after the fixed-size snarl record header
             // This points to the whole record, including the fixed-size header
             auto record_it = snarl_tree_records->begin() + get_record_offset(parent);
-            // This points to the length and the variable-sized data
+            // This points to the start of the packed hub label data; its first slot is the label count
             auto length_data_it = record_it + SNARL_RECORD_SIZE;
 #ifdef debug_hub_label_storage
-            std::cerr <<  "               Hub label data length: " << *length_data_it << endl;
+            std::cerr <<  "               Hub label count: " << *length_data_it << endl;
             std::cerr <<  "               Hub label data: ";
             for (size_t i = 0; i < *length_data_it; i++) {
                 // Dump the hub label data as retrieved
@@ -1350,7 +1350,7 @@ size_t SnarlDistanceIndex::distance_in_parent(const net_handle_t& parent,
             std::cerr << "               Query to vertex " << to_port << " = rank " << rank2 << " " << (dir2 ? "rev" : "fd") << " " << (is_sentinel(child2)? "sentinel" : "non-sentinel") << ", non-source" << std::endl;
 #endif
 
-            size_t distance = promote_distance<size_t>(hhl_query(length_data_it + 1, from_port, to_port));
+            size_t distance = promote_distance<size_t>(hhl_query(length_data_it, from_port, to_port));
 #ifdef debug_distances
             cerr << "               Resulting distance: " << distance << endl;
 #endif
@@ -1450,7 +1450,7 @@ size_t SnarlDistanceIndex::distance_in_snarl(const net_handle_t& parent,
         auto length_data_it = record_it + SNARL_RECORD_SIZE;
         size_t from_port = bgid(rank1, !right_side1 ^ (rank1 == 0), true);
         size_t to_port   = bgid(rank2,  right_side2,                false);
-        return promote_distance<size_t>(hhl_query(length_data_it + 1, from_port, to_port));
+        return promote_distance<size_t>(hhl_query(length_data_it, from_port, to_port));
 
     } else if (rank1 == 0 && rank2 == 0 && !snarl_is_root) {
         //Start to start is stored in the snarl
