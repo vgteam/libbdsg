@@ -136,7 +136,16 @@ CHOverlay make_boost_graph(const SnarlDistanceIndex::TemporaryDistanceIndex& tem
 
       // Fetch straight-through distance.
       // Will be std::numeric_limits<size_t>::max() if unconnected.
-      start_end_distance = demote_distance(record.min_length);
+      // A multi-component (disconnected) chain has no start->end traversal; its stored
+      // min_length is only the last component's length (see the multicomponent-chain
+      // convention in vg's fill_in_distance_index chain-distance code), so it must NOT be
+      // used as a straight-through distance here. chain_components is monotonic
+      // non-decreasing along the chain, so front() != back() identifies a non-looping
+      // multi-component chain (the looping start==end case is reassigned to front()==back()
+      // upstream and is intentionally left alone).
+      bool multi_component_chain = !record.chain_components.empty()
+              && record.chain_components.front() != record.chain_components.back();
+      start_end_distance = multi_component_chain ? INF_INT : demote_distance(record.min_length);
 
       // Fetch looping distances (thanks Xian!)
       // If no loop is actually possible, the loop value will be std::numeric_limits<size_t>::max()
@@ -333,6 +342,7 @@ CHOverlay make_boost_graph(const SnarlDistanceIndex::TemporaryDistanceIndex& tem
 #ifdef debug_boost_graph
   cerr << "=== make_boost_graph complete ===" << endl;
 #endif
+
   return ov;
 }
 
