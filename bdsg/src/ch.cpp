@@ -2,6 +2,7 @@
 Hub labeling with contraction hierarchy node ordering.
 */
 #include "bdsg/ch.hpp" // BINDER_IGNORE because ch.hpp is C++20 + Boost and is not bound
+#include <queue>
 #include <cstdint>
 
 //#define debug_boost_graph
