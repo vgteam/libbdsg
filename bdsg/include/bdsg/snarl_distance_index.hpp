@@ -1183,7 +1183,7 @@ private:
      * Otherwise, for snarls with more children than snarl_size_limit, only store the distances
      * that include boundary nodes (OVERSIZED_SNARL)
      */
-    size_t snarl_size_limit = 50000;
+    size_t snarl_size_limit = 500;
 
     //If this is true, then only store distance along top-level chains. Everything still needs its minimum lengths to get
     //the distances along top-level chains but don't store internal distances in snarls or in nested chains
