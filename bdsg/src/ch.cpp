@@ -80,7 +80,7 @@ CHOverlay make_boost_graph(const bdsg::HashGraph& hg) {
 CHOverlay make_boost_graph(const SnarlDistanceIndex::TemporaryDistanceIndex& temp_index, const SnarlDistanceIndex::temp_record_ref_t& snarl_index, const SnarlDistanceIndex::TemporaryDistanceIndex::TemporarySnarlRecord& temp_snarl_record, const vector<SnarlDistanceIndex::temp_record_ref_t>& all_children, const HandleGraph* hgraph) {
   
   // Every net graph element (start node at rank 0, end node at rank 1, each
-  // child nose/chain) needs to have 4 Boost graph nodes. We need separate
+  // child node/chain) needs to have 4 Boost graph nodes. We need separate
   // representations for forward and reverse orientations, and within each
   // orientation we need an in "port" and an out "port" so that we can draw the
   // subgraphs describing internal reversals inside chains. We use the in ports
