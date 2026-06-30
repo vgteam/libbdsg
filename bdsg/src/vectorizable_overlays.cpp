@@ -4,6 +4,8 @@
 
 namespace bdsg {
 
+const size_t VectorizableOverlay::MIN_ITEMS_PER_THREAD = 1024;
+
 VectorizableOverlay::VectorizableOverlay(const HandleGraph* graph) :
     underlying_graph(graph) {
     assert(underlying_graph != nullptr);
@@ -173,16 +175,21 @@ void VectorizableOverlay::index_nodes_and_edges() {
         }
     }
     
+    // We limit threading on small inputs.
+    auto limited_threads = [&](size_t batch) {
+        return std::max<size_t>(1, std::min<size_t>(batch / MIN_ITEMS_PER_THREAD, get_thread_count()));
+    };
+
     // Make edge PMHF. Does its own threading. Do it first so we can drop the edge buffer.
     // note: we're mapping to 0-based rank, so need to add one after lookup
     edge_to_rank.reset(new boomphf::mphf<pair<pair<nid_t, bool>, pair<nid_t, bool>>, boomph_pair_pair_hash<nid_t, bool, nid_t, bool>>(
-        edge_buffer.size(), edge_buffer, get_thread_count(), 2.0, false, false));
+        edge_buffer.size(), edge_buffer, limited_threads(edge_buffer.size()), 2.0, false, false));
     edge_buffer.clear();
     
     // Make node PMHF. Does its own threading.
     // Note: we're mapping to 0-based rank, so need to add one after lookup
     node_to_rank.reset(new boomphf::mphf<nid_t, boomphf::SingleHashFunctor<nid_t>>(rank_to_node.size(), rank_to_node,
-                                                                                   get_thread_count(), 2.0, false, false));
+                                                                                   limited_threads(rank_to_node.size()), 2.0, false, false));
     
     
     // Add one slot to keep ranks in this table 1-based.

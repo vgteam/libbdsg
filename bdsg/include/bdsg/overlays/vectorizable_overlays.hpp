@@ -191,6 +191,10 @@ protected:
     sdsl::bit_vector s_bv;
     sdsl::rank_support_v<1> s_bv_rank;
     sdsl::bit_vector::select_1_type s_bv_select;
+
+    /// When doing multithreaded overlya construction, what's the minimum
+    /// number of items per thread? This limits thread count on small graphs.
+    static const size_t MIN_ITEMS_PER_THREAD;
     
 };
 

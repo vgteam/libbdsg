@@ -24,6 +24,7 @@ OBJS += $(OBJ_DIR)/path_subgraph_overlay.o
 OBJS += $(OBJ_DIR)/subgraph_overlay.o
 OBJS += $(OBJ_DIR)/vectorizable_overlays.o 
 OBJS += $(OBJ_DIR)/packed_subgraph_overlay.o 
+OBJS += $(OBJ_DIR)/ch.o
 OBJS += $(OBJ_DIR)/snarl_distance_index.o
 OBJS += $(OBJ_DIR)/strand_split_overlay.o 
 OBJS += $(OBJ_DIR)/utility.o
