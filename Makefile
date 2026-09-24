@@ -31,7 +31,7 @@ OBJS += $(OBJ_DIR)/utility.o
 
 # See also: standard in CMakeLists.txt
 # # See also: standard in make_and_run_binder.py
-CXXFLAGS :=-MMD -MP -O3 -Werror=return-type -std=c++17 -ggdb -g -I$(INC_DIR) $(CXXFLAGS)
+CXXFLAGS :=-MMD -MP -O3 -Werror=return-type -std=c++20 -ggdb -g -I$(INC_DIR) $(CXXFLAGS)
 
 ifeq ($(shell uname -s),Darwin)
 	CXXFLAGS := $(CXXFLAGS) -Xpreprocessor -fopenmp
