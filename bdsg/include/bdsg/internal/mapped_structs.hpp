@@ -1748,12 +1748,12 @@ void CompatIntVector<Alloc>::clear() {
 }
 
 template<typename Alloc>
-CompatIntVector<Alloc>::iterator CompatIntVector<Alloc>::begin() const {
+typename CompatIntVector<Alloc>::iterator CompatIntVector<Alloc>::begin() const {
   return iterator(this, 0);
 } 
 
 template<typename Alloc>
-CompatIntVector<Alloc>::iterator CompatIntVector<Alloc>::end() const {
+typename CompatIntVector<Alloc>::iterator CompatIntVector<Alloc>::end() const {
   return iterator(this, length);
 }
 
