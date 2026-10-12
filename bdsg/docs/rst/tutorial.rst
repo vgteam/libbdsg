@@ -161,22 +161,23 @@ Using Graph Overlays
 
 The libhandlegraph library defines generic graph interfaces that describe different functionalities of a graph.
 Overlays are wrappers on top of a graph that add these functionalities.
-For example, the :class:`PathPositionHandleGraph` defines an interface for accessing the sequence positions along paths in a graph.
-The :class:`PositionOverlay` and :class:`ReferencePathOverlay` are two different implementations of overlays that can be applied to a graph to add this functionality.
-In C++, :class:`OverlayHelpers` are used to add specific combinations of overlays to graphs.
+For example, the :class:`bdsg.handlegraph.PathPositionHandleGraph` defines an interface for accessing the sequence positions along paths in a graph.
+The :class:`bdsg.bdsg.PositionOverlay` and :class:`bdsg.bdsg.ReferencePathOverlay` are two different implementations of overlays that can be applied to a graph to add this functionality.
+In C++, :class:`bdsg.bdsg.OverlayHelpers` are used to add specific combinations of overlays to graphs.
 
-PositionOverlay
-===============
+bdsg.bdsg.PositionOverlay
+=========================
 
-A :class:`PositionOverlay` adds the :class:`PathPositionHandleGraph` functionality to a graph, allowing it to find the sequence positions along paths.
+A :class:`bdsg.bdsg.PositionOverlay` adds the :class:`bdsg.handlegraph.PathPositionHandleGraph` functionality to a graph, allowing it to find the sequence positions along paths.
 For example, using the same example graph as above, say we want to find the offset along the path of node `n5`. 
-We do this by creating a `PositionOverlay`, then getting a `step_handle_t` that points to the node `n5` on the path `path`.
-The `PositionOverlay` can be queried using :func:`get_position_of_step` to find the position of the given step.
+We do this by creating a `bdsg.bdsg.PositionOverlay`, then getting a `bdsg.handlegraph.step_handle_t` that points to the node `n5` on the path `path`.
+The `bdsg.bdsg.PositionOverlay` can be queried using :func:`bdsg.handlegraph.get_position_of_step` to find the position of the given step.
 
 .. testcode::
+    from bdsg.bdsg import PositionOverlay
 
     # Get the overlay
-    position_graph = bdsg.bdsg.PositionOverlay(gr)
+    position_graph = PositionOverlay(gr)
 
     # Get the step_handle_t to node n5 on path. Since there is only one path in the graph there will only be one step
     n5_steps = [] 
@@ -188,6 +189,95 @@ The `PositionOverlay` can be queried using :func:`get_position_of_step` to find 
 .. testoutput::
 
     11
+
+**************************
+Using a SnarlDistanceIndex
+**************************
+
+A :class:`bdsg.bdsg.SnarlDistanceIndex` implements the :class:`bdsg.handlegraph.SnarlDecomposition` interface and additionally adds minimum distance finding functionality.
+It can be used to explore the snarl decomposition of a graph.
+Similar to a :class:`bdsg.handlegraph.handle_t` used to point to a node in a graph, a :class:`bdsg.handlegraph.net_handle_t` is used to point to a node in the snarl tree, which represents a snarl, chain, or node in the graph. 
+The snarl decomposition is described in more detail in the `vg wiki <https://github.com/vgteam/vg/wiki/Snarls-and-chains>`_. 
+
+libbdsg does not support building a distance index, it must be build using the `vg toolkit <https://github.com/vgteam/vg>`_.
+
+.. code-block:: bash
+
+    vg index -j example_graph.dist example_graph.hg
+
+
+
+Traversing the Distance Index
+=============================
+We will use the following graph and corresponding distance index for this example.
+
+.. image:: /assests/simple_nested_chain.png
+
+Start by loading the distance index.
+.. testcode::
+    from bdsg.bdsg import SnarlDistanceIndex
+
+    distance_index = SnarlDistanceIndex()
+    distance_index.deserialize("/assets/simple_nested_chain.dist")
+
+    graph = bdsg.bdsg.HashGraph()
+    graph.deserialize("/assets/simple_nested_chain.hg")
+
+Starting from a node in the graph, its ancestors in the snarl decomposition can be found using :func:`bdsg.handlegraph.SnarlDecomposition.get_parent`.
+Lets look for the ancestors of node `n6` in the snarl decomposition.
+
+.. testcode::
+
+    net = distance_index.get_node_net_handle(6)
+    while not distance_index.is_root(net):
+        print(distance_index.net_handle_as_string(net))
+        net = distance_index.get_parent(net) 
+
+In the snarl decomposition, a node is always the child of a chain, which may contain only that node.
+Node `n6` therefore has a parent that is a chain containing only node `n6`.
+
+.. testoutput::
+    node 6fd
+    node 6fd pretending to be a chain in a simple snarl
+    simple snarl 5fd->7fdtraversing start->end
+    chain 5fd->7fdtraversing start->end
+    snarl 4fd->8fdtraversing start->end
+    chain 1fd->10fdtraversing start->end
+
+Now lets go in the other direction, finding the descendants of a net, starting from the root.
+
+.. testcode::
+    root = distance_index.get_root()
+
+    children = []
+    def get_and_print_child(net):
+        nonlocal children
+        print(distance_index.net_handle_as_string(net))
+        children.append(net)
+        return True
+    distance_index.for_each_child(root, get_and_print_child)
+
+    chain = children[0]
+    distance_index.for_each_child(chain, get_and_print_child)
+
+The root contains only one child, the top-level chain.
+The top-level chain contains node 1, snarl 1-4, node 4, etc.
+
+.. testoutput::
+  chain 1fd->10fdtraversing start->end
+  True
+  node 1fd
+  simple snarl 1fd->4fdtraversing start->end
+  node 4fd
+  snarl 4fd->8fdtraversing start->end
+  node 8fd
+  simple snarl 8fd->10fdtraversing start->end
+  node 10fd
+  True
+
+
+
+
 
 *************************
 Saving and Loading Graphs
