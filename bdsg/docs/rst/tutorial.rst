@@ -15,7 +15,7 @@ See the `vg wiki <https://github.com/vgteam/vg/wiki#understanding-our-data-forma
 
 Graph Objects
 =============
-`libbdsg` implements the `*handlegraph* <https://github.com/vgteam/libhandlegraph>`_ interface in which all objects in the graph are accessed using `*handles* <https://github.com/vgteam/libbdsg/blob/master/bdsg/docs/handlegraph.md>. 
+`libbdsg` implements the `handlegraph <https://github.com/vgteam/libhandlegraph>`_ interface in which all objects in the graph are accessed using `handles <https://github.com/vgteam/libbdsg/blob/master/bdsg/docs/handlegraph.md>`_. 
 *Edges* and *nodes* are accessed through an implementation of the :class:`bdsg.handlegraph.HandleGraph` interface. Individual nodes in the graph are pointed at by :class:`bdsg.handlegraph.handle_t` objects.
 
 Paths exist in graphs that implement the :class:`bdsg.handlegraph.PathHandleGraph`. Paths are accessed through :class:`bdsg.handlegraph.path_handle_t`, which is a series of :class:`bdsg.handlegraph.step_handle_t` linked together. Each :class:`bdsg.handlegraph.step_handle_t` points to the node in that step, and also contains directional information regarding the nodes preceeding and following it.
@@ -154,6 +154,40 @@ Which will output the following:
     CGG
     ACA
     ATATAAC
+
+********************
+Using Graph Overlays
+********************
+
+The libhandlegraph library defines generic graph interfaces that describe different functionalities of a graph.
+Overlays are wrappers on top of a graph that add these functionalities.
+For example, the :class:`PathPositionHandleGraph` defines an interface for accessing the sequence positions along paths in a graph.
+The :class:`PositionOverlay` and :class:`ReferencePathOverlay` are two different implementations of overlays that can be applied to a graph to add this functionality.
+In C++, :class:`OverlayHelpers` are used to add specific combinations of overlays to graphs.
+
+PositionOverlay
+===============
+
+A :class:`PositionOverlay` adds the :class:`PathPositionHandleGraph` functionality to a graph, allowing it to find the sequence positions along paths.
+For example, using the same example graph as above, say we want to find the offset along the path of node `n5`. 
+We do this by creating a `PositionOverlay`, then getting a `step_handle_t` that points to the node `n5` on the path `path`.
+The `PositionOverlay` can be queried using :func:`get_position_of_step` to find the position of the given step.
+
+.. testcode::
+
+    # Get the overlay
+    position_graph = bdsg.bdsg.PositionOverlay(gr)
+
+    # Get the step_handle_t to node n5 on path. Since there is only one path in the graph there will only be one step
+    n5_steps = [] 
+    gr.for_each_step_on_handle(nodes[5], lambda y : n5_steps.append(y) or True)
+
+    # Get the path offset of the step
+    print(position_graph.get_position_of_step(n5_steps[0]))
+
+.. testoutput::
+
+    11
 
 *************************
 Saving and Loading Graphs
