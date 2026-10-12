@@ -11,12 +11,11 @@ Tutorial
 *************
 Preliminaries
 *************
-See the [vg wiki](https://github.com/vgteam/vg/wiki#understanding-our-data-formats) for an explanation of our variation graph data model.
+See the `vg wiki <https://github.com/vgteam/vg/wiki#understanding-our-data-formats>`_ for an explanation of our variation graph data model.
 
 Graph Objects
 =============
-
-`libbdsg` implements the [*handlegraph*](https://github.com/vgteam/libhandlegraph) interface in which all objects in the graph are accessed using [*handles*](https://github.com/vgteam/libbdsg/blob/master/bdsg/docs/handlegraph.md). 
+`libbdsg` implements the `*handlegraph* <https://github.com/vgteam/libhandlegraph>`_ interface in which all objects in the graph are accessed using `*handles* <https://github.com/vgteam/libbdsg/blob/master/bdsg/docs/handlegraph.md>. 
 *Edges* and *nodes* are accessed through an implementation of the :class:`bdsg.handlegraph.HandleGraph` interface. Individual nodes in the graph are pointed at by :class:`bdsg.handlegraph.handle_t` objects.
 
 Paths exist in graphs that implement the :class:`bdsg.handlegraph.PathHandleGraph`. Paths are accessed through :class:`bdsg.handlegraph.path_handle_t`, which is a series of :class:`bdsg.handlegraph.step_handle_t` linked together. Each :class:`bdsg.handlegraph.step_handle_t` points to the node in that step, and also contains directional information regarding the nodes preceeding and following it.
