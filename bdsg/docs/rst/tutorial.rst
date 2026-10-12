@@ -8,18 +8,15 @@ Tutorial
    import os
    os.chdir('exdata')
 
-****************
-Creating Graphs
-****************
-Let's say that you wanted to create the following graph:
-
-.. image:: /img/exampleGraph.png
-
-This graph is a combination of nodes (labelled as `n0`, `n1`, ..., `n9`) and directed edges (arrows).
+*************
+Preliminaries
+*************
+See the [vg wiki](https://github.com/vgteam/vg/wiki#understanding-our-data-formats) for an explanation of our variation graph data model.
 
 Graph Objects
 =============
 
+`libbdsg` implements the [*handlegraph*](https://github.com/vgteam/libhandlegraph) interface in which all objects in the graph are accessed using [*handles*](https://github.com/vgteam/libbdsg/blob/master/bdsg/docs/handlegraph.md). 
 *Edges* and *nodes* are accessed through an implementation of the :class:`bdsg.handlegraph.HandleGraph` interface. Individual nodes in the graph are pointed at by :class:`bdsg.handlegraph.handle_t` objects.
 
 Paths exist in graphs that implement the :class:`bdsg.handlegraph.PathHandleGraph`. Paths are accessed through :class:`bdsg.handlegraph.path_handle_t`, which is a series of :class:`bdsg.handlegraph.step_handle_t` linked together. Each :class:`bdsg.handlegraph.step_handle_t` points to the node in that step, and also contains directional information regarding the nodes preceeding and following it.
@@ -27,6 +24,16 @@ Paths exist in graphs that implement the :class:`bdsg.handlegraph.PathHandleGrap
 Handles are pointers to specific pieces of the graph, and it is not possible to operate on them directly, aside from comparing whether the objects are equal. To get information regarding the object that each handle is pointing to, it is necessary to use the corresponding `get` accessor method on the graph that issued the handle.
 
 Reference materials for these methods can be found at the :ref:`api`, as well as the :ref:`glossary`, which contains lists sorted by object type for :ref:`accessor`, :ref:`mutator`, and :ref:`iterator`.
+
+
+****************
+Creating Graphs
+****************
+Let's say that you wanted to create the following graph:
+
+.. image:: /img/exampleGraph.png
+
+This graph is a combination of nodes (labelled as `n1`, `n2`, ..., `n10`) and bidirected edges.
 
 Making a Graph
 ===============
@@ -37,28 +44,29 @@ First, we must create the graph, then make each node and keep track of their han
     from bdsg.bdsg import HashGraph
     gr = HashGraph()
     seq = ["CGA", "TTGG", "CCGT", "C", "GT", "GATAA", "CGG", "ACA", "GCCG", "ATATAAC"]
-    n = []
+    n = ["node0"] #Add a placeholder so that the indices are the same as the node ids
     for s in seq:
         n.append(gr.create_handle(s))
 
-Now we link together these nodes using their handles. Note that each of these handles is directional, and we create each edge from the first handle to the second. In order to create both of the edges between `n5` and `n8` (since each can follow the other) we use ``create_edge`` twice.
+Now we link together these nodes using their handles. Note that each of these handles is directional, and we create each edge from the first handle to the second. In order to create both of the edges between `n7` and `n9` we use ``create_edge`` twice, once going from `n7` to `n9`, and once going from `n9` to `n7`.
+Since the handles are all traversing nodes in the forward orientation by default, this creates the edge from the right side of `n7` to the left side of `n9`, then from the right side of `n9` to the left side of `n7`.
 
 .. testcode::
 
-    gr.create_edge(n[0], n[1])
     gr.create_edge(n[1], n[2])
     gr.create_edge(n[2], n[3])
-    gr.create_edge(n[2], n[4])
+    gr.create_edge(n[3], n[4])
     gr.create_edge(n[3], n[5])
-    gr.create_edge(n[5], n[6])
-    # Connect the end of n5 to the start of n8
-    gr.create_edge(n[5], n[8])
+    gr.create_edge(n[4], n[6])
     gr.create_edge(n[6], n[7])
-    gr.create_edge(n[6], n[8])
+    # Connect the end of n7 to the start of n9
     gr.create_edge(n[7], n[9])
-    gr.create_edge(n[8], n[9])
-    # Connect the end of n8 back around to the start of n5
-    gr.create_edge(n[8], n[5])
+    gr.create_edge(n[7], n[8])
+    gr.create_edge(n[7], n[9])
+    gr.create_edge(n[8], n[10])
+    gr.create_edge(n[9], n[10])
+    # Connect the end of n9 back around to the start of n7
+    gr.create_edge(n[9], n[7])
 
 Traversing Edges
 ================
@@ -71,9 +79,9 @@ If we wanted to traverse these edges, we could do it using the iterator method :
         gr.follow_edges(handle, False, lambda y: lis.append(y))
         return lis
 
-    print(f'n0: {gr.get_sequence(n[0])}')
-    next_node = next_node_list(n[0])[0]
-    print(f'n1: {gr.get_sequence(next_node)}')
+    print(f'n1: {gr.get_sequence(n[1])}')
+    next_node = next_node_list(n[1])[0]
+    print(f'n2: {gr.get_sequence(next_node)}')
     next_node = next_node_list(next_node)[0]
     print(f'n2: {gr.get_sequence(next_node)}')
 
@@ -81,30 +89,30 @@ Which will output the following:
 
 .. testoutput::
         
-    n0: CGA
-    n1: TTGG
-    n2: CCGT
+    n1: CGA
+    n2: TTGG
+    nk: CCGT
 
 Creating a Path
 ===============
 
-Generating a linear sequence from this graph could be done in infinitely many ways, due to the interal loop between `n5`, `n6`, and `n8`. If we wanted to define a single consensus sequence, we would do this by defining a path.
+Generating a linear sequence from this graph could be done in infinitely many ways, due to the internal loop between `n7`, and `n9`. If we wanted to define a single consensus sequence, we would do this by defining a path.
 
 .. image:: /img/exampleGraphPath.png
 
-To create the hilighted path, we would need to create a :class:`bdsg.handlegraph.path_handle_t` in the graph, and then append each :class:`bdsg.handlegraph.handle_t` to the end of the path.
+To create the highlighted path, we would need to create a :class:`bdsg.handlegraph.path_handle_t` in the graph, and then append each :class:`bdsg.handlegraph.handle_t` to the end of the path.
 
 .. testcode::
 
     path = gr.create_path_handle("path")
-    gr.append_step(path, n[0])
     gr.append_step(path, n[1])
     gr.append_step(path, n[2])
-    gr.append_step(path, n[4])
+    gr.append_step(path, n[3])
     gr.append_step(path, n[5])
     gr.append_step(path, n[6])
     gr.append_step(path, n[7])
-    gr.append_step(path, n[9])
+    gr.append_step(path, n[8])
+    gr.append_step(path, n[10])
 
 .. warning::
 
@@ -114,8 +122,8 @@ To create the hilighted path, we would need to create a :class:`bdsg.handlegraph
         
     # the following code runs without error
     badpath = gr.create_path_handle("badpath")
-    gr.append_step(badpath, n[0])
-    gr.append_step(badpath, n[3])
+    gr.append_step(badpath, n[1])
+    gr.append_step(badpath, n[4])
 
 Traversing a path
 =================
