@@ -211,14 +211,14 @@ The `bdsg.bdsg.PositionOverlay` can be queried using :func:`bdsg.handlegraph.get
     17
     21
 
-**************************
-Using a SnarlDistanceIndex
-**************************
+************************************************************
+Using a SnarlDistanceIndex to Traverse a Snarl Decomposition
+************************************************************
 
 A :class:`bdsg.bdsg.SnarlDistanceIndex` implements the :class:`bdsg.handlegraph.SnarlDecomposition` interface and additionally adds minimum distance finding functionality.
 It can be used to explore the snarl decomposition of a graph.
 Similar to a :class:`bdsg.handlegraph.handle_t` used to point to a node in a graph, a :class:`bdsg.handlegraph.net_handle_t` is used to point to a node in the snarl tree, which represents a snarl, chain, or node in the graph. 
-The snarl decomposition is described in more detail in the `vg wiki <https://github.com/vgteam/vg/wiki/Snarls-and-chains>`_. 
+The snarl decomposition is described in more detail in the `vg wiki snarls page <https://github.com/vgteam/vg/wiki/Snarls-and-chains>`_. 
 
 libbdsg does not support building a distance index, it must be build using the `vg toolkit <https://github.com/vgteam/vg>`_.
 
@@ -227,66 +227,74 @@ libbdsg does not support building a distance index, it must be build using the `
     vg index -j example_graph.dist example_graph.hg
 
 
-
-Traversing the Distance Index
-=============================
 We will use the following graph and corresponding distance index for this example.
 
-.. image:: /assests/simple_nested_chain.png
+.. image:: /img/simple_nested_chain.png
 
 Start by loading the distance index.
+
 .. testcode::
-    from bdsg.bdsg import SnarlDistanceIndex
 
-    distance_index = SnarlDistanceIndex()
-    distance_index.deserialize("/assets/simple_nested_chain.dist")
+  from bdsg.bdsg import SnarlDistanceIndex
+  from bdsg.bdsg import HashGraph
+  
+  distance_index = SnarlDistanceIndex()
+  distance_index.deserialize("/assets/simple_nested_chain.dist")
+  
+  graph = bdsg.bdsg.HashGraph()
+  graph.deserialize("/assets/simple_nested_chain.hg")
 
-    graph = bdsg.bdsg.HashGraph()
-    graph.deserialize("/assets/simple_nested_chain.hg")
+
+
+Finding Ancestors in a Snarl Tree
+=================================
 
 Starting from a node in the graph, its ancestors in the snarl decomposition can be found using :func:`bdsg.handlegraph.SnarlDecomposition.get_parent`.
 Lets look for the ancestors of node `n6` in the snarl decomposition.
 
 .. testcode::
 
-    net = distance_index.get_node_net_handle(6)
-    while not distance_index.is_root(net):
-        print(distance_index.net_handle_as_string(net))
-        net = distance_index.get_parent(net) 
+  net = distance_index.get_node_net_handle(6)
+  while not distance_index.is_root(net):
+      print(distance_index.net_handle_as_string(net))
+      net = distance_index.get_parent(net) 
+
+.. testoutput::
+
+  node 6fd
+  node 6fd pretending to be a chain in a simple snarl
+  simple snarl 5fd->7fdtraversing start->end
+  chain 5fd->7fdtraversing start->end
+  snarl 4fd->8fdtraversing start->end
+  chain 1fd->10fdtraversing start->end
 
 In the snarl decomposition, a node is always the child of a chain, which may contain only that node.
 Node `n6` therefore has a parent that is a chain containing only node `n6`.
 
-.. testoutput::
-    node 6fd
-    node 6fd pretending to be a chain in a simple snarl
-    simple snarl 5fd->7fdtraversing start->end
-    chain 5fd->7fdtraversing start->end
-    snarl 4fd->8fdtraversing start->end
-    chain 1fd->10fdtraversing start->end
+
+Finding Descendants in a Snarl Tree
+===================================
 
 Now lets go in the other direction, finding the descendants of a net, starting from the root.
 
 .. testcode::
-    root = distance_index.get_root()
 
-    children = []
-    def get_and_print_child(net):
-        nonlocal children
-        print(distance_index.net_handle_as_string(net))
-        children.append(net)
-        return True
-    distance_index.for_each_child(root, get_and_print_child)
-
-    chain = children[0]
-    distance_index.for_each_child(chain, get_and_print_child)
-
-The root contains only one child, the top-level chain.
-The top-level chain contains node 1, snarl 1-4, node 4, etc.
+  root = distance_index.get_root()
+  
+  children = []
+  def get_and_print_child(net):
+      nonlocal children
+      print(distance_index.net_handle_as_string(net))
+      children.append(net)
+      return True
+  success = distance_index.for_each_child(root, get_and_print_child)
+  
+  chain = children[0]
+  success = distance_index.for_each_child(chain, get_and_print_child)
 
 .. testoutput::
+
   chain 1fd->10fdtraversing start->end
-  True
   node 1fd
   simple snarl 1fd->4fdtraversing start->end
   node 4fd
@@ -294,55 +302,66 @@ The top-level chain contains node 1, snarl 1-4, node 4, etc.
   node 8fd
   simple snarl 8fd->10fdtraversing start->end
   node 10fd
-  True
+
+The root contains only one child, the top-level chain.
+The top-level chain contains node 1, snarl 1-4, node 4, etc.
+This produces:
 
 
-Now lets traverse the snarl tree horizontally to get the siblings of a `net_handle_t`.
+
+Finding Siblings in a Snarl Tree
+================================
+
+Now lets traverse the snarl tree horizontally to get the siblings of a :class:`bdsg.handlegraph.net_handle_t`.
 This is done using :func:`bdsg.handlegraph.SnarlDecomposition.follow_net_edges`.
 Starting from a node or snarl in a chain, we can use this function to walk through the chain in either direction.
 
 Be careful of which direction you are traversing in.
-A `net_handle_t` encodes an orientation.
-For a node, the orientation is relative to the orientation of the node. That is, a forward or left-to-right `net_handle_t` represents a left-to-right traversal of the node.
+A :class:`bdsg.handlegraph.net_handle_t` encodes an orientation.
+For a node, the orientation is relative to the orientation of the node. That is, a forward or left-to-right :class:`bdsg.handlegraph.net_handle_t` represents a left-to-right traversal of the node.
 For a chain, the orientation is arbitrary- either of the boundary nodes could be considered the start or end node.
 For a snarl, the orientation is relative to that of the parent chain. The start node of a snarl is the node that occurs first in a start-to-end traversal of the parent chain. 
 
 
-Starting from a `net_handle_t` to a chain, we can get the start or end node with :func:`bdsg.handlegraph.SnarlDecomposition.get_bound`.
-`get_bound` takes as input a boolean `get_end` which is `True` to get the end bound and `False` to get the start bound, and a boolean `face_in` which decides whether to orient the node into or out of the chain. 
+Starting from a :class:`bdsg.handlegraph.net_handle_t` to a chain, we can get the start or end node with :func:`bdsg.handlegraph.SnarlDecomposition.get_bound`.
+:func:`bdsg.handlegraph.SnarlDecomposition.get_bound` takes as input a boolean `get_end` which is `True` to get the end bound and `False` to get the start bound, and a boolean `face_in` which decides whether to orient the node into or out of the chain. 
+
 .. testcode::
-    chain = distance_index.get_parent(distance_index.get_node_net_handle(1))
-    chain_child = distance_index.get_bound(chain, False, True)
-    print(distance_index.net_handle_as_string(chain_child))
+
+  chain = distance_index.get_parent(distance_index.get_node_net_handle(1))
+  chain_child = distance_index.get_bound(chain, False, True)
+  print(distance_index.net_handle_as_string(chain_child))
+
+.. testoutput::
+
+  node 1fd
 
 In this particular case, the start node of the chain happens to be node `n1`.
-.. testoutput::
-node 1fd
+
 
 Now we can check the next node in the chain by walking along the chain from the node.
-:func:`bdsg.handlegraph.SnarlDecomposition.follow_net_edges` checks all next steps from a given `net_handle_t` and runs a helper function on each adjacent `net_handle_t` that it finds.
-When walking along a chain, there is only ever a maximum of one adjacent `net_handle_t`.
+:func:`bdsg.handlegraph.SnarlDecomposition.follow_net_edges` checks all next steps from a given :class:`bdsg.handlegraph.net_handle_t` and runs a helper function on each adjacent :class:`bdsg.handlegraph.net_handle_t` that it finds.
+When walking along a chain, there is only ever a maximum of one adjacent :class:`bdsg.handlegraph.net_handle_t`.
 
 .. testcode::
-    next_children = []
-    def get_and_print_child(net):
-        print(distance_index.net_handle_as_string(net))
-        next_children.append(net)
-        return True
-    distance_index.follow_net_edges(chain_child, graph, False, get_and_print_child)
-    chain_child = next_children.pop()
-    distance_index.follow_net_edges(chain_child, graph, False, get_and_print_child)
-    chain_child = next_children.pop()
-    distance_index.follow_net_edges(chain_child, graph, False, get_and_print_child)
-    chain_child = next_children.pop()
+
+  next_children = []
+  def get_and_print_child(net):
+      print(distance_index.net_handle_as_string(net))
+      next_children.append(net)
+      return True
+  success = distance_index.follow_net_edges(chain_child, graph, False, get_and_print_child)
+  chain_child = next_children.pop()
+  success = distance_index.follow_net_edges(chain_child, graph, False, get_and_print_child)
+  chain_child = next_children.pop()
+  success = distance_index.follow_net_edges(chain_child, graph, False, get_and_print_child)
+  chain_child = next_children.pop()
 
 .. testoutput::
-    simple snarl 1fd->4fdtraversing start->end
-    True
-    node 4fd
-    True
-    snarl 4fd->8fdtraversing start->end
-    True
+
+  simple snarl 1fd->4fdtraversing start->end
+  node 4fd
+  snarl 4fd->8fdtraversing start->end
 
 The same functions can be used to traverse a snarl.
 Since the bound of a snarl is technically a node side rather than a node, `get_bound` on a snarl returns a *sentinel* representing the bound of the snarl.
@@ -350,49 +369,52 @@ Since the bound of a snarl is technically a node side rather than a node, `get_b
 Thus starting from the start bound of snarl 4-8 (the right side of node `n4`), there are two adjacent edges leading to chain 5-8 and to the end bound, the left side of node `n8`.
 
 .. testcode::
-    # chain_child is currently snarl 4-8
-    snarl_bound = distance_index.get_bound(chain_child, False, True)
-    print(distance_index.net_handle_as_string(snarl_bound))
 
-    print("children of snarl:")
-    next_children.clear()
-    distance_index.follow_net_edges(snarl_bound, graph, False, get_and_print_child) 
+  # chain_child is currently snarl 4-8
+  snarl_bound = distance_index.get_bound(chain_child, False, True)
+  print(distance_index.net_handle_as_string(snarl_bound))
+  
+  print("children of snarl:")
+  next_children.clear()
+  success = distance_index.follow_net_edges(snarl_bound, graph, False, get_and_print_child) 
 
 .. testoutput::
-    sentinel of snarl 4fd->8fdtraversing start->end
-    children of snarl:
-    sentinel of snarl 4fd->8fdtraversing end->end
-    chain 5fd->7fdtraversing start->end
-    True
 
-Note that the `follow_net_edges` follows in edges in the netgraph of the snarl, so it only returns siblings of the input `net_handle_t`. 
+  sentinel of snarl 4fd->8fdtraversing start->end
+  children of snarl:
+  sentinel of snarl 4fd->8fdtraversing end->end
+  chain 5fd->7fdtraversing start->end
+
+Note that the `follow_net_edges` follows in edges in the netgraph of the snarl, so it only returns siblings of the input :class:`bdsg.handlegraph.net_handle_t`. 
 Since the input was the bound of the snarl, only children of the snarl will be returned.
 Thus we find the chain 5-7 rather than the node `n5`.
 
 We can continue use `follow_net_edges` to find all edges in a netgraph.
 
 .. testcode::
-    def print_snarl_edges(snarl):
-        def print_edge_to(n):
-            print("\t->"+distance_index.net_handle_as_string(n))
-            return True
-        def print_outgoing_edges(n):
-            print(distance_index.net_handle_as_string(n))
-            distance_index.follow_net_edges(n, graph, False, print_edge_to)
-    
-            print(distance_index.net_handle_as_string(distance_index.flip(n)))
-            distance_index.follow_net_edges(n, graph, True, print_edge_to)
-            return True
-    
-        distance_index.for_each_child(snarl, print_outgoing_edges)
-    print_snarl_edges(distance_index.get_parent(next_children[1]))
+
+  def print_snarl_edges(snarl):
+      def print_edge_to(n):
+          print("\t->"+distance_index.net_handle_as_string(n))
+          return True
+      def print_outgoing_edges(n):
+          print(distance_index.net_handle_as_string(n))
+          distance_index.follow_net_edges(n, graph, False, print_edge_to)
+  
+          print(distance_index.net_handle_as_string(distance_index.flip(n)))
+          distance_index.follow_net_edges(n, graph, True, print_edge_to)
+          return True
+  
+      distance_index.for_each_child(snarl, print_outgoing_edges)
+  print_snarl_edges(distance_index.get_parent(next_children[1]))
 
 
 .. testoutput::
-    chain 5fd->7fdtraversing start->end
-    	->sentinel of snarl 4fd->8fdtraversing end->end
-    chain 5fd->7fdtraversing end->start
-    	->sentinel of snarl 4fd->8fdtraversing start->start
+
+  chain 5fd->7fdtraversing start->end
+  	->sentinel of snarl 4fd->8fdtraversing end->end
+  chain 5fd->7fdtraversing end->start
+  	->sentinel of snarl 4fd->8fdtraversing start->start
 
 
 *************************
