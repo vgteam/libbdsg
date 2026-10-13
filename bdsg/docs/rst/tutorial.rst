@@ -16,9 +16,11 @@ See the `vg wiki <https://github.com/vgteam/vg/wiki#understanding-our-data-forma
 Graph Objects
 =============
 `libbdsg` implements the `handlegraph <https://github.com/vgteam/libhandlegraph>`_ interface in which all objects in the graph are accessed using `handles <https://github.com/vgteam/libbdsg/blob/master/bdsg/docs/handlegraph.md>`_. 
-*Edges* and *nodes* are accessed through an implementation of the :class:`bdsg.handlegraph.HandleGraph` interface. Individual nodes in the graph are pointed at by :class:`bdsg.handlegraph.handle_t` objects.
+The most basic graphs implement the :class:`bdsg.handlegraph.HandleGraph` interface, which defines a graph containing nodes and edges.
+Individual nodes in the graph are pointed at by :class:`bdsg.handlegraph.handle_t` objects.
+Graph implementations can include additional `handlegraph` interfaces to add additional graph features and functionality.
 
-Paths exist in graphs that implement the :class:`bdsg.handlegraph.PathHandleGraph`. Paths are accessed through :class:`bdsg.handlegraph.path_handle_t`, which is a series of :class:`bdsg.handlegraph.step_handle_t` linked together. Each :class:`bdsg.handlegraph.step_handle_t` points to the node in that step, and also contains directional information regarding the nodes preceeding and following it.
+Paths exist in graphs that implement the :class:`bdsg.handlegraph.PathHandleGraph`. Paths are accessed through :class:`bdsg.handlegraph.path_handle_t`, which is a series of :class:`bdsg.handlegraph.step_handle_t` linked together. Each :class:`bdsg.handlegraph.step_handle_t` points to the node traversal along a path, and also contains directional information regarding the nodes preceding and following it.
 
 Handles are pointers to specific pieces of the graph, and it is not possible to operate on them directly, aside from comparing whether the objects are equal. To get information regarding the object that each handle is pointing to, it is necessary to use the corresponding `get` accessor method on the graph that issued the handle.
 
@@ -47,7 +49,7 @@ First, we must create the graph, then make each node and keep track of their han
     for s in seq:
         n.append(gr.create_handle(s))
 
-Now we link together these nodes using their handles. Note that each of these handles is directional, and we create each edge from the first handle to the second. In order to create both of the edges between `n7` and `n9` we use ``create_edge`` twice, once going from `n7` to `n9`, and once going from `n9` to `n7`.
+Now we link together these nodes using their handles. Note that each of these handles is directional, and we create each edge from the first handle traversing the node in the forward direction to the second handle, also traversed in the forward direction. In order to create both of the edges between `n7` and `n9` we use ``create_edge`` twice, once going from `n7` to `n9`, and once going from `n9` to `n7`.
 Since the handles are all traversing nodes in the forward orientation by default, this creates the edge from the right side of `n7` to the left side of `n9`, then from the right side of `n9` to the left side of `n7`.
 
 .. testcode::
@@ -82,7 +84,7 @@ If we wanted to traverse these edges, we could do it using the iterator method :
     next_node = next_node_list(n[1])[0]
     print(f'n2: {gr.get_sequence(next_node)}')
     next_node = next_node_list(next_node)[0]
-    print(f'n2: {gr.get_sequence(next_node)}')
+    print(f'n3: {gr.get_sequence(next_node)}')
 
 Which will output the following:
 
@@ -90,12 +92,12 @@ Which will output the following:
         
     n1: CGA
     n2: TTGG
-    nk: CCGT
+    n3: CCGT
 
 Creating a Path
 ===============
 
-Generating a linear sequence from this graph could be done in infinitely many ways, due to the internal loop between `n7`, and `n9`. If we wanted to define a single consensus sequence, we would do this by defining a path.
+Generating a linear sequence from this graph could be done in infinitely many ways, due to the internal loop between `n7`, and `n9`. If we wanted to define a single sequence, for example to represent a reference haplotype in the graph, we would do this by defining a path.
 
 .. image:: /img/exampleGraphPath.png
 
@@ -160,7 +162,7 @@ Using Graph Overlays
 ********************
 
 The libhandlegraph library defines generic graph interfaces that describe different functionalities of a graph.
-Overlays are wrappers on top of a graph that add these functionalities.
+Some of these functionalities are part of the `libbdsg` graph implementations while others must be added on top of an existing graph using an *overlay*.
 For example, the :class:`bdsg.handlegraph.PathPositionHandleGraph` defines an interface for accessing the sequence positions along paths in a graph.
 The :class:`bdsg.bdsg.PositionOverlay` and :class:`bdsg.bdsg.ReferencePathOverlay` are two different implementations of overlays that can be applied to a graph to add this functionality.
 In C++, :class:`bdsg.bdsg.OverlayHelpers` are used to add specific combinations of overlays to graphs.
@@ -169,8 +171,24 @@ bdsg.bdsg.PositionOverlay
 =========================
 
 A :class:`bdsg.bdsg.PositionOverlay` adds the :class:`bdsg.handlegraph.PathPositionHandleGraph` functionality to a graph, allowing it to find the sequence positions along paths.
-For example, using the same example graph as above, say we want to find the offset along the path of node `n5`. 
-We do this by creating a `bdsg.bdsg.PositionOverlay`, then getting a `bdsg.handlegraph.step_handle_t` that points to the node `n5` on the path `path`.
+For example, using the same example graph as above, say we want to find the offsets along all paths that traverse node `n6`. 
+First, we'll add a second path to make this more interesting.
+
+.. testcode::
+
+    path = gr.create_path_handle("path1")
+    gr.append_step(path, n[1])
+    gr.append_step(path, n[2])
+    gr.append_step(path, n[3])
+    gr.append_step(path, n[4])
+    gr.append_step(path, n[6])
+    gr.append_step(path, n[7])
+    gr.append_step(path, n[9])
+    gr.append_step(path, n[7])
+    gr.append_step(path, n[9])
+    gr.append_step(path, n[10])
+
+We do this by creating a `bdsg.bdsg.PositionOverlay`, then getting a `bdsg.handlegraph.step_handle_t` that points to the node `n7` on the path `path`.
 The `bdsg.bdsg.PositionOverlay` can be queried using :func:`bdsg.handlegraph.get_position_of_step` to find the position of the given step.
 
 .. testcode::
@@ -179,16 +197,19 @@ The `bdsg.bdsg.PositionOverlay` can be queried using :func:`bdsg.handlegraph.get
     # Get the overlay
     position_graph = PositionOverlay(gr)
 
-    # Get the step_handle_t to node n5 on path. Since there is only one path in the graph there will only be one step
-    n5_steps = [] 
-    gr.for_each_step_on_handle(nodes[5], lambda y : n5_steps.append(y) or True)
+    # Helper function that prints the path name and offset along the path of a step
+    def print_step(step) :
+       print(gr.get_path_name(gr.get_path_handle_of_step(step)), position_graph.get_position_of_step(step))
+       return True
 
-    # Get the path offset of the step
-    print(position_graph.get_position_of_step(n5_steps[0]))
+    # Run print_step() for each step on node n7
+    gr.for_each_step_on_handle(nodes[7], print_step)
+
 
 .. testoutput::
 
-    11
+    17
+    21
 
 **************************
 Using a SnarlDistanceIndex
@@ -276,7 +297,102 @@ The top-level chain contains node 1, snarl 1-4, node 4, etc.
   True
 
 
+Now lets traverse the snarl tree horizontally to get the siblings of a `net_handle_t`.
+This is done using :func:`bdsg.handlegraph.SnarlDecomposition.follow_net_edges`.
+Starting from a node or snarl in a chain, we can use this function to walk through the chain in either direction.
 
+Be careful of which direction you are traversing in.
+A `net_handle_t` encodes an orientation.
+For a node, the orientation is relative to the orientation of the node. That is, a forward or left-to-right `net_handle_t` represents a left-to-right traversal of the node.
+For a chain, the orientation is arbitrary- either of the boundary nodes could be considered the start or end node.
+For a snarl, the orientation is relative to that of the parent chain. The start node of a snarl is the node that occurs first in a start-to-end traversal of the parent chain. 
+
+
+Starting from a `net_handle_t` to a chain, we can get the start or end node with :func:`bdsg.handlegraph.SnarlDecomposition.get_bound`.
+`get_bound` takes as input a boolean `get_end` which is `True` to get the end bound and `False` to get the start bound, and a boolean `face_in` which decides whether to orient the node into or out of the chain. 
+.. testcode::
+    chain = distance_index.get_parent(distance_index.get_node_net_handle(1))
+    chain_child = distance_index.get_bound(chain, False, True)
+    print(distance_index.net_handle_as_string(chain_child))
+
+In this particular case, the start node of the chain happens to be node `n1`.
+.. testoutput::
+node 1fd
+
+Now we can check the next node in the chain by walking along the chain from the node.
+:func:`bdsg.handlegraph.SnarlDecomposition.follow_net_edges` checks all next steps from a given `net_handle_t` and runs a helper function on each adjacent `net_handle_t` that it finds.
+When walking along a chain, there is only ever a maximum of one adjacent `net_handle_t`.
+
+.. testcode::
+    next_children = []
+    def get_and_print_child(net):
+        print(distance_index.net_handle_as_string(net))
+        next_children.append(net)
+        return True
+    distance_index.follow_net_edges(chain_child, graph, False, get_and_print_child)
+    chain_child = next_children.pop()
+    distance_index.follow_net_edges(chain_child, graph, False, get_and_print_child)
+    chain_child = next_children.pop()
+    distance_index.follow_net_edges(chain_child, graph, False, get_and_print_child)
+    chain_child = next_children.pop()
+
+.. testoutput::
+    simple snarl 1fd->4fdtraversing start->end
+    True
+    node 4fd
+    True
+    snarl 4fd->8fdtraversing start->end
+    True
+
+The same functions can be used to traverse a snarl.
+Since the bound of a snarl is technically a node side rather than a node, `get_bound` on a snarl returns a *sentinel* representing the bound of the snarl.
+:func:`bdsg.handlegraph.SnarlDecomposition.follow_net_edges` now checks all next adjacent edges in the snarl's netgraph. 
+Thus starting from the start bound of snarl 4-8 (the right side of node `n4`), there are two adjacent edges leading to chain 5-8 and to the end bound, the left side of node `n8`.
+
+.. testcode::
+    # chain_child is currently snarl 4-8
+    snarl_bound = distance_index.get_bound(chain_child, False, True)
+    print(distance_index.net_handle_as_string(snarl_bound))
+
+    print("children of snarl:")
+    next_children.clear()
+    distance_index.follow_net_edges(snarl_bound, graph, False, get_and_print_child) 
+
+.. testoutput::
+    sentinel of snarl 4fd->8fdtraversing start->end
+    children of snarl:
+    sentinel of snarl 4fd->8fdtraversing end->end
+    chain 5fd->7fdtraversing start->end
+    True
+
+Note that the `follow_net_edges` follows in edges in the netgraph of the snarl, so it only returns siblings of the input `net_handle_t`. 
+Since the input was the bound of the snarl, only children of the snarl will be returned.
+Thus we find the chain 5-7 rather than the node `n5`.
+
+We can continue use `follow_net_edges` to find all edges in a netgraph.
+
+.. testcode::
+    def print_snarl_edges(snarl):
+        def print_edge_to(n):
+            print("\t->"+distance_index.net_handle_as_string(n))
+            return True
+        def print_outgoing_edges(n):
+            print(distance_index.net_handle_as_string(n))
+            distance_index.follow_net_edges(n, graph, False, print_edge_to)
+    
+            print(distance_index.net_handle_as_string(distance_index.flip(n)))
+            distance_index.follow_net_edges(n, graph, True, print_edge_to)
+            return True
+    
+        distance_index.for_each_child(snarl, print_outgoing_edges)
+    print_snarl_edges(distance_index.get_parent(next_children[1]))
+
+
+.. testoutput::
+    chain 5fd->7fdtraversing start->end
+    	->sentinel of snarl 4fd->8fdtraversing end->end
+    chain 5fd->7fdtraversing end->start
+    	->sentinel of snarl 4fd->8fdtraversing start->start
 
 
 *************************
