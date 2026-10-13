@@ -3,10 +3,10 @@
 #include <handlegraph/path_handle_graph.hpp>
 #include <handlegraph/snarl_decomposition.hpp>
 #include <handlegraph/types.hpp>
+#include <iterator>
 #include <memory>
 #include <sstream> // __str__
 #include <string>
-#include <string_view>
 #include <utility>
 
 #include <functional>

@@ -1,4 +1,3 @@
-#include <__ostream/basic_ostream.h>
 #include <functional>
 #include <handlegraph/deletable_handle_graph.hpp>
 #include <handlegraph/handle_graph.hpp>
@@ -14,11 +13,12 @@
 #include <handlegraph/types.hpp>
 #include <ios>
 #include <istream>
+#include <iterator>
 #include <memory>
+#include <ostream>
 #include <sstream> // __str__
 #include <streambuf>
 #include <string>
-#include <string_view>
 #include <utility>
 #include <vector>
 

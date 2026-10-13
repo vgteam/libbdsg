@@ -6,10 +6,10 @@
 #include <handlegraph/path_metadata.hpp>
 #include <handlegraph/path_position_handle_graph.hpp>
 #include <handlegraph/types.hpp>
+#include <iterator>
 #include <memory>
 #include <sstream> // __str__
 #include <string>
-#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
