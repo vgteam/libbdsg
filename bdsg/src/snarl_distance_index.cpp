@@ -6259,6 +6259,9 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
         //Any root will point to the same root
         record_to_offset.emplace(make_pair(temp_index_i,make_pair(TEMP_ROOT, 0)), 0);
     }
+    //Root components of the earlier temporary indexes. Each root component needs a distinct
+    //slot in the root record and a distinct rank (connected component number).
+    size_t component_offset = 0;
     //Go through each separate temporary index, corresponding to separate connected components
     for (size_t temp_index_i = 0 ; temp_index_i < temporary_indexes.size() ; temp_index_i++) {
         const TemporaryDistanceIndex* temp_index = temporary_indexes[temp_index_i];
@@ -6694,7 +6697,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
         for (size_t component_num = 0 ; component_num < temp_index->components.size() ; component_num++){
             const temp_record_ref_t& component_index = temp_index->components[component_num];
             //Let the root record know that it has another root
-            root_record.add_component(component_num,record_to_offset[make_pair(temp_index_i,component_index)]);
+            root_record.add_component(component_offset + component_num,record_to_offset[make_pair(temp_index_i,component_index)]);
 
             SnarlTreeRecord record (record_to_offset[make_pair(temp_index_i, component_index)],
                                     &snarl_tree_records);
@@ -6702,7 +6705,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                                                               &snarl_tree_records);
 
             if (record.get_record_handle_type() == CHAIN_HANDLE || record.get_record_handle_type() == ROOT_HANDLE) {
-                record_constructor.set_rank_in_parent(component_num);
+                record_constructor.set_rank_in_parent(component_offset + component_num);
             }
             if (!is_root_snarl(record.get_record_type())) {
                 //If this isn't a root snarl
@@ -6736,6 +6739,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
             //assert(record.get_parent_record_offset() == 0);
 #endif
         }
+        component_offset += temp_index->components.size();
     }
 
 
