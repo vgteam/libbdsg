@@ -483,13 +483,10 @@ net_handle_t SnarlDistanceIndex::get_bound(const net_handle_t& snarl, bool get_e
         if (!face_in){
             rev_in_parent = !rev_in_parent;
         }
+        // A node traversal goes start-to-end or end-to-start. A looping
+        // chain's end bound is its first node, traversed the way the chain
+        // leaves it at the end.
         connectivity_t connectivity = rev_in_parent ? END_START : START_END;
-
-        if (is_looping_chain && get_end) {
-            //If this is a looping chain and we're getting the end, then the traversal of the node will be the 
-            //end endpoint repeated, instead of the actual traversal
-            connectivity = endpoints_to_connectivity(get_end_endpoint(connectivity), get_end_endpoint(connectivity));
-        }
         return get_net_handle_from_values(offset, connectivity,  NODE_HANDLE, node_offset);
 
     } else if (is_root(snarl)) {
@@ -5480,10 +5477,11 @@ net_handle_t SnarlDistanceIndex::ChainRecord::get_next_child(const net_handle_t&
             return net_handle;
         } else {
             //IF we are going right from the last node of a looping chain, then
-            //return the first node going in
+            //return the first node, traversed the way the chain goes, which
+            //is the chain's end bound
             bool is_reversed_in_parent = TrivialSnarlRecord(get_first_node_offset(),records).get_is_reversed_in_parent(0);
             return get_net_handle_from_values(get_first_node_offset(), 
-                                  (is_reversed_in_parent ? START_START : END_END),
+                                  (is_reversed_in_parent ? END_START : START_END),
                                   NODE_HANDLE,
                                   0);
         }
