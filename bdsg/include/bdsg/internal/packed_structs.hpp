@@ -32,6 +32,7 @@ inline void repack(IntVector& target, size_t new_width, size_t new_size);
 
 /**
  * Set every entry of an int vector from index begin to the end to 0.
+ * begin may be at most target.size().
  */
 template<typename IntVector>
 inline void zero_from(IntVector& target, size_t begin);
@@ -657,18 +658,17 @@ inline void repack(IntVector& target, size_t new_width, size_t new_size) {
 
 template<>
 inline void repack<sdsl::int_vector<>>(sdsl::int_vector<>& target, size_t new_width, size_t new_size) {
+    // Keep the existing entries where they are when the width stays the same or grows.
+    // int_vector::resize() keeps the old bits as a prefix of the reallocated word array, and
+    // expand_width() rewrites the entries in place from the last one down, so neither one
+    // needs the element-by-element copy that narrowing takes. Entries past the old size are
+    // left uninitialized either way, as they also are by the copy, since int_vector::resize()
+    // is a plain realloc.
     if (new_width == target.width()) {
-        // Only the capacity is changing.  resize() reallocs and keeps the data, which is a memcpy
-        // at worst, where the loop below reads and writes every element through the bit-packed
-        // accessors.  PackedVector grows by 1.25x, so it lands here several times per element
-        // over the life of a vector.  New entries are not zeroed; PackedVector::resize does that.
         target.resize(new_size);
         return;
     }
     if (new_width > target.width()) {
-        // Widening in place works on raw words, where the copy below goes through a proxy object
-        // per element.  A PagedVector page starts 1 bit wide and widens several times, so this
-        // runs a few times for every page ever created.
         sdsl::util::expand_width(target, new_width);
         if (new_size != target.size()) {
             target.resize(new_size);
@@ -695,9 +695,11 @@ inline void zero_from(IntVector& target, size_t begin) {
 
 template<>
 inline void zero_from<sdsl::int_vector<>>(sdsl::int_vector<>& target, size_t begin) {
-    // A word at a time rather than through the per-element accessor, which every new PagedVector
-    // page would otherwise pay for all 256 of its entries.  Bits past the last entry are padding,
-    // so clearing them too is harmless.
+    // Clear whole words instead of going through the element accessor. int_vector stores entry
+    // i at bit i * width() of data(), lowest bits first, so the entries before begin occupy the
+    // low begin_bit bits and everything above them can be cleared. The memset also reaches the
+    // unused bits of the last word, past the end of the vector. sdsl zeroes those bits itself
+    // whenever it reallocates, so clearing them changes nothing.
     uint64_t* data = target.data();
     size_t begin_bit = begin * target.width();
     size_t end_word = (target.bit_size() + 63) / 64;
@@ -773,6 +775,9 @@ inline void PackedVector<Backend>::resize(const size_t& new_size) {
 
 template<typename Backend>
 inline void PackedVector<Backend>::reserve(const size_t& future_size) {
+    // TODO: is this right? The entries between filled and the new capacity are left
+    // uninitialized, and resize() only zeroes entries when it grows the capacity itself, so
+    // a resize() into capacity set aside here exposes them.
     if (future_size > vec.size()) {
         repack(vec, vec.width(), future_size);
     }
