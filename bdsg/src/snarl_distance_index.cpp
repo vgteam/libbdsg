@@ -686,7 +686,37 @@ bool SnarlDistanceIndex::for_each_child_impl(const net_handle_t& traversal, cons
         }
     } else if (record_type == CHAIN_HANDLE) {
         ChainRecord chain_record(traversal, &snarl_tree_records);
-        return chain_record.for_each_child(iteratee);
+        connectivity_t connectivity = get_connectivity(traversal);
+        if (connectivity == START_END) {
+            return chain_record.for_each_child(iteratee);
+        }
+        // The chain record lists its children start-to-end, as a start-to-end
+        // traversal visits them.
+        std::vector<net_handle_t> children;
+        chain_record.for_each_child([&children](const net_handle_t& child) {
+            children.push_back(child);
+            return true;
+        });
+        if (connectivity == END_START) {
+            // An end-to-start traversal visits the children in reverse order,
+            // each flipped. A looping chain still lists its bound node first.
+            std::reverse(children.begin() + (is_looping_chain(traversal) && !children.empty() ? 1 : 0), children.end());
+            for (net_handle_t& child : children) {
+                child = flip(child);
+            }
+        } else {
+            // Any other traversal lists its children start-to-end.
+            for (net_handle_t& child : children) {
+                child = get_net_handle_from_values(get_record_offset(child), START_END, get_handle_type(child),
+                                                   get_node_record_offset(child));
+            }
+        }
+        for (const net_handle_t& child : children) {
+            if (!iteratee(child)) {
+                return false;
+            }
+        }
+        return true;
     } else  if (record_type == NODE_HANDLE && handle_type == CHAIN_HANDLE) {
         //This is actually a node but we're pretending it's a chain
 #ifdef debug_snarl_traversal
