@@ -365,21 +365,11 @@ net_handle_t SnarlDistanceIndex::get_parent(const net_handle_t& child) const {
 
     connectivity_t child_connectivity = get_connectivity(child);
 
-    //If the child is the sentinel of a snarl, just return the snarl
+    //If the child is the sentinel of a snarl, return the snarl start-to-end,
+    //as the SnarlDecomposition interface wants for any parent that is not a
+    //chain
     if (get_handle_type(child) == SENTINEL_HANDLE) {
-        connectivity_t parent_connectivity = START_END;
-        if (child_connectivity == START_END || child_connectivity == END_START) {
-            //If the child sentinel is pointing through the snarl, then the snarl should point
-            //in the same direction
-            parent_connectivity = child_connectivity;
-        } else if (child_connectivity == START_START) {
-            //If the sentinel is the start node pointing out, then the parent should point out the start
-            parent_connectivity = END_START;
-        } else if (child_connectivity == END_END) {
-            //If the sentinel is the end node pointing out, then the parent should point out the end
-            parent_connectivity = START_END;
-        }
-        return get_net_handle_from_values(get_record_offset(child), parent_connectivity, 
+        return get_net_handle_from_values(get_record_offset(child), START_END, 
                                           SNARL_HANDLE, get_node_record_offset(child)); 
     } else if (get_handle_type(child) == ROOT_HANDLE) {
         throw runtime_error("error: trying to find the parent of the root");
