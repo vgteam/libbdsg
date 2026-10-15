@@ -953,6 +953,19 @@ net_handle_t SnarlDistanceIndex::get_parent_traversal(const net_handle_t& traver
                               endpoints_to_connectivity(start_endpoint, end_endpoint),
                               SNARL_HANDLE, get_node_record_offset(traversal_start));
     } else {
+        if (start_handle_type == NODE_HANDLE && end_handle_type == NODE_HANDLE) {
+            net_handle_t start_parent = get_parent(traversal_start);
+            if (is_trivial_chain(start_parent)) {
+                // A node that is a chain by itself bounds its chain at both
+                // ends, so the chain's traversal starts where the first
+                // node traversal starts and ends where the second one ends.
+                return get_net_handle_from_values(get_record_offset(start_parent),
+                                                  endpoints_to_connectivity(starts_at(traversal_start),
+                                                                            ends_at(traversal_end)),
+                                                  get_handle_type(start_parent),
+                                                  get_node_record_offset(start_parent));
+            }
+        }
         //These are the endpoints or tips in a chain
         SnarlTreeRecord start_record = get_snarl_tree_record(traversal_start);
         SnarlTreeRecord end_record = get_snarl_tree_record(traversal_end);
