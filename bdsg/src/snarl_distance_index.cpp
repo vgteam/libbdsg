@@ -6354,6 +6354,18 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                     }
                     chain_record_constructor.set_parent_record_offset(
                             record_to_offset[make_pair(temp_index_i, temp_chain_record.parent)]);
+                    // A walk entering the chain at a bound can leave through
+                    // the same bound when the chain has a finite loop distance
+                    // there. The loop distances count each turnaround the walk
+                    // can reach, including turnarounds in trivial snarls.
+                    if (!temp_chain_record.forward_loops.empty() &&
+                        temp_chain_record.forward_loops.front() != std::numeric_limits<size_t>::max()) {
+                        chain_record_constructor.set_start_start_connected();
+                    }
+                    if (!temp_chain_record.backward_loops.empty() &&
+                        temp_chain_record.backward_loops.back() != std::numeric_limits<size_t>::max()) {
+                        chain_record_constructor.set_end_end_connected();
+                    }
                     if (!ignore_distances) {
                         chain_record_constructor.set_distance_left_start(temp_chain_record.distance_left_start);
                         chain_record_constructor.set_distance_right_start(temp_chain_record.distance_right_start);
@@ -6527,12 +6539,6 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                                 //TODO: What about if it's a multicomponent chain?
                                 if (!snarl_record_constructor.get_is_reversed_in_parent()) {
                                     //If this snarl is oriented forward in the chain
-                                    if (snarl_record_constructor.is_start_start_connected()) {
-                                        chain_record_constructor.set_start_start_connected();
-                                    }
-                                    if (snarl_record_constructor.is_end_end_connected()) {
-                                        chain_record_constructor.set_end_end_connected();
-                                    }
                                     if (snarl_record_constructor.is_start_tip_connected()) {
                                         chain_record_constructor.set_start_tip_connected();
                                     }
@@ -6541,12 +6547,6 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                                     }
                                 } else {
                                     //If this snarl is oriented backwards in the chain
-                                    if (snarl_record_constructor.is_start_start_connected()) {
-                                        chain_record_constructor.set_end_end_connected();
-                                    }
-                                    if (snarl_record_constructor.is_end_end_connected()) {
-                                        chain_record_constructor.set_start_start_connected();
-                                    }
                                     if (snarl_record_constructor.is_start_tip_connected()) {
                                         chain_record_constructor.set_end_tip_connected();
                                     }
