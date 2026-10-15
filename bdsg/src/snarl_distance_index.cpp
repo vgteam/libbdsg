@@ -738,7 +738,7 @@ bool SnarlDistanceIndex::for_each_traversal_impl(const net_handle_t& item, const
     return true;
 }
 
-bool SnarlDistanceIndex::follow_net_edges_impl(const net_handle_t& here, const handlegraph::HandleGraph* graph, bool go_left, const std::function<bool(const net_handle_t&)>& iteratee) const {
+bool SnarlDistanceIndex::follow_net_edges_impl(const net_handle_t& here, const handlegraph::HandleGraph* graph, bool go_left, const std::function<bool(const net_handle_t&)>& each_reached) const {
 #ifdef debug_snarl_traversal
     cerr << "following edges from " << net_handle_as_string(here) << " going " << (go_left ? "rev" : "fd") << endl;
     cerr << "        that is a child of " << net_handle_as_string(get_parent(here)) << endl;
@@ -749,9 +749,28 @@ bool SnarlDistanceIndex::follow_net_edges_impl(const net_handle_t& here, const h
         // A walk taken backward is a walk, so those are the flips of the
         // traversals that going right from here's flip gives.
         return follow_net_edges_impl(flip(here), graph, false, [&](const net_handle_t& next) {
-            return iteratee(flip(next));
+            return each_reached(flip(next));
         });
     }
+
+    if (ends_at(here) == TIP) {
+        // A walk that ends at a tip goes no further.
+        return true;
+    }
+
+    // The code below finds each element that a walk leaving here enters,
+    // traversed from where the walk enters it to its opposite end. The
+    // interface wants each realizable traversal of the element that starts
+    // where the walk enters it.
+    const std::function<bool(const net_handle_t&)> iteratee = [&](const net_handle_t& entered) {
+        if (!is_snarl(entered) && !(is_chain(entered) && !is_trivial_chain(entered))) {
+            return each_reached(entered);
+        }
+        endpoint_t entry = starts_at(entered);
+        return for_each_traversal(entered, [&](const net_handle_t& traversal) {
+            return starts_at(traversal) != entry || each_reached(traversal);
+        });
+    };
 
     SnarlTreeRecord this_record(here, &snarl_tree_records);
     SnarlTreeRecord parent_record (get_parent(here), &snarl_tree_records);
