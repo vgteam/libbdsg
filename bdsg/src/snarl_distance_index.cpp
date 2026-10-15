@@ -6534,26 +6534,6 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                                 }
 
 
-                                //Add connectivity in chain based on this snarl
-                                //TODO: Tip-tip connected?
-                                //TODO: What about if it's a multicomponent chain?
-                                if (!snarl_record_constructor.get_is_reversed_in_parent()) {
-                                    //If this snarl is oriented forward in the chain
-                                    if (snarl_record_constructor.is_start_tip_connected()) {
-                                        chain_record_constructor.set_start_tip_connected();
-                                    }
-                                    if (snarl_record_constructor.is_end_tip_connected()) {
-                                        chain_record_constructor.set_end_tip_connected();
-                                    }
-                                } else {
-                                    //If this snarl is oriented backwards in the chain
-                                    if (snarl_record_constructor.is_start_tip_connected()) {
-                                        chain_record_constructor.set_end_tip_connected();
-                                    }
-                                    if (snarl_record_constructor.is_end_tip_connected()) {
-                                        chain_record_constructor.set_start_tip_connected();
-                                    }
-                                }
                                 last_child_offset = make_pair(snarl_record_constructor.record_offset, true);
                             } else if (!temp_snarl_record.is_trivial && temp_snarl_record.is_simple) {
                                 //Make a simple snarl
@@ -6835,6 +6815,194 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
             }
         }
     }
+    /* Now work out which snarls and chains can reach a tip, innermost
+     * first, and set their tip connectivity.
+     *
+     * A snarl reaches a tip from a bound when a walk from that bound reaches a
+     * tip node, or reaches the side of a child chain from which the chain
+     * reaches a tip. A chain reaches a tip from a bound when a walk along its
+     * nodes, crossing and turning around where its snarls and loops allow,
+     * enters a snarl from a side that reaches a tip.
+     */
+    for (size_t temp_index_i = 0 ; temp_index_i < temporary_indexes.size() ; temp_index_i++) {
+        const TemporaryDistanceIndex* temp_index = temporary_indexes[temp_index_i];
+        const size_t inf = std::numeric_limits<size_t>::max();
+
+        // Whether walks from a snarl's or chain's start, end, or a tip inside
+        // it can reach a tip inside it.
+        struct Tips {
+            bool from_start = false;
+            bool from_end = false;
+            bool from_tip = false;
+        };
+        std::map<temp_record_ref_t, Tips> tips_found;
+        std::function<Tips(const temp_record_ref_t&)> snarl_tips;
+        std::function<Tips(const temp_record_ref_t&)> chain_tips;
+
+        snarl_tips = [&](const temp_record_ref_t& snarl_ref) -> Tips {
+            auto found = tips_found.find(snarl_ref);
+            if (found != tips_found.end()) {
+                return found->second;
+            }
+            const auto& snarl = temp_index->get_snarl(snarl_ref);
+            Tips tips;
+            if (!snarl.is_trivial && !snarl.is_simple && !snarl.is_root_snarl) {
+                size_t offset = record_to_offset.at(make_pair(temp_index_i, snarl_ref));
+                tips.from_tip = SnarlTreeRecord(offset, &snarl_tree_records).is_tip_tip_connected();
+                for (const temp_record_ref_t& child : snarl.children) {
+                    if (child.first == TEMP_NODE) {
+                        const auto& node = temp_index->get_node(child);
+                        if (node.is_tip) {
+                            tips.from_start |= node.distance_left_start != inf || node.distance_right_start != inf;
+                            tips.from_end |= node.distance_left_end != inf || node.distance_right_end != inf;
+                        }
+                        continue;
+                    }
+                    const auto& chain = temp_index->get_chain(child);
+                    Tips child_tips = chain_tips(child);
+                    // A walk reaching the chain's left side enters it at its
+                    // start, and one reaching its right side enters at its end.
+                    // A bound node that is a tip has a dead end on its outer
+                    // side, which a walk crossing the chain reaches.
+                    bool start_dead = temp_index->get_node(chain.children.front()).is_tip;
+                    bool end_dead = temp_index->get_node(chain.children.back()).is_tip;
+                    bool crossable = chain.min_length != inf;
+                    bool from_left = child_tips.from_start || (crossable && end_dead);
+                    bool from_right = child_tips.from_end || (crossable && start_dead);
+                    tips.from_start |= (chain.distance_left_start != inf && from_left) ||
+                                       (chain.distance_right_start != inf && from_right);
+                    tips.from_end |= (chain.distance_left_end != inf && from_left) ||
+                                     (chain.distance_right_end != inf && from_right);
+                    tips.from_tip |= child_tips.from_tip;
+                }
+            }
+            tips_found[snarl_ref] = tips;
+            return tips;
+        };
+
+        chain_tips = [&](const temp_record_ref_t& chain_ref) -> Tips {
+            auto found = tips_found.find(chain_ref);
+            if (found != tips_found.end()) {
+                return found->second;
+            }
+            const auto& chain = temp_index->get_chain(chain_ref);
+            Tips tips;
+            if (!chain.is_trivial) {
+                // Number the chain's nodes as its loop vectors do, and note the
+                // snarl between each node and the next, or null for a trivial
+                // snarl.
+                vector<const temp_record_ref_t*> snarl_after;
+                for (const temp_record_ref_t& child : chain.children) {
+                    if (child.first == TEMP_NODE) {
+                        snarl_after.push_back(nullptr);
+                    } else {
+                        snarl_after.back() = &child;
+                    }
+                }
+                size_t node_count = snarl_after.size();
+                // Walk from some nodes, each heading forward along the chain or
+                // in reverse along it, and say whether the walk reaches a tip.
+                auto reaches_tip = [&](const vector<pair<size_t, bool>>& starts) {
+                    vector<bool> seen(2 * node_count, false);
+                    vector<pair<size_t, bool>> to_visit;
+                    auto visit = [&](size_t node_i, bool forward) {
+                        if (!seen[2 * node_i + forward]) {
+                            seen[2 * node_i + forward] = true;
+                            to_visit.emplace_back(node_i, forward);
+                        }
+                    };
+                    for (const auto& start : starts) {
+                        visit(start.first, start.second);
+                    }
+                    while (!to_visit.empty()) {
+                        auto [node_i, forward] = to_visit.back();
+                        to_visit.pop_back();
+                        if (forward ? node_i + 1 >= node_count : node_i == 0) {
+                            // The walk leaves the chain.
+                            continue;
+                        }
+                        size_t gap_i = forward ? node_i : node_i - 1;
+                        size_t across = forward ? node_i + 1 : node_i - 1;
+                        if (snarl_after[gap_i] == nullptr) {
+                            // A trivial snarl can be crossed, and a self-loop on
+                            // the node's side facing it, with loop distance 0,
+                            // turns the walk around.
+                            visit(across, forward);
+                            const vector<size_t>& loops = forward ? chain.forward_loops : chain.backward_loops;
+                            if (node_i < loops.size() && loops[node_i] == 0) {
+                                visit(node_i, !forward);
+                            }
+                            continue;
+                        }
+                        const auto& snarl = temp_index->get_snarl(*snarl_after[gap_i]);
+                        Tips snarl_tip = snarl_tips(*snarl_after[gap_i]);
+                        if (snarl.min_length != inf) {
+                            visit(across, forward);
+                        }
+                        if ((forward ? snarl.distance_start_start : snarl.distance_end_end) != inf) {
+                            visit(node_i, !forward);
+                        }
+                        if (forward ? snarl_tip.from_start : snarl_tip.from_end) {
+                            return true;
+                        }
+                    }
+                    return false;
+                };
+                if (node_count > 0) {
+                    tips.from_start = reaches_tip({{0, true}});
+                    tips.from_end = reaches_tip({{node_count - 1, false}});
+                }
+                // A walk from a tip leaves the tip's snarl through the snarl's
+                // start or end, which a walk from that bound into the snarl
+                // could reach the tip through.
+                vector<pair<size_t, bool>> from_tips;
+                for (size_t gap_i = 0 ; gap_i + 1 < node_count ; gap_i++) {
+                    if (snarl_after[gap_i] == nullptr) {
+                        continue;
+                    }
+                    Tips snarl_tip = snarl_tips(*snarl_after[gap_i]);
+                    tips.from_tip |= snarl_tip.from_tip;
+                    if (snarl_tip.from_start) {
+                        from_tips.emplace_back(gap_i, false);
+                    }
+                    if (snarl_tip.from_end) {
+                        from_tips.emplace_back(gap_i + 1, true);
+                    }
+                }
+                tips.from_tip |= !from_tips.empty() && reaches_tip(from_tips);
+            }
+            tips_found[chain_ref] = tips;
+            return tips;
+        };
+
+        // Set the tip connectivity of every snarl and chain.
+        auto set_tips = [&](const temp_record_ref_t& ref, const Tips& tips) {
+            SnarlTreeRecordWriter record(record_to_offset.at(make_pair(temp_index_i, ref)), &snarl_tree_records);
+            if (tips.from_start) {
+                record.set_start_tip_connected();
+            }
+            if (tips.from_end) {
+                record.set_end_tip_connected();
+            }
+            if (tips.from_tip) {
+                record.set_tip_tip_connected();
+            }
+        };
+        for (size_t chain_i = 0 ; chain_i < temp_index->temp_chain_records.size() ; chain_i++) {
+            temp_record_ref_t chain_ref = make_pair(TEMP_CHAIN, chain_i);
+            if (!temp_index->get_chain(chain_ref).is_trivial) {
+                set_tips(chain_ref, chain_tips(chain_ref));
+            }
+        }
+        for (size_t snarl_i = 0 ; snarl_i < temp_index->temp_snarl_records.size() ; snarl_i++) {
+            temp_record_ref_t snarl_ref = make_pair(TEMP_SNARL, snarl_i);
+            const auto& snarl = temp_index->get_snarl(snarl_ref);
+            if (!snarl.is_trivial && !snarl.is_simple && !snarl.is_root_snarl) {
+                set_tips(snarl_ref, snarl_tips(snarl_ref));
+            }
+        }
+    }
+
 #ifdef debug_distance_indexing
     //Repack the vector to use fewer bits
     //This doesn't actually get used anymore but keep it around in case I change things and can't
