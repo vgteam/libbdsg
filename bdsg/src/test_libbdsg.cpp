@@ -2815,6 +2815,39 @@ void test_mutable_path_handle_graphs() {
   cerr << "MutablePathDeletableHandleGraph tests successful!" << endl;
 }
 
+template <typename PackedVectorImpl> void test_packed_vector_grows_with_zeros() {
+  // Growing within capacity after a reserve() must expose zeros.
+  {
+    PackedVectorImpl vec;
+    for (size_t i = 0; i < 100; ++i) {
+      vec.push_back(1000 + i);
+    }
+    vec.resize(95);
+    vec.reserve(400);
+    vec.resize(300);
+    for (size_t i = 95; i < 300; ++i) {
+      if (vec.get(i) != 0) {
+        throw runtime_error("Entry " + to_string(i) + " grown after reserve() is not zero");
+      }
+    }
+  }
+
+  // Growing back after a shrink that doesn't reallocate must not restore old values.
+  {
+    PackedVectorImpl vec;
+    for (size_t i = 0; i < 100; ++i) {
+      vec.push_back(1000 + i);
+    }
+    vec.resize(90);
+    vec.resize(100);
+    for (size_t i = 90; i < 100; ++i) {
+      if (vec.get(i) != 0) {
+        throw runtime_error("Entry " + to_string(i) + " regrown after shrinking is not zero");
+      }
+    }
+  }
+}
+
 template <typename PackedVectorImpl> void test_packed_vector() {
   enum vec_op_t { SET = 0, GET = 1, APPEND = 2, POP = 3, SERIALIZE = 4 };
 
@@ -5414,8 +5447,11 @@ int main(void) {
   test_mapped_structs();
   test_int_vector();
   test_packed_vector<PackedVector<>>();
+  test_packed_vector_grows_with_zeros<PackedVector<>>();
   test_packed_vector<PackedVector<CompatBackend>>();
+  test_packed_vector_grows_with_zeros<PackedVector<CompatBackend>>();
   test_packed_vector<PackedVector<MappedBackend>>();
+  test_packed_vector_grows_with_zeros<PackedVector<MappedBackend>>();
   test_iterators<PackedVector<>>();
   test_iterators<PackedVector<CompatBackend>>();
   test_iterators<PackedVector<MappedBackend>>();

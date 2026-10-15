@@ -765,19 +765,25 @@ inline void PackedVector<Backend>::resize(const size_t& new_size) {
         }
     }
     else if (new_size > vec.size()) {
-        size_t old_capacity = vec.size();
         size_t new_capacity = std::max<size_t>(size_t(vec.size() * factor) + 1, new_size);
         reserve(new_capacity);
-        zero_from(vec, old_capacity);
+        // Every entry at index >= filled is zero after this, since reserve() leaves the
+        // entries past the old capacity uninitialized and entries dropped by a shrink keep
+        // their old values.
+        zero_from(vec, filled);
+    }
+    else {
+        // Zero the entries being exposed. They may hold values from before a shrink, or
+        // whatever reserve() left there.
+        for (size_t i = filled; i < new_size; ++i) {
+            vec[i] = 0;
+        }
     }
     filled = new_size;
 }
 
 template<typename Backend>
 inline void PackedVector<Backend>::reserve(const size_t& future_size) {
-    // TODO: is this right? The entries between filled and the new capacity are left
-    // uninitialized, and resize() only zeroes entries when it grows the capacity itself, so
-    // a resize() into capacity set aside here exposes them.
     if (future_size > vec.size()) {
         repack(vec, vec.width(), future_size);
     }
