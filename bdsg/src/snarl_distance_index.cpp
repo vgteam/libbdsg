@@ -754,6 +754,15 @@ bool SnarlDistanceIndex::follow_net_edges_impl(const net_handle_t& here, const h
     cerr << "        that is a child of " << net_handle_as_string(get_parent(here)) << endl;
 #endif
 
+    if (go_left) {
+        // Going left gives the traversals from which going right gives here.
+        // A walk taken backward is a walk, so those are the flips of the
+        // traversals that going right from here's flip gives.
+        return follow_net_edges_impl(flip(here), graph, false, [&](const net_handle_t& next) {
+            return iteratee(flip(next));
+        });
+    }
+
     SnarlTreeRecord this_record(here, &snarl_tree_records);
     SnarlTreeRecord parent_record (get_parent(here), &snarl_tree_records);
 
