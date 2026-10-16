@@ -365,9 +365,7 @@ net_handle_t SnarlDistanceIndex::get_parent(const net_handle_t& child) const {
 
     connectivity_t child_connectivity = get_connectivity(child);
 
-    // The parent of a sentinel is its snarl, always traversed start to end.
-    // The SnarlDecomposition interface wants every parent that is not a chain
-    // traversed that way, no matter which way the child faces.
+    // If the child is a sentinel of a snarl, just return the snarl, start-to-end
     if (get_handle_type(child) == SENTINEL_HANDLE) {
         return get_net_handle_from_values(get_record_offset(child), START_END, 
                                           SNARL_HANDLE, get_node_record_offset(child)); 
@@ -473,10 +471,6 @@ net_handle_t SnarlDistanceIndex::get_bound(const net_handle_t& snarl, bool get_e
         if (!face_in){
             rev_in_parent = !rev_in_parent;
         }
-        // By now rev_in_parent says whether the traversal we want reads the
-        // node backward. A looping chain's end bound is its first node again,
-        // and it gets a plain start-to-end or end-to-start traversal like any
-        // other bound, since those are the only traversals a node can have.
         connectivity_t connectivity = rev_in_parent ? END_START : START_END;
         return get_net_handle_from_values(offset, connectivity,  NODE_HANDLE, node_offset);
 
@@ -676,34 +670,35 @@ bool SnarlDistanceIndex::for_each_child_impl(const net_handle_t& traversal, cons
         ChainRecord chain_record(traversal, &snarl_tree_records);
         connectivity_t connectivity = get_connectivity(traversal);
         if (connectivity == START_END) {
+            // ChainRecord visits the children from the chain's start to its
+            // end, oriented forward along the chain.
             return chain_record.for_each_child(iteratee);
         }
-        // Collect the children in chain order, start to end, which is the
-        // order ChainRecord stores them in.
+        if (connectivity != END_START) {
+            // The SnarlDecomposition interface wants each child of any other
+            // traversal start-to-end.
+            return chain_record.for_each_child([&](const net_handle_t& child) {
+                return iteratee(get_net_handle_from_values(get_record_offset(child), START_END,
+                                                           get_handle_type(child), get_node_record_offset(child)));
+            });
+        }
+        // An end-to-start traversal visits the children in reverse order, each
+        // flipped, so collect them first.
         std::vector<net_handle_t> children;
         chain_record.for_each_child([&children](const net_handle_t& child) {
             children.push_back(child);
             return true;
         });
-        if (connectivity == END_START) {
-            // An end-to-start traversal visits the children in the opposite
-            // order, each one flipped. In a looping chain the first child is
-            // both bounds, so it stays first.
-            std::reverse(children.begin() + (is_looping_chain(traversal) && !children.empty() ? 1 : 0), children.end());
-            for (net_handle_t& child : children) {
-                child = flip(child);
-            }
-        } else {
-            // Any other traversal lists the children in chain order, each one
-            // start to end.
-            // TODO: is this right for START_START and END_END, which turn around?
-            for (net_handle_t& child : children) {
-                child = get_net_handle_from_values(get_record_offset(child), START_END, get_handle_type(child),
-                                                   get_node_record_offset(child));
-            }
+        if (children.empty()) {
+            return true;
         }
-        for (const net_handle_t& child : children) {
-            if (!iteratee(child)) {
+        // In a looping chain the first child is both bounds, so it comes first.
+        bool looping = is_looping_chain(traversal);
+        if (looping && !iteratee(flip(children.front()))) {
+            return false;
+        }
+        for (size_t i = children.size(); i > (looping ? 1 : 0); i--) {
+            if (!iteratee(flip(children[i - 1]))) {
                 return false;
             }
         }
@@ -742,37 +737,41 @@ bool SnarlDistanceIndex::for_each_traversal_impl(const net_handle_t& item, const
     return true;
 }
 
-bool SnarlDistanceIndex::follow_net_edges_impl(const net_handle_t& here, const handlegraph::HandleGraph* graph, bool go_left, const std::function<bool(const net_handle_t&)>& each_reached) const {
+bool SnarlDistanceIndex::follow_net_edges_impl(const net_handle_t& here, const handlegraph::HandleGraph* graph, bool go_left, const std::function<bool(const net_handle_t&)>& iteratee) const {
 #ifdef debug_snarl_traversal
     cerr << "following edges from " << net_handle_as_string(here) << " going " << (go_left ? "rev" : "fd") << endl;
     cerr << "        that is a child of " << net_handle_as_string(get_parent(here)) << endl;
 #endif
 
     if (go_left) {
-        // Going left from here is going right from flip(here), run backward.
-        // So walk right from the flipped handle and flip everything it finds.
+        // Implement going left using going right
         return follow_net_edges_impl(flip(here), graph, false, [&](const net_handle_t& next) {
-            return each_reached(flip(next));
+            return iteratee(flip(next));
         });
     }
 
     if (ends_at(here) == TIP) {
-        // Nothing can follow a traversal that ends at a tip.
+        // Nowhere to go from a tip
         return true;
     }
 
-    // Wrap each_reached so the code below can hand it whatever the walk runs
-    // into. A node, sentinel or trivial chain is a single traversal and goes
-    // through as is. A snarl or nontrivial chain can be traversed several ways
-    // from the side the walk enters it, so report each realizable traversal
-    // that starts on that side.
-    const std::function<bool(const net_handle_t&)> iteratee = [&](const net_handle_t& entered) {
-        if (!is_snarl(entered) && !(is_chain(entered) && !is_trivial_chain(entered))) {
-            return each_reached(entered);
+    // The code below names each element the walk enters with a start-to-end
+    // or end-to-start traversal of it. Only that traversal's start endpoint
+    // matters: it is where the walk arrives. We use this function to
+    // enumerate all the actually possible traversals that start there.
+    const std::function<bool(const net_handle_t&)> visit_reachable_traversals = [&](const net_handle_t& entered) {
+        if (is_node(entered) || is_sentinel(entered) || is_trivial_chain(entered)) {
+            // These always have just straight-through traversals
+            return iteratee(entered);
         }
+        // Otherwise, we need to try every traversal the destination has that
+        // starts at the endpoint we arrive at.
         endpoint_t entry = starts_at(entered);
         return for_each_traversal(entered, [&](const net_handle_t& traversal) {
-            return starts_at(traversal) != entry || each_reached(traversal);
+            if (starts_at(traversal) == entry) {
+                return iteratee(traversal);
+            }
+            return true;
         });
     };
 
@@ -790,13 +789,13 @@ bool SnarlDistanceIndex::follow_net_edges_impl(const net_handle_t& here, const h
             //Follow edges leaving the root structure at the end
             if (this_record.is_externally_start_end_connected()) {
                 //Follow edge from end to start
-                if (!iteratee(get_net_handle_from_values(get_record_offset(here), START_END, get_handle_type(here), get_node_record_offset(here)))) {
+                if (!visit_reachable_traversals(get_net_handle_from_values(get_record_offset(here), START_END, get_handle_type(here), get_node_record_offset(here)))) {
                     return false;
                 }
             }
             if (this_record.is_externally_end_end_connected()) {
                 //Follow edge from end back to the end
-                if (!iteratee(get_net_handle_from_values(get_record_offset(here), END_START, get_handle_type(here), get_node_record_offset(here)))) {
+                if (!visit_reachable_traversals(get_net_handle_from_values(get_record_offset(here), END_START, get_handle_type(here), get_node_record_offset(here)))) {
                     return false;
                 }
             }
@@ -804,13 +803,13 @@ bool SnarlDistanceIndex::follow_net_edges_impl(const net_handle_t& here, const h
             //Follow edges leaving the root structure at the end
             if (this_record.is_externally_start_end_connected()) {
                 //Follow edge from start to end
-                if (!iteratee(get_net_handle_from_values(get_record_offset(here), END_START, get_handle_type(here), get_node_record_offset(here)))) {
+                if (!visit_reachable_traversals(get_net_handle_from_values(get_record_offset(here), END_START, get_handle_type(here), get_node_record_offset(here)))) {
                     return false;
                 }
             }
             if (this_record.is_externally_end_end_connected()) {
                 //Follow edge from the start back to the start
-                if (!iteratee(get_net_handle_from_values(get_record_offset(here), START_END, get_handle_type(here), get_node_record_offset(here)))) {
+                if (!visit_reachable_traversals(get_net_handle_from_values(get_record_offset(here), START_END, get_handle_type(here), get_node_record_offset(here)))) {
                     return false;
                 }
             }
@@ -870,13 +869,13 @@ bool SnarlDistanceIndex::follow_net_edges_impl(const net_handle_t& here, const h
                 cerr << "    -> start of parent " << endl;
                 assert(graph->get_is_reverse(h) == !parent_record.get_start_orientation());
 #endif
-                return iteratee(get_bound(get_parent(here), false, false));
+                return visit_reachable_traversals(get_bound(get_parent(here), false, false));
             } else if (!is_root_snarl && graph->get_id(h) == parent_record.get_end_id()) {
 #ifdef debug_snarl_traversal
                 assert(graph->get_is_reverse(h) == parent_record.get_end_orientation());
                 cerr << "    -> end of parent " << endl;
 #endif
-                return iteratee(get_bound(get_parent(here), true, false));
+                return visit_reachable_traversals(get_bound(get_parent(here), true, false));
             } else {
                 //It is either another chain or a node, but the node needs to pretend to be a chain
                 net_handle_t node_net_handle = get_node_net_handle(graph->get_id(h));
@@ -892,7 +891,7 @@ bool SnarlDistanceIndex::follow_net_edges_impl(const net_handle_t& here, const h
 #ifdef debug_snarl_traversal
                 cerr << "    -> actual child node " << net_handle_as_string(next_net) << endl;
 #endif
-                   return iteratee(next_net);
+                   return visit_reachable_traversals(next_net);
                 } else if (is_simple_snarl(get_record_type(snarl_tree_records->at(get_record_offset(node_net_handle))))) {
                     //If the node is a node in a simple snarl
                     net_handle_t next_net = get_net_handle_from_values(get_record_offset(node_net_handle), 
@@ -902,7 +901,7 @@ bool SnarlDistanceIndex::follow_net_edges_impl(const net_handle_t& here, const h
 #ifdef debug_snarl_traversal
                 cerr << "    -> actual child node " << net_handle_as_string(next_net) << endl;
 #endif
-                   return iteratee(next_net);
+                   return visit_reachable_traversals(next_net);
                 } else {
                     //next_node_record is also the start of a chain
                     bool rev = node_net_handle != get_bound(get_parent(node_net_handle), false, true);
@@ -917,7 +916,7 @@ bool SnarlDistanceIndex::follow_net_edges_impl(const net_handle_t& here, const h
                    //     == SnarlTreeRecord(next_node_record.get_parent_record_offset(), &snarl_tree_records).get_end_id());
                 cerr << "    -> child chain " << net_handle_as_string(next_net) << endl;
 #endif
-                   return iteratee(next_net);
+                   return visit_reachable_traversals(next_net);
                 }
             }
             return false;
@@ -945,7 +944,7 @@ bool SnarlDistanceIndex::follow_net_edges_impl(const net_handle_t& here, const h
             //If this is the end of the chain
             return true;
         }
-        return iteratee(next_net);
+        return visit_reachable_traversals(next_net);
         
     }
     return true;
@@ -969,9 +968,7 @@ net_handle_t SnarlDistanceIndex::get_parent_traversal(const net_handle_t& traver
         if (start_handle_type == NODE_HANDLE && end_handle_type == NODE_HANDLE) {
             net_handle_t start_parent = get_parent(traversal_start);
             if (is_trivial_chain(start_parent)) {
-                // A trivial chain is a single node, which is both its start
-                // and its end. So the chain traversal starts where
-                // traversal_start starts and ends where traversal_end ends.
+                // We're traversing a one-node trivial chain
                 return get_net_handle_from_values(get_record_offset(start_parent),
                                                   endpoints_to_connectivity(starts_at(traversal_start),
                                                                             ends_at(traversal_end)),
@@ -5511,8 +5508,8 @@ net_handle_t SnarlDistanceIndex::ChainRecord::get_next_child(const net_handle_t&
             //If we are going right from the last node of a non-looping chain
             return net_handle;
         } else {
-            // Going right from the last node of a looping chain wraps around
-            // to the first node, entered forward along the chain.
+            //IF we are going right from the last node of a looping chain, then
+            //return the first node going in
             bool is_reversed_in_parent = TrivialSnarlRecord(get_first_node_offset(),records).get_is_reversed_in_parent(0);
             return get_net_handle_from_values(get_first_node_offset(), 
                                   (is_reversed_in_parent ? END_START : START_END),
@@ -6379,10 +6376,7 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                     }
                     chain_record_constructor.set_parent_record_offset(
                             record_to_offset[make_pair(temp_index_i, temp_chain_record.parent)]);
-                    // A finite loop distance at the first node means a walk can
-                    // enter the chain at its start, turn around somewhere, and
-                    // come back out through the start. The same goes for the
-                    // last node and the end.
+                    // Propagate connectivity from loop distances to connectivity flags
                     if (!temp_chain_record.forward_loops.empty() &&
                         temp_chain_record.forward_loops.front() != std::numeric_limits<size_t>::max()) {
                         chain_record_constructor.set_start_start_connected();
@@ -6390,6 +6384,16 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                     if (!temp_chain_record.backward_loops.empty() &&
                         temp_chain_record.backward_loops.back() != std::numeric_limits<size_t>::max()) {
                         chain_record_constructor.set_end_end_connected();
+                    }
+                    // Propagate tip connectivity from the temporary index to connectivity flags
+                    if (temp_chain_record.start_tip_connected) {
+                        chain_record_constructor.set_start_tip_connected();
+                    }
+                    if (temp_chain_record.end_tip_connected) {
+                        chain_record_constructor.set_end_tip_connected();
+                    }
+                    if (temp_chain_record.tip_tip_connected) {
+                        chain_record_constructor.set_tip_tip_connected();
                     }
                     if (!ignore_distances) {
                         chain_record_constructor.set_distance_left_start(temp_chain_record.distance_left_start);
@@ -6508,9 +6512,12 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                                         // TODO: Make this an std::copy or something.
                                         snarl_record_constructor.set_hhl_entry(i, temp_snarl_record.hub_labels.at(i));
                                     }
-                                    // TODO: When should we call
-                                    // snarl_record_constructor.set_tip_tip_connected()?
-                                    // Add code to determine that somewhere!
+                                    // The tip connectivity flags come from the
+                                    // temporary snarl record, after the children
+                                    // are added.
+                                    // TODO: The temporary index works them out
+                                    // from distances, which an oversized snarl
+                                    // does not have.
                                 } else {
                                     // Store individual distance entries.
                                     for (const auto& it : temp_snarl_record.distances) {
@@ -6524,10 +6531,6 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                                             snarl_record_constructor.set_distance(node_rank1.first, node_rank1.second,
                                                 node_rank2.first, node_rank2.second, distance);
 
-                                            if (temp_snarl_record.tippy_child_ranks.count(node_rank1.first)
-                                                && temp_snarl_record.tippy_child_ranks.count(node_rank2.first)) {
-                                                snarl_record_constructor.set_tip_tip_connected();
-                                            }
 #ifdef debug_distance_indexing
                                             assert(distance <= temp_snarl_record.max_distance);
                                             assert(snarl_record_constructor.get_distance(node_rank1.first, node_rank1.second,
@@ -6803,32 +6806,6 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                 for (temp_record_ref_t child : temp_snarl_record.children) {
                     snarl_record_constructor.add_child(record_to_offset[make_pair(temp_index_i, child)]);
 
-                    //Check if the child is a tip, and if so set start/end_tip connectivity of parent snarl
-                    if (child.first == TEMP_NODE) {
-                        auto& temp_node_record = temp_index->get_node(child);
-                        if (temp_node_record.is_tip) {
-                            if (temp_node_record.distance_left_start != std::numeric_limits<size_t>::max() ||
-                                 temp_node_record.distance_right_start != std::numeric_limits<size_t>::max()){
-                                snarl_record_constructor.set_start_tip_connected();
-                            }
-                            if (temp_node_record.distance_left_end != std::numeric_limits<size_t>::max() ||
-                                 temp_node_record.distance_right_end != std::numeric_limits<size_t>::max()){
-                                snarl_record_constructor.set_end_tip_connected();
-                            }
-                        }
-                    } else {
-                        auto& temp_chain_record = temp_index->get_chain(child);
-                        if (temp_chain_record.is_tip) {
-                            if (temp_chain_record.distance_left_start != std::numeric_limits<size_t>::max() ||
-                                 temp_chain_record.distance_right_start != std::numeric_limits<size_t>::max()){
-                                snarl_record_constructor.set_start_tip_connected();
-                            }
-                            if (temp_chain_record.distance_left_end != std::numeric_limits<size_t>::max() ||
-                                 temp_chain_record.distance_right_end != std::numeric_limits<size_t>::max()){
-                                snarl_record_constructor.set_end_tip_connected();
-                            }
-                        }
-                    }
 #ifdef debug_distance_indexing
                 cerr << "       child " << temp_index->structure_start_end_as_string(child) << endl;
                 cerr << "        " << child.first << " " << child.second << endl;
@@ -6837,227 +6814,19 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                      << "     to child list at offset " << snarl_tree_records->size() << endl;
 #endif
                 }
+                // Propagate tip connectivity from the temporary index to connectivity flags
+                if (temp_snarl_record.start_tip_connected) {
+                    snarl_record_constructor.set_start_tip_connected();
+                }
+                if (temp_snarl_record.end_tip_connected) {
+                    snarl_record_constructor.set_end_tip_connected();
+                }
+                if (temp_snarl_record.tip_tip_connected) {
+                    snarl_record_constructor.set_tip_tip_connected();
+                }
             }
         }
     }
-    /* Work out which snarls and chains have a tip reachable from their start,
-     * their end, or another tip, and set the start-tip, end-tip and tip-tip
-     * flags accordingly. Whether a chain reaches a tip depends on its snarls, and
-     * whether a snarl does depends on its child chains, so snarl_tips and
-     * chain_tips call each other and memoize their answers in tips_found.
-     */
-    for (size_t temp_index_i = 0 ; temp_index_i < temporary_indexes.size() ; temp_index_i++) {
-        const TemporaryDistanceIndex* temp_index = temporary_indexes[temp_index_i];
-        const size_t inf = std::numeric_limits<size_t>::max();
-
-        // Whether a walk inside one snarl or chain can end at a tip, given
-        // where it starts: at the start bound, at the end bound, or at some
-        // other tip.
-        struct Tips {
-            bool from_start = false;
-            bool from_end = false;
-            bool from_tip = false;
-        };
-        // Answers already worked out, by record.
-        std::map<temp_record_ref_t, Tips> tips_found;
-        std::function<Tips(const temp_record_ref_t&)> snarl_tips;
-        std::function<Tips(const temp_record_ref_t&)> chain_tips;
-
-        snarl_tips = [&](const temp_record_ref_t& snarl_ref) -> Tips {
-            auto found = tips_found.find(snarl_ref);
-            if (found != tips_found.end()) {
-                return found->second;
-            }
-            const auto& snarl = temp_index->get_snarl(snarl_ref);
-            Tips tips;
-            if (!snarl.is_trivial && !snarl.is_simple && !snarl.is_root_snarl) {
-                size_t offset = record_to_offset.at(make_pair(temp_index_i, snarl_ref));
-                // The record's tip-tip flag was already set, from the distances
-                // between tip children, when the record was written. Keep it.
-                tips.from_tip = SnarlTreeRecord(offset, &snarl_tree_records).is_tip_tip_connected();
-                for (const temp_record_ref_t& child : snarl.children) {
-                    if (child.first == TEMP_NODE) {
-                        const auto& node = temp_index->get_node(child);
-                        // A tip node is reachable from the start if either of
-                        // its sides is a finite distance from the start, and
-                        // likewise from the end.
-                        if (node.is_tip) {
-                            tips.from_start |= node.distance_left_start != inf || node.distance_right_start != inf;
-                            tips.from_end |= node.distance_left_end != inf || node.distance_right_end != inf;
-                        }
-                        continue;
-                    }
-                    const auto& chain = temp_index->get_chain(child);
-                    Tips child_tips = chain_tips(child);
-                    // The chain's distance_left_start and friends are the
-                    // distances from the snarl's start and end to the left and
-                    // right sides of the chain. Entering on the left side means
-                    // starting at the chain's start, and entering on the right
-                    // side means starting at its end. A bound node that is a
-                    // tip has its dead end facing out of the chain, so a walk
-                    // that can get all the way across the chain ends at that
-                    // tip.
-                    bool start_dead = temp_index->get_node(chain.children.front()).is_tip;
-                    bool end_dead = temp_index->get_node(chain.children.back()).is_tip;
-                    bool crossable = chain.min_length != inf;
-                    bool from_left = child_tips.from_start || (crossable && end_dead);
-                    bool from_right = child_tips.from_end || (crossable && start_dead);
-                    tips.from_start |= (chain.distance_left_start != inf && from_left) ||
-                                       (chain.distance_right_start != inf && from_right);
-                    tips.from_end |= (chain.distance_left_end != inf && from_left) ||
-                                     (chain.distance_right_end != inf && from_right);
-                    tips.from_tip |= child_tips.from_tip;
-                }
-            }
-            tips_found[snarl_ref] = tips;
-            return tips;
-        };
-
-        chain_tips = [&](const temp_record_ref_t& chain_ref) -> Tips {
-            auto found = tips_found.find(chain_ref);
-            if (found != tips_found.end()) {
-                return found->second;
-            }
-            const auto& chain = temp_index->get_chain(chain_ref);
-            Tips tips;
-            if (!chain.is_trivial) {
-                // snarl_after[i] is the snarl between node i and node i + 1 of
-                // the chain, or nullptr if a trivial snarl joins them directly.
-                // The last node gets nullptr too. Numbering the nodes this way
-                // matches forward_loops and backward_loops.
-                vector<const temp_record_ref_t*> snarl_after;
-                for (const temp_record_ref_t& child : chain.children) {
-                    if (child.first == TEMP_NODE) {
-                        snarl_after.push_back(nullptr);
-                    } else {
-                        snarl_after.back() = &child;
-                    }
-                }
-                size_t node_count = snarl_after.size();
-                // Search for a tip inside one of the chain's snarls, starting
-                // from any of the given states. A state (node_i, forward) is a
-                // walk that has just left node_i, heading forward along the
-                // chain if forward is true and in reverse along it otherwise.
-                auto reaches_tip = [&](const vector<pair<size_t, bool>>& starts) {
-                    // seen[2 * node_i + forward] is set as soon as the state
-                    // (node_i, forward) is queued.
-                    vector<bool> seen(2 * node_count, false);
-                    // Queued states not yet expanded, used as a stack.
-                    vector<pair<size_t, bool>> to_visit;
-                    // Queue a state, unless it has been queued already.
-                    auto visit = [&](size_t node_i, bool forward) {
-                        if (!seen[2 * node_i + forward]) {
-                            seen[2 * node_i + forward] = true;
-                            to_visit.emplace_back(node_i, forward);
-                        }
-                    };
-                    for (const auto& start : starts) {
-                        visit(start.first, start.second);
-                    }
-                    while (!to_visit.empty()) {
-                        auto [node_i, forward] = to_visit.back();
-                        to_visit.pop_back();
-                        if (forward ? node_i + 1 >= node_count : node_i == 0) {
-                            // The walk has run off the end of the chain.
-                            continue;
-                        }
-                        // The walk now crosses snarl_after[gap_i] to reach the
-                        // node across.
-                        size_t gap_i = forward ? node_i : node_i - 1;
-                        size_t across = forward ? node_i + 1 : node_i - 1;
-                        if (snarl_after[gap_i] == nullptr) {
-                            // A trivial snarl just joins node_i to the next node.
-                            // The walk can also turn around here if the loop
-                            // distance at node_i is 0, which means the side of
-                            // node_i it is leaving by has an edge straight back
-                            // to itself.
-                            visit(across, forward);
-                            const vector<size_t>& loops = forward ? chain.forward_loops : chain.backward_loops;
-                            if (node_i < loops.size() && loops[node_i] == 0) {
-                                visit(node_i, !forward);
-                            }
-                            continue;
-                        }
-                        // Through a real snarl, the walk reaches the far node if
-                        // the snarl can be crossed at all, and can turn around
-                        // if the bound it came in by connects back to itself.
-                        // If a tip is reachable from that bound, we are done.
-                        const auto& snarl = temp_index->get_snarl(*snarl_after[gap_i]);
-                        Tips snarl_tip = snarl_tips(*snarl_after[gap_i]);
-                        if (snarl.min_length != inf) {
-                            visit(across, forward);
-                        }
-                        if ((forward ? snarl.distance_start_start : snarl.distance_end_end) != inf) {
-                            visit(node_i, !forward);
-                        }
-                        if (forward ? snarl_tip.from_start : snarl_tip.from_end) {
-                            return true;
-                        }
-                    }
-                    return false;
-                };
-                // A walk from the chain's start begins by leaving node 0
-                // forward along the chain. One from the end leaves the last
-                // node in reverse.
-                if (node_count > 0) {
-                    tips.from_start = reaches_tip({{0, true}});
-                    tips.from_end = reaches_tip({{node_count - 1, false}});
-                }
-                // A walk from one tip to another either stays inside one
-                // snarl, which that snarl's own tip-tip flag covers, or leaves
-                // its snarl through a bound and finds a tip elsewhere. Any walk
-                // can be run backward, so if a tip is reachable from a snarl's
-                // start, a walk from that tip can leave through the start,
-                // heading in reverse along the chain. Likewise it can leave
-                // through the end, heading forward.
-                vector<pair<size_t, bool>> from_tips;
-                for (size_t gap_i = 0 ; gap_i + 1 < node_count ; gap_i++) {
-                    if (snarl_after[gap_i] == nullptr) {
-                        continue;
-                    }
-                    Tips snarl_tip = snarl_tips(*snarl_after[gap_i]);
-                    tips.from_tip |= snarl_tip.from_tip;
-                    if (snarl_tip.from_start) {
-                        from_tips.emplace_back(gap_i, false);
-                    }
-                    if (snarl_tip.from_end) {
-                        from_tips.emplace_back(gap_i + 1, true);
-                    }
-                }
-                tips.from_tip |= !from_tips.empty() && reaches_tip(from_tips);
-            }
-            tips_found[chain_ref] = tips;
-            return tips;
-        };
-
-        // Write the flags into a record of the index.
-        auto set_tips = [&](const temp_record_ref_t& ref, const Tips& tips) {
-            SnarlTreeRecordWriter record(record_to_offset.at(make_pair(temp_index_i, ref)), &snarl_tree_records);
-            if (tips.from_start) {
-                record.set_start_tip_connected();
-            }
-            if (tips.from_end) {
-                record.set_end_tip_connected();
-            }
-            if (tips.from_tip) {
-                record.set_tip_tip_connected();
-            }
-        };
-        for (size_t chain_i = 0 ; chain_i < temp_index->temp_chain_records.size() ; chain_i++) {
-            temp_record_ref_t chain_ref = make_pair(TEMP_CHAIN, chain_i);
-            if (!temp_index->get_chain(chain_ref).is_trivial) {
-                set_tips(chain_ref, chain_tips(chain_ref));
-            }
-        }
-        for (size_t snarl_i = 0 ; snarl_i < temp_index->temp_snarl_records.size() ; snarl_i++) {
-            temp_record_ref_t snarl_ref = make_pair(TEMP_SNARL, snarl_i);
-            const auto& snarl = temp_index->get_snarl(snarl_ref);
-            if (!snarl.is_trivial && !snarl.is_simple && !snarl.is_root_snarl) {
-                set_tips(snarl_ref, snarl_tips(snarl_ref));
-            }
-        }
-    }
-
 #ifdef debug_distance_indexing
     //Repack the vector to use fewer bits
     //This doesn't actually get used anymore but keep it around in case I change things and can't

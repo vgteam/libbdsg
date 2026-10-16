@@ -1663,8 +1663,9 @@ private:
         //
         //return the same net_handle_t if this is trying to walk out the end of the chain.
         //
-        //For looping chains, this one has to know whether the boundary node is representing the start or end.
-        //This means that you only see the boundary node as the start or the end.
+        //For looping chains, the boundary node is both the first and the last child, and has one handle
+        //for each orientation. Going right from the last child gives that handle, and going right from it
+        //again goes on around the chain, so a walk that should stop at the end must compare handles.
         //
         //The next handle will be pointing in the direction that we just moved.
         net_handle_t get_next_child(const net_handle_t& net_handle, bool go_left) const;
@@ -1857,6 +1858,12 @@ public:
             bool is_trivial;
             bool is_tip = false;
             bool loopable = true; //If this is a looping snarl, this is false if the last snarl is not start-end connected
+            //True if a walk entering at the start can end at a tip inside
+            bool start_tip_connected = false;
+            //True if a walk entering at the end can end at a tip inside
+            bool end_tip_connected = false;
+            //True if a walk starting at a tip inside can end at a tip inside
+            bool tip_tip_connected = false;
 
             vector<temp_record_ref_t> children; //All children, both nodes and snarls, in order
             //Distances for the chain, one entry per node
@@ -1923,6 +1930,12 @@ public:
              */
             bool is_regular = false;
             bool is_tip = false;
+            //True if a walk entering at the start can end at a tip inside
+            bool start_tip_connected = false;
+            //True if a walk entering at the end can end at a tip inside
+            bool end_tip_connected = false;
+            //True if a walk starting at a tip inside can end at a tip inside
+            bool tip_tip_connected = false;
             bool is_root_snarl = false;
             bool include_distances = true;
             vector<temp_record_ref_t> children; //All children, nodes and chains, in arbitrary order
