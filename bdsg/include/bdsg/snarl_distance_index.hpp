@@ -566,6 +566,8 @@ protected:
     ///traversed. The SnarlDecomposition interface does not say where a looping chain's listing starts,
     ///so an end-to-start traversal also starts at the boundary node, and then lists the other
     ///children from the last to the second.
+    ///
+    ///TODO: This is weird, but alternatives (not starting a reverse listing at a boundary?) seemed weirder. We should think through what we really want for looping chains in the interface.
     bool for_each_child_impl(const net_handle_t& traversal, const std::function<bool(const net_handle_t&)>& iteratee) const;
 
     ///Internal implementation for for_each_traversal.
