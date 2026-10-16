@@ -658,12 +658,7 @@ inline void repack(IntVector& target, size_t new_width, size_t new_size) {
 
 template<>
 inline void repack<sdsl::int_vector<>>(sdsl::int_vector<>& target, size_t new_width, size_t new_size) {
-    // Keep the existing entries where they are when the width stays the same or grows.
-    // int_vector::resize() keeps the old bits as a prefix of the reallocated word array, and
-    // expand_width() rewrites the entries in place from the last one down, so neither one
-    // needs the element-by-element copy that narrowing takes. Entries past the old size are
-    // left uninitialized either way, as they also are by the copy, since int_vector::resize()
-    // is a plain realloc.
+    // Take some shortcuts when possible
     if (new_width == target.width()) {
         target.resize(new_size);
         return;
@@ -695,11 +690,7 @@ inline void zero_from(IntVector& target, size_t begin) {
 
 template<>
 inline void zero_from<sdsl::int_vector<>>(sdsl::int_vector<>& target, size_t begin) {
-    // Clear whole words instead of going through the element accessor. int_vector stores entry
-    // i at bit i * width() of data(), lowest bits first, so the entries before begin occupy the
-    // low begin_bit bits and everything above them can be cleared. The memset also reaches the
-    // unused bits of the last word, past the end of the vector. sdsl zeroes those bits itself
-    // whenever it reallocates, so clearing them changes nothing.
+    // Clear whole words instead of going through the element accessor. It's OK to also clear the trailing bits in the last word that aren't used in any entries.
     uint64_t* data = target.data();
     size_t begin_bit = begin * target.width();
     size_t end_word = (target.bit_size() + 63) / 64;
@@ -767,9 +758,7 @@ inline void PackedVector<Backend>::resize(const size_t& new_size) {
     else if (new_size > vec.size()) {
         size_t new_capacity = std::max<size_t>(size_t(vec.size() * factor) + 1, new_size);
         reserve(new_capacity);
-        // Every entry at index >= filled is zero after this, since reserve() leaves the
-        // entries past the old capacity uninitialized and entries dropped by a shrink keep
-        // their old values.
+        // We need to zero from filled on up, because the memory there might contain old entries that were resized away.
         zero_from(vec, filled);
     }
     else {

@@ -561,6 +561,11 @@ public:
 
 protected:
     ///Internal implementation for for_each_child.
+    ///
+    ///A looping chain lists its boundary node once, as its first child, whichever way the chain is
+    ///traversed. The SnarlDecomposition interface does not say where a looping chain's listing starts,
+    ///so an end-to-start traversal also starts at the boundary node, and then lists the other
+    ///children from the last to the second.
     bool for_each_child_impl(const net_handle_t& traversal, const std::function<bool(const net_handle_t&)>& iteratee) const;
 
     ///Internal implementation for for_each_traversal.
@@ -1663,9 +1668,7 @@ private:
         //
         //return the same net_handle_t if this is trying to walk out the end of the chain.
         //
-        //For looping chains, the boundary node is both the first and the last child, and has one handle
-        //for each orientation. Going right from the last child gives that handle, and going right from it
-        //again goes on around the chain, so a walk that should stop at the end must compare handles.
+        //For looping chains, you can't walk out of the chain; you go around the loop instead.
         //
         //The next handle will be pointing in the direction that we just moved.
         net_handle_t get_next_child(const net_handle_t& net_handle, bool go_left) const;

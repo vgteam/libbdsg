@@ -670,19 +670,18 @@ bool SnarlDistanceIndex::for_each_child_impl(const net_handle_t& traversal, cons
         ChainRecord chain_record(traversal, &snarl_tree_records);
         connectivity_t connectivity = get_connectivity(traversal);
         if (connectivity == START_END) {
-            // ChainRecord visits the children from the chain's start to its
+            // A start-to-end chain visits the children from the chain's start to its
             // end, oriented forward along the chain.
             return chain_record.for_each_child(iteratee);
         }
         if (connectivity != END_START) {
-            // The SnarlDecomposition interface wants each child of any other
-            // traversal start-to-end.
+            // A chain in reversing or tip-to-tip orientations, or anything other than a chain, shows all the children start-to-end in arbitrary order.
             return chain_record.for_each_child([&](const net_handle_t& child) {
                 return iteratee(get_net_handle_from_values(get_record_offset(child), START_END,
                                                            get_handle_type(child), get_node_record_offset(child)));
             });
         }
-        // An end-to-start traversal visits the children in reverse order, each
+        // A chain in end-to-start orientation visits the children in reverse order, each
         // flipped, so collect them first.
         std::vector<net_handle_t> children;
         chain_record.for_each_child([&children](const net_handle_t& child) {
@@ -692,7 +691,7 @@ bool SnarlDistanceIndex::for_each_child_impl(const net_handle_t& traversal, cons
         if (children.empty()) {
             return true;
         }
-        // In a looping chain the first child is both bounds, so it comes first.
+        // In a looping chain the first child is both bounds, so it comes first even in end-to-start order
         bool looping = is_looping_chain(traversal);
         if (looping && !iteratee(flip(children.front()))) {
             return false;
@@ -755,10 +754,8 @@ bool SnarlDistanceIndex::follow_net_edges_impl(const net_handle_t& here, const h
         return true;
     }
 
-    // The code below names each element the walk enters with a start-to-end
-    // or end-to-start traversal of it. Only that traversal's start endpoint
-    // matters: it is where the walk arrives. We use this function to
-    // enumerate all the actually possible traversals that start there.
+    // We use this function to enumerate all the actually possible traversals that start at some endpoint of a child.
+    // We (ab)use a net_handle_t to represent both the child and the endpoint to start at; we ignore where the handle's traversal type is supposed to end.
     const std::function<bool(const net_handle_t&)> visit_reachable_traversals = [&](const net_handle_t& entered) {
         if (is_node(entered) || is_sentinel(entered) || is_trivial_chain(entered)) {
             // These always have just straight-through traversals
