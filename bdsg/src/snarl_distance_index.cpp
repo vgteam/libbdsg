@@ -6515,9 +6515,6 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
                                     // The tip connectivity flags come from the
                                     // temporary snarl record, after the children
                                     // are added.
-                                    // TODO: The temporary index works them out
-                                    // from distances, which an oversized snarl
-                                    // does not have.
                                 } else {
                                     // Store individual distance entries.
                                     for (const auto& it : temp_snarl_record.distances) {
