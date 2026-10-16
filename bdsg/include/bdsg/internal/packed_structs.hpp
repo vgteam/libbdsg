@@ -32,6 +32,7 @@ inline void repack(IntVector& target, size_t new_width, size_t new_size);
 
 /**
  * Set every entry of an int vector from index begin to the end to 0.
+ * begin may be at most target.size().
  */
 template<typename IntVector>
 inline void zero_from(IntVector& target, size_t begin);
@@ -657,18 +658,12 @@ inline void repack(IntVector& target, size_t new_width, size_t new_size) {
 
 template<>
 inline void repack<sdsl::int_vector<>>(sdsl::int_vector<>& target, size_t new_width, size_t new_size) {
+    // Take some shortcuts when possible
     if (new_width == target.width()) {
-        // Only the capacity is changing.  resize() reallocs and keeps the data, which is a memcpy
-        // at worst, where the loop below reads and writes every element through the bit-packed
-        // accessors.  PackedVector grows by 1.25x, so it lands here several times per element
-        // over the life of a vector.  New entries are not zeroed; PackedVector::resize does that.
         target.resize(new_size);
         return;
     }
     if (new_width > target.width()) {
-        // Widening in place works on raw words, where the copy below goes through a proxy object
-        // per element.  A PagedVector page starts 1 bit wide and widens several times, so this
-        // runs a few times for every page ever created.
         sdsl::util::expand_width(target, new_width);
         if (new_size != target.size()) {
             target.resize(new_size);
@@ -695,9 +690,7 @@ inline void zero_from(IntVector& target, size_t begin) {
 
 template<>
 inline void zero_from<sdsl::int_vector<>>(sdsl::int_vector<>& target, size_t begin) {
-    // A word at a time rather than through the per-element accessor, which every new PagedVector
-    // page would otherwise pay for all 256 of its entries.  Bits past the last entry are padding,
-    // so clearing them too is harmless.
+    // Clear whole words instead of going through the element accessor. It's OK to also clear the trailing bits in the last word that aren't used in any entries.
     uint64_t* data = target.data();
     size_t begin_bit = begin * target.width();
     size_t end_word = (target.bit_size() + 63) / 64;
@@ -763,10 +756,17 @@ inline void PackedVector<Backend>::resize(const size_t& new_size) {
         }
     }
     else if (new_size > vec.size()) {
-        size_t old_capacity = vec.size();
         size_t new_capacity = std::max<size_t>(size_t(vec.size() * factor) + 1, new_size);
         reserve(new_capacity);
-        zero_from(vec, old_capacity);
+        // We need to zero from filled on up, because the memory there might contain old entries that were resized away.
+        zero_from(vec, filled);
+    }
+    else {
+        // Zero the entries being exposed. They may hold values from before a shrink, or
+        // whatever reserve() left there.
+        for (size_t i = filled; i < new_size; ++i) {
+            vec[i] = 0;
+        }
     }
     filled = new_size;
 }

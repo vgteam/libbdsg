@@ -561,6 +561,13 @@ public:
 
 protected:
     ///Internal implementation for for_each_child.
+    ///
+    ///A looping chain lists its boundary node once, as its first child, whichever way the chain is
+    ///traversed. The SnarlDecomposition interface does not say where a looping chain's listing starts,
+    ///so an end-to-start traversal also starts at the boundary node, and then lists the other
+    ///children from the last to the second.
+    ///
+    ///TODO: This is weird, but alternatives (not starting a reverse listing at a boundary?) seemed weirder. We should think through what we really want for looping chains in the interface.
     bool for_each_child_impl(const net_handle_t& traversal, const std::function<bool(const net_handle_t&)>& iteratee) const;
 
     ///Internal implementation for for_each_traversal.
@@ -1663,8 +1670,7 @@ private:
         //
         //return the same net_handle_t if this is trying to walk out the end of the chain.
         //
-        //For looping chains, this one has to know whether the boundary node is representing the start or end.
-        //This means that you only see the boundary node as the start or the end.
+        //For looping chains, you can't walk out of the chain; you go around the loop instead.
         //
         //The next handle will be pointing in the direction that we just moved.
         net_handle_t get_next_child(const net_handle_t& net_handle, bool go_left) const;
@@ -1857,6 +1863,12 @@ public:
             bool is_trivial;
             bool is_tip = false;
             bool loopable = true; //If this is a looping snarl, this is false if the last snarl is not start-end connected
+            //True if a walk entering at the start can end at a tip inside
+            bool start_tip_connected = false;
+            //True if a walk entering at the end can end at a tip inside
+            bool end_tip_connected = false;
+            //True if a walk starting at a tip inside can end at a tip inside
+            bool tip_tip_connected = false;
 
             vector<temp_record_ref_t> children; //All children, both nodes and snarls, in order
             //Distances for the chain, one entry per node
@@ -1923,6 +1935,12 @@ public:
              */
             bool is_regular = false;
             bool is_tip = false;
+            //True if a walk entering at the start can end at a tip inside
+            bool start_tip_connected = false;
+            //True if a walk entering at the end can end at a tip inside
+            bool end_tip_connected = false;
+            //True if a walk starting at a tip inside can end at a tip inside
+            bool tip_tip_connected = false;
             bool is_root_snarl = false;
             bool include_distances = true;
             vector<temp_record_ref_t> children; //All children, nodes and chains, in arbitrary order
