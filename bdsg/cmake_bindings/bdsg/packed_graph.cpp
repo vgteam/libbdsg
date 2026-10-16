@@ -1,4 +1,3 @@
-#include <__ostream/basic_ostream.h>
 #include <bdsg/internal/base_packed_graph.hpp>
 #include <bdsg/internal/graph_proxy_handle_graph_fragment.classfragment>
 #include <bdsg/internal/graph_proxy_mutable_path_deletable_handle_graph_fragment.classfragment>
@@ -11,11 +10,12 @@
 #include <handlegraph/types.hpp>
 #include <ios>
 #include <istream>
+#include <iterator>
 #include <memory>
+#include <ostream>
 #include <sstream> // __str__
 #include <streambuf>
 #include <string>
-#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>

@@ -1,4 +1,5 @@
 #include <handlegraph/types.hpp>
+#include <iterator>
 #include <memory>
 #include <sstream> // __str__
 #include <stl_binders.hpp>
