@@ -5054,7 +5054,7 @@ void test_hub_labeling() {
       cerr << source(e, bg) << " -> " << target(e, bg) << endl;
     });
 
-    make_contraction_hierarchy(bg);
+    HubOrder order = contraction_hierarchy_order(bg);
     // cerr << " - made contraction hierarchy" << endl;
 
     vector<vector<HubRecord>> labels_fwd;
@@ -5084,7 +5084,7 @@ void test_hub_labeling() {
     }
     cerr << endl;  */
 
-    create_labels(labels_fwd, labels_back, bg);
+    create_labels(labels_fwd, labels_back, bg, order);
 
     // linearization
     return pack_labels(labels_fwd, labels_back);

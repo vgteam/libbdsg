@@ -1,5 +1,6 @@
 /*
-Hub labeling with contraction hierarchy node ordering.
+Hub labeling. Producing the hub ordering (e.g. by contraction hierarchy) is a
+separate stage from building labels, which works from any HubOrder.
 */
 #include "bdsg/ch.hpp" // BINDER_IGNORE because ch.hpp is C++20 + Boost and is not bound
 #include <queue>
@@ -37,8 +38,6 @@ std::ostream& operator<<(std::ostream& out, const CHOverlay& ov) {
               << " level=" << np.level
               << " arc_cover=" << np.arc_cover
               << " contracted=" << (np.contracted ? "true" : "false")
-              // Skip new_id since it is not always initialized; it's only
-              // initialized when make_contraction_hierarchy is run.
               << std::endl;
   }
   out << "--- Edges ---";
@@ -550,11 +549,14 @@ void contract(CHOverlay::vertex_descriptor nid, ContractedGraph& ch, CHOverlay& 
   ov[nid].contracted = true;
 } 
 
-/** Builds the contraction hierarchy and assigns the hub ordering.
+/** Builds the contraction hierarchy and returns the resulting hub ordering.
  * kinda does the staggered hop limit idea from https://www.microsoft.com/en-us/research/wp-content/uploads/2011/05/hl-sea.pdf
  * but simpler (one hop limit for initial round(s), a higher one for most of the ones after those)
  */
-void make_contraction_hierarchy(CHOverlay& ov) {
+HubOrder contraction_hierarchy_order(CHOverlay& ov) {
+  // Nodes contracted first are the least important, so they get the last ranks.
+  HubOrder order(num_vertices(ov));
+
 #ifdef debug_create
   cerr << "starting degree: " << (double)num_edges(ov)/num_vertices(ov) << endl;
 #endif
@@ -630,7 +632,7 @@ void make_contraction_hierarchy(CHOverlay& ov) {
      
       if (ov[i].contracted) { continue; }
       if ((!skip[i])) {
-        ov[i].new_id = num_vertices(ov)-1-num_contractions;
+        order[num_vertices(ov)-1-num_contractions] = i;
         contract(i, contracted_g, ov, node_dists, skip, 250);
         skip[i] = true;
         num_contractions += 1;
@@ -701,7 +703,7 @@ void make_contraction_hierarchy(CHOverlay& ov) {
 #endif
     
    
-    ov[node].new_id = num_vertices(ov)-1-num_contractions;
+    order[num_vertices(ov)-1-num_contractions] = node;
     contract(node, contracted_g, ov, node_dists, skip, hop_limit); num_contractions += 1;
   }
   
@@ -712,12 +714,14 @@ void make_contraction_hierarchy(CHOverlay& ov) {
     //preparing for next pop
     pop_heap(queue_objs.begin(), queue_objs.end(), greater<tuple<int, CHOverlay::vertex_descriptor>>());
     
-    ov[node].new_id = num_vertices(ov)-1-num_contractions;
+    order[num_vertices(ov)-1-num_contractions] = node;
     num_contractions += 1;
   }
 
-  auto ori_filter = [&](CHOverlay::edge_descriptor eid) { return !(ov[eid].ori); }; 
+  auto ori_filter = [&](CHOverlay::edge_descriptor eid) { return !(ov[eid].ori); };
   remove_edge_if(ori_filter, ov);
+
+  return order;
 }
 
 DIST_UINT binary_intersection_ch(vector<HubRecord>& v1, vector<HubRecord>& v2) {
@@ -746,7 +750,7 @@ DIST_UINT binary_intersection_ch(vector<HubRecord>& v1, vector<HubRecord>& v2) {
  * ch.hpp. The check_dist comparison prunes branches whose distance the
  * existing labels already cover, and node_dists is left reset to INF_INT.
  */
-void build_backward_labels(int node, CHOverlay& ov, vector<DIST_UINT>& node_dists, vector<vector<HubRecord>>& labels, vector<vector<HubRecord>>& labels_back) {
+void build_backward_labels(int node, NodeId hub_rank, const CHOverlay& ov, vector<DIST_UINT>& node_dists, vector<vector<HubRecord>>& labels, vector<vector<HubRecord>>& labels_back) {
   auto in_node = node;
 
   std::priority_queue<tuple<DIST_UINT, int>, vector<tuple<DIST_UINT, int>>, greater<tuple<DIST_UINT, int>>> q;
@@ -769,7 +773,7 @@ void build_backward_labels(int node, CHOverlay& ov, vector<DIST_UINT>& node_dist
     DIST_UINT check_dist = binary_intersection_ch(labels_back[cur_node], labels[node]);
     
     if (check_dist <= cur_dist) {continue;}
-    labels_back[cur_node].emplace_back(ov[node].new_id, cur_dist);
+    labels_back[cur_node].emplace_back(hub_rank, cur_dist);
 
     
     for (auto edge : boost::make_iterator_range(out_edges(cur_node, ov))) { 
@@ -796,12 +800,12 @@ void build_backward_labels(int node, CHOverlay& ov, vector<DIST_UINT>& node_dist
  * comparison prunes branches already covered, and node_dists is left reset to
  * INF_INT.
  */
-void build_forward_labels(int node, CHOverlay& ov, vector<DIST_UINT>& node_dists, vector<vector<HubRecord>>& labels, vector<vector<HubRecord>>& labels_back) {
+void build_forward_labels(int node, NodeId hub_rank, const CHOverlay& ov, vector<DIST_UINT>& node_dists, vector<vector<HubRecord>>& labels, vector<vector<HubRecord>>& labels_back) {
   auto in_node = node;
-  labels[node].emplace_back(ov[node].new_id, 0);
+  labels[node].emplace_back(hub_rank, 0);
   node_dists[node] = 0;
 
-  vector<tuple<DIST_UINT, CHOverlay::vertex_descriptor>> q; if (ov[node].new_id < 100) { q.reserve(num_vertices(ov)/2); } 
+  vector<tuple<DIST_UINT, CHOverlay::vertex_descriptor>> q; if (hub_rank < 100) { q.reserve(num_vertices(ov)/2); }
   
   for (auto edge : boost::make_iterator_range(in_edges(in_node, ov))) {
     auto s = source(edge, ov);
@@ -812,7 +816,7 @@ void build_forward_labels(int node, CHOverlay& ov, vector<DIST_UINT>& node_dists
   }
   make_heap(q.begin(), q.end(), greater<tuple<DIST_UINT, CHOverlay::vertex_descriptor>>());
   
-  vector<int> to_reset; if (ov[node].new_id < 100) { to_reset.reserve(num_vertices(ov)/2); } 
+  vector<int> to_reset; if (hub_rank < 100) { to_reset.reserve(num_vertices(ov)/2); }
   while ((!q.empty())) {
     pop_heap(q.begin(), q.end(), greater<tuple<DIST_UINT, CHOverlay::vertex_descriptor>>());       
     auto [cur_dist, cur_node] = q.back(); q.pop_back();  
@@ -824,7 +828,7 @@ void build_forward_labels(int node, CHOverlay& ov, vector<DIST_UINT>& node_dists
 
     DIST_UINT check_dist = binary_intersection_ch(labels[cur_node], labels_back[node]);
     if (check_dist <= cur_dist) {continue;} 
-    labels[cur_node].emplace_back(ov[node].new_id, cur_dist+ov[node].seqlen);
+    labels[cur_node].emplace_back(hub_rank, cur_dist+ov[node].seqlen);
     
     for (auto edge : boost::make_iterator_range(in_edges(cur_node, ov))) { 
       auto t = source(edge, ov);  
@@ -848,28 +852,25 @@ void build_forward_labels(int node, CHOverlay& ov, vector<DIST_UINT>& node_dists
 } 
 
 /** Writes labels into two std::vector<vector<HubRecord>
- * Also calls label building functions
+ * Also calls label building functions, visiting vertices in hub order
  */
-void create_labels(vector<vector<HubRecord>>& labels, vector<vector<HubRecord>>& labels_back, CHOverlay& ov) { 
+void create_labels(vector<vector<HubRecord>>& labels, vector<vector<HubRecord>>& labels_back, const CHOverlay& ov, const HubOrder& order) {
 #ifdef debug_create
   cerr << "start create labels" << endl;
 #endif
+  assert(order.size() == num_vertices(ov));
   vector<DIST_UINT> node_dists(num_vertices(ov), INF_INT);
-  vector<int> v; v.resize(num_vertices(ov));
-  for (auto i = 0u; i < num_vertices(ov); i++) {
-    v[ov[i].new_id] = i;
-  } 
 
-  for (auto j = 0u; j < num_vertices(ov); j++) { 
-    
+  for (auto j = 0u; j < order.size(); j++) {
+
 #ifdef debug_create
-    cerr << j << "th node, " << v[j] << endl;
+    cerr << j << "th node, " << order[j] << endl;
 #endif
 
-    build_forward_labels(v[j], ov, node_dists, labels, labels_back);
+    build_forward_labels(order[j], j, ov, node_dists, labels, labels_back);
 
-    build_backward_labels(v[j], ov, node_dists, labels, labels_back);
-  } 
+    build_backward_labels(order[j], j, ov, node_dists, labels, labels_back);
+  }
 }
 
 vector<size_t> pack_labels(const vector<vector<HubRecord>>& labels, const vector<vector<HubRecord>>& labels_back) {

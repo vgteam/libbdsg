@@ -1,5 +1,6 @@
 /*
-file for the contraction hierarchy method
+file for hub labeling: a hub ordering stage (e.g. contraction hierarchies)
+followed by a separate label building stage that takes any ordering
 */
 #ifndef BDSG_CH_HPP_INCLUDED
 #define BDSG_CH_HPP_INCLUDED
@@ -111,8 +112,6 @@ typedef struct NodeProp {
   NODE_UINT level = 0;
   NODE_UINT arc_cover = 1;
   bool contracted = false;
-  // This is left uninitialized until make_contraction_hierarchy() is run.
-  NODE_UINT new_id;
 } NodeProp;
 
 typedef struct EdgeProp {
@@ -128,6 +127,10 @@ typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::bidirectionalS,
 typedef boost::filtered_graph<CHOverlay,
                               function<bool(CHOverlay::edge_descriptor)>>
     ContractedGraph;
+
+/// A hub ordering over the vertices of a CHOverlay: element i is the vertex
+/// given hub rank i (rank 0 is the most important hub, processed first).
+typedef vector<NODE_UINT> HubOrder;
 
 /// Allow outputting CHOverlay objects. Output text does not end with a
 /// newline.
@@ -172,11 +175,15 @@ void contract(CHOverlay::vertex_descriptor nid, ContractedGraph &ch,
               vector<bool> &shouldnt_contract, int hop_limit);
 
 /**
- * Find the contraction hierarchy order for the graph.
+ * Find a hub ordering for the graph using contraction hierarchies.
  *
- * Initializes the new_id field of each NodeProb in the graph.
+ * Uses the CH scratch fields of the overlay (node contracted, level,
+ * arc_cover, max_out, contracted_neighbors; edge contracted and arc_cover).
+ * On return all shortcut edges have been removed again. Original edge weights
+ * may have been lowered, but only to true shortest distances, so the overlay
+ * is still valid input for create_labels().
  */
-void make_contraction_hierarchy(CHOverlay &ov);
+HubOrder contraction_hierarchy_order(CHOverlay &ov);
 
 template <typename ItrType>
 ItrType get_dist_itr(ItrType start_itr, ItrType hub_itr) {
@@ -329,9 +336,8 @@ DIST_UINT hhl_query(ItrType start_itr, size_t rank1, size_t rank2) {
 }
 
 /**
- * Run a pruned forward Dijkstra from node over the contraction hierarchy ov,
- * contributing node (by its CH rank, ov[node].new_id) as a hub to the backward
- * (in-) labels of the nodes it can reach.
+ * Run a pruned forward Dijkstra from node over ov, contributing node (as hub
+ * hub_rank) to the backward (in-) labels of the nodes it can reach.
  *
  * For each node reachable from node along forward (out-) edges, the candidate
  * distance is compared against what the already-built labels can already
@@ -344,15 +350,14 @@ DIST_UINT hhl_query(ItrType start_itr, size_t rank1, size_t rank2) {
  * is left reset to INF_INT on return. Paired with build_forward_labels() by
  * create_labels().
  */
-void build_backward_labels(int node, CHOverlay &ov,
+void build_backward_labels(int node, NodeId hub_rank, const CHOverlay &ov,
                            vector<DIST_UINT> &node_dists,
                            vector<vector<HubRecord>> &labels,
                            vector<vector<HubRecord>> &labels_back);
 
 /**
- * Run a pruned backward Dijkstra from node over the contraction hierarchy graph ov,
- * contributing node (by its CH rank, ov[node].new_id) as a hub to the forward
- * (out-) labels of the nodes that can reach it.
+ * Run a pruned backward Dijkstra from node over ov, contributing node (as hub
+ * hub_rank) to the forward (out-) labels of the nodes that can reach it.
  *
  * Seeds labels[node] with node itself at distance 0, then explores backward
  * (in-) edges. For each node from which node is reachable, the candidate
@@ -364,16 +369,19 @@ void build_backward_labels(int node, CHOverlay &ov,
  * node_dists is per-vertex scratch space; it is left reset to INF_INT on
  * return. Paired with build_backward_labels() by create_labels().
  */
-void build_forward_labels(int node, CHOverlay &ov,
+void build_forward_labels(int node, NodeId hub_rank, const CHOverlay &ov,
                           vector<DIST_UINT> &node_dists,
                           vector<vector<HubRecord>> &labels,
                           vector<vector<HubRecord>> &labels_back);
 
 /** Builds labels and write them into two std::vector<vector<HubRecord>
- * Calls the build_<direction>_labels functions
+ * Processes vertices in the given hub order (which may come from any ordering
+ * algorithm, e.g. contraction_hierarchy_order()), calling the
+ * build_<direction>_labels functions for each one.
  */
 void create_labels(vector<vector<HubRecord>> &labels,
-                   vector<vector<HubRecord>> &labels_rev, CHOverlay &ov);
+                   vector<vector<HubRecord>> &labels_rev, const CHOverlay &ov,
+                   const HubOrder &order);
 
 /**
  * Puts hub labels in a flat vector form
