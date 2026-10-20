@@ -4,6 +4,9 @@ cmake_minimum_required(VERSION 3.10)
 
 include(FindPkgConfig)
 
+# export compile commands
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 # Make MACOSX_RPATH on explicitly, so non-installed libraries use @rpath in install name
 set(CMAKE_MACOSX_RPATH ON)
 
