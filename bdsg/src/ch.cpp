@@ -1,8 +1,14 @@
 /*
 Hub labeling. Producing the hub ordering (e.g. by contraction hierarchy) is a
-separate stage from building labels, which works from any HubOrder.
+separate stage from building labels, which works from any HubOrder. SHP
+ordering (shp.hpp) builds its own labels while choosing hubs, but those have a
+self entry on both sides, so shp_hub_order() labels again with create_labels()
+to keep the stored format, where a node queried against itself gives its
+shortest cycle.
 */
 #include "bdsg/ch.hpp" // BINDER_IGNORE because ch.hpp is C++20 + Boost and is not bound
+#include "bdsg/shp.hpp" // BINDER_IGNORE because shp.hpp is C++20 + Boost and is not bound
+#include <boost/property_map/function_property_map.hpp> // BINDER_IGNORE
 #include <queue>
 #include <cstdint>
 
@@ -758,9 +764,12 @@ void build_backward_labels(int node, NodeId hub_rank, const CHOverlay& ov, vecto
   for (auto edge : boost::make_iterator_range(out_edges(in_node, ov))) { 
     auto t = target(edge, ov);  
     
-    if (!ov[edge].ori) { return; } 
-    q.emplace(ov[edge].weight, t); 
-    node_dists[t] = ov[edge].weight;
+    if (!ov[edge].ori) { continue; }
+    // There can be parallel edges, so keep the shortest.
+    if (ov[edge].weight < node_dists[t]) {
+      q.emplace(ov[edge].weight, t);
+      node_dists[t] = ov[edge].weight;
+    }
   }
 
   vector<int> to_reset;
@@ -779,7 +788,7 @@ void build_backward_labels(int node, NodeId hub_rank, const CHOverlay& ov, vecto
     for (auto edge : boost::make_iterator_range(out_edges(cur_node, ov))) { 
       auto t = target(edge, ov);  
       
-      if (!ov[edge].ori) { return; } 
+      if (!ov[edge].ori) { continue; } 
       DIST_UINT new_dist = ov[edge].weight + cur_dist + ov[cur_node].seqlen;   
       if (new_dist < node_dists[t]) {
         q.emplace(new_dist, t); 
@@ -810,9 +819,13 @@ void build_forward_labels(int node, NodeId hub_rank, const CHOverlay& ov, vector
   for (auto edge : boost::make_iterator_range(in_edges(in_node, ov))) {
     auto s = source(edge, ov);
     
-    if (!ov[edge].ori) { return; } 
-    q.emplace_back(ov[edge].weight, s); 
-    node_dists[s] = ov[edge].weight;
+    if (!ov[edge].ori) { continue; }
+    // There can be parallel edges, so keep the shortest. This also stops a
+    // self-loop from overwriting node's own distance of 0.
+    if (ov[edge].weight < node_dists[s]) {
+      q.emplace_back(ov[edge].weight, s);
+      node_dists[s] = ov[edge].weight;
+    }
   }
   make_heap(q.begin(), q.end(), greater<tuple<DIST_UINT, CHOverlay::vertex_descriptor>>());
   
@@ -833,7 +846,7 @@ void build_forward_labels(int node, NodeId hub_rank, const CHOverlay& ov, vector
     for (auto edge : boost::make_iterator_range(in_edges(cur_node, ov))) { 
       auto t = source(edge, ov);  
       
-      if (!ov[edge].ori) { return; } 
+      if (!ov[edge].ori) { continue; } 
       DIST_UINT new_dist = ov[edge].weight + cur_dist + ov[cur_node].seqlen;   
       if (new_dist < node_dists[t]) {
         q.emplace_back(new_dist, t); 
@@ -871,6 +884,28 @@ void create_labels(vector<vector<HubRecord>>& labels, vector<vector<HubRecord>>&
 
     build_backward_labels(order[j], j, ov, node_dists, labels, labels_back);
   }
+}
+
+HubOrder shp_hub_order(const CHOverlay& ov, vector<vector<HubRecord>>& labels, vector<vector<HubRecord>>& labels_back, uint64_t seed) {
+  // Our distances count the seqlen of the vertices strictly between the two
+  // ends. SHP only knows edge weights, so charge each vertex's seqlen on the
+  // way into it. That changes each distance only by the seqlen of its
+  // destination, so shortest paths, and SHP's choices, come out the same.
+  auto weights = boost::make_function_property_map<CHOverlay::edge_descriptor, DIST_UINT>(
+    [&ov](const CHOverlay::edge_descriptor& e) -> DIST_UINT {
+      return ov[e].weight + ov[target(e, ov)].seqlen;
+    });
+  auto shp = shp::shp_order(ov, weights, seed);
+
+#ifdef debug_create
+  cerr << "SHP average label size: " << shp.average_label_size() << endl;
+#endif
+
+  HubOrder order(shp.order.begin(), shp.order.end());
+  labels.assign(num_vertices(ov), {});
+  labels_back.assign(num_vertices(ov), {});
+  create_labels(labels, labels_back, ov, order);
+  return order;
 }
 
 vector<size_t> pack_labels(const vector<vector<HubRecord>>& labels, const vector<vector<HubRecord>>& labels_back) {

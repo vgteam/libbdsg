@@ -384,6 +384,16 @@ void create_labels(vector<vector<HubRecord>> &labels,
                    const HubOrder &order);
 
 /**
+ * Find a hub ordering for the graph with SHP (significant-path based hub
+ * pushing, see shp.hpp), and build labels for it into labels and labels_back
+ * as create_labels() would. Ties in the initial degree ordering are broken
+ * randomly using seed. Does not modify ov.
+ */
+HubOrder shp_hub_order(const CHOverlay &ov, vector<vector<HubRecord>> &labels,
+                       vector<vector<HubRecord>> &labels_back,
+                       uint64_t seed = 0);
+
+/**
  * Puts hub labels in a flat vector form
  *
  * Structure:
