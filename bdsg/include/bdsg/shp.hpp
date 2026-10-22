@@ -20,6 +20,7 @@ graph access.
 #include <boost/graph/graph_traits.hpp> // BINDER_IGNORE
 #include <boost/graph/properties.hpp> // BINDER_IGNORE
 #include <boost/property_map/property_map.hpp> // BINDER_IGNORE
+#include <boost/range/iterator_range.hpp> // BINDER_IGNORE
 
 #include <algorithm>
 #include <cassert>
@@ -58,6 +59,29 @@ template <typename Weight> Weight saturating_add(Weight a, Weight b) {
 }
 
 /**
+ * Options for shp_order().
+ *
+ * By default SHP ranks vertices by the paper's directed degree,
+ * indeg * outdeg. Alternatively it can rank them by how many descendants they
+ * have in shortest path trees from a sample of random roots, as in Delling et
+ * al., "Robust Exact Distance Queries on Massive Networks" (2014). That costs
+ * 2 * samples full Dijkstra searches up front, but can tell vertices apart in
+ * graphs where almost every vertex has the same degree.
+ */
+struct ShpOptions {
+  enum class Score { Degree, SampledTrees };
+  /// Score used to pick the first hub and to sort the fallback list.
+  Score initial_score = Score::Degree;
+  /// Score used to pick a hub from a significant path.
+  Score path_score = Score::Degree;
+  /// Number of random roots for sampled trees, in each direction. All
+  /// vertices are used as roots if there are no more than this many.
+  size_t samples = 32;
+  /// Seed for root sampling and for breaking ties in the fallback list.
+  std::uint64_t seed = 0;
+};
+
+/**
  * Hub order and hub labels produced by shp_order() or pruned_hub_labels().
  *
  * All per-vertex vectors are indexed by the graph's vertex_index. Labels
@@ -77,6 +101,9 @@ template <class Graph, class WeightMap> struct ShpResult {
   std::vector<Label> L_out;
   /// L_in[v] holds (rank(h), dist(h->v)). Includes (rank(v), 0).
   std::vector<Label> L_in;
+  /// Number of hubs after the first that SHP took from the fallback list
+  /// because the significant paths were too short to pick from.
+  size_t fallback_picks = 0;
 
   /// Average label size, (sum |L_out| + sum |L_in|) / (2n).
   double average_label_size() const {
@@ -152,11 +179,26 @@ public:
   }
 
   /// Run SHP: choose hubs by significant paths, pushing each one.
-  Result run_shp(std::uint64_t seed) {
+  Result run_shp(const ShpOptions &options) {
     if (n == 0) {
       return std::move(result);
     }
-    make_fallback_list(seed);
+    std::mt19937_64 rng(options.seed);
+    using Score = ShpOptions::Score;
+    if (options.initial_score == Score::SampledTrees ||
+        options.path_score == Score::SampledTrees) {
+      sample_trees(options.samples, rng);
+    }
+    if (options.path_score == Score::SampledTrees) {
+      // Descendants in backward trees stand in for in-degree (both measure
+      // the side the forward tree comes in from) and descendants in forward
+      // trees for out-degree.
+      pick_score = &sampled;
+      forward_onedeg = &bwd_desc;
+      backward_onedeg = &fwd_desc;
+    }
+    make_fallback_list(
+        options.initial_score == Score::SampledTrees ? sampled : deg, rng);
     size_t h = next_fallback();
     SignificantPath forward_path, backward_path;
     for (std::uint32_t r = 0; r < n; r++) {
@@ -219,7 +261,20 @@ private:
   // Dense distances by hub rank from the root's opposite label.
   std::vector<Weight> tmp;
 
-  // Degree-sorted fallback list and a pointer into it.
+  // Descendants of each vertex summed over sampled forward and backward
+  // shortest path trees, and their total. Only filled in when used.
+  std::vector<std::uint64_t> fwd_desc;
+  std::vector<std::uint64_t> bwd_desc;
+  std::vector<std::uint64_t> sampled;
+
+  // Scores used to pick a hub from a significant path: the overall score for
+  // complex networks, and one-sided scores for road-like forward and backward
+  // paths.
+  const std::vector<std::uint64_t> *pick_score = &deg;
+  const std::vector<std::uint64_t> *forward_onedeg = &indeg;
+  const std::vector<std::uint64_t> *backward_onedeg = &outdeg;
+
+  // Score-sorted fallback list and a pointer into it.
   std::vector<size_t> fallback;
   size_t fallback_pos = 0;
 
@@ -387,16 +442,73 @@ private:
     }
   }
 
-  /// Sort vertices by deg descending, with ties broken by a seeded shuffle.
-  void make_fallback_list(std::uint64_t seed) {
+  /// Unpruned Dijkstra from root, adding each vertex's number of descendants
+  /// in the resulting shortest path tree to desc.
+  void count_descendants(size_t root, Direction dir,
+                         std::vector<std::uint64_t> &desc) {
+    reset();
+    dist[root] = 0;
+    touched.push_back(root);
+    heap_push(0, root);
+    while (!heap.empty()) {
+      std::pop_heap(heap.begin(), heap.end(), std::greater<>());
+      auto [d, v] = heap.back();
+      heap.pop_back();
+      if (state[v] != UNSEEN || d > dist[v]) {
+        continue;
+      }
+      settle_order.push_back(v);
+      state[v] = LABELED;
+      // No vertex is used yet, so relax() follows every edge.
+      if (dir == Direction::Forward) {
+        for (auto e : boost::make_iterator_range(out_edges(verts[v], g))) {
+          relax(v, d, get(index, target(e, g)), get(w, e));
+        }
+      } else {
+        for (auto e : boost::make_iterator_range(in_edges(verts[v], g))) {
+          relax(v, d, get(index, source(e, g)), get(w, e));
+        }
+      }
+    }
+    // Subtree sizes, the same way as compute_coverage().
+    compute_coverage(root);
+    for (size_t v : settle_order) {
+      desc[v] += cov[v] - 1;
+    }
+  }
+
+  /// Score vertices by descendants in shortest path trees from up to samples
+  /// random roots, in each direction.
+  void sample_trees(size_t samples, std::mt19937_64 &rng) {
+    fwd_desc.assign(n, 0);
+    bwd_desc.assign(n, 0);
+    std::vector<size_t> roots(n);
+    for (size_t i = 0; i < n; i++) {
+      roots[i] = i;
+    }
+    std::shuffle(roots.begin(), roots.end(), rng);
+    roots.resize(std::min(samples, n));
+    for (size_t root : roots) {
+      count_descendants(root, Direction::Forward, fwd_desc);
+      count_descendants(root, Direction::Backward, bwd_desc);
+    }
+    reset();
+    sampled.resize(n);
+    for (size_t i = 0; i < n; i++) {
+      sampled[i] = fwd_desc[i] + bwd_desc[i];
+    }
+  }
+
+  /// Sort vertices by score descending, with ties broken by a seeded shuffle.
+  void make_fallback_list(const std::vector<std::uint64_t> &score,
+                          std::mt19937_64 &rng) {
     fallback.resize(n);
     for (size_t i = 0; i < n; i++) {
       fallback[i] = i;
     }
-    std::mt19937_64 rng(seed);
     std::shuffle(fallback.begin(), fallback.end(), rng);
     std::stable_sort(fallback.begin(), fallback.end(),
-                     [&](size_t a, size_t b) { return deg[a] > deg[b]; });
+                     [&](size_t a, size_t b) { return score[a] > score[b]; });
     fallback_pos = 0;
   }
 
@@ -409,6 +521,11 @@ private:
 
   /// Choose the next hub after pushing h, from the significant paths of its
   /// forward and backward trees.
+  ///
+  /// Choosing between the paths and between the road-like and complex
+  /// network rules always uses degree, since the road-like threshold is
+  /// calibrated for degree. Only the pick from the chosen path uses the
+  /// configured path score.
   size_t choose_next(size_t h, const SignificantPath &forward_path,
                      const SignificantPath &backward_path) {
     auto max_deg = [&](const SignificantPath &p) {
@@ -429,14 +546,15 @@ private:
       // Backward path, leaf first.
       path.assign(backward_path.verts.rbegin(), backward_path.verts.rend());
       path_cov.assign(backward_path.cov.rbegin(), backward_path.cov.rend());
-      onedeg = &outdeg;
+      onedeg = backward_onedeg;
     } else {
       path = forward_path.verts;
       path_cov = forward_path.cov;
-      onedeg = &indeg;
+      onedeg = forward_onedeg;
     }
 
     if (path.size() <= 2) {
+      result.fallback_picks++;
       return next_fallback();
     }
 
@@ -461,10 +579,12 @@ private:
       return path[best];
     }
 
-    // Complex network: pick the highest-degree vertex on the path.
+    // Complex network: pick the highest-scoring (by default, highest-degree)
+    // vertex on the path.
+    const std::vector<std::uint64_t> &score = *pick_score;
     size_t best = 0;
     for (size_t j = 1; j < path.size(); j++) {
-      if (deg[path[j]] > deg[path[best]]) {
+      if (score[path[j]] > score[path[best]]) {
         best = j;
       }
     }
@@ -480,13 +600,26 @@ private:
  *
  * g must model BidirectionalGraph and VertexListGraph and have a
  * vertex_index map. Weights must be non-negative. Self-loops are ignored in
- * searches, and parallel edges act as their minimum weight. Ties in the
- * initial degree ordering are broken by an RNG seeded with seed.
+ * searches, and parallel edges act as their minimum weight. See ShpOptions
+ * for how vertices are scored.
+ */
+template <class Graph, class WeightMap>
+ShpResult<Graph, WeightMap> shp_order(const Graph &g, WeightMap w,
+                                      const ShpOptions &options) {
+  return detail::HubPusher<Graph, WeightMap>(g, w).run_shp(options);
+}
+
+/**
+ * Compute an SHP hub order for g with edge weights w, scoring vertices by
+ * degree, with ties in the initial degree ordering broken by an RNG seeded
+ * with seed.
  */
 template <class Graph, class WeightMap>
 ShpResult<Graph, WeightMap> shp_order(const Graph &g, WeightMap w,
                                       std::uint64_t seed = 0) {
-  return detail::HubPusher<Graph, WeightMap>(g, w).run_shp(seed);
+  ShpOptions options;
+  options.seed = seed;
+  return shp_order(g, w, options);
 }
 
 /**

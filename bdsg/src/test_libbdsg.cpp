@@ -5606,6 +5606,26 @@ CHOverlay grid_test_overlay(size_t width, size_t height, uint64_t seed) {
   return ov;
 }
 
+/// The ways SHP can score vertices, with names, all using the given seed and
+/// number of samples.
+vector<pair<string, shp::ShpOptions>> shp_test_variants(uint64_t seed,
+                                                       size_t samples = 32) {
+  using Score = shp::ShpOptions::Score;
+  vector<pair<string, shp::ShpOptions>> variants;
+  for (auto [name, initial, path] :
+       {tuple{"degree", Score::Degree, Score::Degree},
+        tuple{"sampled initial", Score::SampledTrees, Score::Degree},
+        tuple{"sampled all", Score::SampledTrees, Score::SampledTrees}}) {
+    shp::ShpOptions options;
+    options.initial_score = initial;
+    options.path_score = path;
+    options.samples = samples;
+    options.seed = seed;
+    variants.emplace_back(name, options);
+  }
+  return variants;
+}
+
 void test_shp_ordering() {
   {
     // Permutation and exactness on random graphs, including zero-weight edges,
@@ -5616,27 +5636,32 @@ void test_shp_ordering() {
         for (uint32_t max_weight : {0, 3, 100}) {
           ShpTestGraph g = random_shp_test_graph(n, n * edges_per_vertex,
                                                  max_weight, seed);
-          auto result = shp::shp_order(g, get(boost::edge_weight, g), seed);
-          check_shp_result(g, result);
+          for (auto &[name, options] : shp_test_variants(seed)) {
+            auto result =
+                shp::shp_order(g, get(boost::edge_weight, g), options);
+            check_shp_result(g, result);
+          }
           seed++;
         }
       }
     }
   }
-  {
-    // Edge cases
+  // Edge cases, with more samples than vertices for the sampled variants.
+  for (auto &[name, options] : shp_test_variants(0, 1000)) {
     ShpTestGraph empty;
-    auto empty_result = shp::shp_order(empty, get(boost::edge_weight, empty));
+    auto empty_result =
+        shp::shp_order(empty, get(boost::edge_weight, empty), options);
     check_shp_result(empty, empty_result);
     assert(empty_result.average_label_size() == 0);
 
     ShpTestGraph single(1);
-    auto single_result = shp::shp_order(single, get(boost::edge_weight, single));
+    auto single_result =
+        shp::shp_order(single, get(boost::edge_weight, single), options);
     check_shp_result(single, single_result);
 
     ShpTestGraph no_edges(5);
     auto no_edges_result =
-        shp::shp_order(no_edges, get(boost::edge_weight, no_edges));
+        shp::shp_order(no_edges, get(boost::edge_weight, no_edges), options);
     check_shp_result(no_edges, no_edges_result);
     // Every vertex only has itself as a hub.
     assert(no_edges_result.average_label_size() == 1);
@@ -5645,17 +5670,22 @@ void test_shp_ordering() {
     for (size_t i = 0; i + 1 < 10; i++) {
       add_edge(i, i + 1, i % 3, path);
     }
-    auto path_result = shp::shp_order(path, get(boost::edge_weight, path));
+    auto path_result =
+        shp::shp_order(path, get(boost::edge_weight, path), options);
     check_shp_result(path, path_result);
   }
   {
-    // Fixed-order pushing gives back the same labels for the SHP order.
+    // Fixed-order pushing gives back the same labels for the SHP order, and
+    // the same options give the same order.
     ShpTestGraph g = random_shp_test_graph(300, 900, 20, 12345);
     auto weights = get(boost::edge_weight, g);
-    auto result = shp::shp_order(g, weights, 7);
-    auto fixed = shp::pruned_hub_labels(g, weights, result.order);
-    assert(fixed.L_out == result.L_out);
-    assert(fixed.L_in == result.L_in);
+    for (auto &[name, options] : shp_test_variants(7, 8)) {
+      auto result = shp::shp_order(g, weights, options);
+      auto fixed = shp::pruned_hub_labels(g, weights, result.order);
+      assert(fixed.L_out == result.L_out);
+      assert(fixed.L_in == result.L_in);
+      assert(shp::shp_order(g, weights, options).order == result.order);
+    }
   }
   {
     // On a bidirected grid, SHP labels should be much smaller than with a
@@ -5704,27 +5734,30 @@ void test_shp_ordering() {
       HashGraph hg = random_shp_test_hash_graph(nodes, nodes * 2, seed);
       CHOverlay ov = make_boost_graph(hg);
 
-      vector<vector<HubRecord>> labels, labels_back;
-      HubOrder order = shp_hub_order(ov, labels, labels_back, seed);
-      assert(order.size() == num_vertices(ov));
-      vector<size_t> packed = pack_labels(labels, labels_back);
-      check_packed_labels(ov, packed);
+      for (auto &[name, options] : shp_test_variants(seed, 8)) {
+        vector<vector<HubRecord>> labels, labels_back;
+        HubOrder order = shp_hub_order(ov, labels, labels_back, options);
+        assert(order.size() == num_vertices(ov));
+        vector<size_t> packed = pack_labels(labels, labels_back);
+        check_packed_labels(ov, packed);
 
-      // SHP's own labels, with the weights shp_hub_order() uses, should come
-      // from the same order and give the same distances between different
-      // vertices, once the destination's seqlen is taken back off.
-      auto own = shp::shp_order(ov, overlay_test_weights(ov), seed);
-      assert(HubOrder(own.order.begin(), own.order.end()) == order);
-      for (size_t s = 0; s < num_vertices(ov); s++) {
-        for (size_t t = 0; t < num_vertices(ov); t++) {
-          if (s == t) {
-            continue;
+        // SHP's own labels, with the weights shp_hub_order() uses, should
+        // come from the same order and give the same distances between
+        // different vertices, once the destination's seqlen is taken back
+        // off.
+        auto own = shp::shp_order(ov, overlay_test_weights(ov), options);
+        assert(HubOrder(own.order.begin(), own.order.end()) == order);
+        for (size_t s = 0; s < num_vertices(ov); s++) {
+          for (size_t t = 0; t < num_vertices(ov); t++) {
+            if (s == t) {
+              continue;
+            }
+            DIST_UINT own_dist = own.query(s, t);
+            DIST_UINT expected = own_dist == shp::infinity<DIST_UINT>()
+                                     ? INF_INT
+                                     : own_dist - ov[t].seqlen;
+            assert(hhl_query(packed.begin(), s, t) == expected);
           }
-          DIST_UINT own_dist = own.query(s, t);
-          DIST_UINT expected = own_dist == shp::infinity<DIST_UINT>()
-                                   ? INF_INT
-                                   : own_dist - ov[t].seqlen;
-          assert(hhl_query(packed.begin(), s, t) == expected);
         }
       }
 
@@ -5752,33 +5785,39 @@ void test_shp_ordering() {
       create_labels(ch_labels, ch_labels_back, ch_ov, ch_order);
       auto ch_end = clock::now();
 
-      vector<vector<HubRecord>> shp_labels, shp_labels_back;
-      auto shp_start = clock::now();
-      shp_hub_order(original, shp_labels, shp_labels_back);
-      auto shp_end = clock::now();
-
-      // SHP on its own, with the same weights the adapter uses, to see its
-      // symmetric labels.
-      auto own_start = clock::now();
-      auto own = shp::shp_order(original, overlay_test_weights(original));
-      auto own_end = clock::now();
-
       auto ms = [](auto d) {
         return std::chrono::duration<double, std::milli>(d).count();
       };
       cerr << name << " (" << num_vertices(original) << " vertices):" << endl
-           << "  CH:  " << ms(ch_end - ch_start) << " ms ("
+           << "  CH: " << ms(ch_end - ch_start) << " ms ("
            << ms(ch_ordered - ch_start) << " ordering), average label size "
-           << average_label_size(ch_labels, ch_labels_back) << endl
-           << "  SHP: " << ms(shp_end - shp_start)
-           << " ms, average label size "
-           << average_label_size(shp_labels, shp_labels_back) << endl
-           << "  SHP alone, symmetric labels: " << ms(own_end - own_start)
-           << " ms, average label size " << own.average_label_size() << endl;
-
-      // Both must be exact.
+           << average_label_size(ch_labels, ch_labels_back) << endl;
+      // CH must be exact.
       check_packed_labels(original, pack_labels(ch_labels, ch_labels_back));
-      check_packed_labels(original, pack_labels(shp_labels, shp_labels_back));
+
+      for (auto &[variant, options] : shp_test_variants(0)) {
+        vector<vector<HubRecord>> shp_labels, shp_labels_back;
+        auto shp_start = clock::now();
+        shp_hub_order(original, shp_labels, shp_labels_back, options);
+        auto shp_end = clock::now();
+
+        // SHP on its own, with the same weights the adapter uses, to see its
+        // symmetric labels and how often it fell back.
+        auto own_start = clock::now();
+        auto own =
+            shp::shp_order(original, overlay_test_weights(original), options);
+        auto own_end = clock::now();
+
+        cerr << "  SHP, " << variant << ": " << ms(shp_end - shp_start)
+             << " ms, average label size "
+             << average_label_size(shp_labels, shp_labels_back) << endl
+             << "    alone, symmetric labels: " << ms(own_end - own_start)
+             << " ms, average label size " << own.average_label_size()
+             << ", fallback picks " << own.fallback_picks << endl;
+
+        check_packed_labels(original,
+                            pack_labels(shp_labels, shp_labels_back));
+      }
     };
     compare("Grid 40x40", grid_test_overlay(40, 40, 5));
     compare("Pangenome-like graph",
