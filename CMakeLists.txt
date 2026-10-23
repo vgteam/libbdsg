@@ -320,6 +320,7 @@ add_library(bdsg_objs OBJECT
   ${bdsg_DIR}/src/utility.cpp
   ${bdsg_DIR}/src/vectorizable_overlays.cpp
   ${bdsg_DIR}/src/ch.cpp
+  ${bdsg_DIR}/src/hub_label_eval.cpp
   ${bdsg_DIR}/src/snarl_distance_index.cpp
   )
 
@@ -416,6 +417,12 @@ add_executable(test_libbdsg
 target_link_libraries(test_libbdsg libbdsg)
 set_target_properties(test_libbdsg PROPERTIES OUTPUT_NAME "test_libbdsg")
 set_target_properties(test_libbdsg PROPERTIES INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
+
+add_executable(hub_label_sandbox
+  ${bdsg_DIR}/src/hub_label_sandbox.cpp)
+target_link_libraries(hub_label_sandbox libbdsg)
+set_target_properties(hub_label_sandbox PROPERTIES OUTPUT_NAME "hub_label_sandbox")
+set_target_properties(hub_label_sandbox PROPERTIES INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
 
 if (BUILD_PYTHON_BINDINGS)
     # Build the Pythoin bindings

@@ -26,6 +26,7 @@
 
 #include "bdsg/ch.hpp" // BINDER_IGNORE because ch.hpp is C++20 + Boost and is not bound
 #include "bdsg/shp.hpp" // BINDER_IGNORE because shp.hpp is C++20 + Boost and is not bound
+#include "bdsg/hub_label_eval.hpp" // BINDER_IGNORE because hub_label_eval.hpp is C++20 + Boost and is not bound
 #include <boost/property_map/function_property_map.hpp> // BINDER_IGNORE
 #include "bdsg/hash_graph.hpp"
 #include "bdsg/internal/mapped_structs.hpp"
@@ -5470,92 +5471,10 @@ void check_shp_result(const ShpTestGraph &g, const Result &result) {
   }
 }
 
-/// Make a random HashGraph with random sequence lengths and random edges
-/// between random orientations, including self-loops and reversing
-/// self-loops.
-HashGraph random_shp_test_hash_graph(size_t nodes, size_t edges,
-                                     uint64_t seed) {
-  HashGraph g;
-  std::mt19937_64 rng(seed);
-  std::uniform_int_distribution<size_t> length(1, 5);
-  vector<handle_t> handles;
-  for (size_t i = 0; i < nodes; i++) {
-    handles.push_back(g.create_handle(string(length(rng), 'A')));
-  }
-  std::uniform_int_distribution<size_t> pick(0, nodes - 1);
-  std::bernoulli_distribution flip(0.2);
-  for (size_t i = 0; i < edges; i++) {
-    handle_t a = handles[pick(rng)];
-    handle_t b = handles[pick(rng)];
-    g.create_edge(flip(rng) ? g.flip(a) : a, flip(rng) ? g.flip(b) : b);
-  }
-  return g;
-}
-
-/// Make a HashGraph shaped like a pangenome: a backbone chain with bubbles
-/// skipping a few nodes ahead, and occasional inversions.
-HashGraph pangenome_like_test_hash_graph(size_t nodes, uint64_t seed) {
-  HashGraph g;
-  std::mt19937_64 rng(seed);
-  std::uniform_int_distribution<size_t> length(1, 30);
-  vector<handle_t> handles;
-  for (size_t i = 0; i < nodes; i++) {
-    handles.push_back(g.create_handle(string(length(rng), 'A')));
-  }
-  std::uniform_int_distribution<size_t> skip(2, 6);
-  std::bernoulli_distribution bubble(0.4);
-  std::bernoulli_distribution inversion(0.05);
-  for (size_t i = 0; i + 1 < nodes; i++) {
-    g.create_edge(handles[i], handles[i + 1]);
-    size_t j = i + skip(rng);
-    if (j < nodes && bubble(rng)) {
-      g.create_edge(handles[i], handles[j]);
-    }
-    if (j < nodes && inversion(rng)) {
-      g.create_edge(handles[i], g.flip(handles[j]));
-      g.create_edge(g.flip(handles[j]), handles[j + 1 < nodes ? j + 1 : j]);
-    }
-  }
-  return g;
-}
-
-/// Hub labeling distances from s over a CHOverlay, the slow way: seqlens of
-/// the vertices strictly between the ends count, and s to itself is the
-/// shortest cycle.
-vector<DIST_UINT> ch_overlay_test_dijkstra(const CHOverlay &ov, size_t s) {
-  vector<DIST_UINT> dist(num_vertices(ov), INF_INT);
-  std::priority_queue<pair<DIST_UINT, size_t>, vector<pair<DIST_UINT, size_t>>,
-                      greater<pair<DIST_UINT, size_t>>>
-      q;
-  for (auto e : boost::make_iterator_range(out_edges(s, ov))) {
-    auto t = target(e, ov);
-    if (ov[e].weight < dist[t]) {
-      dist[t] = ov[e].weight;
-      q.emplace(dist[t], t);
-    }
-  }
-  while (!q.empty()) {
-    auto [d, v] = q.top();
-    q.pop();
-    if (d > dist[v] || v == s) {
-      continue;
-    }
-    for (auto e : boost::make_iterator_range(out_edges(v, ov))) {
-      auto t = target(e, ov);
-      DIST_UINT nd = d + ov[v].seqlen + ov[e].weight;
-      if (nd < dist[t]) {
-        dist[t] = nd;
-        q.emplace(nd, t);
-      }
-    }
-  }
-  return dist;
-}
-
-/// Check packed hub labels against ch_overlay_test_dijkstra() for all pairs.
+/// Check packed hub labels against reference_distances() for all pairs.
 void check_packed_labels(const CHOverlay &ov, const vector<size_t> &packed) {
   for (size_t s = 0; s < num_vertices(ov); s++) {
-    auto dist = ch_overlay_test_dijkstra(ov, s);
+    auto dist = reference_distances(ov, s);
     for (size_t t = 0; t < num_vertices(ov); t++) {
       assert(hhl_query(packed.begin(), s, t) == dist[t]);
     }
@@ -5570,40 +5489,6 @@ auto overlay_test_weights(const CHOverlay &ov) {
       [&ov](const CHOverlay::edge_descriptor &e) -> DIST_UINT {
         return ov[e].weight + ov[target(e, ov)].seqlen;
       });
-}
-
-double average_label_size(const vector<vector<HubRecord>> &labels,
-                          const vector<vector<HubRecord>> &labels_back) {
-  if (labels.empty()) {
-    return 0;
-  }
-  size_t total = 0;
-  for (size_t v = 0; v < labels.size(); v++) {
-    total += labels[v].size() + labels_back[v].size();
-  }
-  return (double)total / (2.0 * labels.size());
-}
-
-/// Make a bidirected width x height grid CHOverlay with random weights 1-10.
-CHOverlay grid_test_overlay(size_t width, size_t height, uint64_t seed) {
-  CHOverlay ov(width * height);
-  std::mt19937_64 rng(seed);
-  std::uniform_int_distribution<DIST_UINT> weight(1, 10);
-  for (size_t v = 0; v < width * height; v++) {
-    ov[v].seqlen = 0;
-  }
-  for (size_t y = 0; y < height; y++) {
-    for (size_t x = 0; x < width; x++) {
-      size_t v = y * width + x;
-      for (size_t u : {x + 1 < width ? v + 1 : v, y + 1 < height ? v + width : v}) {
-        if (u != v) {
-          ov[add_edge(v, u, ov).first].weight = weight(rng);
-          ov[add_edge(u, v, ov).first].weight = weight(rng);
-        }
-      }
-    }
-  }
-  return ov;
 }
 
 void test_shp_ordering() {
@@ -5701,7 +5586,7 @@ void test_shp_ordering() {
     // cycles for a vertex to itself.
     for (uint64_t seed = 1; seed <= 20; seed++) {
       size_t nodes = 5 + seed * 5;
-      HashGraph hg = random_shp_test_hash_graph(nodes, nodes * 2, seed);
+      HashGraph hg = random_test_hash_graph(nodes, nodes * 2, seed);
       CHOverlay ov = make_boost_graph(hg);
 
       vector<vector<HubRecord>> labels, labels_back;
@@ -5738,53 +5623,46 @@ void test_shp_ordering() {
     }
   }
   {
-    // Compare against the contraction hierarchy ordering. This only reports;
-    // the numbers depend on the machine and graph.
-    auto compare = [](const string &name, const CHOverlay &original) {
+    // Compare against the contraction hierarchy ordering through the
+    // sandbox. This only reports sizes and times; the numbers depend on the
+    // machine and graph. Both methods must be exact.
+    bool header = true;
+    auto compare = [&](const string &name, const CHOverlay &original) {
       using clock = std::chrono::steady_clock;
 
-      CHOverlay ch_ov = original;
-      auto ch_start = clock::now();
-      HubOrder ch_order = contraction_hierarchy_order(ch_ov);
-      auto ch_ordered = clock::now();
-      vector<vector<HubRecord>> ch_labels(num_vertices(ch_ov)),
-          ch_labels_back(num_vertices(ch_ov));
-      create_labels(ch_labels, ch_labels_back, ch_ov, ch_order);
-      auto ch_end = clock::now();
+      auto results = evaluate(original, labeling_methods_by_name("ch,shp"));
+      write_tsv(cerr, name, results, header);
+      header = false;
+      for (const auto &r : results) {
+        assert(r.verified_pairs == num_vertices(original) * num_vertices(original));
+        assert(r.mismatches == 0);
+      }
 
+      // The sandbox's shp method should build the same labels as
+      // shp_hub_order().
       vector<vector<HubRecord>> shp_labels, shp_labels_back;
-      auto shp_start = clock::now();
       shp_hub_order(original, shp_labels, shp_labels_back);
-      auto shp_end = clock::now();
+      size_t shp_entries = 0;
+      for (size_t v = 0; v < shp_labels.size(); v++) {
+        shp_entries += shp_labels[v].size() + shp_labels_back[v].size();
+      }
+      assert(results[1].entries == shp_entries);
 
       // SHP on its own, with the same weights the adapter uses, to see its
       // symmetric labels.
       auto own_start = clock::now();
       auto own = shp::shp_order(original, overlay_test_weights(original));
       auto own_end = clock::now();
-
-      auto ms = [](auto d) {
-        return std::chrono::duration<double, std::milli>(d).count();
-      };
-      cerr << name << " (" << num_vertices(original) << " vertices):" << endl
-           << "  CH:  " << ms(ch_end - ch_start) << " ms ("
-           << ms(ch_ordered - ch_start) << " ordering), average label size "
-           << average_label_size(ch_labels, ch_labels_back) << endl
-           << "  SHP: " << ms(shp_end - shp_start)
-           << " ms, average label size "
-           << average_label_size(shp_labels, shp_labels_back) << endl
-           << "  SHP alone, symmetric labels: " << ms(own_end - own_start)
+      cerr << name << ": SHP alone, symmetric labels: "
+           << std::chrono::duration<double, std::milli>(own_end - own_start)
+                  .count()
            << " ms, average label size " << own.average_label_size() << endl;
-
-      // Both must be exact.
-      check_packed_labels(original, pack_labels(ch_labels, ch_labels_back));
-      check_packed_labels(original, pack_labels(shp_labels, shp_labels_back));
     };
     compare("Grid 40x40", grid_test_overlay(40, 40, 5));
     compare("Pangenome-like graph",
             make_boost_graph(pangenome_like_test_hash_graph(1000, 5)));
     compare("Random graph",
-            make_boost_graph(random_shp_test_hash_graph(500, 1000, 5)));
+            make_boost_graph(random_test_hash_graph(500, 1000, 5)));
   }
 
   cerr << "SHP ordering tests successful!" << endl;
