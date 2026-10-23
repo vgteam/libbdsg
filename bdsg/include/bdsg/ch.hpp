@@ -7,7 +7,6 @@ followed by a separate label building stage that takes any ordering
 
 #include <bdsg/hash_graph.hpp>
 #include <bdsg/snarl_distance_index.hpp>
-#include <bdsg/shp.hpp> // BINDER_IGNORE because shp.hpp is C++20 + Boost and is not bound
 #include <boost/graph/adjacency_list.hpp> // BINDER_IGNORE keep Boost out of the binder include list
 #include <boost/graph/biconnected_components.hpp> // BINDER_IGNORE
 #include <boost/graph/filtered_graph.hpp> // BINDER_IGNORE
@@ -387,12 +386,12 @@ void create_labels(vector<vector<HubRecord>> &labels,
 /**
  * Find a hub ordering for the graph with SHP (significant-path based hub
  * pushing, see shp.hpp), and build labels for it into labels and labels_back
- * as create_labels() would. options picks how SHP scores vertices and seeds
- * its random choices. Does not modify ov.
+ * as create_labels() would. Ties in the initial degree ordering are broken
+ * randomly using seed. Does not modify ov.
  */
 HubOrder shp_hub_order(const CHOverlay &ov, vector<vector<HubRecord>> &labels,
                        vector<vector<HubRecord>> &labels_back,
-                       const shp::ShpOptions &options = {});
+                       uint64_t seed = 0);
 
 /**
  * Puts hub labels in a flat vector form

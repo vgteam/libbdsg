@@ -886,7 +886,7 @@ void create_labels(vector<vector<HubRecord>>& labels, vector<vector<HubRecord>>&
   }
 }
 
-HubOrder shp_hub_order(const CHOverlay& ov, vector<vector<HubRecord>>& labels, vector<vector<HubRecord>>& labels_back, const shp::ShpOptions& options) {
+HubOrder shp_hub_order(const CHOverlay& ov, vector<vector<HubRecord>>& labels, vector<vector<HubRecord>>& labels_back, uint64_t seed) {
   // Our distances count the seqlen of the vertices strictly between the two
   // ends. SHP only knows edge weights, so charge each vertex's seqlen on the
   // way into it. That changes each distance only by the seqlen of its
@@ -895,11 +895,10 @@ HubOrder shp_hub_order(const CHOverlay& ov, vector<vector<HubRecord>>& labels, v
     [&ov](const CHOverlay::edge_descriptor& e) -> DIST_UINT {
       return ov[e].weight + ov[target(e, ov)].seqlen;
     });
-  auto shp = shp::shp_order(ov, weights, options);
+  auto shp = shp::shp_order(ov, weights, seed);
 
 #ifdef debug_create
-  cerr << "SHP average label size: " << shp.average_label_size()
-       << ", fallback picks: " << shp.fallback_picks << endl;
+  cerr << "SHP average label size: " << shp.average_label_size() << endl;
 #endif
 
   HubOrder order(shp.order.begin(), shp.order.end());
