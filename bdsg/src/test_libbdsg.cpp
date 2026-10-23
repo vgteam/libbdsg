@@ -5626,110 +5626,7 @@ vector<pair<string, shp::ShpOptions>> shp_test_variants(uint64_t seed,
   return variants;
 }
 
-/// Check SampledTrees against recounting by brute force, while removing
-/// random vertices.
-void test_shp_sampled_trees() {
-  std::mt19937_64 rng(42);
-  const size_t n = 60;
-  using shp::detail::Direction;
-
-  // Random trees, each over a random subset of the vertices, kept as parent
-  // pointers by vertex.
-  struct TestTree {
-    Direction dir;
-    vector<size_t> members;
-    vector<size_t> parent;
-  };
-  shp::detail::SampledTrees trees(n);
-  vector<TestTree> test_trees;
-  for (size_t t = 0; t < 12; t++) {
-    TestTree tree{t % 2 ? Direction::Backward : Direction::Forward, {},
-                  vector<size_t>(n, n)};
-    vector<size_t> shuffled(n);
-    for (size_t i = 0; i < n; i++) {
-      shuffled[i] = i;
-    }
-    std::shuffle(shuffled.begin(), shuffled.end(), rng);
-    size_t m = std::uniform_int_distribution<size_t>(1, n)(rng);
-    for (size_t i = 0; i < m; i++) {
-      tree.members.push_back(shuffled[i]);
-      if (i > 0) {
-        // Attach to an earlier member, sometimes making long chains.
-        size_t up = rng() % 3 == 0 ? std::uniform_int_distribution<size_t>(
-                                         0, i - 1)(rng)
-                                   : i - 1;
-        tree.parent[shuffled[i]] = shuffled[up];
-      }
-    }
-    trees.add(tree.dir, tree.members, tree.parent);
-    test_trees.push_back(tree);
-  }
-
-  vector<bool> removed(n, false);
-  auto check = [&]() {
-    vector<uint64_t> forward(n, 0), backward(n, 0);
-    uint64_t total = 0;
-    size_t live_trees = 0;
-    for (auto &tree : test_trees) {
-      // A member is live if neither it nor any ancestor was removed.
-      vector<bool> live(n, false);
-      vector<uint64_t> subtree(n, 0);
-      size_t tree_live = 0;
-      for (size_t v : tree.members) {
-        live[v] = !removed[v] &&
-                  (tree.parent[v] == n || live[tree.parent[v]]);
-        if (live[v]) {
-          tree_live++;
-        }
-      }
-      for (auto it = tree.members.rbegin(); it != tree.members.rend(); ++it) {
-        if (live[*it]) {
-          subtree[*it] += 1;
-          if (tree.parent[*it] != n) {
-            subtree[tree.parent[*it]] += subtree[*it];
-          }
-        }
-      }
-      for (size_t v : tree.members) {
-        if (live[v]) {
-          (tree.dir == Direction::Forward ? forward : backward)[v] +=
-              subtree[v] - 1;
-        }
-      }
-      total += tree_live;
-      if (tree_live > 0) {
-        live_trees++;
-      }
-    }
-    assert(trees.live_total() == total);
-    assert(trees.live_tree_count() == live_trees);
-    for (size_t v = 0; v < n; v++) {
-      assert(trees.forward_score(v) == forward[v]);
-      assert(trees.backward_score(v) == backward[v]);
-      assert(trees.score(v) == forward[v] + backward[v]);
-    }
-  };
-
-  check();
-  vector<size_t> removal_order(n);
-  for (size_t i = 0; i < n; i++) {
-    removal_order[i] = i;
-  }
-  std::shuffle(removal_order.begin(), removal_order.end(), rng);
-  for (size_t v : removal_order) {
-    trees.remove(v);
-    removed[v] = true;
-    check();
-    // Removing again changes nothing.
-    trees.remove(v);
-    check();
-  }
-  assert(trees.live_total() == 0);
-  assert(trees.live_tree_count() == 0);
-}
-
 void test_shp_ordering() {
-  test_shp_sampled_trees();
   {
     // Permutation and exactness on random graphs, including zero-weight edges,
     // unreachable pairs, isolated vertices, self-loops and parallel edges.
@@ -5916,8 +5813,7 @@ void test_shp_ordering() {
              << average_label_size(shp_labels, shp_labels_back) << endl
              << "    alone, symmetric labels: " << ms(own_end - own_start)
              << " ms, average label size " << own.average_label_size()
-             << ", fallback picks " << own.fallback_picks << ", trees added "
-             << own.trees_added << endl;
+             << ", fallback picks " << own.fallback_picks << endl;
 
         check_packed_labels(original,
                             pack_labels(shp_labels, shp_labels_back));
