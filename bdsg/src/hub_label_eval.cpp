@@ -50,6 +50,17 @@ LabelingMethod hub_order_method(const std::string &name,
           }};
 }
 
+LabelingMethod highway_method(const std::string &name,
+                              const phl::HighwayLabelingOptions &options) {
+  return {name, [options](const CHOverlay &ov, BuildTimes &times) {
+            auto start = eval_clock::now();
+            auto built = std::make_unique<PackedHighwayLabels>(
+                phl::HighwayLabeling(ov, options));
+            times.label_ms = ms_since(start);
+            return built;
+          }};
+}
+
 vector<LabelingMethod> default_labeling_methods() {
   return {
       hub_order_method("ch", contraction_hierarchy_order),
@@ -65,6 +76,10 @@ vector<LabelingMethod> default_labeling_methods() {
                          auto shp = shp::shp_order(ov, weights);
                          return HubOrder(shp.order.begin(), shp.order.end());
                        }),
+      highway_method("phl", {}),
+      highway_method("phl-noseed", {.seed_endpoints = false}),
+      highway_method("phl-nomirror", {.mirror_roots = false}),
+      highway_method("phl-allstops", {.stop_fraction = 1}),
   };
 }
 

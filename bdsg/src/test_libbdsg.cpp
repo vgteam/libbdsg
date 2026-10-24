@@ -5668,6 +5668,83 @@ void test_shp_ordering() {
   cerr << "SHP ordering tests successful!" << endl;
 }
 
+void test_phl() {
+  // Pruned highway labels must give exactly the distances Dijkstra gives,
+  // with every option.
+  vector<LabelingMethod> methods =
+      labeling_methods_by_name("phl,phl-noseed,phl-nomirror");
+  auto check = [&](const CHOverlay &ov) {
+    for (const auto &r : evaluate(ov, methods)) {
+      assert(r.verified_pairs == num_vertices(ov) * num_vertices(ov));
+      assert(r.mismatches == 0);
+    }
+  };
+  // Make an overlay from (from, to, weight) edges, with the given seqlens or
+  // all 0.
+  auto overlay = [](size_t n,
+                    const vector<std::tuple<size_t, size_t, DIST_UINT>> &edges,
+                    const vector<DIST_UINT> &seqlens = {}) {
+    CHOverlay ov(n);
+    for (size_t v = 0; v < n; v++) {
+      ov[v].seqlen = seqlens.empty() ? 0 : seqlens[v];
+    }
+    for (auto [from, to, weight] : edges) {
+      ov[add_edge(from, to, ov).first].weight = weight;
+    }
+    return ov;
+  };
+
+  {
+    // Small cases
+    check(overlay(0, {}));
+    check(overlay(1, {}));
+    check(overlay(1, {{0, 0, 3}}, {7}));
+    check(overlay(3, {{0, 1, 4}}));
+    check(overlay(4, {{0, 1, 2}, {1, 2, 2}, {2, 3, 2}}, {5, 5, 5, 5}));
+    check(overlay(3, {{0, 1, 1}, {1, 2, 1}, {2, 0, 1}}, {1, 2, 3}));
+    // A run of zero-weight edges, so highway vertices share offsets.
+    check(overlay(4, {{0, 1, 0}, {1, 2, 0}, {2, 3, 0}, {3, 0, 0}}));
+    // The vertex after the highway is closer to t than the vertex before it,
+    // but t is closer from the vertex before by its own edge.
+    check(overlay(3, {{0, 1, 10}, {0, 2, 1}, {1, 2, 0}}));
+    // Parallel edges and a self-loop.
+    check(overlay(2, {{0, 1, 5}, {0, 1, 2}, {1, 1, 1}, {1, 0, 3}}, {2, 4}));
+  }
+  {
+    // Random overlays, including zero weights, self-loops, parallel edges and
+    // unreachable pairs.
+    std::mt19937_64 rng(1);
+    for (size_t n : {5, 20, 100}) {
+      for (size_t edges_per_vertex : {1, 2, 4}) {
+        for (DIST_UINT max_weight : {0, 3, 100}) {
+          std::uniform_int_distribution<size_t> pick(0, n - 1);
+          std::uniform_int_distribution<DIST_UINT> weight(0, max_weight);
+          std::uniform_int_distribution<DIST_UINT> seqlen(0, 3);
+          vector<std::tuple<size_t, size_t, DIST_UINT>> edges;
+          for (size_t i = 0; i < n * edges_per_vertex; i++) {
+            edges.emplace_back(pick(rng), pick(rng), weight(rng));
+          }
+          vector<DIST_UINT> seqlens;
+          for (size_t v = 0; v < n; v++) {
+            seqlens.push_back(seqlen(rng));
+          }
+          check(overlay(n, edges, seqlens));
+        }
+      }
+    }
+  }
+  {
+    // The sandbox's synthetic graphs.
+    for (uint64_t seed : {1, 2, 3}) {
+      check(grid_test_overlay(15, 15, seed));
+      check(make_boost_graph(pangenome_like_test_hash_graph(300, seed)));
+      check(make_boost_graph(random_test_hash_graph(200, 400, seed)));
+    }
+  }
+
+  cerr << "PHL tests successful!" << endl;
+}
+
 void test_snarl_distance_index() {
 
   char filename[] = "tmpXXXXXX";
@@ -5775,5 +5852,6 @@ int main(void) {
   test_hash_graph();
   test_hub_labeling();
   test_shp_ordering();
+  test_phl();
   test_snarl_distance_index();
 }

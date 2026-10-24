@@ -7,6 +7,7 @@ own format, so methods that don't store hub/distance pairs can be compared too.
 #define BDSG_HUB_LABEL_EVAL_HPP_INCLUDED
 
 #include "bdsg/ch.hpp" // BINDER_IGNORE because ch.hpp is C++20 + Boost and is not bound
+#include "bdsg/phl.hpp" // BINDER_IGNORE because phl.hpp is C++20 + Boost and is not bound
 
 #include <functional>
 #include <iostream>
@@ -74,6 +75,33 @@ private:
   size_t entries = 0;
   size_t max_entries = 0;
 };
+
+/// Pruned highway labels (see phl.hpp), queried in their own format.
+class PackedHighwayLabels : public BuiltLabels {
+public:
+  explicit PackedHighwayLabels(phl::HighwayLabeling labeling)
+      : labeling(std::move(labeling)) {}
+
+  DIST_UINT query(NODE_UINT s, NODE_UINT t) const override {
+    return labeling.query(s, t);
+  }
+  size_t entry_count() const override { return labeling.entry_count(); }
+  size_t max_label_entries() const override {
+    return labeling.max_label_entries();
+  }
+  size_t stored_words() const override { return labeling.stored_words(); }
+
+private:
+  phl::HighwayLabeling labeling;
+};
+
+/**
+ * Make a labeling method that builds pruned highway labels with the given
+ * options. Picking highways and labeling happen together, so all the time is
+ * reported as label_ms.
+ */
+LabelingMethod highway_method(const std::string &name,
+                              const phl::HighwayLabelingOptions &options);
 
 /**
  * Make a labeling method that finds a hub order and then builds labels for it
