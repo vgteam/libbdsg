@@ -4,6 +4,9 @@
 #include <array>
 #include <functional>
 #include <limits>
+#include <optional>
+#include <stdexcept>
+#include <string>
 #include <queue>
 #include <span>
 #include <tuple>
@@ -32,59 +35,6 @@ enum class Side { Out, In };
 Side side_filled_by(Direction dir) {
   return dir == Direction::Forward ? Side::In : Side::Out;
 }
-
-/**
- * Get the shortest distance through one highway that two label groups give
- *
- * The groups hold entries in increasing position, with values biased as
- * HighwayLabeling describes. An out entry pairs only with in entries at its
- * own position or later, since a walk can only go forward along a highway.
- * For each in entry, we keep the best out entry at or before it.
- *
- * Group can be any type with size(), and with operator[] giving an entry
- * with position and value members.
- *
- * @param out The out label group of the source.
- * @param in The in label group of the destination.
- * @param length The total length of the highway.
- * @returns The shortest distance, or UNREACHED if no pair is in order.
- */
-template <typename Group>
-uint64_t shortest_through_highway(const Group &out, const Group &in,
-                                  uint64_t length) {
-  uint64_t best = UNREACHED;
-  uint64_t best_out = UNREACHED;
-  size_t next_out = 0;
-  for (size_t i = 0; i < in.size(); i++) {
-    auto in_entry = in[i];
-    for (; next_out < out.size() && out[next_out].position <= in_entry.position;
-         next_out++) {
-      best_out = std::min(best_out, out[next_out].value);
-    }
-    if (best_out != UNREACHED) {
-      best = std::min(best, best_out + in_entry.value - length);
-    }
-  }
-  return best;
-}
-
-/// A StoredEntry is one label entry read back from label slots.
-struct StoredEntry {
-  uint64_t position;
-  uint64_t value;
-};
-
-/// A StoredGroup is a view of the entries of one group in label slots, which
-/// alternate positions and values.
-struct StoredGroup {
-  const uint64_t *slots;
-  size_t count;
-
-  size_t size() const { return count; }
-  StoredEntry operator[](size_t i) const {
-    return {slots[2 * i], slots[2 * i + 1]};
-  }
-};
 
 /// An Arc is one edge of an overlay, seen from one end. It holds the vertex at
 /// the other end, and the weight of the edge plus the seqlen of the vertex the
@@ -186,14 +136,55 @@ struct Highway {
   uint64_t length() const { return stops.back().offset; }
 };
 
-/// A DraftEntry is one entry of a label under construction: a highway
-/// number, a position along that highway, and a value biased as
-/// HighwayLabeling describes.
+/**
+ * One entry of a label under construction
+ *
+ * A DraftEntry holds a highway number, the position of a highway vertex as
+ * its index among the highway's stops, and a biased value.
+ *
+ * The bias lets a query skip distances along the highway. Say the stop at
+ * position j is at offset c_j on a highway of length L. Then an out entry for
+ * a vertex v holds d(v -> stop) + L - c_j, and an in entry holds
+ * d(stop -> v) + c_j. An out entry at position j1 and an in entry at position
+ * j2 >= j1 add up to the length of a walk, plus L.
+ */
 struct DraftEntry {
   uint32_t highway;
   uint32_t position;
   uint64_t value;
 };
+
+/**
+ * Get the shortest distance through one highway that two label groups give
+ *
+ * The groups hold entries in increasing position, with values biased as
+ * DraftEntry describes. An out entry pairs only with in entries at its
+ * own position or later, since a walk can only go forward along a highway.
+ * For each in entry, we keep the best out entry at or before it.
+ *
+ * @param out The out label group of the source.
+ * @param in The in label group of the destination.
+ * @param length The total length of the highway.
+ * @returns The shortest distance, or UNREACHED if no pair is in order.
+ */
+uint64_t shortest_through_highway(std::span<const DraftEntry> out,
+                                  std::span<const DraftEntry> in,
+                                  uint64_t length) {
+  uint64_t best = UNREACHED;
+  uint64_t best_out = UNREACHED;
+  size_t next_out = 0;
+  for (size_t i = 0; i < in.size(); i++) {
+    auto in_entry = in[i];
+    for (; next_out < out.size() && out[next_out].position <= in_entry.position;
+         next_out++) {
+      best_out = std::min(best_out, out[next_out].value);
+    }
+    if (best_out != UNREACHED) {
+      best = std::min(best, best_out + in_entry.value - length);
+    }
+  }
+  return best;
+}
 
 /// Get the end of the group of draft label entries that starts at start: the
 /// index of the first entry after it for another highway, or the label size.
@@ -218,9 +209,13 @@ class DraftLabeling {
 public:
   explicit DraftLabeling(size_t vertex_count) : labels(vertex_count) {}
 
-  /// Add a highway of the given total length, and get its number.
-  uint32_t add_highway(uint64_t length) {
-    highway_lengths.push_back(length);
+  /// Add a highway, and get its number.
+  uint32_t add_highway(const Highway &highway) {
+    highway_lengths.push_back(highway.length());
+    std::vector<uint64_t> &offsets = stop_offsets.emplace_back();
+    for (const HighwayStop &stop : highway.stops) {
+      offsets.push_back(stop.offset);
+    }
     return highway_lengths.size() - 1;
   }
 
@@ -238,6 +233,11 @@ public:
 
   const std::vector<uint64_t> &lengths() const { return highway_lengths; }
 
+  /// Get the offset of each stop of a highway, by position.
+  const std::vector<std::vector<uint64_t>> &offsets() const {
+    return stop_offsets;
+  }
+
 private:
   /// A VertexLabels is the two labels of one vertex.
   struct VertexLabels {
@@ -249,6 +249,8 @@ private:
   std::vector<VertexLabels> labels;
   /// The total length of each highway, by number.
   std::vector<uint64_t> highway_lengths;
+  /// The offset of each stop of each highway, by number and position.
+  std::vector<std::vector<uint64_t>> stop_offsets;
 };
 
 void DraftLabeling::add_entry(NODE_UINT v, Side side, uint32_t position,
@@ -358,7 +360,7 @@ private:
 };
 
 void HighwayLabeler::label(const Highway &highway) {
-  draft.add_highway(highway.length());
+  draft.add_highway(highway);
   search(highway, Direction::Forward);
   search(highway, Direction::Backward);
 }
@@ -789,16 +791,134 @@ DraftLabeling HighwayBuilder::build() && {
   return std::move(draft);
 }
 
+/// The number of label slots a derived label takes: a header with no
+/// entries, the vertex it is derived through, and the edge weight.
+constexpr size_t DERIVED_SLOTS = 3;
+
+/// Get the number of label slots a draft label would take if stored: a header
+/// for each group and two slots for each entry.
+size_t stored_slots(std::span<const DraftEntry> label) {
+  size_t slots = 2 * label.size();
+  for (size_t i = 0; i < label.size(); i = group_end(label, i)) {
+    slots++;
+  }
+  return slots;
+}
+
+/// Get the arc that every walk from v in direction dir starts with, if all
+/// of v's arcs that way go to one other vertex. Of parallel arcs, take the
+/// lightest. Return nullopt if v's arcs go to several vertices, to v itself,
+/// or nowhere.
+std::optional<Arc> only_arc(const ArcTable &arcs, NODE_UINT v, Direction dir) {
+  std::span<const Arc> found = arcs.arcs(v, dir);
+  if (found.empty()) {
+    return std::nullopt;
+  }
+  Arc only = found.front();
+  for (const Arc &arc : found) {
+    if (arc.neighbor != only.neighbor) {
+      return std::nullopt;
+    }
+    only.weight = std::min(only.weight, arc.weight);
+  }
+  if (only.neighbor == v) {
+    return std::nullopt;
+  }
+  return only;
+}
+
+/**
+ * Pick the labels on one side to derive instead of storing
+ *
+ * An out label can be derived through the arc that every walk from its
+ * vertex starts with. An in label can be derived through the arc that every
+ * walk to its vertex ends with. We derive a label only if that saves slots.
+ * We derive only through labels that stay stored, so a query follows at most
+ * one arc on each side. We pick labels greedily in vertex order.
+ *
+ * @returns For each vertex, the arc its label on this side is derived
+ * through, or nullopt if the label is stored.
+ */
+std::vector<std::optional<Arc>> choose_derived(const ArcTable &arcs,
+                                               const DraftLabeling &draft,
+                                               Side side) {
+  Direction dir = side == Side::Out ? Direction::Forward : Direction::Backward;
+  size_t n = arcs.vertex_count();
+  std::vector<std::optional<Arc>> through(n);
+  // Whether a label is kept stored because another is derived through it.
+  std::vector<bool> kept(n, false);
+  for (NODE_UINT v = 0; v < n; v++) {
+    if (kept[v] || stored_slots(draft.label(v, side)) <= DERIVED_SLOTS) {
+      continue;
+    }
+    std::optional<Arc> arc = only_arc(arcs, v, dir);
+    if (arc && !through[arc->neighbor]) {
+      through[v] = arc;
+      kept[arc->neighbor] = true;
+    }
+  }
+  return through;
+}
+
+/// Get the number of low bits a key needs to order the stops of the draft's
+/// highways that share an offset.
+unsigned tie_bits_for(const DraftLabeling &draft) {
+  size_t most_before = 0;
+  for (const std::vector<uint64_t> &offsets : draft.offsets()) {
+    size_t before = 0;
+    for (size_t j = 1; j < offsets.size(); j++) {
+      before = offsets[j] == offsets[j - 1] ? before + 1 : 0;
+      most_before = std::max(most_before, before);
+    }
+  }
+  unsigned bits = 0;
+  while (most_before >> bits) {
+    bits++;
+  }
+  return bits;
+}
+
+/// Get the key of each stop of each of the draft's highways, as
+/// HighwayLabeling describes, by highway number and position.
+std::vector<std::vector<uint64_t>> stop_keys(const DraftLabeling &draft,
+                                             unsigned tie_bits) {
+  std::vector<std::vector<uint64_t>> keys;
+  for (const std::vector<uint64_t> &offsets : draft.offsets()) {
+    std::vector<uint64_t> &highway_keys = keys.emplace_back();
+    uint64_t before = 0;
+    for (size_t j = 0; j < offsets.size(); j++) {
+      before = j > 0 && offsets[j] == offsets[j - 1] ? before + 1 : 0;
+      if (offsets[j] > (std::numeric_limits<uint64_t>::max() >> tie_bits)) {
+        throw std::overflow_error("Highway offset " +
+                                  std::to_string(offsets[j]) +
+                                  " is too large for a highway label key");
+      }
+      highway_keys.push_back((offsets[j] << tie_bits) | before);
+    }
+  }
+  return keys;
+}
+
 } // namespace
 
 HighwayLabeling::HighwayLabeling(const CHOverlay &ov,
                                  const HighwayLabelingOptions &options) {
   ArcTable arcs(ov);
   DraftLabeling draft = HighwayBuilder(arcs, options).build();
-
-  // Find how many bits the largest group's entry count needs.
   size_t n = arcs.vertex_count();
-  size_t largest_group = 0;
+  highways = draft.lengths().size();
+  tie_bits = tie_bits_for(draft);
+  std::vector<std::vector<uint64_t>> keys = stop_keys(draft, tie_bits);
+
+  // The draft keeps every label, since the pruning while building needed
+  // them. Now we can drop the ones a query can derive.
+  std::array<std::vector<std::optional<Arc>>, 2> through = {
+      choose_derived(arcs, draft, Side::Out),
+      choose_derived(arcs, draft, Side::In)};
+
+  // Find how many bits the largest group's entry count needs. A count of 0
+  // marks a derived label, so take at least 1 bit.
+  size_t largest_group = 1;
   for (NODE_UINT v = 0; v < n; v++) {
     for (Side side : {Side::Out, Side::In}) {
       const std::vector<DraftEntry> &label = draft.label(v, side);
@@ -811,20 +931,29 @@ HighwayLabeling::HighwayLabeling(const CHOverlay &ov,
     count_bits++;
   }
 
-  // Copy the draft labels into label slots, one header and the entries for
-  // each group.
-  highway_lengths = draft.lengths();
+  // Copy the draft labels into label slots. A stored label gets a header and
+  // the entries for each group, and a derived label gets its marker.
   for (NODE_UINT v = 0; v < n; v++) {
     for (Side side : {Side::Out, Side::In}) {
       label_starts.push_back(label_slots.size());
+      if (const std::optional<Arc> &arc = through[(size_t)side][v]) {
+        label_slots.push_back(0);
+        label_slots.push_back(arc->neighbor);
+        label_slots.push_back(arc->weight);
+        continue;
+      }
       const std::vector<DraftEntry> &label = draft.label(v, side);
       for (size_t i = 0, end; i < label.size(); i = end) {
         end = group_end(label, i);
-        label_slots.push_back(((uint64_t)label[i].highway << count_bits) |
-                              (end - i));
+        uint32_t highway = label[i].highway;
+        label_slots.push_back(((uint64_t)highway << count_bits) | (end - i));
+        // Take the draft's bias back off the values.
+        uint64_t length = draft.lengths()[highway];
         for (size_t k = i; k < end; k++) {
-          label_slots.push_back(label[k].position);
-          label_slots.push_back(label[k].value);
+          uint64_t offset = draft.offsets()[highway][label[k].position];
+          uint64_t bias = side == Side::Out ? length - offset : offset;
+          label_slots.push_back(keys[highway][label[k].position]);
+          label_slots.push_back(label[k].value - bias);
         }
       }
       entries += label.size();
@@ -862,7 +991,44 @@ HighwayLabeling::HighwayLabeling(const CHOverlay &ov,
   }
 }
 
+const uint64_t *HighwayLabeling::derived_through(size_t start,
+                                                 size_t end) const {
+  uint64_t count_mask = ((uint64_t)1 << count_bits) - 1;
+  if (start == end || (label_slots[start] & count_mask) != 0) {
+    return nullptr;
+  }
+  return &label_slots[start + 1];
+}
+
 uint64_t HighwayLabeling::label_distance(NODE_UINT s, NODE_UINT t) const {
+  // A walk from s with a derived out label starts by its arc, and a walk to t
+  // with a derived in label ends by its arc. Either arc may make up the whole
+  // walk.
+  uint64_t arcs_taken = 0;
+  if (const uint64_t *arc =
+          derived_through(label_starts[2 * s], label_starts[2 * s + 1])) {
+    if (arc[0] == t) {
+      return arc[1];
+    }
+    s = arc[0];
+    arcs_taken += arc[1];
+  }
+  if (const uint64_t *arc =
+          derived_through(label_starts[2 * t + 1], label_starts[2 * t + 2])) {
+    if (arc[0] == s) {
+      return arcs_taken + arc[1];
+    }
+    t = arc[0];
+    arcs_taken += arc[1];
+  }
+  if (s == t) {
+    return arcs_taken;
+  }
+  uint64_t rest = stored_distance(s, t);
+  return rest == UNREACHED ? UNREACHED : arcs_taken + rest;
+}
+
+uint64_t HighwayLabeling::stored_distance(NODE_UINT s, NODE_UINT t) const {
   size_t out = label_starts[2 * s];
   size_t out_end = label_starts[2 * s + 1];
   size_t in = label_starts[2 * t + 1];
@@ -875,10 +1041,28 @@ uint64_t HighwayLabeling::label_distance(NODE_UINT s, NODE_UINT t) const {
     size_t out_count = label_slots[out] & count_mask;
     size_t in_count = label_slots[in] & count_mask;
     if (out_highway == in_highway) {
-      best = std::min(best, shortest_through_highway(
-                                StoredGroup{&label_slots[out + 1], out_count},
-                                StoredGroup{&label_slots[in + 1], in_count},
-                                highway_lengths[out_highway]));
+      // A walk from s to the highway at offset c_out, along it to offset
+      // c_in, and on to t is d_out + (c_in - c_out) + d_in long. For each in
+      // entry, keep the best d_out - c_out of the out entries at or before it.
+      const uint64_t *out_entries = &label_slots[out + 1];
+      const uint64_t *in_entries = &label_slots[in + 1];
+      int64_t best_out = std::numeric_limits<int64_t>::max();
+      size_t next_out = 0;
+      for (size_t k = 0; k < in_count; k++) {
+        uint64_t in_key = in_entries[2 * k];
+        for (; next_out < out_count && out_entries[2 * next_out] <= in_key;
+             next_out++) {
+          best_out = std::min(best_out,
+                              (int64_t)out_entries[2 * next_out + 1] -
+                                  (int64_t)(out_entries[2 * next_out] >>
+                                            tie_bits));
+        }
+        if (next_out > 0) {
+          best = std::min(best, (uint64_t)(best_out +
+                                            (int64_t)(in_key >> tie_bits) +
+                                            (int64_t)in_entries[2 * k + 1]));
+        }
+      }
     }
     // Step past the group with the lower highway number, or both if they
     // are the same highway.
@@ -907,9 +1091,9 @@ DIST_UINT HighwayLabeling::query(NODE_UINT s, NODE_UINT t) const {
 }
 
 size_t HighwayLabeling::stored_words() const {
-  // count_bits takes one more slot.
-  return label_starts.size() + label_slots.size() + 1 +
-         highway_lengths.size() + cycle_lengths.size() + seqlens.size();
+  // count_bits and tie_bits take one more slot each.
+  return label_starts.size() + label_slots.size() + 2 + cycle_lengths.size() +
+         seqlens.size();
 }
 
 } // namespace phl

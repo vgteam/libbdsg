@@ -68,22 +68,26 @@ struct HighwayLabelingOptions {
  * label, with its distances to highway vertices, and an in label, with the
  * distances from highway vertices to it. A label is a run of groups, one per
  * highway, in increasing highway number. A group is a run of entries, each a
- * position and a value, in increasing position.
+ * key and a distance, in increasing key.
  *
  * All labels are stored in one array of slots. A group takes one header slot,
  * holding the highway number shifted left by count_bits plus the number of
- * entries, followed by two slots for each entry, its position and its value.
+ * entries, followed by two slots for each entry, its key and its distance.
  *
- * A position is a vertex's index along its highway, counting from 0. Positions
- * are stored, rather than distances along the highway, because edges can have
- * weight 0, so two highway vertices can be the same distance along it, and
- * only the position says which comes first.
+ * The key of a highway vertex is its offset, the distance along the highway
+ * from the first highway vertex, shifted left by tie_bits, plus the number of
+ * highway vertices before it at the same offset. Edges can have weight 0, so
+ * several highway vertices can share an offset, and the low bits say which
+ * comes first. A query pairs an out entry only with in entries at or after it
+ * along the highway, and gets the walk's length from the two distances and the
+ * difference of the offsets.
  *
- * Values are biased so that a query needs no distances along the highway. If
- * the highway vertex at position j is a distance c_j along a highway of total
- * length L, an out entry for a vertex v stores d(v -> it) + L - c_j, and an in
- * entry stores d(it -> v) + c_j. An out entry at position j1 and an in entry
- * at position j2 >= j1 then add up to the length of a walk, plus L.
+ * A vertex v whose out-edges all go to one other vertex u can have a derived
+ * out label. Every walk from v starts with the edge to u, so a query can use
+ * u's out label instead. A derived label takes three slots: a header with an
+ * entry count of 0, then u, then the weight of the edge. Likewise, a vertex
+ * whose in-edges all come from one vertex can have a derived in label. A
+ * derived label always names a vertex whose label on that side is stored.
  *
  * Distances inside the labels charge each edge its weight plus the seqlen of
  * the vertex it enters. query() takes the destination's seqlen back off, so it
@@ -102,12 +106,12 @@ public:
   DIST_UINT query(NODE_UINT s, NODE_UINT t) const;
 
   /// Get the number of highways picked.
-  size_t highway_count() const { return highway_lengths.size(); }
+  size_t highway_count() const { return highways; }
 
-  /// Get the total number of (position, value) entries in all labels.
+  /// Get the total number of (key, distance) entries in stored labels.
   size_t entry_count() const { return entries; }
 
-  /// Get the largest number of entries in one vertex's out or in label.
+  /// Get the largest number of entries in one stored out or in label.
   size_t max_label_entries() const { return max_entries; }
 
   /// Get the number of integer slots these labels would take if stored one
@@ -116,8 +120,19 @@ public:
 
 private:
   /// Get the distance from s to t through the labels, including t's seqlen,
-  /// or UINT64_MAX if the labels have no walk.
+  /// or UINT64_MAX if the labels have no walk. Follows derived labels to the
+  /// stored ones they point to.
   uint64_t label_distance(NODE_UINT s, NODE_UINT t) const;
+
+  /// Get the distance from s to t through the highways that s's out label and
+  /// t's in label share, or UINT64_MAX if they give no walk.
+  /// @pre Both labels are stored, not derived.
+  uint64_t stored_distance(NODE_UINT s, NODE_UINT t) const;
+
+  /// Get the vertex and the edge weight, two slots in a row, that the label
+  /// at [start, end) of label_slots is derived through. Return nullptr if the
+  /// label is stored.
+  const uint64_t *derived_through(size_t start, size_t end) const;
 
   /// Where each vertex's labels start in label_slots. The out label of v is
   /// [label_starts[2v], label_starts[2v+1]) and its in label is
@@ -127,16 +142,19 @@ private:
   std::vector<uint64_t> label_slots;
   /// The number of low bits of a group header that hold its entry count.
   unsigned count_bits = 0;
-  /// The total length of each highway, by highway number.
-  std::vector<uint64_t> highway_lengths;
+  /// The number of low bits of a key that order highway vertices at the same
+  /// offset.
+  unsigned tie_bits = 0;
+  /// The number of highways picked.
+  size_t highways = 0;
   /// The shortest cycle through each vertex, or INF_INT if none.
   std::vector<DIST_UINT> cycle_lengths;
   /// Each vertex's seqlen, or empty if all are 0.
   std::vector<DIST_UINT> seqlens;
 
-  /// The total number of entries in all labels.
+  /// The total number of entries in stored labels.
   size_t entries = 0;
-  /// The largest number of entries in one label.
+  /// The largest number of entries in one stored label.
   size_t max_entries = 0;
 };
 

@@ -5672,7 +5672,7 @@ void test_phl() {
   // Pruned highway labels must give exactly the distances Dijkstra gives,
   // with every option.
   vector<LabelingMethod> methods =
-      labeling_methods_by_name("phl,phl-noseed,phl-nomirror");
+      labeling_methods_by_name("phl,phl-noseed,phl-nomirror,phl-allstops");
   auto check = [&](const CHOverlay &ov) {
     for (const auto &r : evaluate(ov, methods)) {
       assert(r.verified_pairs == num_vertices(ov) * num_vertices(ov));
@@ -5729,6 +5729,51 @@ void test_phl() {
             seqlens.push_back(seqlen(rng));
           }
           check(overlay(n, edges, seqlens));
+        }
+      }
+    }
+  }
+  {
+    // Random overlays shaped like a snarl's net graph, as make_boost_graph()
+    // builds them. Each element has an in-port and an out-port in each
+    // orientation, joined by an edge as long as the element, so most ports
+    // have one neighbor on one side and get derived labels. Elements of length
+    // 0 put several highway vertices at one offset.
+    std::mt19937_64 rng(2);
+    for (size_t elements : {3, 10, 60}) {
+      for (DIST_UINT max_length : {0, 1, 20}) {
+        for (bool loops : {false, true}) {
+          CHOverlay ov(elements * 4);
+          for (NODE_UINT v = 0; v < elements * 4; v++) {
+            ov[v].seqlen = 0;
+          }
+          std::uniform_int_distribution<size_t> pick(0, elements - 1);
+          std::uniform_int_distribution<DIST_UINT> length(0, max_length);
+          std::bernoulli_distribution coin(0.5);
+          std::bernoulli_distribution rarely(0.1);
+          for (size_t r = 0; r < elements; r++) {
+            DIST_UINT element_length = length(rng);
+            for (bool is_reverse : {false, true}) {
+              ov[add_edge(bgid(r, is_reverse, false), bgid(r, is_reverse, true),
+                          ov)
+                     .first]
+                  .weight = element_length;
+            }
+            if (loops && rarely(rng)) {
+              ov[add_edge(bgid(r, false, false), bgid(r, true, true), ov)
+                     .first]
+                  .weight = length(rng);
+            }
+          }
+          for (size_t i = 0; i < elements * 2; i++) {
+            NODE_UINT from = bgid(pick(rng), coin(rng), true);
+            NODE_UINT to = bgid(pick(rng), coin(rng), false);
+            add_edge(from, to, ov);
+            if (from != rev_bgid(to)) {
+              add_edge(rev_bgid(to), rev_bgid(from), ov);
+            }
+          }
+          check(ov);
         }
       }
     }
