@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <compare>
 #include <functional>
 #include <limits>
 #include <optional>
@@ -14,8 +15,7 @@
 
 // #define debug_phl
 
-namespace bdsg {
-namespace phl {
+namespace bdsg::phl {
 
 namespace {
 
@@ -111,8 +111,8 @@ ArcTable::ArcTable(const CHOverlay &ov) {
   std::array<std::vector<size_t>, 2> next = {forward.starts, backward.starts};
   for (auto e : boost::make_iterator_range(edges(ov))) {
     if (ov[e].ori) {
-      NODE_UINT from = source(e, ov);
-      NODE_UINT to = target(e, ov);
+      auto from = (NODE_UINT)source(e, ov);
+      auto to = (NODE_UINT)target(e, ov);
       uint64_t weight = (uint64_t)ov[e].weight + seqlens[to];
       forward.arcs[next[0][from]++] = {to, weight};
       backward.arcs[next[1][to]++] = {from, weight};
@@ -173,8 +173,7 @@ uint64_t shortest_through_highway(std::span<const DraftEntry> out,
   uint64_t best = UNREACHED;
   uint64_t best_out = UNREACHED;
   size_t next_out = 0;
-  for (size_t i = 0; i < in.size(); i++) {
-    auto in_entry = in[i];
+  for (const DraftEntry &in_entry : in) {
     for (; next_out < out.size() && out[next_out].position <= in_entry.position;
          next_out++) {
       best_out = std::min(best_out, out[next_out].value);
@@ -216,7 +215,7 @@ public:
     for (const HighwayStop &stop : highway.stops) {
       offsets.push_back(stop.offset);
     }
-    return highway_lengths.size() - 1;
+    return (uint32_t)(highway_lengths.size() - 1);
   }
 
   /// Add an entry for the newest highway to one of v's labels. Entries may
@@ -257,7 +256,7 @@ void DraftLabeling::add_entry(NODE_UINT v, Side side, uint32_t position,
                               uint64_t value) {
   std::vector<DraftEntry> &entries =
       side == Side::Out ? labels[v].out : labels[v].in;
-  uint32_t highway = highway_lengths.size() - 1;
+  auto highway = (uint32_t)(highway_lengths.size() - 1);
   // Out label searches add entries in decreasing position, so we insert
   // within the newest highway's group, which is last in the label.
   auto at = entries.end();
@@ -379,7 +378,7 @@ void HighwayLabeler::search(const Highway &highway, Direction dir) {
   // the entry furthest along the highway in the search's direction comes out
   // first, so that it beats the others. Otherwise ties would give a vertex an
   // entry at every highway position that reaches it by the same walk.
-  uint32_t last = highway.stops.size() - 1;
+  auto last = (uint32_t)(highway.stops.size() - 1);
   auto tiebreak = [&](uint32_t position) {
     return dir == Direction::Forward ? last - position : position;
   };
@@ -395,8 +394,7 @@ void HighwayLabeler::search(const Highway &highway, Direction dir) {
     if (beaten(v, dir, position)) {
       continue;
     }
-    NODE_UINT start = highway.stops[position].vertex;
-    if (v != start) {
+    if (NODE_UINT start = highway.stops[position].vertex; v != start) {
       uint64_t distance = value - start_value(position);
       uint64_t known = dir == Direction::Forward ? draft.distance(start, v)
                                                  : draft.distance(v, start);
@@ -441,8 +439,9 @@ struct TreeVertex {
  */
 class CoverageTree {
 public:
-  explicit CoverageTree(std::vector<TreeVertex> vertices)
-      : vertices(std::move(vertices)) {}
+  /// Make a tree from its vertices in search order. Each vertex comes with a
+  /// coverage of 1 if it is uncovered and 0 if not, and no heaviest child.
+  explicit CoverageTree(std::vector<TreeVertex> vertices);
 
   /// Get the number of uncovered vertices in the tree.
   uint64_t coverage() const { return vertices.front().coverage; }
@@ -460,6 +459,22 @@ public:
 private:
   std::vector<TreeVertex> vertices;
 };
+
+CoverageTree::CoverageTree(std::vector<TreeVertex> vertices)
+    : vertices(std::move(vertices)) {
+  // Children come after their parents, so going backward each vertex's
+  // coverage is final before it is added to its parent's.
+  std::vector<TreeVertex> &tree = this->vertices;
+  for (size_t x = tree.size() - 1; x > 0; x--) {
+    TreeVertex &parent = tree[tree[x].parent];
+    parent.coverage += tree[x].coverage;
+    if (tree[x].coverage > 0 &&
+        (parent.heaviest_child == NO_VERTEX ||
+         tree[x].coverage > tree[parent.heaviest_child].coverage)) {
+      parent.heaviest_child = x;
+    }
+  }
+}
 
 std::vector<TreeVertex> CoverageTree::heaviest_path() const {
   std::vector<TreeVertex> path;
@@ -505,14 +520,15 @@ Highway highway_through(const CoverageTree &into, const CoverageTree &out_of,
     visited.insert(x.vertex);
   }
   size_t after_end = 1;
-  while (after_end < after.size() && !visited.count(after[after_end].vertex)) {
+  while (after_end < after.size() && !visited.contains(after[after_end].vertex)) {
     after_end++;
   }
   after.resize(after_end);
 
   auto is_stop = [&](const std::vector<TreeVertex> &path, size_t i) {
     return i == 0 || i + 1 == path.size() ||
-           path[i + 1].coverage <= stop_fraction * path[i].coverage;
+           (double)path[i + 1].coverage <=
+               stop_fraction * (double)path[i].coverage;
   };
   Highway highway;
   uint64_t root_offset = before.back().distance;
@@ -550,6 +566,19 @@ public:
   CoverageTree explore(NODE_UINT root, Direction dir);
 
 private:
+  /// Check whether the labels give v's distance from root in direction dir,
+  /// which is distance. The root counts as covered, since it is about to go
+  /// on a highway.
+  bool covered(NODE_UINT root, NODE_UINT v, uint64_t distance,
+               Direction dir) const {
+    if (v == root) {
+      return true;
+    }
+    uint64_t known = dir == Direction::Forward ? draft.distance(root, v)
+                                               : draft.distance(v, root);
+    return known <= distance;
+  }
+
   const ArcTable &arcs;
   const DraftLabeling &draft;
   /// Whether each vertex is on a highway.
@@ -580,44 +609,27 @@ CoverageTree HighwayScout::explore(NODE_UINT root, Direction dir) {
       continue;
     }
     tree_index[v] = tree.size();
-    // The root counts as covered, since it is about to go on a highway.
-    bool covered =
-        v == root || (dir == Direction::Forward ? draft.distance(root, v)
-                                                : draft.distance(v, root)) <=
-                         distance;
-    tree.push_back({v, parent, distance, covered ? 0u : 1u, NO_VERTEX});
-    if (covered && v != root) {
+    bool is_covered = covered(root, v, distance, dir);
+    tree.emplace_back(v, parent, distance, is_covered ? 0u : 1u, NO_VERTEX);
+    if (is_covered && v != root) {
       continue;
     }
     for (const Arc &arc : arcs.arcs(v, dir)) {
       NODE_UINT u = arc.neighbor;
-      if (on_highway[u] || tree_index[u] != NO_VERTEX) {
+      if (on_highway[u] || tree_index[u] != NO_VERTEX ||
+          distance + arc.weight >= best_distance[u]) {
         continue;
       }
-      if (distance + arc.weight < best_distance[u]) {
-        if (best_distance[u] == UNREACHED) {
-          touched.push_back(u);
-        }
-        best_distance[u] = distance + arc.weight;
-        queue.emplace(best_distance[u], u, tree_index[v]);
+      if (best_distance[u] == UNREACHED) {
+        touched.push_back(u);
       }
+      best_distance[u] = distance + arc.weight;
+      queue.emplace(best_distance[u], u, tree_index[v]);
     }
   }
   for (NODE_UINT v : touched) {
     best_distance[v] = UNREACHED;
     tree_index[v] = NO_VERTEX;
-  }
-
-  // Children come after their parents, so going backward each vertex's
-  // coverage is final before it is added to its parent's.
-  for (size_t x = tree.size() - 1; x > 0; x--) {
-    TreeVertex &parent = tree[tree[x].parent];
-    parent.coverage += tree[x].coverage;
-    if (tree[x].coverage > 0 &&
-        (parent.heaviest_child == NO_VERTEX ||
-         tree[x].coverage > tree[parent.heaviest_child].coverage)) {
-      parent.heaviest_child = x;
-    }
   }
   return CoverageTree(std::move(tree));
 }
@@ -657,8 +669,8 @@ private:
     uint64_t score;
     NODE_UINT root;
 
-    bool operator<(const Candidate &other) const {
-      return score < other.score;
+    auto operator<=>(const Candidate &other) const {
+      return score <=> other.score;
     }
   };
 
@@ -709,10 +721,9 @@ HighwayBuilder::HighwayBuilder(const ArcTable &arcs,
   for (NODE_UINT v = 0; v < arcs.vertex_count(); v++) {
     by_degree.push_back(v);
   }
-  std::stable_sort(by_degree.begin(), by_degree.end(),
-                   [&](NODE_UINT a, NODE_UINT b) {
-                     return arcs.degree(a) > arcs.degree(b);
-                   });
+  std::ranges::stable_sort(by_degree, [&](NODE_UINT a, NODE_UINT b) {
+    return arcs.degree(a) > arcs.degree(b);
+  });
   if (options.seed_endpoints) {
     add_endpoint_candidates();
   }
@@ -899,6 +910,84 @@ std::vector<std::vector<uint64_t>> stop_keys(const DraftLabeling &draft,
   return keys;
 }
 
+/// Get the number of bits a group header needs for the entry count of the
+/// draft's largest group. A count of 0 marks a derived label, so take at
+/// least 1 bit.
+unsigned count_bits_for(const DraftLabeling &draft, size_t vertex_count) {
+  size_t largest_group = 1;
+  for (NODE_UINT v = 0; v < vertex_count; v++) {
+    for (Side side : {Side::Out, Side::In}) {
+      const std::vector<DraftEntry> &label = draft.label(v, side);
+      for (size_t i = 0; i < label.size(); i = group_end(label, i)) {
+        largest_group = std::max(largest_group, group_end(label, i) - i);
+      }
+    }
+  }
+  unsigned bits = 0;
+  while (largest_group >> bits) {
+    bits++;
+  }
+  return bits;
+}
+
+/// Append a draft label to slots as HighwayLabeling stores it: a header and
+/// the entries for each group, with the draft's bias taken back off the
+/// values.
+void append_stored_label(std::vector<uint64_t> &slots,
+                         std::span<const DraftEntry> label, Side side,
+                         const DraftLabeling &draft,
+                         const std::vector<std::vector<uint64_t>> &keys,
+                         unsigned count_bits) {
+  size_t i = 0;
+  while (i < label.size()) {
+    size_t end = group_end(label, i);
+    uint32_t highway = label[i].highway;
+    slots.push_back(((uint64_t)highway << count_bits) | (end - i));
+    uint64_t length = draft.lengths()[highway];
+    for (size_t k = i; k < end; k++) {
+      uint64_t offset = draft.offsets()[highway][label[k].position];
+      uint64_t bias = side == Side::Out ? length - offset : offset;
+      slots.push_back(keys[highway][label[k].position]);
+      slots.push_back(label[k].value - bias);
+    }
+    i = end;
+  }
+}
+
+/**
+ * Get the shortest distance through one highway that two stored label groups
+ * give
+ *
+ * The groups hold interleaved key and value slots, in increasing key. A walk
+ * from s to the highway at offset c_out, along it to offset c_in, and on to t
+ * is d_out + (c_in - c_out) + d_in long. For each in entry, we keep the best
+ * d_out - c_out of the out entries at or before it.
+ *
+ * @param out The entry slots of the out group of the source.
+ * @param in The entry slots of the in group of the destination.
+ * @param tie_bits The number of low key bits that are not offset.
+ * @returns The shortest distance, or UNREACHED if no pair is in order.
+ */
+uint64_t shortest_through_group(std::span<const uint64_t> out,
+                                std::span<const uint64_t> in,
+                                unsigned tie_bits) {
+  uint64_t best = UNREACHED;
+  int64_t best_out = std::numeric_limits<int64_t>::max();
+  size_t next_out = 0;
+  for (size_t k = 0; k < in.size(); k += 2) {
+    uint64_t in_key = in[k];
+    for (; next_out < out.size() && out[next_out] <= in_key; next_out += 2) {
+      best_out = std::min(best_out, (int64_t)out[next_out + 1] -
+                                        (int64_t)(out[next_out] >> tie_bits));
+    }
+    if (next_out > 0) {
+      best = std::min(best, (uint64_t)(best_out + (int64_t)(in_key >> tie_bits) +
+                                       (int64_t)in[k + 1]));
+    }
+  }
+  return best;
+}
+
 } // namespace
 
 HighwayLabeling::HighwayLabeling(const CHOverlay &ov,
@@ -916,20 +1005,7 @@ HighwayLabeling::HighwayLabeling(const CHOverlay &ov,
       choose_derived(arcs, draft, Side::Out),
       choose_derived(arcs, draft, Side::In)};
 
-  // Find how many bits the largest group's entry count needs. A count of 0
-  // marks a derived label, so take at least 1 bit.
-  size_t largest_group = 1;
-  for (NODE_UINT v = 0; v < n; v++) {
-    for (Side side : {Side::Out, Side::In}) {
-      const std::vector<DraftEntry> &label = draft.label(v, side);
-      for (size_t i = 0; i < label.size(); i = group_end(label, i)) {
-        largest_group = std::max(largest_group, group_end(label, i) - i);
-      }
-    }
-  }
-  while (largest_group >> count_bits) {
-    count_bits++;
-  }
+  count_bits = count_bits_for(draft, n);
 
   // Copy the draft labels into label slots. A stored label gets a header and
   // the entries for each group, and a derived label gets its marker.
@@ -943,19 +1019,7 @@ HighwayLabeling::HighwayLabeling(const CHOverlay &ov,
         continue;
       }
       const std::vector<DraftEntry> &label = draft.label(v, side);
-      for (size_t i = 0, end; i < label.size(); i = end) {
-        end = group_end(label, i);
-        uint32_t highway = label[i].highway;
-        label_slots.push_back(((uint64_t)highway << count_bits) | (end - i));
-        // Take the draft's bias back off the values.
-        uint64_t length = draft.lengths()[highway];
-        for (size_t k = i; k < end; k++) {
-          uint64_t offset = draft.offsets()[highway][label[k].position];
-          uint64_t bias = side == Side::Out ? length - offset : offset;
-          label_slots.push_back(keys[highway][label[k].position]);
-          label_slots.push_back(label[k].value - bias);
-        }
-      }
+      append_stored_label(label_slots, label, side, draft, keys, count_bits);
       entries += label.size();
       max_entries = std::max(max_entries, label.size());
     }
@@ -993,8 +1057,8 @@ HighwayLabeling::HighwayLabeling(const CHOverlay &ov,
 
 const uint64_t *HighwayLabeling::derived_through(size_t start,
                                                  size_t end) const {
-  uint64_t count_mask = ((uint64_t)1 << count_bits) - 1;
-  if (start == end || (label_slots[start] & count_mask) != 0) {
+  if (uint64_t count_mask = ((uint64_t)1 << count_bits) - 1;
+      start == end || (label_slots[start] & count_mask) != 0) {
     return nullptr;
   }
   return &label_slots[start + 1];
@@ -1010,7 +1074,7 @@ uint64_t HighwayLabeling::label_distance(NODE_UINT s, NODE_UINT t) const {
     if (arc[0] == t) {
       return arc[1];
     }
-    s = arc[0];
+    s = (NODE_UINT)arc[0];
     arcs_taken += arc[1];
   }
   if (const uint64_t *arc =
@@ -1018,7 +1082,7 @@ uint64_t HighwayLabeling::label_distance(NODE_UINT s, NODE_UINT t) const {
     if (arc[0] == s) {
       return arcs_taken + arc[1];
     }
-    t = arc[0];
+    t = (NODE_UINT)arc[0];
     arcs_taken += arc[1];
   }
   if (s == t) {
@@ -1041,28 +1105,10 @@ uint64_t HighwayLabeling::stored_distance(NODE_UINT s, NODE_UINT t) const {
     size_t out_count = label_slots[out] & count_mask;
     size_t in_count = label_slots[in] & count_mask;
     if (out_highway == in_highway) {
-      // A walk from s to the highway at offset c_out, along it to offset
-      // c_in, and on to t is d_out + (c_in - c_out) + d_in long. For each in
-      // entry, keep the best d_out - c_out of the out entries at or before it.
-      const uint64_t *out_entries = &label_slots[out + 1];
-      const uint64_t *in_entries = &label_slots[in + 1];
-      int64_t best_out = std::numeric_limits<int64_t>::max();
-      size_t next_out = 0;
-      for (size_t k = 0; k < in_count; k++) {
-        uint64_t in_key = in_entries[2 * k];
-        for (; next_out < out_count && out_entries[2 * next_out] <= in_key;
-             next_out++) {
-          best_out = std::min(best_out,
-                              (int64_t)out_entries[2 * next_out + 1] -
-                                  (int64_t)(out_entries[2 * next_out] >>
-                                            tie_bits));
-        }
-        if (next_out > 0) {
-          best = std::min(best, (uint64_t)(best_out +
-                                            (int64_t)(in_key >> tie_bits) +
-                                            (int64_t)in_entries[2 * k + 1]));
-        }
-      }
+      std::span<const uint64_t> slots = label_slots;
+      best = std::min(best, shortest_through_group(
+                                slots.subspan(out + 1, 2 * out_count),
+                                slots.subspan(in + 1, 2 * in_count), tie_bits));
     }
     // Step past the group with the lower highway number, or both if they
     // are the same highway.
@@ -1096,5 +1142,4 @@ size_t HighwayLabeling::stored_words() const {
          seqlens.size();
 }
 
-} // namespace phl
-} // namespace bdsg
+} // namespace bdsg::phl
