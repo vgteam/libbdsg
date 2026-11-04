@@ -192,6 +192,12 @@ public:
     using TriviallySerializable::deserialize;
     void dissociate();
 
+    /** Give back any unused space in the index's memory, such as space that
+     * was reserved while building it but never filled. Call before saving so
+     * that the unused space doesn't end up in the file.
+     */
+    void trim();
+
     void serialize(const std::function<void(const void*, size_t)>& iteratee) const;
     void serialize(int fd);
     void deserialize(int fd);
@@ -1197,10 +1203,14 @@ private:
     static const int max_num_size_limit_warnings = 100;
     std::atomic<int> size_limit_warnings{0};
     static const uint32_t magic_number = 1738636486;
+    //If this is false, then loading an index from another version doesn't fail. That
+    //makes it possible to copy or trim old indexes, but not to query them.
+    bool check_version = true;
     
 public:
     void set_snarl_size_limit (size_t size) {snarl_size_limit=size;}
     void set_only_top_level_chain_distances (bool only_chain) {only_top_level_chain_distances=only_chain;}
+    void set_check_version_on_load (bool check) {check_version=check;}
 
 
 

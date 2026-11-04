@@ -1175,6 +1175,36 @@ void Manager::deallocate(void* address) {
 #endif
 }
 
+bool Manager::shrink(void* address, size_t bytes) {
+    if (get_chain(address) == NO_CHAIN) {
+        // We can't shrink a malloc'd block in place.
+        return false;
+    }
+    
+    AllocatorBlock* found = AllocatorBlock::get_from_data(address);
+    if (found->size < bytes + sizeof(AllocatorBlock)) {
+        // Not enough left over to make a free block from
+        return false;
+    }
+    
+    // Split off the end as a new block. The block is allocated, and so not in
+    // the free list, so we only need to touch the free list when we free the
+    // new block, and we don't need the allocator lock until then.
+    AllocatorBlock* rest = found->split(bytes);
+    // Splitting assumes a free block and links the two, so unlink them.
+    found->next = nullptr;
+    rest->prev = nullptr;
+    
+#ifdef debug_manager
+    std::cerr << "Shrank block at " << address << " to " << bytes << " bytes" << std::endl;
+#endif
+    
+    // Free the rest, which puts it in the free list and merges it with any
+    // following free space.
+    deallocate(rest->get_user_data());
+    return true;
+}
+    
 void* Manager::find_first_allocation(chainid_t chain, size_t bytes) {
 
     assert(chain != NO_CHAIN);

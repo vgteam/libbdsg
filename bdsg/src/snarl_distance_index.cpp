@@ -1048,6 +1048,12 @@ void SnarlDistanceIndex::dissociate() {
     snarl_tree_records.dissociate();
     snarl_tree_records.reset();
 }
+void SnarlDistanceIndex::trim() {
+    // The records are normally the last thing in the chain, so this frees
+    // space at the end of the chain, which is cut off of the file when a saved
+    // index is closed.
+    snarl_tree_records->shrink_to_fit();
+}
 void SnarlDistanceIndex::serialize(const std::function<void(const void*, size_t)>& iteratee)  const {
     snarl_tree_records.save(iteratee);
 }
@@ -1060,7 +1066,9 @@ void SnarlDistanceIndex::deserialize(int fd) {
     //This gets called by TriviallySerializable::deserialize(filename), which
     //doesn't check for the prefix, so this should expect it
     snarl_tree_records.load(fd, get_prefix());
-    check_version_on_load();
+    if (check_version) {
+        check_version_on_load();
+    }
 }
 
 void SnarlDistanceIndex::serialize_members(std::ostream& out) const {
@@ -1072,7 +1080,9 @@ void SnarlDistanceIndex::deserialize_members(std::istream& in){
     //This gets called by Serializable::deserialize(istream), which has already
     //read the prefix, so don't expect the prefix
     snarl_tree_records.load_after_prefix(in, get_prefix());
-    check_version_on_load();
+    if (check_version) {
+        check_version_on_load();
+    }
 }
 
 void SnarlDistanceIndex::check_version_on_load() const {

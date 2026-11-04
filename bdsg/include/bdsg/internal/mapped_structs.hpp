@@ -329,6 +329,14 @@ public:
     static void deallocate(void* address);
     
     /**
+     * Shrink the given allocated block in the chain to which it belongs down
+     * to the given number of bytes, without moving it, and free the rest.
+     * Returns false and does nothing for NO_CHAIN, or if there isn't enough
+     * extra space in the block to free.
+     */
+    static bool shrink(void* address, size_t bytes);
+    
+    /**
      * Find the mapped address of the first thing allocated in the chain, given
      * that it was allocated with the given size.
      *
@@ -641,6 +649,12 @@ public:
      * Deallocate the given number of items. Must be the same number as were allocated.
      */
     void deallocate(T* p, size_type n);
+    
+    /**
+     * Shrink an allocation of old_n items down to new_n items without moving
+     * it, freeing the rest. Returns false if it can't be done in place.
+     */
+    bool shrink_in_place(T* p, size_type old_n, size_type new_n);
     
     /**
      * Work out the maximum size that can be allocated.
@@ -993,6 +1007,11 @@ public:
      * Pre-allocate space to hold the given number of elements.
      */
     void reserve(size_t new_reserved_length);
+    
+    /**
+     * Release any reserved space not needed for the current elements.
+     */
+    void shrink_to_fit();
     
     /**
      * Drop everything from the vector.
@@ -1457,11 +1476,34 @@ void CompatVector<T, Alloc>::resize(size_t new_size) {
     length = new_size;
 }
 
+/// Shrink an allocation in place, if the allocator knows how.
+template<typename Alloc, typename T>
+auto try_shrink_in_place(Alloc& alloc, T* p, size_t old_n, size_t new_n, int)
+    -> decltype(alloc.shrink_in_place(p, old_n, new_n)) {
+    return alloc.shrink_in_place(p, old_n, new_n);
+}
+
+/// Report that an allocator that doesn't know how to shrink in place can't.
+template<typename Alloc, typename T>
+bool try_shrink_in_place(Alloc& alloc, T* p, size_t old_n, size_t new_n, long) {
+    return false;
+}
+
 template<typename T, typename Alloc>
 void CompatVector<T, Alloc>::shrink_to_fit() {
     // Actually reallocate smaller.
     if (length == reserved_length) {
         // Nothing to do!
+        return;
+    }
+    
+    // Get a real pointer to pass; our offset pointer can't be copied out of the chain.
+    T* data_start = first;
+    if (try_shrink_in_place(alloc, data_start, reserved_length, length, 0)) {
+        // We kept our data where it was and gave back the space after it.
+        // This avoids leaving a hole where the old data was, which matters
+        // for memory that gets saved to a file.
+        reserved_length = length;
         return;
     }
     
@@ -1737,6 +1779,12 @@ void CompatIntVector<Alloc>::reserve(size_t new_reserved_length) {
         std::numeric_limits<uint64_t>::digits;
     // Reserve space in the backing vector
     data.reserve(item_slots);
+}
+
+template<typename Alloc>
+void CompatIntVector<Alloc>::shrink_to_fit() {
+    // The backing vector is always sized to just hold our items.
+    data.shrink_to_fit();
 }
 
 template<typename Alloc>
@@ -2045,6 +2093,11 @@ auto Allocator<T>::allocate(size_type n, const T* hint) -> T* {
 template<typename T>
 void Allocator<T>::deallocate(T* p, size_type n) {
     Manager::deallocate((void*) p);
+}
+
+template<typename T>
+bool Allocator<T>::shrink_in_place(T* p, size_type old_n, size_type new_n) {
+    return Manager::shrink((void*) p, new_n * sizeof(T));
 }
 
 template<typename T>

@@ -672,6 +672,32 @@ void test_int_vector() {
        << " bits is " << (iv->capacity() * iv->width() / 8) << " bytes" << endl;
   save_and_check_size(required_bytes);
 
+  // Reserve much more than we use, like the distance index does while
+  // building, and make sure shrinking really gives the extra back.
+  iv.construct("ints");
+  iv->width(20);
+  size_t reserved_items = 1024 * 1024 * 10;
+  size_t used_items = 1000;
+  iv->reserve(reserved_items);
+  iv->resize(used_items);
+  for (size_t i = 0; i < used_items; i++) {
+    (*iv)[i] = i;
+  }
+  iv->shrink_to_fit();
+  total_free_reclaimable = iv.get_usage();
+  required_bytes =
+      std::get<0>(total_free_reclaimable) - std::get<2>(total_free_reclaimable);
+  cerr << std::get<0>(total_free_reclaimable) << " bytes in chain, "
+       << std::get<1>(total_free_reclaimable) << " bytes free, "
+       << std::get<2>(total_free_reclaimable) << " bytes reclaimable" << endl;
+  // The reserved space should be free at the end of the chain, so that it
+  // won't be saved.
+  assert(required_bytes < 1024 * 1024);
+  save_and_check_size(required_bytes);
+  for (size_t i = 0; i < used_items; i++) {
+    assert((*iv)[i] == i);
+  }
+
   unlink("test.dat");
   cerr << "Int Vector tests successful!" << endl;
 }
