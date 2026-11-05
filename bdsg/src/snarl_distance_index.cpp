@@ -6825,6 +6825,16 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
             }
         }
     }
+
+    //The size prediction can be wrong, and unused space would be saved with the index, so trim it to fit
+    size_t unused_bits = (snarl_tree_records->capacity() - snarl_tree_records->size()) * snarl_tree_records->width();
+    std::tuple<size_t, size_t, size_t> chain_usage = snarl_tree_records.get_usage();
+    if (unused_bits >= 64 || std::get<1>(chain_usage) * 100 > std::get<0>(chain_usage)) {
+        bdsg::CompatIntVector<> records_copy;
+        records_copy = *snarl_tree_records;
+        snarl_tree_records.construct(get_prefix());
+        *snarl_tree_records = records_copy;
+    }
 #ifdef debug_distance_indexing
     //Repack the vector to use fewer bits
     //This doesn't actually get used anymore but keep it around in case I change things and can't
