@@ -573,6 +573,76 @@ void test_mapped_structs() {
   cerr << "Mapped Structs tests successful!" << endl;
 }
 
+void test_try_realloc_inplace() {
+  {
+    using T = int64_t;
+    using V = CompatVector<T, bdsg::yomo::Allocator<T>>;
+    bdsg::yomo::UniqueMappedPointer<V> numbers_holder;
+    numbers_holder.construct("GATTACA");
+    auto &vec = *numbers_holder;
+
+    vec.resize(1000);
+    for (size_t i = 0; i < vec.size(); i++) {
+      vec[i] = i;
+    }
+    T* start = &vec[0];
+
+    // Shrinking should keep the items where they are and free the rest.
+    vec.resize(10);
+    vec.shrink_to_fit();
+    assert(vec.capacity() == 10);
+    assert(&vec[0] == start);
+
+    // So growing again should take the freed space back, without moving.
+    vec.reserve(500);
+    assert(vec.capacity() >= 500);
+    assert(&vec[0] == start);
+    for (size_t i = 0; i < vec.size(); i++) {
+      assert(vec[i] == i);
+    }
+
+    // Shrinking to nothing should free the memory.
+    vec.resize(0);
+    vec.shrink_to_fit();
+    assert(vec.capacity() == 0);
+
+    // And we should still be able to use the vector.
+    vec.resize(5);
+    for (size_t i = 0; i < vec.size(); i++) {
+      vec[i] = i;
+    }
+    for (size_t i = 0; i < vec.size(); i++) {
+      assert(vec[i] == i);
+    }
+  }
+
+  for (size_t shrink_by = 1; shrink_by <= 16; shrink_by++) {
+    // Shrinking a big vector by any small amount should keep its items and
+    // leave the heap intact.
+    using T = int64_t;
+    using V = CompatVector<T, bdsg::yomo::Allocator<T>>;
+    bdsg::yomo::UniqueMappedPointer<V> numbers_holder;
+    numbers_holder.construct("GATTACA");
+    auto &vec = *numbers_holder;
+
+    vec.resize(10000);
+    for (size_t i = 0; i < vec.size(); i++) {
+      vec[i] = i;
+    }
+    vec.resize(vec.size() - shrink_by);
+    vec.shrink_to_fit();
+    for (size_t i = 0; i < vec.size(); i++) {
+      assert(vec[i] == i);
+    }
+    numbers_holder.check_heap_integrity();
+  }
+
+  assert(yomo::Manager::count_chains() == 0);
+  assert(yomo::Manager::count_links() == 0);
+
+  cerr << "try_realloc_inplace tests successful!" << endl;
+}
+
 void test_int_vector() {
 
   // Make a thing to hold onto a test int vector.
@@ -671,6 +741,32 @@ void test_int_vector() {
   cerr << iv->size() << "/" << iv->capacity() << " entries of " << iv->width()
        << " bits is " << (iv->capacity() * iv->width() / 8) << " bytes" << endl;
   save_and_check_size(required_bytes);
+
+  // Reserve much more than we use, and make sure shrinking gives the extra
+  // back.
+  iv.construct("ints");
+  iv->width(20);
+  size_t reserved_items = 1024 * 1024 * 10;
+  size_t used_items = 1000;
+  iv->reserve(reserved_items);
+  iv->resize(used_items);
+  for (size_t i = 0; i < used_items; i++) {
+    (*iv)[i] = i;
+  }
+  iv->shrink_to_fit();
+  total_free_reclaimable = iv.get_usage();
+  required_bytes =
+      std::get<0>(total_free_reclaimable) - std::get<2>(total_free_reclaimable);
+  cerr << std::get<0>(total_free_reclaimable) << " bytes in chain, "
+       << std::get<1>(total_free_reclaimable) << " bytes free, "
+       << std::get<2>(total_free_reclaimable) << " bytes reclaimable" << endl;
+  // The reserved space should be free at the end of the chain, so that it
+  // won't be saved.
+  assert(required_bytes < 1024 * 1024);
+  save_and_check_size(required_bytes);
+  for (size_t i = 0; i < used_items; i++) {
+    assert((*iv)[i] == i);
+  }
 
   unlink("test.dat");
   cerr << "Int Vector tests successful!" << endl;
@@ -5445,6 +5541,7 @@ int main(void) {
   test_reference_path_overlay();
   test_bit_packing();
   test_mapped_structs();
+  test_try_realloc_inplace();
   test_int_vector();
   test_packed_vector<PackedVector<>>();
   test_packed_vector_grows_with_zeros<PackedVector<>>();

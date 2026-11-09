@@ -1175,6 +1175,88 @@ void Manager::deallocate(void* address) {
 #endif
 }
 
+size_t Manager::try_realloc_inplace(void* address, size_t old_bytes, size_t new_bytes) {
+    if (new_bytes == 0) {
+        deallocate(address);
+        return 0;
+    }
+    if (new_bytes == old_bytes) {
+        return old_bytes;
+    }
+    
+    chainid_t chain = get_chain(address);
+    if (chain == NO_CHAIN) {
+        // We can't resize a malloc'd block in place.
+        return old_bytes;
+    }
+    
+    // The block is allocated, so it isn't in the free list, and only our
+    // caller can be using it. We need the allocator lock only to work on the
+    // free list.
+    AllocatorBlock* found = AllocatorBlock::get_from_data(address);
+    
+    if (found->size <= new_bytes + sizeof(AllocatorBlock)) {
+        // There isn't room in the block for new_bytes and a free block after
+        // them. If the block after ours is free, and taking it in gives us
+        // room for new_bytes, take it in.
+        with_allocator_header(chain, [&](AllocatorHeader* header) {
+            // The free list is in chain order, so find the first free block
+            // after ours.
+            size_t found_position = get_chain_and_position(found).second;
+            AllocatorBlock* after = header->first_free;
+            while (after && get_chain_and_position(after).second < found_position) {
+                after = after->next;
+            }
+            // Blocks that abut in memory are adjacent, even if they are in
+            // different links of the chain.
+            if (after && (char*)found->get_user_data() + found->size == (char*)after &&
+                found->size + sizeof(AllocatorBlock) + after->size >= new_bytes) {
+    
+                auto connected = after->detach();
+                if (header->first_free == after) {
+                    header->first_free = connected.second;
+                }
+                if (header->last_free == after) {
+                    header->last_free = connected.first;
+                }
+                found->size += sizeof(AllocatorBlock) + after->size;
+                after->~AllocatorBlock();
+            }
+        });
+    }
+    
+    if (found->size < new_bytes) {
+        // We wanted to grow and there was no room.
+        return old_bytes;
+    }
+    
+    if (found->size > new_bytes + sizeof(AllocatorBlock)) {
+        // Split off what we don't need as a new block, with at least one byte
+        // in it. A free block with no bytes can sit at the very end of a
+        // link, and then the address of its memory is outside the link, and
+        // deallocate() can't find its chain.
+        AllocatorBlock* rest = found->split(new_bytes);
+        // Splitting assumes a free block and links the two, so unlink them.
+        found->next = nullptr;
+        rest->prev = nullptr;
+        // Free the new block, which puts it in the free list and merges it
+        // with any free block after it.
+        deallocate(rest->get_user_data());
+    }
+    
+    if (new_bytes < old_bytes && found->size >= old_bytes) {
+        // We wanted to shrink, and nothing was left over to free.
+        return old_bytes;
+    }
+    
+#ifdef debug_manager
+    std::cerr << "Resized block at " << address << " from " << old_bytes << " to "
+        << found->size << " bytes" << std::endl;
+#endif
+    
+    return found->size;
+}
+    
 void* Manager::find_first_allocation(chainid_t chain, size_t bytes) {
 
     assert(chain != NO_CHAIN);

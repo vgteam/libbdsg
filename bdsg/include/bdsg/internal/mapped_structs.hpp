@@ -329,6 +329,18 @@ public:
     static void deallocate(void* address);
     
     /**
+     * Try to resize the given allocated block, of old_bytes bytes, to hold
+     * new_bytes bytes, without moving it.
+     *
+     * Returns the size of the block after the change, which is at least
+     * new_bytes. Returns old_bytes and changes nothing if the block can't be
+     * resized in place. If new_bytes is 0, frees the block and returns 0.
+     *
+     * See <https://stackoverflow.com/a/79441986>.
+     */
+    static size_t try_realloc_inplace(void* address, size_t old_bytes, size_t new_bytes);
+    
+    /**
      * Find the mapped address of the first thing allocated in the chain, given
      * that it was allocated with the given size.
      *
@@ -643,6 +655,19 @@ public:
     void deallocate(T* p, size_type n);
     
     /**
+     * Try to resize an allocation of oldsz items to hold newsz items, without
+     * moving it.
+     *
+     * Returns the number of items the allocation holds after the change,
+     * which is at least newsz. Returns oldsz and changes nothing if the
+     * allocation can't be resized in place; the caller must then allocate,
+     * move the items and deallocate. If newsz is 0, deallocates and returns 0.
+     *
+     * See <https://stackoverflow.com/a/79441986>.
+     */
+    size_type try_realloc_inplace(T* p, size_type oldsz, size_type newsz);
+    
+    /**
      * Work out the maximum size that can be allocated.
      */
     size_t max_size() const;
@@ -918,6 +943,14 @@ protected:
     typename std::allocator_traits<Alloc>::pointer first = nullptr;
     
     static const int RESIZE_FACTOR = 2;
+    
+    /**
+     * Try to change our capacity to new_capacity without moving our items.
+     *
+     * Return true if the capacity changed. It may end up a little more than
+     * new_capacity. Return false, and change nothing, if it can't be done.
+     */
+    bool set_capacity_in_place(size_t new_capacity);
 };
 
 /**
@@ -993,6 +1026,11 @@ public:
      * Pre-allocate space to hold the given number of elements.
      */
     void reserve(size_t new_reserved_length);
+    
+    /**
+     * Release any reserved space not needed for the current elements.
+     */
+    void shrink_to_fit();
     
     /**
      * Drop everything from the vector.
@@ -1355,6 +1393,31 @@ size_t CompatVector<T, Alloc>::capacity() const {
 }
 
 template<typename T, typename Alloc>
+bool CompatVector<T, Alloc>::set_capacity_in_place(size_t new_capacity) {
+    if (!first) {
+        return false;
+    }
+    // Pass a real pointer. Our offset pointer stops working if it is copied
+    // out of the chain.
+    T* data_start = first;
+    size_t resized;
+    if constexpr (requires { alloc.try_realloc_inplace(data_start, reserved_length, new_capacity); }) {
+        resized = alloc.try_realloc_inplace(data_start, reserved_length, new_capacity);
+    } else {
+        resized = reserved_length;
+    }
+    if (resized == reserved_length) {
+        return false;
+    }
+    reserved_length = resized;
+    if (resized == 0) {
+        // The allocator freed our memory.
+        first = nullptr;
+    }
+    return true;
+}
+
+template<typename T, typename Alloc>
 void CompatVector<T, Alloc>::reserve(size_t new_reserved_length) {
     // Find where the data is. Note that this may be null.
     T* old_first = first;
@@ -1368,6 +1431,11 @@ void CompatVector<T, Alloc>::reserve(size_t new_reserved_length) {
 #endif
 
     if (new_reserved_length > old_reserved_length) {
+        if (set_capacity_in_place(new_reserved_length)) {
+            // Our memory grew where it was, so nothing has to move.
+            return;
+        }
+        
         // Allocate space for the new data, and get the position in the context
         T* new_first  = alloc.allocate(new_reserved_length);
 
@@ -1462,6 +1530,11 @@ void CompatVector<T, Alloc>::shrink_to_fit() {
     // Actually reallocate smaller.
     if (length == reserved_length) {
         // Nothing to do!
+        return;
+    }
+    
+    if (set_capacity_in_place(length)) {
+        // Our memory shrank where it was, so nothing has to move.
         return;
     }
     
@@ -1737,6 +1810,13 @@ void CompatIntVector<Alloc>::reserve(size_t new_reserved_length) {
         std::numeric_limits<uint64_t>::digits;
     // Reserve space in the backing vector
     data.reserve(item_slots);
+}
+
+template<typename Alloc>
+void CompatIntVector<Alloc>::shrink_to_fit() {
+    // Every word in the backing vector holds bits of our items, so the space
+    // we don't need is all spare capacity in the backing vector.
+    data.shrink_to_fit();
 }
 
 template<typename Alloc>
@@ -2045,6 +2125,18 @@ auto Allocator<T>::allocate(size_type n, const T* hint) -> T* {
 template<typename T>
 void Allocator<T>::deallocate(T* p, size_type n) {
     Manager::deallocate((void*) p);
+}
+
+template<typename T>
+auto Allocator<T>::try_realloc_inplace(T* p, size_type oldsz, size_type newsz) -> size_type {
+    size_t old_bytes = oldsz * sizeof(T);
+    size_t new_bytes = Manager::try_realloc_inplace((void*) p, old_bytes, newsz * sizeof(T));
+    if (new_bytes == old_bytes) {
+        // Nothing changed
+        return oldsz;
+    }
+    // We may have got space for part of another item, which we can't use.
+    return new_bytes / sizeof(T);
 }
 
 template<typename T>
