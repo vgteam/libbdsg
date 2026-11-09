@@ -637,6 +637,53 @@ void test_try_realloc_inplace() {
     numbers_holder.check_heap_integrity();
   }
 
+  {
+    // Two vectors in one chain, each with the other's memory next to its own.
+    using T = int64_t;
+    using V = CompatVector<T, bdsg::yomo::Allocator<T>>;
+    struct TwoVectors {
+      V first;
+      V second;
+    };
+    bdsg::yomo::UniqueMappedPointer<TwoVectors> holder;
+    holder.construct("GATTACA");
+    V& first = holder->first;
+    V& second = holder->second;
+
+    first.resize(100);
+    second.resize(100);
+    for (size_t i = 0; i < 100; i++) {
+      first[i] = i;
+      second[i] = -(T)i;
+    }
+    T* first_start = &first[0];
+
+    // The first vector can shrink with the second's memory right after it.
+    first.resize(10);
+    first.shrink_to_fit();
+    assert(first.capacity() == 10);
+    assert(&first[0] == first_start);
+    holder.check_heap_integrity();
+
+    // It can then grow back into the space it freed.
+    first.reserve(50);
+    assert(first.capacity() >= 50);
+    assert(&first[0] == first_start);
+    holder.check_heap_integrity();
+
+    // But it has to move to grow past the second vector's memory.
+    first.reserve(1000);
+    assert(&first[0] != first_start);
+    holder.check_heap_integrity();
+
+    for (size_t i = 0; i < first.size(); i++) {
+      assert(first[i] == i);
+    }
+    for (size_t i = 0; i < second.size(); i++) {
+      assert(second[i] == -(T)i);
+    }
+  }
+
   assert(yomo::Manager::count_chains() == 0);
   assert(yomo::Manager::count_links() == 0);
 

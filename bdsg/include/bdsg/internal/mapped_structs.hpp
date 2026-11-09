@@ -427,8 +427,8 @@ protected:
         static AllocatorBlock* get_from_data(void* user_data);
         
         /// Split the block, keeping first_bytes bytes and giving the rest to a new
-        /// subsequent block, which is wired up and returned. Assumes the block is
-        /// free.
+        /// block right after it in memory, which is returned. The new block is not
+        /// in the free list.
         AllocatorBlock* split(size_t first_bytes);
         
         /// Remove this block from the free list. Returns the blocks before and
@@ -579,6 +579,39 @@ protected:
      */
     static void with_allocator_header(chainid_t chain,
                                       const std::function<void(AllocatorHeader*)>& callback);
+    
+    /**
+     * Return true if the given block is in the free list.
+     *
+     * Allocated blocks have null prev and next pointers. A free block with
+     * null pointers is the only block in the free list.
+     */
+    static bool is_free(AllocatorHeader* header, const AllocatorBlock* block);
+    
+    /**
+     * Get the free block that starts where the given block's memory ends, or
+     * null if the block after it is allocated or isn't there.
+     */
+    static AllocatorBlock* free_block_after(chainid_t chain, AllocatorHeader* header, AllocatorBlock* block);
+    
+    /**
+     * Put a block that isn't in the free list into it between the given free
+     * blocks, either of which may be null for the end of the list.
+     */
+    static void link_free_block(AllocatorHeader* header, AllocatorBlock* block,
+                                AllocatorBlock* left, AllocatorBlock* right);
+    
+    /**
+     * Take a block out of the free list. Return the free blocks that were
+     * before and after it, or null at the ends of the list.
+     */
+    static std::pair<AllocatorBlock*, AllocatorBlock*> unlink_free_block(AllocatorHeader* header, AllocatorBlock* block);
+    
+    /**
+     * Put a block that isn't in the free list into it, in chain order, and
+     * merge it with free blocks that abut it in memory.
+     */
+    static void add_free_block(AllocatorHeader* header, AllocatorBlock* block);
                                       
     /**
      * While a final free block exists, drop it from the free list.

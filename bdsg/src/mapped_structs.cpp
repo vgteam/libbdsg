@@ -5,6 +5,7 @@
 #include "bdsg/internal/mapped_structs.hpp"
 
 #include <mutex>
+#include <optional>
 #include <sstream>
 #include <iomanip>
 #include <sys/types.h>
@@ -884,7 +885,11 @@ void* Manager::allocate_from(chainid_t chain, size_t bytes) {
             }
         }
         
-        // Now we can allocate (part of) this block.
+        // Now we can allocate (part of) this block. Take it out of the free list.
+#ifdef debug_manager
+        std::cerr << "Detach block of " << found->size << " bytes at " << (intptr_t)found << std::endl;
+#endif
+        auto neighbors = unlink_free_block(header, found);
         
         if (found->size > block_bytes) {
             // We could break the user data off of this block and have some space left over.
@@ -894,38 +899,12 @@ void* Manager::allocate_from(chainid_t chain, size_t bytes) {
             std::cerr << "Split block of " << found->size << " bytes at " << (intptr_t)found << std::endl;
 #endif
             
-            // So split the block.
+            // So split the block, and put what's left over where the block was in the free list.
             AllocatorBlock* second = found->split(bytes);
+            link_free_block(header, second, neighbors.first, neighbors.second);
             
 #ifdef debug_manager
             std::cerr << "Created block of " << second->size << " bytes at " << (intptr_t)second << std::endl;
-#endif
-            
-            if (header->last_free == found) {
-                // And fix up the end of the linked list
-                header->last_free = second;
-            }
-        }
-        
-        // Now we have a free block of the right size. Make it not free.
-#ifdef debug_manager
-        std::cerr << "Detach block of " << found->size << " bytes at " << (intptr_t)found << std::endl;
-#endif
-        auto connected = found->detach();
-        if (header->first_free == found) {
-            // This was the first free block.
-            // The first free block is now the right neighbor, if any.
-            header->first_free = connected.second;
-#ifdef debug_manager
-            std::cerr << "\tWas first free block; now that's " << (intptr_t)header->first_free.get() << std::endl;
-#endif
-        }
-        if (header->last_free == found) {
-            // This was the last free block
-            // The last free block is now the left neighbor, if any.
-            header->last_free = connected.first;
-#ifdef debug_manager
-            std::cerr << "\tWas last free block; now that's " << (intptr_t)header->last_free.get() << std::endl;
 #endif
         }
         
@@ -1115,58 +1094,12 @@ void Manager::deallocate(void* address) {
     with_allocator_header(chain, [&](AllocatorHeader* header) {
         // With exclusive use of the free list
         
-        bool is_free = (found->prev || found->next || (header->first_free == found && header->last_free == found));
-        if (is_free) {
+        if (is_free(header, found)) {
             // This is free already!
             throw std::runtime_error("Detected double-free!");
         }
-       
-        // Find the block in the free list after it, if any
-        AllocatorBlock* right = header->first_free;
         
-        while(right && Manager::get_chain_and_position(right).second < Manager::get_chain_and_position(found).second) {
-            // We have a free block, but it occurs before the block being freed in the chain.
-            // TODO: can we save chain lookups here somehow?
-            // Go to the next free block, or off the end if that was the last one.
-#ifdef debug_manager
-            std::cerr << "\tComes after block " << (intptr_t)right << " in chain space" << std::endl;
-#endif
-            right = right->next;
-        }
-        AllocatorBlock* left;
-        if (!right) {
-            // The new block should be the last block in the list.
-            // So it comes after the existing last block, if any.
-            left = header->last_free;
-        } else {
-            // The new block comes between right and its free predecessor, if any
-            left = right->prev;
-        }
-        
-        // Wire in the block
-        found->attach(left, right);
-        
-        // Update haed and tail
-        if (header->last_free == left) {
-#ifdef debug_manager
-            std::cerr << "\tIs new last free block, replacing " << (intptr_t)header->last_free.get() << std::endl;
-#endif
-            header->last_free = found;
-        }
-        if (header->first_free == right) {
-#ifdef debug_manager
-            std::cerr << "\tIs new first free block, replacing " << (intptr_t)header->first_free.get() << std::endl;
-#endif
-            header->first_free = found;
-        }
-        
-        // Defragment.
-        auto bounds = found->coalesce();
-        // We can't need to update the first free when defragmenting, but we may
-        // need to update the last free.
-        if (header->last_free == bounds.second) {
-            header->last_free = bounds.first;
-        }
+        add_free_block(header, found);
     });
     
 #ifdef debug_manager
@@ -1190,60 +1123,39 @@ size_t Manager::try_realloc_inplace(void* address, size_t old_bytes, size_t new_
         return old_bytes;
     }
     
-    // The block is allocated, so it isn't in the free list, and only our
-    // caller can be using it. We need the allocator lock only to work on the
-    // free list.
     AllocatorBlock* found = AllocatorBlock::get_from_data(address);
     
-    if (found->size <= new_bytes + sizeof(AllocatorBlock)) {
-        // There isn't room in the block for new_bytes and a free block after
-        // them. If the block after ours is free, and taking it in gives us
-        // room for new_bytes, take it in.
-        with_allocator_header(chain, [&](AllocatorHeader* header) {
-            // The free list is in chain order, so find the first free block
-            // after ours.
-            size_t found_position = get_chain_and_position(found).second;
-            AllocatorBlock* after = header->first_free;
-            while (after && get_chain_and_position(after).second < found_position) {
-                after = after->next;
+    with_allocator_header(chain, [&](AllocatorHeader* header) {
+        AllocatorBlock* after = free_block_after(chain, header, found);
+        // The free blocks around the one we take in, if we take one in.
+        std::optional<std::pair<AllocatorBlock*, AllocatorBlock*>> neighbors;
+        
+        if (after && found->size + sizeof(AllocatorBlock) + after->size >= new_bytes) {
+            // Take in the free block after ours. Space we split off goes where
+            // it was in the free list, so we don't have to search the list.
+            neighbors = unlink_free_block(header, after);
+            found->size += sizeof(AllocatorBlock) + after->size;
+            after->~AllocatorBlock();
+        }
+        
+        if (found->size > new_bytes + sizeof(AllocatorBlock)) {
+            // Split off what we don't need as a new block, with at least one
+            // byte in it. A free block with no bytes can sit at the very end
+            // of a link, and then the address of its memory is outside the
+            // link, and we can't find its chain.
+            AllocatorBlock* rest = found->split(new_bytes);
+            if (neighbors) {
+                link_free_block(header, rest, neighbors->first, neighbors->second);
+            } else {
+                add_free_block(header, rest);
             }
-            // Blocks that abut in memory are adjacent, even if they are in
-            // different links of the chain.
-            if (after && (char*)found->get_user_data() + found->size == (char*)after &&
-                found->size + sizeof(AllocatorBlock) + after->size >= new_bytes) {
-    
-                auto connected = after->detach();
-                if (header->first_free == after) {
-                    header->first_free = connected.second;
-                }
-                if (header->last_free == after) {
-                    header->last_free = connected.first;
-                }
-                found->size += sizeof(AllocatorBlock) + after->size;
-                after->~AllocatorBlock();
-            }
-        });
-    }
+        }
+    });
     
     if (found->size < new_bytes) {
         // We wanted to grow and there was no room.
         return old_bytes;
     }
-    
-    if (found->size > new_bytes + sizeof(AllocatorBlock)) {
-        // Split off what we don't need as a new block, with at least one byte
-        // in it. A free block with no bytes can sit at the very end of a
-        // link, and then the address of its memory is outside the link, and
-        // deallocate() can't find its chain.
-        AllocatorBlock* rest = found->split(new_bytes);
-        // Splitting assumes a free block and links the two, so unlink them.
-        found->next = nullptr;
-        rest->prev = nullptr;
-        // Free the new block, which puts it in the free list and merges it
-        // with any free block after it.
-        deallocate(rest->get_user_data());
-    }
-    
     if (new_bytes < old_bytes && found->size >= old_bytes) {
         // We wanted to shrink, and nothing was left over to free.
         return old_bytes;
@@ -1255,6 +1167,65 @@ size_t Manager::try_realloc_inplace(void* address, size_t old_bytes, size_t new_
 #endif
     
     return found->size;
+}
+
+bool Manager::is_free(AllocatorHeader* header, const AllocatorBlock* block) {
+    return block->prev || block->next || header->first_free.get() == block;
+}
+
+Manager::AllocatorBlock* Manager::free_block_after(chainid_t chain, AllocatorHeader* header, AllocatorBlock* block) {
+    // The memory after ours holds the next block only if it is at the next
+    // position in our chain. Otherwise it is in another chain, or in a link
+    // of ours that isn't the next one, or in no chain.
+    void* end = (char*)block->get_user_data() + block->size;
+    size_t end_position = get_chain_and_position(block).second + sizeof(AllocatorBlock) + block->size;
+    if (get_chain_and_position(end) != std::make_pair(chain, end_position)) {
+        return nullptr;
+    }
+    AllocatorBlock* after = (AllocatorBlock*) end;
+    return is_free(header, after) ? after : nullptr;
+}
+
+void Manager::link_free_block(AllocatorHeader* header, AllocatorBlock* block,
+                              AllocatorBlock* left, AllocatorBlock* right) {
+    block->attach(left, right);
+    if (!left) {
+        header->first_free = block;
+    }
+    if (!right) {
+        header->last_free = block;
+    }
+}
+
+std::pair<Manager::AllocatorBlock*, Manager::AllocatorBlock*> Manager::unlink_free_block(AllocatorHeader* header, AllocatorBlock* block) {
+    auto neighbors = block->detach();
+    if (header->first_free.get() == block) {
+        header->first_free = neighbors.second;
+    }
+    if (header->last_free.get() == block) {
+        header->last_free = neighbors.first;
+    }
+    return neighbors;
+}
+
+void Manager::add_free_block(AllocatorHeader* header, AllocatorBlock* block) {
+    // Find the first free block after this one in the chain, if any.
+    // TODO: can we save chain lookups here somehow?
+    size_t position = get_chain_and_position(block).second;
+    AllocatorBlock* right = header->first_free;
+    while (right && get_chain_and_position(right).second < position) {
+        right = right->next;
+    }
+    AllocatorBlock* left = right ? right->prev.get() : header->last_free.get();
+    
+    link_free_block(header, block, left, right);
+    
+    // Defragment. Merging can't change the first free block, but it may
+    // swallow the last one.
+    auto bounds = block->coalesce();
+    if (header->last_free.get() == bounds.second) {
+        header->last_free = bounds.first;
+    }
 }
     
 void* Manager::find_first_allocation(chainid_t chain, size_t bytes) {
@@ -1963,15 +1934,6 @@ Manager::AllocatorBlock* Manager::AllocatorBlock::split(size_t first_bytes) {
     AllocatorBlock* new_next = (AllocatorBlock*)(((char*)get_user_data()) + first_bytes);
     new (new_next) AllocatorBlock();
     new_next->size = available_bytes - first_bytes - sizeof(AllocatorBlock);
-    
-    // Wire it in
-    new_next->prev = this;
-    new_next->next = next;
-    next = new_next;
-    if (new_next->next) {
-        // We had an old successor that needs to point to our new successor.
-        new_next->next->prev = new_next;
-    }
     
     // Return the new block
     return new_next;
