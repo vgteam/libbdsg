@@ -6826,9 +6826,8 @@ void SnarlDistanceIndex::get_snarl_tree_records(const vector<const TemporaryDist
         }
     }
 
-    //The size prediction can be wrong, and unused space would be saved with the index, so give it back.
-    //The records are normally the last thing in the chain, and they shrink where they are, so this
-    //frees space at the end of the chain, which is cut off of the file when a saved index is closed.
+    //The size estimate can be wrong. If it was too big, release the extra space at the end.
+    //Saving deals with the holes left by the records growing if it was too small.
     snarl_tree_records->shrink_to_fit();
 #ifdef debug_distance_indexing
     //Repack the vector to use fewer bits

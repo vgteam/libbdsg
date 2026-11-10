@@ -1162,25 +1162,19 @@ size_t Manager::try_realloc_inplace(void* address, size_t old_bytes, size_t new_
         std::optional<std::pair<AllocatorBlock*, AllocatorBlock*>> neighbors;
         
         if (after && found->size + sizeof(AllocatorBlock) + after->size >= new_bytes) {
-            // Take in the free block after ours. Space we split off goes where
-            // it was in the free list, so we don't have to search the list.
+            // Take in the free block after ours. free_block_after() only finds
+            // a block that starts where ours ends, both in memory and in the
+            // chain, so the two can be one block.
             neighbors = unlink_free_block(header, after);
             found->size += sizeof(AllocatorBlock) + after->size;
             after->~AllocatorBlock();
         }
         
         if (found->size > new_bytes + sizeof(AllocatorBlock)) {
-            // Split off what we don't need as a new block, with at least one
-            // byte in it. A free block with no bytes can sit at the very end
-            // of a link, and then the address of its memory is outside the
-            // link, and we can't find its chain.
+            // Split off what we don't need. Free blocks need at least one
+            // byte besides their header.
             AllocatorBlock* rest = found->split(new_bytes);
-            if (neighbors) {
-                link_free_block(header, rest, neighbors->first, neighbors->second);
-                release_free_pages(rest);
-            } else {
-                add_free_block(header, rest);
-            }
+            add_free_block(header, rest, neighbors);
         }
     });
     
@@ -1202,6 +1196,8 @@ size_t Manager::try_realloc_inplace(void* address, size_t old_bytes, size_t new_
 }
 
 bool Manager::is_free(AllocatorHeader* header, const AllocatorBlock* block) {
+    // Allocations don't write over their block's header, so an allocated
+    // block still has the null pointers it got when it left the free list.
     return block->prev || block->next || header->first_free.get() == block;
 }
 
@@ -1240,17 +1236,20 @@ std::pair<Manager::AllocatorBlock*, Manager::AllocatorBlock*> Manager::unlink_fr
     return neighbors;
 }
 
-void Manager::add_free_block(AllocatorHeader* header, AllocatorBlock* block) {
-    // Find the first free block after this one in the chain, if any.
-    // TODO: can we save chain lookups here somehow?
-    size_t position = get_chain_and_position(block).second;
-    AllocatorBlock* right = header->first_free;
-    while (right && get_chain_and_position(right).second < position) {
-        right = right->next;
+void Manager::add_free_block(AllocatorHeader* header, AllocatorBlock* block,
+                             std::optional<std::pair<AllocatorBlock*, AllocatorBlock*>> neighbors) {
+    if (!neighbors) {
+        // Find the first free block after this one in the chain, if any.
+        // TODO: can we save chain lookups here somehow?
+        size_t position = get_chain_and_position(block).second;
+        AllocatorBlock* right = header->first_free;
+        while (right && get_chain_and_position(right).second < position) {
+            right = right->next;
+        }
+        neighbors = std::make_pair(right ? right->prev.get() : header->last_free.get(), right);
     }
-    AllocatorBlock* left = right ? right->prev.get() : header->last_free.get();
     
-    link_free_block(header, block, left, right);
+    link_free_block(header, block, neighbors->first, neighbors->second);
     
     // Defragment. Merging can't change the first free block, but it may
     // swallow the last one.
@@ -1263,8 +1262,7 @@ void Manager::add_free_block(AllocatorHeader* header, AllocatorBlock* block) {
 }
 
 void Manager::release_free_pages(AllocatorBlock* block) {
-    // Only whole pages can be released. Keep the page with the block's header,
-    // so walking the free list doesn't fault pages back in.
+    // Only whole pages can be released. Keep the page with the block's header.
     intptr_t page_size = (intptr_t) getpagesize();
     intptr_t start = (intptr_t) block->get_user_data();
     intptr_t end = start + block->size;

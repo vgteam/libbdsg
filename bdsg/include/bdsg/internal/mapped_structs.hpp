@@ -19,6 +19,7 @@
 #include <unordered_map>
 #include <vector>
 #include <shared_mutex>
+#include <optional>
 #include <bdsg/internal/indexing_iterator.hpp>
 
 // TODO: We only target little-endian systems, like x86_64 and ARM64 Linux and
@@ -420,6 +421,18 @@ protected:
     /**
      * This occurs inside the chains and represents the header of some free or
      * allocated memory.
+     *
+     * The block's memory starts right after the header. Allocations are only
+     * written inside the block's memory, so the header of an allocated block
+     * keeps its contents.
+     *
+     * A free block with null prev and next pointers is the only block in the
+     * free list.
+     *
+     * A free block must have at least one byte of memory. If a free block
+     * with none, at the very end of a link, were allocated, the address of the
+     * allocation would be outside the link, and deallocate() couldn't find its
+     * chain.
      */
     struct AllocatorBlock {
         /// Previous block. Only used when block is free. Null if allocated.
@@ -591,9 +604,6 @@ protected:
     
     /**
      * Return true if the given block is in the free list.
-     *
-     * Allocated blocks have null prev and next pointers. A free block with
-     * null pointers is the only block in the free list.
      */
     static bool is_free(AllocatorHeader* header, const AllocatorBlock* block);
     
@@ -619,13 +629,19 @@ protected:
     /**
      * Put a block that isn't in the free list into it, in chain order, and
      * merge it with free blocks that abut it in memory.
+     *
+     * If the free blocks that go before and after it are already known, pass
+     * them as neighbors, so the list doesn't have to be searched. Either may
+     * be null for the end of the list.
      */
-    static void add_free_block(AllocatorHeader* header, AllocatorBlock* block);
+    static void add_free_block(AllocatorHeader* header, AllocatorBlock* block,
+                               std::optional<std::pair<AllocatorBlock*, AllocatorBlock*>> neighbors = std::nullopt);
     
     /**
      * Tell the OS we don't need the pages in a free block's memory.
      *
-     * What the pages hold afterward is undefined.
+     * What the released pages hold afterward is undefined. The page holding
+     * the block's header is always kept.
      */
     static void release_free_pages(AllocatorBlock* block);
                                       
@@ -835,18 +851,20 @@ public:
     void dissociate();
     
     /**
-     * Move the stored item into memory mapped in the given file, by
-     * copy-constructing it there. The pointer must not be null.
+     * Move the stored item and all associated memory into memory mapped in the
+     * given file. The pointer must not be null.
      *
-     * The copy has no free space between its parts, so the file holds only
-     * the data in use.
+     * This copy-constructs the stored item in the file, in an attempt to save
+     * space in the resulting file.
      */
     void save(int fd);
     
     /**
-     * Copy-construct the stored item into new memory not backed by any file,
-     * leaving out the free space between its parts. The pointer must not be
-     * null.
+     * Try to reclaim free space that is not already reclaimable, by copying
+     * the stored item to new memory not backed by any file. The pointer must
+     * not be null.
+     *
+     * Keeps the original if the copy wouldn't be smaller.
      */
     void compact();
     
@@ -902,11 +920,14 @@ private:
     T* cached_value = nullptr;
     
     /**
-     * Replace our chain with a new one that holds a copy of the stored item.
+     * Try to replace our chain with a smaller one that holds a copy of the
+     * stored item.
      *
-     * If fd is set, the file is emptied and then backs the new chain.
+     * Return true if the copy is smaller and we use it now. Return false, and
+     * keep our chain, if it isn't. If fd is set, the copy is made in that file,
+     * which is overwritten either way.
      */
-    void copy_to_new_chain(int fd);
+    bool try_copy_to_new_chain(int fd = 0);
 };
 
 };
@@ -2414,7 +2435,13 @@ void UniqueMappedPointer<T>::save(int fd) {
     if (chain == Manager::NO_CHAIN) {
         throw runtime_error("Cannot save a null object");
     }
-    copy_to_new_chain(fd);
+    if (!try_copy_to_new_chain(fd)) {
+        // The copy isn't smaller, so save the chain as it is.
+        Manager::chainid_t new_chain = Manager::get_associated_chain(chain, fd);
+        Manager::destroy_chain(chain);
+        chain = new_chain;
+        cached_value = (T*) Manager::find_first_allocation(chain, sizeof(T));
+    }
 }
 
 template<typename T>
@@ -2422,11 +2449,11 @@ void UniqueMappedPointer<T>::compact() {
     if (chain == Manager::NO_CHAIN) {
         throw runtime_error("Cannot compact a null object");
     }
-    copy_to_new_chain(0);
+    try_copy_to_new_chain();
 }
 
 template<typename T>
-void UniqueMappedPointer<T>::copy_to_new_chain(int fd) {
+bool UniqueMappedPointer<T>::try_copy_to_new_chain(int fd) {
     Manager::chainid_t new_chain = Manager::create_chain_like(chain, fd);
     T* item;
     try {
@@ -2439,9 +2466,22 @@ void UniqueMappedPointer<T>::copy_to_new_chain(int fd) {
         Manager::destroy_chain(new_chain);
         throw;
     }
+    
+    // Compare the space each chain would take in a file, which ends at its
+    // last allocation.
+    auto saved_size = [](Manager::chainid_t c) {
+        auto usage = Manager::get_usage(c);
+        return std::get<0>(usage) - std::get<2>(usage);
+    };
+    if (saved_size(new_chain) >= saved_size(chain)) {
+        Manager::destroy_chain(new_chain);
+        return false;
+    }
+    
     Manager::destroy_chain(chain);
     chain = new_chain;
     cached_value = item;
+    return true;
 }
 
 template<typename T>

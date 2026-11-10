@@ -638,7 +638,7 @@ void test_try_realloc_inplace() {
   }
 
   {
-    // Two vectors in one chain, each with the other's memory next to its own.
+    // Two vectors in one chain, with their data allocations next to each other.
     using T = int64_t;
     using V = CompatVector<T, bdsg::yomo::Allocator<T>>;
     struct TwoVectors {
@@ -695,8 +695,8 @@ void test_int_vector() {
   // Make a thing to hold onto a test int vector.
   bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector> iv;
 
-  // Have a function we can call to save it and check that the file holds no
-  // more than max_size bytes, none of them free.
+  // Have a function we can call to save it and check the file. The file
+  // should be no bigger than max_size bytes. It should have no free space.
   auto save_and_check_size = [&](size_t max_size) {
     // Save it out, creating or clobbering
     int fd = open("test.dat", O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
@@ -821,6 +821,14 @@ void test_int_vector() {
   // won't be saved.
   assert(required_bytes < 1024 * 1024);
   save_and_check_size(required_bytes);
+  for (size_t i = 0; i < used_items; i++) {
+    assert((*iv)[i] == i);
+  }
+
+  // Saving it again, when there is nothing left to compact, should make a
+  // file of the same size.
+  total_free_reclaimable = iv.get_usage();
+  save_and_check_size(std::get<0>(total_free_reclaimable) - std::get<2>(total_free_reclaimable));
   for (size_t i = 0; i < used_items; i++) {
     assert((*iv)[i] == i);
   }
