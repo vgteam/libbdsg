@@ -388,7 +388,10 @@ public:
      * The chain can still be used afterward. But each time this drops space,
      * it can tie up some address space until the chain is destroyed.
      *
-     * Other threads can allocate and free in the chain while this runs.
+     * Other threads can allocate and free in the chain while this runs. They
+     * must not scan the chain with scan_chain() or preload_chain(), or copy
+     * it with get_dissociated_chain() or get_associated_chain(), because
+     * this can unmap links they are about to read.
      */
     static size_t reclaim_tail(chainid_t chain);
     
