@@ -791,14 +791,6 @@ void test_int_vector() {
        << " bits is " << (iv->capacity() * iv->width() / 8) << " bytes" << endl;
   save_and_check_size(required_bytes);
 
-  // Compacting should keep the items, and leave free space only at the end.
-  iv.compact();
-  total_free_reclaimable = iv.get_usage();
-  assert(std::get<1>(total_free_reclaimable) == std::get<2>(total_free_reclaimable));
-  for (size_t i = 0; i < iv_size; i++) {
-    assert((*iv)[i] == 0xF0F0);
-  }
-
   // Reserve much more than we use, and make sure shrinking gives the extra
   // back.
   iv.construct("ints");
@@ -825,16 +817,67 @@ void test_int_vector() {
     assert((*iv)[i] == i);
   }
 
-  // Saving it again, when there is nothing left to compact, should make a
-  // file of the same size.
-  total_free_reclaimable = iv.get_usage();
-  save_and_check_size(std::get<0>(total_free_reclaimable) - std::get<2>(total_free_reclaimable));
-  for (size_t i = 0; i < used_items; i++) {
-    assert((*iv)[i] == i);
-  }
-
   unlink("test.dat");
   cerr << "Int Vector tests successful!" << endl;
+}
+
+void test_compact() {
+  bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector> iv;
+  size_t iv_size = 1024 * 1024;
+
+  // Make the vector by growing it by doubling, which leaves free space where
+  // its items used to be.
+  auto make_vector = [&]() {
+    iv.construct("ints");
+    iv->width(20);
+    for (size_t i = 1; i < iv_size; i *= 2) {
+      iv->resize(i);
+    }
+    iv->resize(iv_size);
+    for (size_t i = 0; i < iv_size; i++) {
+      (*iv)[i] = i;
+    }
+  };
+  auto check_items = [&]() {
+    for (size_t i = 0; i < iv_size; i++) {
+      assert((*iv)[i] == i);
+    }
+  };
+
+  // Compacting should keep the items, and leave free space only at the end.
+  make_vector();
+  iv.compact();
+  auto usage = iv.get_usage();
+  assert(std::get<1>(usage) == std::get<2>(usage));
+  check_items();
+
+  // Save it, and return the size of the file. Then go back to memory not
+  // backed by the file.
+  auto save = [&]() {
+    int fd = open("test-compact.dat", O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+    iv.save(fd);
+    close(fd);
+    iv.dissociate();
+    struct stat file_stats;
+    stat("test-compact.dat", &file_stats);
+    return (size_t) file_stats.st_size;
+  };
+
+  // Saving should make a file with no free space in it.
+  make_vector();
+  size_t file_size = save();
+  usage = iv.get_usage();
+  assert(std::get<0>(usage) == file_size);
+  assert(std::get<1>(usage) == 0);
+  check_items();
+
+  // Saving it again, when there is nothing left to compact, should make a
+  // file of the same size.
+  assert(save() == file_size);
+  check_items();
+
+  unlink("test-compact.dat");
+  cerr << "Compaction tests successful!" << endl;
 }
 
 void test_serializable_handle_graphs() {
@@ -5608,6 +5651,7 @@ int main(void) {
   test_mapped_structs();
   test_try_realloc_inplace();
   test_int_vector();
+  test_compact();
   test_packed_vector<PackedVector<>>();
   test_packed_vector_grows_with_zeros<PackedVector<>>();
   test_packed_vector<PackedVector<CompatBackend>>();
