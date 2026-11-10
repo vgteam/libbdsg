@@ -329,6 +329,9 @@ public:
      *
      * If blocking is set to true, actually read from each page in the chain,
      * or make a syscall with similar effect, before returning.
+     *
+     * Other threads can use the chain in any way except destroying it while
+     * this runs. Allocating and freeing in the chain wait until it finishes.
      */
     static void preload_chain(chainid_t chain, bool blocking = false);
     
@@ -388,16 +391,17 @@ public:
      * The chain can still be used afterward. But each time this drops space,
      * it can tie up some address space until the chain is destroyed.
      *
-     * Other threads can allocate and free in the chain while this runs. They
-     * must not scan the chain with scan_chain() or preload_chain(), or copy
-     * it with get_dissociated_chain() or get_associated_chain(), because
-     * this can unmap links they are about to read.
+     * Other threads can allocate, free and preload in the chain while this
+     * runs. Like any other change to the chain, this must not run while the
+     * chain is being scanned or copied.
      */
     static size_t reclaim_tail(chainid_t chain);
     
     /**
      * Scan all memory regions in the given chain. Calls the iteratee with each
      * region's start address and length, in order.
+     *
+     * The chain must not be modified while this runs.
      */
     static void scan_chain(chainid_t chain, const std::function<void(const void*, size_t)>& iteratee);
     
@@ -885,18 +889,24 @@ public:
     
     /**
      * Save the stored item to the given stream. The pointer must not be null.
+     *
+     * The object must not be modified while this runs.
      */
     void save(std::ostream& out) const;
     
     /**
      * Save the stored item as blocks of data shown to the given function. The
      * pointer must not be null.
+     *
+     * The object must not be modified while this runs.
      */
     void save(const std::function<void(const void*, size_t)>& iteratee) const;
     
     /**
      * Save the stored item to the given stream. The pointer must not be null.
      * The stream is expected to have already had the prefix written to it.
+     *
+     * The object must not be modified while this runs.
      */
     void save_after_prefix(std::ostream& out, const std::string& prefix) const;
     

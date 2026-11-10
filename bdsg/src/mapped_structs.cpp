@@ -978,37 +978,95 @@ void Manager::preload_chain(chainid_t chain, bool blocking) {
 #endif
 #endif
 
-    scan_chain(chain, [&](const void* link_start, size_t link_length) {
-        // For each link in the chain
+    // Hold the allocator lock, so reclaim_tail() can't drop links while we
+    // read them.
+    with_allocator_header(chain, [&](AllocatorHeader*) {
+        scan_chain(chain, [&](const void* link_start, size_t link_length) {
+            // For each link in the chain
 
 #ifdef debug
-        std::cerr << "Preloading link: " << link_start << "-" << (void*)((intptr_t)link_start + link_length) << std::endl;
+            std::cerr << "Preloading link: " << link_start << "-" << (void*)((intptr_t)link_start + link_length) << std::endl;
 #endif
         
-        // Start address for load has to be page-aligned, but length just has to be nonnegative.
-        void* advice_start = (void*) link_start;
-        size_t advice_length = link_length;
+            // Start address for load has to be page-aligned, but length just has to be nonnegative.
+            void* advice_start = (void*) link_start;
+            size_t advice_length = link_length;
         
-        // How much of the first page isn't included?
-        intptr_t before_start_bytes = (intptr_t)advice_start % page_size;
+            // How much of the first page isn't included?
+            intptr_t before_start_bytes = (intptr_t)advice_start % page_size;
         
-        // Budge the start left.
-        advice_start = (void*)((intptr_t)advice_start - before_start_bytes);
-        advice_length += before_start_bytes;
-        if (advice_length % page_size != 0) {
-            // And finish out the page
-            advice_length += (page_size - advice_length % page_size);
-        }
+            // Budge the start left.
+            advice_start = (void*)((intptr_t)advice_start - before_start_bytes);
+            advice_length += before_start_bytes;
+            if (advice_length % page_size != 0) {
+                // And finish out the page
+                advice_length += (page_size - advice_length % page_size);
+            }
         
 #ifdef debug
-        std::cerr << "Preloading addresses " << advice_start << "-" << (void*)((intptr_t)advice_start + advice_length) << std::endl;
+            std::cerr << "Preloading addresses " << advice_start << "-" << (void*)((intptr_t)advice_start + advice_length) << std::endl;
 #endif
         
-        if (blocking) {
+            if (blocking) {
             
-            if (populate_read_advice) {
-                // Make the call
-                int result = madvise(advice_start, advice_length, populate_read_advice);
+                if (populate_read_advice) {
+                    // Make the call
+                    int result = madvise(advice_start, advice_length, populate_read_advice);
+            
+                    if (result == 0) {
+                        // It worked!
+                        return;
+                    }
+            
+                    // Otherwise the call failed
+                    auto madvise_error = errno;
+                
+                    switch (madvise_error) {
+                    case EINVAL:
+                        // It is possible the advice we used doesn't exist on the
+                        // runtime kernel, which may not be the build kernel or
+                        // batch the build glibc.
+                        // Also possible something weird about the memory range,
+                        // like it being secret to the process, is preventing us
+                        // from using madvise() here even if every byte in the
+                        // range is readable.
+                        // TODO: Figure out why this seems to mostly fail. Until
+                        // then, don't usually warn.
+#ifdef debug
+                        std::cerr << "warning[yomo::Manager::preload_chain] Cannot MADV_POPULATE_READ memory range " << advice_start << "-" << (void*)((intptr_t)advice_start + advice_length) << "; falling back to reading each page: " << strerror(madvise_error) << std::endl;
+#endif
+                        break;
+                    default:
+                        // Something else weird happened. This is a problem.
+                        throw  std::runtime_error(std::string("Could not prefault memory: ") + std::string(strerror(madvise_error)));
+                        break;
+                    }
+                }
+            
+                for (size_t page = 0; page < (advice_length / page_size); page++) {
+                    volatile const unsigned char* page_start = (volatile const unsigned char*) ((intptr_t)advice_start + page * page_size);
+                    // Read first byte of the page
+                    (void) *page_start;
+#ifdef debug
+                    // Dump the page structure
+                    std::cerr << "Page at " << (void*)page_start << std::endl;
+                    for (size_t i = 0; i < page_size; i++) {
+                        if (*(page_start + i) == 0) {
+                            std::cerr << " ";
+                        } else {
+                            std::cerr << ".";
+                        }
+                        if ((i + 1) % 128 == 0) {
+                            std::cerr << std::endl;
+                        }
+                    }
+                    // See if this page in particular doesn't want to madvise in.
+                    std::cerr << "Re-advise page: " <<  madvise((void*)page_start, page_size, populate_read_advice) << std::endl;
+#endif
+                }
+            } else {
+                // Just tell the memory management subsystem we will want this
+                int result = madvise(advice_start, advice_length, MADV_WILLNEED);
             
                 if (result == 0) {
                     // It worked!
@@ -1017,63 +1075,9 @@ void Manager::preload_chain(chainid_t chain, bool blocking) {
             
                 // Otherwise the call failed
                 auto madvise_error = errno;
-                
-                switch (madvise_error) {
-                case EINVAL:
-                    // It is possible the advice we used doesn't exist on the
-                    // runtime kernel, which may not be the build kernel or
-                    // batch the build glibc.
-                    // Also possible something weird about the memory range,
-                    // like it being secret to the process, is preventing us
-                    // from using madvise() here even if every byte in the
-                    // range is readable.
-                    // TODO: Figure out why this seems to mostly fail. Until
-                    // then, don't usually warn.
-#ifdef debug
-                    std::cerr << "warning[yomo::Manager::preload_chain] Cannot MADV_POPULATE_READ memory range " << advice_start << "-" << (void*)((intptr_t)advice_start + advice_length) << "; falling back to reading each page: " << strerror(madvise_error) << std::endl;
-#endif
-                    break;
-                default:
-                    // Something else weird happened. This is a problem.
-                    throw  std::runtime_error(std::string("Could not prefault memory: ") + std::string(strerror(madvise_error)));
-                    break;
-                }
+                throw std::runtime_error(std::string("Could not mark memory needed: ") + std::string(strerror(madvise_error)));
             }
-            
-            for (size_t page = 0; page < (advice_length / page_size); page++) {
-                volatile const unsigned char* page_start = (volatile const unsigned char*) ((intptr_t)advice_start + page * page_size);
-                // Read first byte of the page
-                (void) *page_start;
-#ifdef debug
-                // Dump the page structure
-                std::cerr << "Page at " << (void*)page_start << std::endl;
-                for (size_t i = 0; i < page_size; i++) {
-                    if (*(page_start + i) == 0) {
-                        std::cerr << " ";
-                    } else {
-                        std::cerr << ".";
-                    }
-                    if ((i + 1) % 128 == 0) {
-                        std::cerr << std::endl;
-                    }
-                }
-                // See if this page in particular doesn't want to madvise in.
-                std::cerr << "Re-advise page: " <<  madvise((void*)page_start, page_size, populate_read_advice) << std::endl;
-#endif
-            }
-        } else {
-            // Just tell the memory management subsystem we will want this
-            int result = madvise(advice_start, advice_length, MADV_WILLNEED);
-            
-            if (result == 0) {
-                // It worked!
-                return;
-            }
-            
-            // Otherwise the call failed
-            auto madvise_error = errno;
-            throw std::runtime_error(std::string("Could not mark memory needed: ") + std::string(strerror(madvise_error)));
-        }
+        });
     });
 }
 
