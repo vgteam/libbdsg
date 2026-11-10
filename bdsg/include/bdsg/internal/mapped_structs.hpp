@@ -902,16 +902,18 @@ public:
     void save(int fd);
     
     /**
-     * Try to reclaim free space that is not already reclaimable, by copying
-     * the stored item to new memory not backed by any file. The pointer must
-     * not be null.
+     * Move the stored item into memory mapped in the given file, or into
+     * memory not backed by any file if fd is 0, by copying it. The pointer
+     * must not be null.
      *
-     * Keeps the original if the copy would be bigger.
+     * The copy leaves out the free space between the parts of the stored
+     * item. Afterward the stored item is associated with the given file, or
+     * with no file.
      *
      * Other threads must not read or write the pointed-to object while this
      * runs.
      */
-    void compact();
+    void compact_into(int fd = 0);
     
     /**
      * Save the stored item to the given stream. The pointer must not be null.
@@ -981,15 +983,7 @@ private:
     Manager::chainid_t chain = Manager::NO_CHAIN;
     /// The address of the pointed-to value, as mapped into memory.
     T* cached_value = nullptr;
-    
-    /**
-     * Try to make the stored item take less space, by copying it.
-     *
-     * Return true if we now use the copy. Return false, and keep using the
-     * original, if the copy would be bigger. If fd is set, the copy is made in
-     * that file. The file is overwritten even if the original is kept.
-     */
-    bool try_compact(int fd = 0);
+
 };
 
 };
@@ -2495,25 +2489,15 @@ void UniqueMappedPointer<T>::save(int fd) {
     if (chain == Manager::NO_CHAIN) {
         throw runtime_error("Cannot save a null object");
     }
-    if (!try_compact(fd)) {
-        // The copy is bigger, so save the chain as it is.
-        Manager::chainid_t new_chain = Manager::get_associated_chain(chain, fd);
-        Manager::destroy_chain(chain);
-        chain = new_chain;
-        cached_value = (T*) Manager::find_first_allocation(chain, sizeof(T));
-    }
+    compact_into(fd);
 }
 
 template<typename T>
-void UniqueMappedPointer<T>::compact() {
+void UniqueMappedPointer<T>::compact_into(int fd) {
     if (chain == Manager::NO_CHAIN) {
         throw runtime_error("Cannot compact a null object");
     }
-    try_compact();
-}
-
-template<typename T>
-bool UniqueMappedPointer<T>::try_compact(int fd) {
+    
     // Drop our free space at the end first.
     Manager::reclaim_tail(chain);
     
@@ -2535,17 +2519,14 @@ bool UniqueMappedPointer<T>::try_compact(int fd) {
     size_t new_size = Manager::get_chain_size(new_chain);
     if (new_size > old_size) {
         // A copy should never need more space than the original.
-        std::cerr << "warning[yomo::UniqueMappedPointer::try_compact] Copy takes "
+        std::cerr << "warning[yomo::UniqueMappedPointer::compact_into] Copy takes "
             << new_size << " bytes, more than the original's " << old_size
-            << " bytes, so the original is kept" << std::endl;
-        Manager::destroy_chain(new_chain);
-        return false;
+            << " bytes" << std::endl;
     }
     
     Manager::destroy_chain(chain);
     chain = new_chain;
     cached_value = item;
-    return true;
 }
 
 template<typename T>

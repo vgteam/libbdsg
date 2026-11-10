@@ -857,7 +857,7 @@ void test_compact() {
 
   // Compacting should keep the items, and leave free space only at the end.
   make_vector();
-  iv.compact();
+  iv.compact_into();
   auto usage = iv.get_usage();
   assert(std::get<1>(usage) == std::get<2>(usage));
   check_items();
