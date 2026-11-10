@@ -655,15 +655,7 @@ protected:
      * the block's header is always kept.
      */
     static void release_free_pages(AllocatorBlock* block);
-                                      
-    /**
-     * Cut the chain off at new_size bytes, dropping the links after that and
-     * shortening any backing file.
-     *
-     * The caller must hold the allocator lock, and nothing may be allocated
-     * past new_size.
-     */
-    static void truncate_chain(chainid_t chain, size_t new_size);
+                                  
 };
 
 /**

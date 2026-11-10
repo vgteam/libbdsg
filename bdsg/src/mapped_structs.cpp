@@ -1434,13 +1434,22 @@ size_t Manager::reclaim_tail(chainid_t chain) {
         return 0;
     }
     
-    // Get the past-end position in the chain, and use that as our cursor to walk backward.
-    size_t first_unused_byte = get_chain_size(chain);
+    // The past-end position in the chain, which we move back over free blocks.
+    size_t first_unused_byte;
     
     // Track how many bytes we removed
     size_t reclaimed_bytes = 0;
     
+    // Remember any MIO mappings to unmap
+    std::vector<std::pair<std::unique_ptr<mio::mmap_sink>, std::unique_ptr<mio::mmap_source>>> mio_clean;
+    // Remember any normal memory to clean up
+    std::vector<void*> normal_clean;
+    
     with_allocator_header(chain, [&](AllocatorHeader* header) {
+        // Read the size under the allocator lock, so no link can be added
+        // after we read it.
+        first_unused_byte = get_chain_size(chain);
+        
         while (header->last_free) {
             // For each free block, end to start
             AllocatorBlock* last_free = header->last_free;
@@ -1484,40 +1493,23 @@ size_t Manager::reclaim_tail(chainid_t chain) {
             }
         }
         
-        if (reclaimed_bytes > 0) {
-            // Nothing can be allocated past the new end while we hold the
-            // allocator lock.
-            truncate_chain(chain, first_unused_byte);
+        if (reclaimed_bytes == 0) {
+            return;
         }
-    });
-    
-#ifdef debug_manager
-    std::cerr << "Reclaimed " << reclaimed_bytes << " bytes at end of chain " << chain << std::endl;
-#endif
-    
-    return reclaimed_bytes;
-}
-
-void Manager::truncate_chain(chainid_t chain, size_t new_size) {
-    // The first link holds the prefix and the allocator, which we must keep.
-    assert(new_size > 0);
-    
-    // Remember any MIO mappings to unmap
-    std::vector<std::pair<std::unique_ptr<mio::mmap_sink>, std::unique_ptr<mio::mmap_source>>> mio_clean;
-    // Remember any normal memory to clean up
-    std::vector<void*> normal_clean;
-    int fd;
-    
-    {
+        
+        // Cut the chain off at the end of its last allocated block. Nothing
+        // can be allocated past there while we hold the allocator lock. The
+        // first link holds the prefix and the allocator, so it stays.
+        assert(first_unused_byte > 0);
+        
         // Get write access to manager data structures
         std::unique_lock<std::shared_timed_mutex> lock(Manager::mutex);
         
         LinkRecord& head = Manager::address_space_index.at((intptr_t) chain);
-        fd = head.fd;
         
         // Drop the links that start at or after the new end.
         auto& chain_map = Manager::chain_space_index.at(chain);
-        auto dropped = chain_map.lower_bound(new_size);
+        auto dropped = chain_map.lower_bound(first_unused_byte);
         for (auto it = dropped; it != chain_map.end(); ++it) {
             auto link_entry = Manager::address_space_index.find(it->second);
             if (link_entry->second.is_mapped()) {
@@ -1536,13 +1528,20 @@ void Manager::truncate_chain(chainid_t chain, size_t new_size) {
         // unmap whatever got mapped there.
         auto kept = std::prev(chain_map.end());
         LinkRecord& last = Manager::address_space_index.at(kept->second);
-        last.length = new_size - last.offset;
+        last.length = first_unused_byte - last.offset;
         last.next = 0;
         head.last = kept->second;
-        head.total_size = new_size;
-    }
+        head.total_size = first_unused_byte;
+        
+        // Shorten the file while we hold the allocator lock, so the file
+        // can't grow for a new link first.
+        if (head.fd && ftruncate(head.fd, first_unused_byte)) {
+            throw std::runtime_error("Could not truncate file to " + std::to_string(first_unused_byte) +
+                " bytes: " + std::string(strerror(errno)));
+        }
+    });
     
-    // Now that we aren't holding locks, free the memory
+    // Now that we aren't holding locks, free the memory of the dropped links.
     for (auto& mappings : mio_clean) {
         mappings.first.reset();
         mappings.second.reset();
@@ -1551,10 +1550,11 @@ void Manager::truncate_chain(chainid_t chain, size_t new_size) {
         free(mapping);
     }
     
-    if (fd && ftruncate(fd, new_size)) {
-        throw std::runtime_error("Could not truncate file to " + std::to_string(new_size) +
-            " bytes: " + std::string(strerror(errno)));
-    }
+#ifdef debug_manager
+    std::cerr << "Reclaimed " << reclaimed_bytes << " bytes at end of chain " << chain << std::endl;
+#endif
+    
+    return reclaimed_bytes;
 }
 
 void Manager::check_heap_integrity(chainid_t chain) {
