@@ -830,7 +830,8 @@ void test_compact() {
   auto make_vector = [&]() {
     iv_size = 1024 * 1024;
     iv.construct("ints");
-    iv->width(20);
+    // Leave room for the values grow() adds.
+    iv->width(21);
     for (size_t i = 1; i < iv_size; i *= 2) {
       iv->resize(i);
     }
