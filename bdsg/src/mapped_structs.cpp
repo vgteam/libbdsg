@@ -329,6 +329,36 @@ Manager::chainid_t Manager::create_chain(const std::function<std::string(void)>&
     return chain;
 }
 
+Manager::chainid_t Manager::create_chain_like(chainid_t chain, int fd) {
+    size_t prefix_size;
+    {
+        // Get read access to manager data structures
+        std::shared_lock<std::shared_timed_mutex> lock(Manager::mutex);
+        prefix_size = Manager::address_space_index.at(chain).prefix_size;
+    }
+    // The chain ID is the address of the first link, which starts with the prefix.
+    std::string prefix((const char*) chain, prefix_size);
+    
+    auto usage = get_usage(chain);
+    size_t start_size = std::max(BASE_SIZE, std::get<0>(usage) - std::get<1>(usage));
+    
+    if (fd && ftruncate(fd, 0)) {
+        throw std::runtime_error("Could not truncate destination file: " + std::string(strerror(errno)));
+    }
+    std::pair<chainid_t, bool> chain_info = open_chain(fd, start_size);
+    chainid_t new_chain = chain_info.first;
+    if (chain_info.second) {
+        // Someone else wrote to the file after we emptied it.
+        throw std::runtime_error("Data was added to file at FD " + std::to_string(fd) + " while we were clearing it");
+    }
+    
+    char* start = (char*)get_address_in_chain(new_chain, 0, prefix.size());
+    std::copy(prefix.begin(), prefix.end(), start);
+    set_up_allocator_at(new_chain, prefix.size(), start_size - prefix.size());
+    
+    return new_chain;
+}
+
 Manager::chainid_t Manager::get_dissociated_chain(chainid_t chain) {
     // Copy to a chain associated with no FD
     return copy_chain(chain, 0);

@@ -222,6 +222,15 @@ public:
     static chainid_t create_chain(const std::function<std::string(void)>& iterator, const std::string& prefix = "");
     
     /**
+     * Create an empty chain with the same prefix as the given chain, and with
+     * room in one link for the data in use in the given chain.
+     *
+     * If fd is set, the file is emptied and then backs the new chain. The
+     * Manager will not take ownership of the file descriptor.
+     */
+    static chainid_t create_chain_like(chainid_t chain, int fd = 0);
+    
+    /**
      * Return a chain which has the same stored data as the given chain, but
      * for which modification of the chain will not modify any backing file on
      * disk. The chain returned may be the same chain as the given chain.
@@ -826,11 +835,20 @@ public:
     void dissociate();
     
     /**
-     * Move the stored item and all associated memory into memory mapped in the
-     * given file. The pointer must not be null. No move constructors are
-     * called.
+     * Move the stored item into memory mapped in the given file, by
+     * copy-constructing it there. The pointer must not be null.
+     *
+     * The copy has no free space between its parts, so the file holds only
+     * the data in use.
      */
     void save(int fd);
+    
+    /**
+     * Copy-construct the stored item into new memory not backed by any file,
+     * leaving out the free space between its parts. The pointer must not be
+     * null.
+     */
+    void compact();
     
     /**
      * Save the stored item to the given stream. The pointer must not be null.
@@ -882,6 +900,13 @@ private:
     Manager::chainid_t chain = Manager::NO_CHAIN;
     /// The address of the pointed-to value, as mapped into memory.
     T* cached_value = nullptr;
+    
+    /**
+     * Replace our chain with a new one that holds a copy of the stored item.
+     *
+     * If fd is set, the file is emptied and then backs the new chain.
+     */
+    void copy_to_new_chain(int fd);
 };
 
 };
@@ -2389,14 +2414,34 @@ void UniqueMappedPointer<T>::save(int fd) {
     if (chain == Manager::NO_CHAIN) {
         throw runtime_error("Cannot save a null object");
     }
-    // Copy the chain
-    Manager::chainid_t new_chain = Manager::get_associated_chain(chain, fd);
-    // Get rid of the old chain
+    copy_to_new_chain(fd);
+}
+
+template<typename T>
+void UniqueMappedPointer<T>::compact() {
+    if (chain == Manager::NO_CHAIN) {
+        throw runtime_error("Cannot compact a null object");
+    }
+    copy_to_new_chain(0);
+}
+
+template<typename T>
+void UniqueMappedPointer<T>::copy_to_new_chain(int fd) {
+    Manager::chainid_t new_chain = Manager::create_chain_like(chain, fd);
+    T* item;
+    try {
+        // The item must be the first allocation, so loading can find it.
+        item = (T*) Manager::allocate_from(new_chain, sizeof(T));
+        // Our allocator allocates in the chain it is in, so everything the
+        // copy allocates is in the new chain.
+        new (item) T(*cached_value);
+    } catch (...) {
+        Manager::destroy_chain(new_chain);
+        throw;
+    }
     Manager::destroy_chain(chain);
-    // Adopt the new chain
     chain = new_chain;
-    // And find the item
-    cached_value = (T*) Manager::find_first_allocation(chain, sizeof(T));
+    cached_value = item;
 }
 
 template<typename T>

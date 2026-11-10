@@ -695,8 +695,9 @@ void test_int_vector() {
   // Make a thing to hold onto a test int vector.
   bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector> iv;
 
-  // Have a function we can call to check its size.
-  auto save_and_check_size = [&](size_t expected_size) {
+  // Have a function we can call to save it and check that the file holds no
+  // more than max_size bytes, none of them free.
+  auto save_and_check_size = [&](size_t max_size) {
     // Save it out, creating or clobbering
     int fd = open("test.dat", O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
     iv.save(fd);
@@ -707,7 +708,7 @@ void test_int_vector() {
     struct stat file_stats;
     stat("test.dat", &file_stats);
     cerr << "Observed file size of " << file_stats.st_size << " bytes" << endl;
-    assert(file_stats.st_size == expected_size);
+    assert(file_stats.st_size <= max_size);
 
     // Load it again
     bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector> iv2;
@@ -720,7 +721,8 @@ void test_int_vector() {
     size_t post_load_total_bytes = std::get<0>(total_free_reclaimable);
     cerr << "Observed post-load size of " << post_load_total_bytes << " bytes"
          << endl;
-    assert(post_load_total_bytes == expected_size);
+    assert(post_load_total_bytes == file_stats.st_size);
+    assert(std::get<1>(total_free_reclaimable) == 0);
   };
 
   // Construct it
@@ -788,6 +790,14 @@ void test_int_vector() {
   cerr << iv->size() << "/" << iv->capacity() << " entries of " << iv->width()
        << " bits is " << (iv->capacity() * iv->width() / 8) << " bytes" << endl;
   save_and_check_size(required_bytes);
+
+  // Compacting should keep the items, and leave free space only at the end.
+  iv.compact();
+  total_free_reclaimable = iv.get_usage();
+  assert(std::get<1>(total_free_reclaimable) == std::get<2>(total_free_reclaimable));
+  for (size_t i = 0; i < iv_size; i++) {
+    assert((*iv)[i] == 0xF0F0);
+  }
 
   // Reserve much more than we use, and make sure shrinking gives the extra
   // back.
