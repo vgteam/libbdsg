@@ -927,7 +927,7 @@ private:
      * keep our chain, if it isn't. If fd is set, the copy is made in that file,
      * which is overwritten either way.
      */
-    bool try_copy_to_new_chain(int fd = 0);
+    bool try_compact(int fd = 0);
 };
 
 };
@@ -2435,7 +2435,7 @@ void UniqueMappedPointer<T>::save(int fd) {
     if (chain == Manager::NO_CHAIN) {
         throw runtime_error("Cannot save a null object");
     }
-    if (!try_copy_to_new_chain(fd)) {
+    if (!try_compact(fd)) {
         // The copy isn't smaller, so save the chain as it is.
         Manager::chainid_t new_chain = Manager::get_associated_chain(chain, fd);
         Manager::destroy_chain(chain);
@@ -2449,11 +2449,11 @@ void UniqueMappedPointer<T>::compact() {
     if (chain == Manager::NO_CHAIN) {
         throw runtime_error("Cannot compact a null object");
     }
-    try_copy_to_new_chain();
+    try_compact();
 }
 
 template<typename T>
-bool UniqueMappedPointer<T>::try_copy_to_new_chain(int fd) {
+bool UniqueMappedPointer<T>::try_compact(int fd) {
     Manager::chainid_t new_chain = Manager::create_chain_like(chain, fd);
     T* item;
     try {
@@ -2473,7 +2473,16 @@ bool UniqueMappedPointer<T>::try_copy_to_new_chain(int fd) {
         auto usage = Manager::get_usage(c);
         return std::get<0>(usage) - std::get<2>(usage);
     };
-    if (saved_size(new_chain) >= saved_size(chain)) {
+    size_t old_size = saved_size(chain);
+    size_t new_size = saved_size(new_chain);
+    if (new_size >= old_size) {
+        if (new_size > old_size) {
+            // Copying something that is already compact gives the same size,
+            // but a copy should never need more.
+            std::cerr << "warning[yomo::UniqueMappedPointer::try_compact] Copy takes "
+                << new_size << " bytes, more than the original's " << old_size
+                << " bytes, so the original is kept" << std::endl;
+        }
         Manager::destroy_chain(new_chain);
         return false;
     }
