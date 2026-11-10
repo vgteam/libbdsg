@@ -902,13 +902,12 @@ public:
     void save(int fd);
     
     /**
-     * Move the stored item into memory mapped in the given file, or into
-     * memory not backed by any file if fd is 0, by copying it. The pointer
-     * must not be null.
+     * Pack the stored item tightly into the given file, or into memory if fd
+     * is 0.
      *
-     * The copy leaves out the free space between the parts of the stored
-     * item. Afterward the stored item is associated with the given file, or
-     * with no file.
+     * Space the item isn't using is dropped. Afterward the item lives in the
+     * given file, or in memory not backed by any file, and changes to it go
+     * there. The pointer must not be null.
      *
      * Other threads must not read or write the pointed-to object while this
      * runs.
