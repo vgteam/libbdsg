@@ -1324,20 +1324,18 @@ std::tuple<size_t, size_t, size_t> Manager::get_usage(chainid_t chain) {
         return std::make_tuple<size_t, size_t, size_t>(0, 0, 0);
     }
     
-    // We need the total chain length so we can tell if the last
-    // chain-contiguous run of free blocks abuts the end of the chain.
-    size_t total_length;
-    
-    // How many bytes of free payload (and associated headers) have we seen?
-    size_t free_bytes = 0;
-    
-    // How many free bytes are at the end?
-    size_t reclaimable = 0;
+    std::tuple<size_t, size_t, size_t> usage;
     
     with_allocator_header(chain, [&](AllocatorHeader* header) {
-        // Read the length under the allocator lock, so the chain can't change
-        // size after we read it.
-        total_length = get_chain_size(chain);
+        // We need the total chain length so we can tell if the last
+        // chain-contiguous run of free blocks abuts the end of the chain.
+        size_t total_length = get_chain_size(chain);
+        
+        // How many bytes of free payload (and associated headers) have we seen?
+        size_t free_bytes = 0;
+        
+        // How many free bytes are at the end?
+        size_t reclaimable = 0;
         
         AllocatorBlock* free_block = header->last_free;
         while (free_block) {
@@ -1357,15 +1355,17 @@ std::tuple<size_t, size_t, size_t> Manager::get_usage(chainid_t chain) {
             // Go left to the previous free block in the chain, if any.
             free_block = free_block->prev;
         }
-    });
 
 #ifdef debug_manager
-    std::cerr << "Memory usage: " << total_length << " total, "
-        << free_bytes << " free, "
-        << reclaimable << " reclaimable" << endl;
+        std::cerr << "Memory usage: " << total_length << " total, "
+            << free_bytes << " free, "
+            << reclaimable << " reclaimable" << endl;
 #endif
+        
+        usage = std::make_tuple(total_length, free_bytes, reclaimable);
+    });
     
-    return std::make_tuple(total_length, free_bytes, reclaimable);
+    return usage;
 }
 
 void Manager::scan_chain(chainid_t chain, const std::function<void(const void*, size_t)>& iteratee) {
@@ -1454,8 +1454,7 @@ size_t Manager::reclaim_tail(chainid_t chain) {
     std::vector<void*> normal_clean;
     
     with_allocator_header(chain, [&](AllocatorHeader* header) {
-        // Read the size under the allocator lock, so no link can be added
-        // after we read it.
+        // Read the size under the allocator lock.
         first_unused_byte = get_chain_size(chain);
         
         while (header->last_free) {
@@ -1505,9 +1504,7 @@ size_t Manager::reclaim_tail(chainid_t chain) {
             return;
         }
         
-        // Cut the chain off at the end of its last allocated block. Nothing
-        // can be allocated past there while we hold the allocator lock. The
-        // first link holds the prefix and the allocator, so it stays.
+        // Cut the chain off at the end of its last allocated block.
         assert(first_unused_byte > 0);
         
         // Get write access to manager data structures

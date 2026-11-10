@@ -770,10 +770,6 @@ private:
  *
  * T must use yomo::Pointer as its pointer type and yomo::Allocator as its
  * allocator type.
- *
- * Operations that move the object to a new chain or get rid of it (save(),
- * compact(), dissociate(), load() and reset()) must not run while other
- * threads are using the object.
  */
 template<typename T>
 class UniqueMappedPointer {
@@ -813,12 +809,18 @@ public:
     /**
      * Make a new default-constructed T in memory, with an empty preceeding
      * prefix.
+     *
+     * Other threads must not read or write the pointed-to object while this
+     * runs.
      */
     void construct();
 
     /**
      * Make a new default-constructed T in memory, preceeded by the given
      * prefix.
+     *
+     * Other threads must not read or write the pointed-to object while this
+     * runs.
      */
     void construct(const std::string& prefix);
 
@@ -828,6 +830,9 @@ public:
      *
      * If you want to use arguments you must pass a prefix, although it may be
      * empty. Otherwise we get into trouble with templates replacing overloads.
+     *
+     * Other threads must not read or write the pointed-to object while this
+     * runs.
      */
     template <typename... Args>
     void construct(const std::string& prefix, Args&&... constructor_args);
@@ -836,6 +841,9 @@ public:
      * Point to the already-constructed T saved to the file at fd by a previous
      * save() call. The file must begin with the given prefix, or an error will
      * occur.
+     *
+     * Other threads must not read or write the pointed-to object while this
+     * runs.
      */
     void load(int fd, const std::string& prefix);
     
@@ -843,6 +851,9 @@ public:
      * Load into memory and point to the already-constructed T saved to the
      * given stream by a previous save() call. The stream must begin with the
      * given prefix, or an error will occur.
+     *
+     * Other threads must not read or write the pointed-to object while this
+     * runs.
      */
     void load(std::istream& in, const std::string& prefix);
     
@@ -850,6 +861,9 @@ public:
      * Load into memory and point to the already-constructed T emitted in
      * blocks by the given function. The data must begin with the given prefix,
      * or an error will occur.
+     *
+     * Other threads must not read or write the pointed-to object while this
+     * runs.
      */
     void load(const std::function<std::string(void)>& iterator, const std::string& prefix);
     
@@ -858,12 +872,18 @@ public:
      * given stream by a previous save() call. The stream is expected to have
      * had the prefix read from it already, but the prefix must still be
      * provided.
+     *
+     * Other threads must not read or write the pointed-to object while this
+     * runs.
      */
     void load_after_prefix(std::istream& in, const std::string& prefix);
     
     /**
      * Break any write-back association with a backing file and move the object
      * to non-file-backed memory.
+     *
+     * Other threads must not read or write the pointed-to object while this
+     * runs.
      *
      * TODO: Allow private COW mappings by adding features to MIO, to avoid a copy.
      */
@@ -875,6 +895,9 @@ public:
      *
      * This copy-constructs the stored item in the file, in an attempt to save
      * space in the resulting file.
+     *
+     * Other threads must not read or write the pointed-to object while this
+     * runs.
      */
     void save(int fd);
     
@@ -884,13 +907,17 @@ public:
      * not be null.
      *
      * Keeps the original if the copy would be bigger.
+     *
+     * Other threads must not read or write the pointed-to object while this
+     * runs.
      */
     void compact();
     
     /**
      * Save the stored item to the given stream. The pointer must not be null.
      *
-     * The object must not be modified while this runs.
+     * Other threads can read the pointed-to object while this runs, but must
+     * not write to it.
      */
     void save(std::ostream& out) const;
     
@@ -898,7 +925,8 @@ public:
      * Save the stored item as blocks of data shown to the given function. The
      * pointer must not be null.
      *
-     * The object must not be modified while this runs.
+     * Other threads can read the pointed-to object while this runs, but must
+     * not write to it.
      */
     void save(const std::function<void(const void*, size_t)>& iteratee) const;
     
@@ -906,7 +934,8 @@ public:
      * Save the stored item to the given stream. The pointer must not be null.
      * The stream is expected to have already had the prefix written to it.
      *
-     * The object must not be modified while this runs.
+     * Other threads can read the pointed-to object while this runs, but must
+     * not write to it.
      */
     void save_after_prefix(std::ostream& out, const std::string& prefix) const;
     
@@ -916,11 +945,16 @@ public:
      *
      * If blocking is set to true, actually read from each page in the chain,
      * or make a syscall with similar effect, before returning.
+     *
+     * Other threads can read and write the pointed-to object while this runs.
      */
     void preload(bool blocking = false) const;
     
     /**
      * Free any associated memory and become empty.
+     *
+     * Other threads must not read or write the pointed-to object while this
+     * runs.
      */
     void reset();
     
@@ -929,12 +963,16 @@ public:
      *
      * Returns the total bytes, the number of free bytes, and the number of
      * free bytes reclaimable when closed as a mapped file. 
+     *
+     * Other threads can read and write the pointed-to object while this runs.
      */
     std::tuple<size_t, size_t, size_t> get_usage();
     
     /**
      * Make sure that internal heap data structures are consistent with the
      * memory mapping. Raises std::runtime_error if not.
+     *
+     * Other threads can read and write the pointed-to object while this runs.
      */
     void check_heap_integrity();
     
@@ -950,7 +988,7 @@ private:
      *
      * Return true if the copy is no bigger and we use it now. Return false,
      * and keep our chain, if it is bigger. If fd is set, the copy is made in
-     * that file, which is overwritten either way.
+     * that file. The file is overwritten even if we keep our chain.
      */
     bool try_compact(int fd = 0);
 };
@@ -1925,8 +1963,6 @@ void CompatIntVector<Alloc>::reserve(size_t new_reserved_length) {
 
 template<typename Alloc>
 void CompatIntVector<Alloc>::shrink_to_fit() {
-    // Every word in the backing vector holds bits of our items, so the space
-    // we don't need is all spare capacity in the backing vector.
     data.shrink_to_fit();
 }
 
