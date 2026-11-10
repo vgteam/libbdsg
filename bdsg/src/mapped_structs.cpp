@@ -1441,12 +1441,9 @@ size_t Manager::reclaim_tail(chainid_t chain) {
         return 0;
     }
     
-    // The past-end position in the chain, which we move back over free blocks.
-    size_t first_unused_byte;
-    
     // Track how many bytes we removed
     size_t reclaimed_bytes = 0;
-    
+
     // Remember any MIO mappings to unmap
     std::vector<std::pair<std::unique_ptr<mio::mmap_sink>, std::unique_ptr<mio::mmap_source>>> mio_clean;
     // Remember any normal memory to clean up
@@ -1454,7 +1451,7 @@ size_t Manager::reclaim_tail(chainid_t chain) {
     
     with_allocator_header(chain, [&](AllocatorHeader* header) {
         // Read the size under the allocator lock.
-        first_unused_byte = get_chain_size(chain);
+        size_t first_unused_byte = get_chain_size(chain);
         
         while (header->last_free) {
             // For each free block, end to start
