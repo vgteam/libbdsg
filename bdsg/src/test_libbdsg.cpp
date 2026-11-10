@@ -573,13 +573,131 @@ void test_mapped_structs() {
   cerr << "Mapped Structs tests successful!" << endl;
 }
 
+void test_try_realloc_inplace() {
+  {
+    using T = int64_t;
+    using V = CompatVector<T, bdsg::yomo::Allocator<T>>;
+    bdsg::yomo::UniqueMappedPointer<V> numbers_holder;
+    numbers_holder.construct("GATTACA");
+    auto &vec = *numbers_holder;
+
+    vec.resize(1000);
+    for (size_t i = 0; i < vec.size(); i++) {
+      vec[i] = i;
+    }
+    T* start = &vec[0];
+
+    // Shrinking should keep the items where they are and free the rest.
+    vec.resize(10);
+    vec.shrink_to_fit();
+    assert(vec.capacity() == 10);
+    assert(&vec[0] == start);
+
+    // So growing again should take the freed space back, without moving.
+    vec.reserve(500);
+    assert(vec.capacity() >= 500);
+    assert(&vec[0] == start);
+    for (size_t i = 0; i < vec.size(); i++) {
+      assert(vec[i] == i);
+    }
+
+    // Shrinking to nothing should free the memory.
+    vec.resize(0);
+    vec.shrink_to_fit();
+    assert(vec.capacity() == 0);
+
+    // And we should still be able to use the vector.
+    vec.resize(5);
+    for (size_t i = 0; i < vec.size(); i++) {
+      vec[i] = i;
+    }
+    for (size_t i = 0; i < vec.size(); i++) {
+      assert(vec[i] == i);
+    }
+  }
+
+  for (size_t shrink_by = 1; shrink_by <= 16; shrink_by++) {
+    // Shrinking a big vector by any small amount should keep its items and
+    // leave the heap intact.
+    using T = int64_t;
+    using V = CompatVector<T, bdsg::yomo::Allocator<T>>;
+    bdsg::yomo::UniqueMappedPointer<V> numbers_holder;
+    numbers_holder.construct("GATTACA");
+    auto &vec = *numbers_holder;
+
+    vec.resize(10000);
+    for (size_t i = 0; i < vec.size(); i++) {
+      vec[i] = i;
+    }
+    vec.resize(vec.size() - shrink_by);
+    vec.shrink_to_fit();
+    for (size_t i = 0; i < vec.size(); i++) {
+      assert(vec[i] == i);
+    }
+    numbers_holder.check_heap_integrity();
+  }
+
+  {
+    // Two vectors in one chain, with their data allocations next to each other.
+    using T = int64_t;
+    using V = CompatVector<T, bdsg::yomo::Allocator<T>>;
+    struct TwoVectors {
+      V first;
+      V second;
+    };
+    bdsg::yomo::UniqueMappedPointer<TwoVectors> holder;
+    holder.construct("GATTACA");
+    V& first = holder->first;
+    V& second = holder->second;
+
+    first.resize(100);
+    second.resize(100);
+    for (size_t i = 0; i < 100; i++) {
+      first[i] = i;
+      second[i] = -(T)i;
+    }
+    T* first_start = &first[0];
+
+    // The first vector can shrink with the second's memory right after it.
+    first.resize(10);
+    first.shrink_to_fit();
+    assert(first.capacity() == 10);
+    assert(&first[0] == first_start);
+    holder.check_heap_integrity();
+
+    // It can then grow back into the space it freed.
+    first.reserve(50);
+    assert(first.capacity() >= 50);
+    assert(&first[0] == first_start);
+    holder.check_heap_integrity();
+
+    // But it has to move to grow past the second vector's memory.
+    first.reserve(1000);
+    assert(&first[0] != first_start);
+    holder.check_heap_integrity();
+
+    for (size_t i = 0; i < first.size(); i++) {
+      assert(first[i] == i);
+    }
+    for (size_t i = 0; i < second.size(); i++) {
+      assert(second[i] == -(T)i);
+    }
+  }
+
+  assert(yomo::Manager::count_chains() == 0);
+  assert(yomo::Manager::count_links() == 0);
+
+  cerr << "try_realloc_inplace tests successful!" << endl;
+}
+
 void test_int_vector() {
 
   // Make a thing to hold onto a test int vector.
   bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector> iv;
 
-  // Have a function we can call to check its size.
-  auto save_and_check_size = [&](size_t expected_size) {
+  // Have a function we can call to save it and check the file. The file
+  // should be no bigger than max_size bytes. It should have no free space.
+  auto save_and_check_size = [&](size_t max_size) {
     // Save it out, creating or clobbering
     int fd = open("test.dat", O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
     iv.save(fd);
@@ -590,7 +708,7 @@ void test_int_vector() {
     struct stat file_stats;
     stat("test.dat", &file_stats);
     cerr << "Observed file size of " << file_stats.st_size << " bytes" << endl;
-    assert(file_stats.st_size == expected_size);
+    assert(file_stats.st_size <= max_size);
 
     // Load it again
     bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector> iv2;
@@ -603,7 +721,8 @@ void test_int_vector() {
     size_t post_load_total_bytes = std::get<0>(total_free_reclaimable);
     cerr << "Observed post-load size of " << post_load_total_bytes << " bytes"
          << endl;
-    assert(post_load_total_bytes == expected_size);
+    assert(post_load_total_bytes == file_stats.st_size);
+    assert(std::get<1>(total_free_reclaimable) == 0);
   };
 
   // Construct it
@@ -672,8 +791,116 @@ void test_int_vector() {
        << " bits is " << (iv->capacity() * iv->width() / 8) << " bytes" << endl;
   save_and_check_size(required_bytes);
 
+  // Reserve much more than we use, and make sure shrinking gives the extra
+  // back.
+  iv.construct("ints");
+  iv->width(20);
+  size_t reserved_items = 1024 * 1024 * 10;
+  size_t used_items = 1000;
+  iv->reserve(reserved_items);
+  iv->resize(used_items);
+  for (size_t i = 0; i < used_items; i++) {
+    (*iv)[i] = i;
+  }
+  iv->shrink_to_fit();
+  total_free_reclaimable = iv.get_usage();
+  required_bytes =
+      std::get<0>(total_free_reclaimable) - std::get<2>(total_free_reclaimable);
+  cerr << std::get<0>(total_free_reclaimable) << " bytes in chain, "
+       << std::get<1>(total_free_reclaimable) << " bytes free, "
+       << std::get<2>(total_free_reclaimable) << " bytes reclaimable" << endl;
+  // The reserved space should be free at the end of the chain, so that it
+  // won't be saved.
+  assert(required_bytes < 1024 * 1024);
+  save_and_check_size(required_bytes);
+  for (size_t i = 0; i < used_items; i++) {
+    assert((*iv)[i] == i);
+  }
+
   unlink("test.dat");
   cerr << "Int Vector tests successful!" << endl;
+}
+
+void test_compact() {
+  bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector> iv;
+  size_t iv_size;
+
+  // Make the vector by growing it by doubling, which leaves free space where
+  // its items used to be.
+  auto make_vector = [&]() {
+    iv_size = 1024 * 1024;
+    iv.construct("ints");
+    // Leave room for the values grow() adds.
+    iv->width(21);
+    for (size_t i = 1; i < iv_size; i *= 2) {
+      iv->resize(i);
+    }
+    iv->resize(iv_size);
+    for (size_t i = 0; i < iv_size; i++) {
+      (*iv)[i] = i;
+    }
+  };
+  auto check_items = [&]() {
+    for (size_t i = 0; i < iv_size; i++) {
+      assert((*iv)[i] == i);
+    }
+  };
+  // Grow the vector, which allocates in the chain again.
+  auto grow = [&]() {
+    iv->resize(iv_size * 2);
+    for (size_t i = iv_size; i < iv_size * 2; i++) {
+      (*iv)[i] = i;
+    }
+    iv_size *= 2;
+    iv.check_heap_integrity();
+  };
+
+  // Compacting should keep the items, and leave free space only at the end.
+  make_vector();
+  iv.compact_into();
+  auto usage = iv.get_usage();
+  assert(std::get<1>(usage) == std::get<2>(usage));
+  check_items();
+
+  // The chain can still be used after its tail is cut off.
+  grow();
+  check_items();
+
+  // Save it, and return the size of the file. Then go back to memory not
+  // backed by the file.
+  auto save = [&]() {
+    int fd = open("test-compact.dat", O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+    iv.save(fd);
+    close(fd);
+    iv.dissociate();
+    struct stat file_stats;
+    stat("test-compact.dat", &file_stats);
+    return (size_t) file_stats.st_size;
+  };
+
+  // Saving should make a file with no free space in it.
+  make_vector();
+  size_t file_size = save();
+  usage = iv.get_usage();
+  assert(std::get<0>(usage) == file_size);
+  assert(std::get<1>(usage) == 0);
+  check_items();
+
+  // Saving it again, when there is nothing left to compact, should make a
+  // file of the same size.
+  assert(save() == file_size);
+  check_items();
+
+  // A chain in a file can also still be used after its tail is cut off.
+  int fd = open("test-compact.dat", O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+  iv.save(fd);
+  close(fd);
+  grow();
+  check_items();
+  iv.reset();
+
+  unlink("test-compact.dat");
+  cerr << "Compaction tests successful!" << endl;
 }
 
 void test_serializable_handle_graphs() {
@@ -5445,7 +5672,9 @@ int main(void) {
   test_reference_path_overlay();
   test_bit_packing();
   test_mapped_structs();
+  test_try_realloc_inplace();
   test_int_vector();
+  test_compact();
   test_packed_vector<PackedVector<>>();
   test_packed_vector_grows_with_zeros<PackedVector<>>();
   test_packed_vector<PackedVector<CompatBackend>>();

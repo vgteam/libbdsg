@@ -19,6 +19,7 @@
 #include <unordered_map>
 #include <vector>
 #include <shared_mutex>
+#include <optional>
 #include <bdsg/internal/indexing_iterator.hpp>
 
 // TODO: We only target little-endian systems, like x86_64 and ARM64 Linux and
@@ -222,6 +223,15 @@ public:
     static chainid_t create_chain(const std::function<std::string(void)>& iterator, const std::string& prefix = "");
     
     /**
+     * Create an empty chain with the same prefix as the given chain, and with
+     * room in one link for everything in the given chain.
+     *
+     * If fd is set, the file is emptied and then backs the new chain. The
+     * Manager will not take ownership of the file descriptor.
+     */
+    static chainid_t create_chain_like(chainid_t chain, int fd = 0);
+    
+    /**
      * Return a chain which has the same stored data as the given chain, but
      * for which modification of the chain will not modify any backing file on
      * disk. The chain returned may be the same chain as the given chain.
@@ -319,6 +329,9 @@ public:
      *
      * If blocking is set to true, actually read from each page in the chain,
      * or make a syscall with similar effect, before returning.
+     *
+     * Other threads can use the chain in any way except destroying it while
+     * this runs. Allocating and freeing in the chain wait until it finishes.
      */
     static void preload_chain(chainid_t chain, bool blocking = false);
     
@@ -327,6 +340,18 @@ public:
      * For NO_CHAIN just frees with free().
      */
     static void deallocate(void* address);
+    
+    /**
+     * Try to resize the given allocated block, of old_bytes bytes, to hold
+     * new_bytes bytes, without moving it.
+     *
+     * Returns the size of the block after the change, which is at least
+     * new_bytes. Returns old_bytes and changes nothing if the block can't be
+     * resized in place. If new_bytes is 0, frees the block and returns 0.
+     *
+     * See <https://stackoverflow.com/a/79441986>.
+     */
+    static size_t try_realloc_inplace(void* address, size_t old_bytes, size_t new_bytes);
     
     /**
      * Find the mapped address of the first thing allocated in the chain, given
@@ -358,8 +383,25 @@ public:
     static std::tuple<size_t, size_t, size_t> get_usage(chainid_t chain);
     
     /**
+     * Cut the chain off after its last allocated block, dropping the free
+     * space after it from the chain and from any backing file.
+     *
+     * Return the number of bytes dropped.
+     *
+     * The chain can still be used afterward. But each time this drops space,
+     * it can tie up some address space until the chain is destroyed.
+     *
+     * Other threads can allocate, free and preload in the chain while this
+     * runs. Like any other change to the chain, this must not run while the
+     * chain is being scanned or copied.
+     */
+    static size_t reclaim_tail(chainid_t chain);
+    
+    /**
      * Scan all memory regions in the given chain. Calls the iteratee with each
      * region's start address and length, in order.
+     *
+     * The chain must not be modified while this runs.
      */
     static void scan_chain(chainid_t chain, const std::function<void(const void*, size_t)>& iteratee);
     
@@ -399,6 +441,18 @@ protected:
     /**
      * This occurs inside the chains and represents the header of some free or
      * allocated memory.
+     *
+     * The block's memory starts right after the header. Allocations are only
+     * written inside the block's memory, so the header of an allocated block
+     * keeps its contents.
+     *
+     * A free block with null prev and next pointers is the only block in the
+     * free list.
+     *
+     * A free block must have at least one byte of memory. If a free block
+     * with none, at the very end of a link, were allocated, the address of the
+     * allocation would be outside the link, and deallocate() couldn't find its
+     * chain.
      */
     struct AllocatorBlock {
         /// Previous block. Only used when block is free. Null if allocated.
@@ -415,8 +469,8 @@ protected:
         static AllocatorBlock* get_from_data(void* user_data);
         
         /// Split the block, keeping first_bytes bytes and giving the rest to a new
-        /// subsequent block, which is wired up and returned. Assumes the block is
-        /// free.
+        /// block right after it in memory, which is returned. The new block is not
+        /// in the free list.
         AllocatorBlock* split(size_t first_bytes);
         
         /// Remove this block from the free list. Returns the blocks before and
@@ -509,6 +563,9 @@ protected:
     
     /**
      * Extend the given chain to the given new total size.
+     *
+     * The new space is not given to the allocator. This must not run while
+     * other threads are allocating in the chain or reclaiming its tail.
      */
     static void extend_chain_to(chainid_t chain, size_t new_total_size);
     
@@ -567,15 +624,50 @@ protected:
      */
     static void with_allocator_header(chainid_t chain,
                                       const std::function<void(AllocatorHeader*)>& callback);
-                                      
+    
     /**
-     * While a final free block exists, drop it from the free list.
-     * Return the total number of bytes after the last allocated block.
-     *
-     * Note that you should not map anything after calling this function! You
-     * should close the chain and trim down the backing file!
+     * Return true if the given block is in the free list.
      */
-    static size_t reclaim_tail(chainid_t chain);
+    static bool is_free(AllocatorHeader* header, const AllocatorBlock* block);
+    
+    /**
+     * Get the free block that starts where the given block's memory ends, or
+     * null if the block after it is allocated or isn't there.
+     */
+    static AllocatorBlock* free_block_after(chainid_t chain, AllocatorHeader* header, AllocatorBlock* block);
+    
+    /**
+     * Put a block that isn't in the free list into it between the given free
+     * blocks, either of which may be null for the end of the list.
+     */
+    static void link_free_block(AllocatorHeader* header, AllocatorBlock* block,
+                                AllocatorBlock* left, AllocatorBlock* right);
+    
+    /**
+     * Take a block out of the free list. Return the free blocks that were
+     * before and after it, or null at the ends of the list.
+     */
+    static std::pair<AllocatorBlock*, AllocatorBlock*> unlink_free_block(AllocatorHeader* header, AllocatorBlock* block);
+    
+    /**
+     * Put a block that isn't in the free list into it, in chain order, and
+     * merge it with free blocks that abut it in memory.
+     *
+     * If the free blocks that go before and after it are already known, pass
+     * them as neighbors, so the list doesn't have to be searched. Either may
+     * be null for the end of the list.
+     */
+    static void add_free_block(AllocatorHeader* header, AllocatorBlock* block,
+                               std::optional<std::pair<AllocatorBlock*, AllocatorBlock*>> neighbors = std::nullopt);
+    
+    /**
+     * Tell the OS we don't need the pages in a free block's memory.
+     *
+     * What the released pages hold afterward is undefined. The page holding
+     * the block's header is always kept.
+     */
+    static void release_free_pages(AllocatorBlock* block);
+                                  
 };
 
 /**
@@ -643,6 +735,19 @@ public:
     void deallocate(T* p, size_type n);
     
     /**
+     * Try to resize an allocation of oldsz items to hold newsz items, without
+     * moving it.
+     *
+     * Returns the number of items the allocation holds after the change,
+     * which is at least newsz. Returns oldsz and changes nothing if the
+     * allocation can't be resized in place; the caller must then allocate,
+     * move the items and deallocate. If newsz is 0, deallocates and returns 0.
+     *
+     * See <https://stackoverflow.com/a/79441986>.
+     */
+    size_type try_realloc_inplace(T* p, size_type oldsz, size_type newsz);
+    
+    /**
      * Work out the maximum size that can be allocated.
      */
     size_t max_size() const;
@@ -704,12 +809,18 @@ public:
     /**
      * Make a new default-constructed T in memory, with an empty preceeding
      * prefix.
+     *
+     * Other threads must not read or write the pointed-to object while this
+     * runs.
      */
     void construct();
 
     /**
      * Make a new default-constructed T in memory, preceeded by the given
      * prefix.
+     *
+     * Other threads must not read or write the pointed-to object while this
+     * runs.
      */
     void construct(const std::string& prefix);
 
@@ -719,6 +830,9 @@ public:
      *
      * If you want to use arguments you must pass a prefix, although it may be
      * empty. Otherwise we get into trouble with templates replacing overloads.
+     *
+     * Other threads must not read or write the pointed-to object while this
+     * runs.
      */
     template <typename... Args>
     void construct(const std::string& prefix, Args&&... constructor_args);
@@ -727,6 +841,9 @@ public:
      * Point to the already-constructed T saved to the file at fd by a previous
      * save() call. The file must begin with the given prefix, or an error will
      * occur.
+     *
+     * Other threads must not read or write the pointed-to object while this
+     * runs.
      */
     void load(int fd, const std::string& prefix);
     
@@ -734,6 +851,9 @@ public:
      * Load into memory and point to the already-constructed T saved to the
      * given stream by a previous save() call. The stream must begin with the
      * given prefix, or an error will occur.
+     *
+     * Other threads must not read or write the pointed-to object while this
+     * runs.
      */
     void load(std::istream& in, const std::string& prefix);
     
@@ -741,6 +861,9 @@ public:
      * Load into memory and point to the already-constructed T emitted in
      * blocks by the given function. The data must begin with the given prefix,
      * or an error will occur.
+     *
+     * Other threads must not read or write the pointed-to object while this
+     * runs.
      */
     void load(const std::function<std::string(void)>& iterator, const std::string& prefix);
     
@@ -749,6 +872,9 @@ public:
      * given stream by a previous save() call. The stream is expected to have
      * had the prefix read from it already, but the prefix must still be
      * provided.
+     *
+     * Other threads must not read or write the pointed-to object while this
+     * runs.
      */
     void load_after_prefix(std::istream& in, const std::string& prefix);
     
@@ -756,31 +882,61 @@ public:
      * Break any write-back association with a backing file and move the object
      * to non-file-backed memory.
      *
+     * Other threads must not read or write the pointed-to object while this
+     * runs.
+     *
      * TODO: Allow private COW mappings by adding features to MIO, to avoid a copy.
      */
     void dissociate();
     
     /**
      * Move the stored item and all associated memory into memory mapped in the
-     * given file. The pointer must not be null. No move constructors are
-     * called.
+     * given file. The pointer must not be null.
+     *
+     * This copy-constructs the stored item in the file, in an attempt to save
+     * space in the resulting file.
+     *
+     * Other threads must not read or write the pointed-to object while this
+     * runs.
      */
     void save(int fd);
     
     /**
+     * Pack the stored item tightly into the given file, or into memory if fd
+     * is 0.
+     *
+     * Space the item isn't using is dropped. Afterward the item lives in the
+     * given file, or in memory not backed by any file, and changes to it go
+     * there. The pointer must not be null.
+     *
+     * Other threads must not read or write the pointed-to object while this
+     * runs.
+     */
+    void compact_into(int fd = 0);
+    
+    /**
      * Save the stored item to the given stream. The pointer must not be null.
+     *
+     * Other threads can read the pointed-to object while this runs, but must
+     * not write to it.
      */
     void save(std::ostream& out) const;
     
     /**
      * Save the stored item as blocks of data shown to the given function. The
      * pointer must not be null.
+     *
+     * Other threads can read the pointed-to object while this runs, but must
+     * not write to it.
      */
     void save(const std::function<void(const void*, size_t)>& iteratee) const;
     
     /**
      * Save the stored item to the given stream. The pointer must not be null.
      * The stream is expected to have already had the prefix written to it.
+     *
+     * Other threads can read the pointed-to object while this runs, but must
+     * not write to it.
      */
     void save_after_prefix(std::ostream& out, const std::string& prefix) const;
     
@@ -790,11 +946,16 @@ public:
      *
      * If blocking is set to true, actually read from each page in the chain,
      * or make a syscall with similar effect, before returning.
+     *
+     * Other threads can read and write the pointed-to object while this runs.
      */
     void preload(bool blocking = false) const;
     
     /**
      * Free any associated memory and become empty.
+     *
+     * Other threads must not read or write the pointed-to object while this
+     * runs.
      */
     void reset();
     
@@ -803,12 +964,16 @@ public:
      *
      * Returns the total bytes, the number of free bytes, and the number of
      * free bytes reclaimable when closed as a mapped file. 
+     *
+     * Other threads can read and write the pointed-to object while this runs.
      */
     std::tuple<size_t, size_t, size_t> get_usage();
     
     /**
      * Make sure that internal heap data structures are consistent with the
      * memory mapping. Raises std::runtime_error if not.
+     *
+     * Other threads can read and write the pointed-to object while this runs.
      */
     void check_heap_integrity();
     
@@ -817,6 +982,7 @@ private:
     Manager::chainid_t chain = Manager::NO_CHAIN;
     /// The address of the pointed-to value, as mapped into memory.
     T* cached_value = nullptr;
+
 };
 
 };
@@ -918,6 +1084,14 @@ protected:
     typename std::allocator_traits<Alloc>::pointer first = nullptr;
     
     static const int RESIZE_FACTOR = 2;
+    
+    /**
+     * Try to change our capacity to new_capacity without moving our items.
+     *
+     * Return true if the capacity changed. It may end up a little more than
+     * new_capacity. Return false, and change nothing, if it can't be done.
+     */
+    bool set_capacity_in_place(size_t new_capacity);
 };
 
 /**
@@ -993,6 +1167,11 @@ public:
      * Pre-allocate space to hold the given number of elements.
      */
     void reserve(size_t new_reserved_length);
+    
+    /**
+     * Release any reserved space not needed for the current elements.
+     */
+    void shrink_to_fit();
     
     /**
      * Drop everything from the vector.
@@ -1355,6 +1534,31 @@ size_t CompatVector<T, Alloc>::capacity() const {
 }
 
 template<typename T, typename Alloc>
+bool CompatVector<T, Alloc>::set_capacity_in_place(size_t new_capacity) {
+    if (!first) {
+        return false;
+    }
+    // Pass a real pointer. Our offset pointer stops working if it is copied
+    // out of the chain.
+    T* data_start = first;
+    size_t resized;
+    if constexpr (requires { alloc.try_realloc_inplace(data_start, reserved_length, new_capacity); }) {
+        resized = alloc.try_realloc_inplace(data_start, reserved_length, new_capacity);
+    } else {
+        resized = reserved_length;
+    }
+    if (resized == reserved_length) {
+        return false;
+    }
+    reserved_length = resized;
+    if (resized == 0) {
+        // The allocator freed our memory.
+        first = nullptr;
+    }
+    return true;
+}
+
+template<typename T, typename Alloc>
 void CompatVector<T, Alloc>::reserve(size_t new_reserved_length) {
     // Find where the data is. Note that this may be null.
     T* old_first = first;
@@ -1368,6 +1572,11 @@ void CompatVector<T, Alloc>::reserve(size_t new_reserved_length) {
 #endif
 
     if (new_reserved_length > old_reserved_length) {
+        if (set_capacity_in_place(new_reserved_length)) {
+            // Our memory grew where it was, so nothing has to move.
+            return;
+        }
+        
         // Allocate space for the new data, and get the position in the context
         T* new_first  = alloc.allocate(new_reserved_length);
 
@@ -1462,6 +1671,11 @@ void CompatVector<T, Alloc>::shrink_to_fit() {
     // Actually reallocate smaller.
     if (length == reserved_length) {
         // Nothing to do!
+        return;
+    }
+    
+    if (set_capacity_in_place(length)) {
+        // Our memory shrank where it was, so nothing has to move.
         return;
     }
     
@@ -1737,6 +1951,11 @@ void CompatIntVector<Alloc>::reserve(size_t new_reserved_length) {
         std::numeric_limits<uint64_t>::digits;
     // Reserve space in the backing vector
     data.reserve(item_slots);
+}
+
+template<typename Alloc>
+void CompatIntVector<Alloc>::shrink_to_fit() {
+    data.shrink_to_fit();
 }
 
 template<typename Alloc>
@@ -2048,6 +2267,18 @@ void Allocator<T>::deallocate(T* p, size_type n) {
 }
 
 template<typename T>
+auto Allocator<T>::try_realloc_inplace(T* p, size_type oldsz, size_type newsz) -> size_type {
+    size_t old_bytes = oldsz * sizeof(T);
+    size_t new_bytes = Manager::try_realloc_inplace((void*) p, old_bytes, newsz * sizeof(T));
+    if (new_bytes == old_bytes) {
+        // Nothing changed
+        return oldsz;
+    }
+    // We may have got space for part of another item, which we can't use.
+    return new_bytes / sizeof(T);
+}
+
+template<typename T>
 size_t Allocator<T>::max_size() const {
     // TODO: this probably won't really fit in memory, but other than that
     // there's no reason we can't allocate something this big.
@@ -2257,14 +2488,44 @@ void UniqueMappedPointer<T>::save(int fd) {
     if (chain == Manager::NO_CHAIN) {
         throw runtime_error("Cannot save a null object");
     }
-    // Copy the chain
-    Manager::chainid_t new_chain = Manager::get_associated_chain(chain, fd);
-    // Get rid of the old chain
+    compact_into(fd);
+}
+
+template<typename T>
+void UniqueMappedPointer<T>::compact_into(int fd) {
+    if (chain == Manager::NO_CHAIN) {
+        throw runtime_error("Cannot compact a null object");
+    }
+    
+    // Drop our free space at the end first.
+    Manager::reclaim_tail(chain);
+    
+    Manager::chainid_t new_chain = Manager::create_chain_like(chain, fd);
+    T* item;
+    try {
+        // The item must be the first allocation, so loading can find it.
+        item = (T*) Manager::allocate_from(new_chain, sizeof(T));
+        // Our allocator allocates in the chain it is in, so everything the
+        // copy allocates is in the new chain.
+        new (item) T(*cached_value);
+    } catch (...) {
+        Manager::destroy_chain(new_chain);
+        throw;
+    }
+    Manager::reclaim_tail(new_chain);
+    
+    size_t old_size = Manager::get_chain_size(chain);
+    size_t new_size = Manager::get_chain_size(new_chain);
+    if (new_size > old_size) {
+        // A copy should never need more space than the original.
+        std::cerr << "warning[yomo::UniqueMappedPointer::compact_into] Copy takes "
+            << new_size << " bytes, more than the original's " << old_size
+            << " bytes" << std::endl;
+    }
+    
     Manager::destroy_chain(chain);
-    // Adopt the new chain
     chain = new_chain;
-    // And find the item
-    cached_value = (T*) Manager::find_first_allocation(chain, sizeof(T));
+    cached_value = item;
 }
 
 template<typename T>

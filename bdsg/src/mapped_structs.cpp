@@ -5,10 +5,12 @@
 #include "bdsg/internal/mapped_structs.hpp"
 
 #include <mutex>
+#include <optional>
 #include <sstream>
 #include <iomanip>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/mman.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
@@ -327,6 +329,35 @@ Manager::chainid_t Manager::create_chain(const std::function<std::string(void)>&
     return chain;
 }
 
+Manager::chainid_t Manager::create_chain_like(chainid_t chain, int fd) {
+    size_t prefix_size;
+    {
+        // Get read access to manager data structures
+        std::shared_lock<std::shared_timed_mutex> lock(Manager::mutex);
+        prefix_size = Manager::address_space_index.at(chain).prefix_size;
+    }
+    // The chain ID is the address of the first link, which starts with the prefix.
+    std::string prefix((const char*) chain, prefix_size);
+    
+    size_t start_size = std::max(BASE_SIZE, get_chain_size(chain));
+    
+    if (fd && ftruncate(fd, 0)) {
+        throw std::runtime_error("Could not truncate destination file: " + std::string(strerror(errno)));
+    }
+    std::pair<chainid_t, bool> chain_info = open_chain(fd, start_size);
+    chainid_t new_chain = chain_info.first;
+    if (chain_info.second) {
+        // Someone else wrote to the file after we emptied it.
+        throw std::runtime_error("Data was added to file at FD " + std::to_string(fd) + " while we were clearing it");
+    }
+    
+    char* start = (char*)get_address_in_chain(new_chain, 0, prefix.size());
+    std::copy(prefix.begin(), prefix.end(), start);
+    set_up_allocator_at(new_chain, prefix.size(), start_size - prefix.size());
+    
+    return new_chain;
+}
+
 Manager::chainid_t Manager::get_dissociated_chain(chainid_t chain) {
     // Copy to a chain associated with no FD
     return copy_chain(chain, 0);
@@ -340,9 +371,7 @@ Manager::chainid_t Manager::get_associated_chain(chainid_t chain, int fd) {
 void Manager::destroy_chain(chainid_t chain) {
 
     // Reclaim any bytes from the end of the file that we can.
-    size_t bytes_to_drop = reclaim_tail(chain);
-    // We'll need to get the total chain size out of the first link.
-    size_t total_size;
+    reclaim_tail(chain);
 
     // Remember the FD of the chain for closing the file.
     int fd;
@@ -364,7 +393,6 @@ void Manager::destroy_chain(chainid_t chain) {
         
         // Store the info we need to tear down the backing file.
         fd = head_entry->second.fd;
-        total_size = head_entry->second.total_size;
         
         auto link_entry = head_entry;
         
@@ -410,13 +438,6 @@ void Manager::destroy_chain(chainid_t chain) {
     }
     
     if (fd) {
-        // We have a backing file.
-        // Truncate off any bytes we reclaimed as trailing free space.
-        if (bytes_to_drop > 0 && ftruncate(fd, total_size - bytes_to_drop)) {
-            throw std::runtime_error("Could not truncate " + std::to_string(bytes_to_drop) +
-                " bytes off of file: " + std::string(strerror(errno)));
-        }
-        
         // Close the backing file
         if (close(fd)) {
             throw std::runtime_error("Could not close file: " + std::string(strerror(errno)));
@@ -884,7 +905,11 @@ void* Manager::allocate_from(chainid_t chain, size_t bytes) {
             }
         }
         
-        // Now we can allocate (part of) this block.
+        // Now we can allocate (part of) this block. Take it out of the free list.
+#ifdef debug_manager
+        std::cerr << "Detach block of " << found->size << " bytes at " << (intptr_t)found << std::endl;
+#endif
+        auto neighbors = unlink_free_block(header, found);
         
         if (found->size > block_bytes) {
             // We could break the user data off of this block and have some space left over.
@@ -894,38 +919,12 @@ void* Manager::allocate_from(chainid_t chain, size_t bytes) {
             std::cerr << "Split block of " << found->size << " bytes at " << (intptr_t)found << std::endl;
 #endif
             
-            // So split the block.
+            // So split the block, and put what's left over where the block was in the free list.
             AllocatorBlock* second = found->split(bytes);
+            link_free_block(header, second, neighbors.first, neighbors.second);
             
 #ifdef debug_manager
             std::cerr << "Created block of " << second->size << " bytes at " << (intptr_t)second << std::endl;
-#endif
-            
-            if (header->last_free == found) {
-                // And fix up the end of the linked list
-                header->last_free = second;
-            }
-        }
-        
-        // Now we have a free block of the right size. Make it not free.
-#ifdef debug_manager
-        std::cerr << "Detach block of " << found->size << " bytes at " << (intptr_t)found << std::endl;
-#endif
-        auto connected = found->detach();
-        if (header->first_free == found) {
-            // This was the first free block.
-            // The first free block is now the right neighbor, if any.
-            header->first_free = connected.second;
-#ifdef debug_manager
-            std::cerr << "\tWas first free block; now that's " << (intptr_t)header->first_free.get() << std::endl;
-#endif
-        }
-        if (header->last_free == found) {
-            // This was the last free block
-            // The last free block is now the left neighbor, if any.
-            header->last_free = connected.first;
-#ifdef debug_manager
-            std::cerr << "\tWas last free block; now that's " << (intptr_t)header->last_free.get() << std::endl;
 #endif
         }
         
@@ -979,37 +978,94 @@ void Manager::preload_chain(chainid_t chain, bool blocking) {
 #endif
 #endif
 
-    scan_chain(chain, [&](const void* link_start, size_t link_length) {
-        // For each link in the chain
+    // Reading the links needs the allocator lock.
+    with_allocator_header(chain, [&](AllocatorHeader*) {
+        scan_chain(chain, [&](const void* link_start, size_t link_length) {
+            // For each link in the chain
 
 #ifdef debug
-        std::cerr << "Preloading link: " << link_start << "-" << (void*)((intptr_t)link_start + link_length) << std::endl;
+            std::cerr << "Preloading link: " << link_start << "-" << (void*)((intptr_t)link_start + link_length) << std::endl;
 #endif
         
-        // Start address for load has to be page-aligned, but length just has to be nonnegative.
-        void* advice_start = (void*) link_start;
-        size_t advice_length = link_length;
+            // Start address for load has to be page-aligned, but length just has to be nonnegative.
+            void* advice_start = (void*) link_start;
+            size_t advice_length = link_length;
         
-        // How much of the first page isn't included?
-        intptr_t before_start_bytes = (intptr_t)advice_start % page_size;
+            // How much of the first page isn't included?
+            intptr_t before_start_bytes = (intptr_t)advice_start % page_size;
         
-        // Budge the start left.
-        advice_start = (void*)((intptr_t)advice_start - before_start_bytes);
-        advice_length += before_start_bytes;
-        if (advice_length % page_size != 0) {
-            // And finish out the page
-            advice_length += (page_size - advice_length % page_size);
-        }
+            // Budge the start left.
+            advice_start = (void*)((intptr_t)advice_start - before_start_bytes);
+            advice_length += before_start_bytes;
+            if (advice_length % page_size != 0) {
+                // And finish out the page
+                advice_length += (page_size - advice_length % page_size);
+            }
         
 #ifdef debug
-        std::cerr << "Preloading addresses " << advice_start << "-" << (void*)((intptr_t)advice_start + advice_length) << std::endl;
+            std::cerr << "Preloading addresses " << advice_start << "-" << (void*)((intptr_t)advice_start + advice_length) << std::endl;
 #endif
         
-        if (blocking) {
+            if (blocking) {
             
-            if (populate_read_advice) {
-                // Make the call
-                int result = madvise(advice_start, advice_length, populate_read_advice);
+                if (populate_read_advice) {
+                    // Make the call
+                    int result = madvise(advice_start, advice_length, populate_read_advice);
+            
+                    if (result == 0) {
+                        // It worked!
+                        return;
+                    }
+            
+                    // Otherwise the call failed
+                    auto madvise_error = errno;
+                
+                    switch (madvise_error) {
+                    case EINVAL:
+                        // It is possible the advice we used doesn't exist on the
+                        // runtime kernel, which may not be the build kernel or
+                        // batch the build glibc.
+                        // Also possible something weird about the memory range,
+                        // like it being secret to the process, is preventing us
+                        // from using madvise() here even if every byte in the
+                        // range is readable.
+                        // TODO: Figure out why this seems to mostly fail. Until
+                        // then, don't usually warn.
+#ifdef debug
+                        std::cerr << "warning[yomo::Manager::preload_chain] Cannot MADV_POPULATE_READ memory range " << advice_start << "-" << (void*)((intptr_t)advice_start + advice_length) << "; falling back to reading each page: " << strerror(madvise_error) << std::endl;
+#endif
+                        break;
+                    default:
+                        // Something else weird happened. This is a problem.
+                        throw  std::runtime_error(std::string("Could not prefault memory: ") + std::string(strerror(madvise_error)));
+                        break;
+                    }
+                }
+            
+                for (size_t page = 0; page < (advice_length / page_size); page++) {
+                    volatile const unsigned char* page_start = (volatile const unsigned char*) ((intptr_t)advice_start + page * page_size);
+                    // Read first byte of the page
+                    (void) *page_start;
+#ifdef debug
+                    // Dump the page structure
+                    std::cerr << "Page at " << (void*)page_start << std::endl;
+                    for (size_t i = 0; i < page_size; i++) {
+                        if (*(page_start + i) == 0) {
+                            std::cerr << " ";
+                        } else {
+                            std::cerr << ".";
+                        }
+                        if ((i + 1) % 128 == 0) {
+                            std::cerr << std::endl;
+                        }
+                    }
+                    // See if this page in particular doesn't want to madvise in.
+                    std::cerr << "Re-advise page: " <<  madvise((void*)page_start, page_size, populate_read_advice) << std::endl;
+#endif
+                }
+            } else {
+                // Just tell the memory management subsystem we will want this
+                int result = madvise(advice_start, advice_length, MADV_WILLNEED);
             
                 if (result == 0) {
                     // It worked!
@@ -1018,63 +1074,9 @@ void Manager::preload_chain(chainid_t chain, bool blocking) {
             
                 // Otherwise the call failed
                 auto madvise_error = errno;
-                
-                switch (madvise_error) {
-                case EINVAL:
-                    // It is possible the advice we used doesn't exist on the
-                    // runtime kernel, which may not be the build kernel or
-                    // batch the build glibc.
-                    // Also possible something weird about the memory range,
-                    // like it being secret to the process, is preventing us
-                    // from using madvise() here even if every byte in the
-                    // range is readable.
-                    // TODO: Figure out why this seems to mostly fail. Until
-                    // then, don't usually warn.
-#ifdef debug
-                    std::cerr << "warning[yomo::Manager::preload_chain] Cannot MADV_POPULATE_READ memory range " << advice_start << "-" << (void*)((intptr_t)advice_start + advice_length) << "; falling back to reading each page: " << strerror(madvise_error) << std::endl;
-#endif
-                    break;
-                default:
-                    // Something else weird happened. This is a problem.
-                    throw  std::runtime_error(std::string("Could not prefault memory: ") + std::string(strerror(madvise_error)));
-                    break;
-                }
+                throw std::runtime_error(std::string("Could not mark memory needed: ") + std::string(strerror(madvise_error)));
             }
-            
-            for (size_t page = 0; page < (advice_length / page_size); page++) {
-                volatile const unsigned char* page_start = (volatile const unsigned char*) ((intptr_t)advice_start + page * page_size);
-                // Read first byte of the page
-                (void) *page_start;
-#ifdef debug
-                // Dump the page structure
-                std::cerr << "Page at " << (void*)page_start << std::endl;
-                for (size_t i = 0; i < page_size; i++) {
-                    if (*(page_start + i) == 0) {
-                        std::cerr << " ";
-                    } else {
-                        std::cerr << ".";
-                    }
-                    if ((i + 1) % 128 == 0) {
-                        std::cerr << std::endl;
-                    }
-                }
-                // See if this page in particular doesn't want to madvise in.
-                std::cerr << "Re-advise page: " <<  madvise((void*)page_start, page_size, populate_read_advice) << std::endl;
-#endif
-            }
-        } else {
-            // Just tell the memory management subsystem we will want this
-            int result = madvise(advice_start, advice_length, MADV_WILLNEED);
-            
-            if (result == 0) {
-                // It worked!
-                return;
-            }
-            
-            // Otherwise the call failed
-            auto madvise_error = errno;
-            throw std::runtime_error(std::string("Could not mark memory needed: ") + std::string(strerror(madvise_error)));
-        }
+        });
     });
 }
 
@@ -1115,58 +1117,12 @@ void Manager::deallocate(void* address) {
     with_allocator_header(chain, [&](AllocatorHeader* header) {
         // With exclusive use of the free list
         
-        bool is_free = (found->prev || found->next || (header->first_free == found && header->last_free == found));
-        if (is_free) {
+        if (is_free(header, found)) {
             // This is free already!
             throw std::runtime_error("Detected double-free!");
         }
-       
-        // Find the block in the free list after it, if any
-        AllocatorBlock* right = header->first_free;
         
-        while(right && Manager::get_chain_and_position(right).second < Manager::get_chain_and_position(found).second) {
-            // We have a free block, but it occurs before the block being freed in the chain.
-            // TODO: can we save chain lookups here somehow?
-            // Go to the next free block, or off the end if that was the last one.
-#ifdef debug_manager
-            std::cerr << "\tComes after block " << (intptr_t)right << " in chain space" << std::endl;
-#endif
-            right = right->next;
-        }
-        AllocatorBlock* left;
-        if (!right) {
-            // The new block should be the last block in the list.
-            // So it comes after the existing last block, if any.
-            left = header->last_free;
-        } else {
-            // The new block comes between right and its free predecessor, if any
-            left = right->prev;
-        }
-        
-        // Wire in the block
-        found->attach(left, right);
-        
-        // Update haed and tail
-        if (header->last_free == left) {
-#ifdef debug_manager
-            std::cerr << "\tIs new last free block, replacing " << (intptr_t)header->last_free.get() << std::endl;
-#endif
-            header->last_free = found;
-        }
-        if (header->first_free == right) {
-#ifdef debug_manager
-            std::cerr << "\tIs new first free block, replacing " << (intptr_t)header->first_free.get() << std::endl;
-#endif
-            header->first_free = found;
-        }
-        
-        // Defragment.
-        auto bounds = found->coalesce();
-        // We can't need to update the first free when defragmenting, but we may
-        // need to update the last free.
-        if (header->last_free == bounds.second) {
-            header->last_free = bounds.first;
-        }
+        add_free_block(header, found);
     });
     
 #ifdef debug_manager
@@ -1175,6 +1131,141 @@ void Manager::deallocate(void* address) {
 #endif
 }
 
+size_t Manager::try_realloc_inplace(void* address, size_t old_bytes, size_t new_bytes) {
+    if (new_bytes == 0) {
+        deallocate(address);
+        return 0;
+    }
+    if (new_bytes == old_bytes) {
+        return old_bytes;
+    }
+    
+    chainid_t chain = get_chain(address);
+    if (chain == NO_CHAIN) {
+        // We can't resize a malloc'd block in place.
+        return old_bytes;
+    }
+    
+    AllocatorBlock* found = AllocatorBlock::get_from_data(address);
+    
+    with_allocator_header(chain, [&](AllocatorHeader* header) {
+        AllocatorBlock* after = free_block_after(chain, header, found);
+        // The free blocks around the one we take in, if we take one in.
+        std::optional<std::pair<AllocatorBlock*, AllocatorBlock*>> neighbors;
+        
+        if (after && found->size + sizeof(AllocatorBlock) + after->size >= new_bytes) {
+            // Take in the free block after ours. free_block_after() only finds
+            // a block that starts where ours ends, both in memory and in the
+            // chain, so the two can be one block.
+            neighbors = unlink_free_block(header, after);
+            found->size += sizeof(AllocatorBlock) + after->size;
+            after->~AllocatorBlock();
+        }
+        
+        if (found->size > new_bytes + sizeof(AllocatorBlock)) {
+            // Split off what we don't need. Free blocks need at least one
+            // byte besides their header.
+            AllocatorBlock* rest = found->split(new_bytes);
+            add_free_block(header, rest, neighbors);
+        }
+    });
+    
+    if (found->size < new_bytes) {
+        // We wanted to grow and there was no room.
+        return old_bytes;
+    }
+    if (new_bytes < old_bytes && found->size >= old_bytes) {
+        // We wanted to shrink, and nothing was left over to free.
+        return old_bytes;
+    }
+    
+#ifdef debug_manager
+    std::cerr << "Resized block at " << address << " from " << old_bytes << " to "
+        << found->size << " bytes" << std::endl;
+#endif
+    
+    return found->size;
+}
+
+bool Manager::is_free(AllocatorHeader* header, const AllocatorBlock* block) {
+    // Allocations don't write over their block's header, so an allocated
+    // block still has the null pointers it got when it left the free list.
+    return block->prev || block->next || header->first_free.get() == block;
+}
+
+Manager::AllocatorBlock* Manager::free_block_after(chainid_t chain, AllocatorHeader* header, AllocatorBlock* block) {
+    // The memory after ours holds the next block only if it is at the next
+    // position in our chain. Otherwise it is in another chain, or in a link
+    // of ours that isn't the next one, or in no chain.
+    void* end = (char*)block->get_user_data() + block->size;
+    size_t end_position = get_chain_and_position(block).second + sizeof(AllocatorBlock) + block->size;
+    if (get_chain_and_position(end) != std::make_pair(chain, end_position)) {
+        return nullptr;
+    }
+    AllocatorBlock* after = (AllocatorBlock*) end;
+    return is_free(header, after) ? after : nullptr;
+}
+
+void Manager::link_free_block(AllocatorHeader* header, AllocatorBlock* block,
+                              AllocatorBlock* left, AllocatorBlock* right) {
+    block->attach(left, right);
+    if (!left) {
+        header->first_free = block;
+    }
+    if (!right) {
+        header->last_free = block;
+    }
+}
+
+std::pair<Manager::AllocatorBlock*, Manager::AllocatorBlock*> Manager::unlink_free_block(AllocatorHeader* header, AllocatorBlock* block) {
+    auto neighbors = block->detach();
+    if (header->first_free.get() == block) {
+        header->first_free = neighbors.second;
+    }
+    if (header->last_free.get() == block) {
+        header->last_free = neighbors.first;
+    }
+    return neighbors;
+}
+
+void Manager::add_free_block(AllocatorHeader* header, AllocatorBlock* block,
+                             std::optional<std::pair<AllocatorBlock*, AllocatorBlock*>> neighbors) {
+    if (!neighbors) {
+        // Find the first free block after this one in the chain, if any.
+        // TODO: can we save chain lookups here somehow?
+        size_t position = get_chain_and_position(block).second;
+        AllocatorBlock* right = header->first_free;
+        while (right && get_chain_and_position(right).second < position) {
+            right = right->next;
+        }
+        neighbors = std::make_pair(right ? right->prev.get() : header->last_free.get(), right);
+    }
+    
+    link_free_block(header, block, neighbors->first, neighbors->second);
+    
+    // Defragment. Merging can't change the first free block, but it may
+    // swallow the last one.
+    auto bounds = block->coalesce();
+    if (header->last_free.get() == bounds.second) {
+        header->last_free = bounds.first;
+    }
+    
+    release_free_pages(bounds.first);
+}
+
+void Manager::release_free_pages(AllocatorBlock* block) {
+    // Only whole pages can be released. Keep the page with the block's header.
+    intptr_t page_size = (intptr_t) getpagesize();
+    intptr_t start = (intptr_t) block->get_user_data();
+    intptr_t end = start + block->size;
+    start = (start + page_size - 1) / page_size * page_size;
+    end = end / page_size * page_size;
+    if (start < end) {
+        // This is only advice, so if it fails the memory just stays resident.
+        madvise((void*) start, end - start, MADV_DONTNEED);
+    }
+}
+    
 void* Manager::find_first_allocation(chainid_t chain, size_t bytes) {
 
     assert(chain != NO_CHAIN);
@@ -1232,17 +1323,19 @@ std::tuple<size_t, size_t, size_t> Manager::get_usage(chainid_t chain) {
         return std::make_tuple<size_t, size_t, size_t>(0, 0, 0);
     }
     
-    // We need the total chain length so we can tell if the last
-    // chain-contiguous run of free blocks abuts the end of the chain.
-    size_t total_length = get_chain_size(chain);
-    
-    // How many bytes of free payload (and associated headers) have we seen?
-    size_t free_bytes = 0;
-    
-    // How many free bytes are at the end?
-    size_t reclaimable = 0;
+    std::tuple<size_t, size_t, size_t> usage;
     
     with_allocator_header(chain, [&](AllocatorHeader* header) {
+        // We need the total chain length so we can tell if the last
+        // chain-contiguous run of free blocks abuts the end of the chain.
+        size_t total_length = get_chain_size(chain);
+        
+        // How many bytes of free payload (and associated headers) have we seen?
+        size_t free_bytes = 0;
+        
+        // How many free bytes are at the end?
+        size_t reclaimable = 0;
+        
         AllocatorBlock* free_block = header->last_free;
         while (free_block) {
             // The block is free, so count it and its header as free
@@ -1261,15 +1354,17 @@ std::tuple<size_t, size_t, size_t> Manager::get_usage(chainid_t chain) {
             // Go left to the previous free block in the chain, if any.
             free_block = free_block->prev;
         }
-    });
 
 #ifdef debug_manager
-    std::cerr << "Memory usage: " << total_length << " total, "
-        << free_bytes << " free, "
-        << reclaimable << " reclaimable" << endl;
+        std::cerr << "Memory usage: " << total_length << " total, "
+            << free_bytes << " free, "
+            << reclaimable << " reclaimable" << endl;
 #endif
+        
+        usage = std::make_tuple(total_length, free_bytes, reclaimable);
+    });
     
-    return std::make_tuple(total_length, free_bytes, reclaimable);
+    return usage;
 }
 
 void Manager::scan_chain(chainid_t chain, const std::function<void(const void*, size_t)>& iteratee) {
@@ -1346,13 +1441,18 @@ size_t Manager::reclaim_tail(chainid_t chain) {
         return 0;
     }
     
-    // Get the past-end position in the chain, and use that as our cursor to walk backward.
-    size_t first_unused_byte = get_chain_size(chain);
-    
     // Track how many bytes we removed
     size_t reclaimed_bytes = 0;
+
+    // Remember any MIO mappings to unmap
+    std::vector<std::pair<std::unique_ptr<mio::mmap_sink>, std::unique_ptr<mio::mmap_source>>> mio_clean;
+    // Remember any normal memory to clean up
+    std::vector<void*> normal_clean;
     
     with_allocator_header(chain, [&](AllocatorHeader* header) {
+        // Read the size under the allocator lock.
+        size_t first_unused_byte = get_chain_size(chain);
+        
         while (header->last_free) {
             // For each free block, end to start
             AllocatorBlock* last_free = header->last_free;
@@ -1395,14 +1495,65 @@ size_t Manager::reclaim_tail(chainid_t chain) {
                 break;
             }
         }
+        
+        if (reclaimed_bytes == 0) {
+            return;
+        }
+        
+        // Cut the chain off at the end of its last allocated block.
+        assert(first_unused_byte > 0);
+        
+        // Get write access to manager data structures
+        std::unique_lock<std::shared_timed_mutex> lock(Manager::mutex);
+        
+        LinkRecord& head = Manager::address_space_index.at((intptr_t) chain);
+        
+        // Drop the links that start at or after the new end.
+        auto& chain_map = Manager::chain_space_index.at(chain);
+        auto dropped = chain_map.lower_bound(first_unused_byte);
+        for (auto it = dropped; it != chain_map.end(); ++it) {
+            auto link_entry = Manager::address_space_index.find(it->second);
+            if (link_entry->second.is_mapped()) {
+                mio_clean.emplace_back(link_entry->second.release());
+            } else {
+                normal_clean.emplace_back((void*)link_entry->first);
+            }
+            Manager::address_space_index.erase(link_entry);
+        }
+        chain_map.erase(dropped, chain_map.end());
+        
+        // The link holding the new end becomes the last link, and ends there.
+        // TODO: Unmap its memory past the new end, or map it again for the
+        // next link, so the address space can be used again. MIO can't unmap
+        // part of a mapping, and if we unmapped it ourselves MIO would later
+        // unmap whatever got mapped there.
+        auto kept = std::prev(chain_map.end());
+        LinkRecord& last = Manager::address_space_index.at(kept->second);
+        last.length = first_unused_byte - last.offset;
+        last.next = 0;
+        head.last = kept->second;
+        head.total_size = first_unused_byte;
+        
+        // Shortening the file needs the allocator lock.
+        if (head.fd && ftruncate(head.fd, first_unused_byte)) {
+            throw std::runtime_error("Could not truncate file to " + std::to_string(first_unused_byte) +
+                " bytes: " + std::string(strerror(errno)));
+        }
     });
+    
+    // Now that we aren't holding locks, free the memory of the dropped links.
+    for (auto& mappings : mio_clean) {
+        mappings.first.reset();
+        mappings.second.reset();
+    }
+    for (auto& mapping : normal_clean) {
+        free(mapping);
+    }
     
 #ifdef debug_manager
     std::cerr << "Reclaimed " << reclaimed_bytes << " bytes at end of chain " << chain << std::endl;
 #endif
     
-    // We reclaimed all those blocks and their headers from the allocator's management.
-    // Now they're totally unused at the end of the chain.
     return reclaimed_bytes;
 }
 
@@ -1881,15 +2032,6 @@ Manager::AllocatorBlock* Manager::AllocatorBlock::split(size_t first_bytes) {
     AllocatorBlock* new_next = (AllocatorBlock*)(((char*)get_user_data()) + first_bytes);
     new (new_next) AllocatorBlock();
     new_next->size = available_bytes - first_bytes - sizeof(AllocatorBlock);
-    
-    // Wire it in
-    new_next->prev = this;
-    new_next->next = next;
-    next = new_next;
-    if (new_next->next) {
-        // We had an old successor that needs to point to our new successor.
-        new_next->next->prev = new_next;
-    }
     
     // Return the new block
     return new_next;
