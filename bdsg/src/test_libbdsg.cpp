@@ -823,11 +823,12 @@ void test_int_vector() {
 
 void test_compact() {
   bdsg::yomo::UniqueMappedPointer<bdsg::MappedIntVector> iv;
-  size_t iv_size = 1024 * 1024;
+  size_t iv_size;
 
   // Make the vector by growing it by doubling, which leaves free space where
   // its items used to be.
   auto make_vector = [&]() {
+    iv_size = 1024 * 1024;
     iv.construct("ints");
     iv->width(20);
     for (size_t i = 1; i < iv_size; i *= 2) {
@@ -843,12 +844,25 @@ void test_compact() {
       assert((*iv)[i] == i);
     }
   };
+  // Grow the vector, which allocates in the chain again.
+  auto grow = [&]() {
+    iv->resize(iv_size * 2);
+    for (size_t i = iv_size; i < iv_size * 2; i++) {
+      (*iv)[i] = i;
+    }
+    iv_size *= 2;
+    iv.check_heap_integrity();
+  };
 
   // Compacting should keep the items, and leave free space only at the end.
   make_vector();
   iv.compact();
   auto usage = iv.get_usage();
   assert(std::get<1>(usage) == std::get<2>(usage));
+  check_items();
+
+  // The chain can still be used after its tail is cut off.
+  grow();
   check_items();
 
   // Save it, and return the size of the file. Then go back to memory not
@@ -875,6 +889,14 @@ void test_compact() {
   // file of the same size.
   assert(save() == file_size);
   check_items();
+
+  // A chain in a file can also still be used after its tail is cut off.
+  int fd = open("test-compact.dat", O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+  iv.save(fd);
+  close(fd);
+  grow();
+  check_items();
+  iv.reset();
 
   unlink("test-compact.dat");
   cerr << "Compaction tests successful!" << endl;

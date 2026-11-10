@@ -339,8 +339,7 @@ Manager::chainid_t Manager::create_chain_like(chainid_t chain, int fd) {
     // The chain ID is the address of the first link, which starts with the prefix.
     std::string prefix((const char*) chain, prefix_size);
     
-    auto usage = get_usage(chain);
-    size_t start_size = std::max(BASE_SIZE, std::get<0>(usage) - std::get<1>(usage));
+    size_t start_size = std::max(BASE_SIZE, get_chain_size(chain));
     
     if (fd && ftruncate(fd, 0)) {
         throw std::runtime_error("Could not truncate destination file: " + std::string(strerror(errno)));
@@ -372,9 +371,7 @@ Manager::chainid_t Manager::get_associated_chain(chainid_t chain, int fd) {
 void Manager::destroy_chain(chainid_t chain) {
 
     // Reclaim any bytes from the end of the file that we can.
-    size_t bytes_to_drop = reclaim_tail(chain);
-    // We'll need to get the total chain size out of the first link.
-    size_t total_size;
+    reclaim_tail(chain);
 
     // Remember the FD of the chain for closing the file.
     int fd;
@@ -396,7 +393,6 @@ void Manager::destroy_chain(chainid_t chain) {
         
         // Store the info we need to tear down the backing file.
         fd = head_entry->second.fd;
-        total_size = head_entry->second.total_size;
         
         auto link_entry = head_entry;
         
@@ -442,13 +438,6 @@ void Manager::destroy_chain(chainid_t chain) {
     }
     
     if (fd) {
-        // We have a backing file.
-        // Truncate off any bytes we reclaimed as trailing free space.
-        if (bytes_to_drop > 0 && ftruncate(fd, total_size - bytes_to_drop)) {
-            throw std::runtime_error("Could not truncate " + std::to_string(bytes_to_drop) +
-                " bytes off of file: " + std::string(strerror(errno)));
-        }
-        
         // Close the backing file
         if (close(fd)) {
             throw std::runtime_error("Could not close file: " + std::string(strerror(errno)));
@@ -1494,15 +1483,78 @@ size_t Manager::reclaim_tail(chainid_t chain) {
                 break;
             }
         }
+        
+        if (reclaimed_bytes > 0) {
+            // Nothing can be allocated past the new end while we hold the
+            // allocator lock.
+            truncate_chain(chain, first_unused_byte);
+        }
     });
     
 #ifdef debug_manager
     std::cerr << "Reclaimed " << reclaimed_bytes << " bytes at end of chain " << chain << std::endl;
 #endif
     
-    // We reclaimed all those blocks and their headers from the allocator's management.
-    // Now they're totally unused at the end of the chain.
     return reclaimed_bytes;
+}
+
+void Manager::truncate_chain(chainid_t chain, size_t new_size) {
+    // The first link holds the prefix and the allocator, which we must keep.
+    assert(new_size > 0);
+    
+    // Remember any MIO mappings to unmap
+    std::vector<std::pair<std::unique_ptr<mio::mmap_sink>, std::unique_ptr<mio::mmap_source>>> mio_clean;
+    // Remember any normal memory to clean up
+    std::vector<void*> normal_clean;
+    int fd;
+    
+    {
+        // Get write access to manager data structures
+        std::unique_lock<std::shared_timed_mutex> lock(Manager::mutex);
+        
+        LinkRecord& head = Manager::address_space_index.at((intptr_t) chain);
+        fd = head.fd;
+        
+        // Drop the links that start at or after the new end.
+        auto& chain_map = Manager::chain_space_index.at(chain);
+        auto dropped = chain_map.lower_bound(new_size);
+        for (auto it = dropped; it != chain_map.end(); ++it) {
+            auto link_entry = Manager::address_space_index.find(it->second);
+            if (link_entry->second.is_mapped()) {
+                mio_clean.emplace_back(link_entry->second.release());
+            } else {
+                normal_clean.emplace_back((void*)link_entry->first);
+            }
+            Manager::address_space_index.erase(link_entry);
+        }
+        chain_map.erase(dropped, chain_map.end());
+        
+        // The link holding the new end becomes the last link, and ends there.
+        // TODO: Unmap its memory past the new end, or map it again for the
+        // next link, so the address space can be used again. MIO can't unmap
+        // part of a mapping, and if we unmapped it ourselves MIO would later
+        // unmap whatever got mapped there.
+        auto kept = std::prev(chain_map.end());
+        LinkRecord& last = Manager::address_space_index.at(kept->second);
+        last.length = new_size - last.offset;
+        last.next = 0;
+        head.last = kept->second;
+        head.total_size = new_size;
+    }
+    
+    // Now that we aren't holding locks, free the memory
+    for (auto& mappings : mio_clean) {
+        mappings.first.reset();
+        mappings.second.reset();
+    }
+    for (auto& mapping : normal_clean) {
+        free(mapping);
+    }
+    
+    if (fd && ftruncate(fd, new_size)) {
+        throw std::runtime_error("Could not truncate file to " + std::to_string(new_size) +
+            " bytes: " + std::string(strerror(errno)));
+    }
 }
 
 void Manager::check_heap_integrity(chainid_t chain) {

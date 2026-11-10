@@ -224,7 +224,7 @@ public:
     
     /**
      * Create an empty chain with the same prefix as the given chain, and with
-     * room in one link for the data in use in the given chain.
+     * room in one link for everything in the given chain.
      *
      * If fd is set, the file is emptied and then backs the new chain. The
      * Manager will not take ownership of the file descriptor.
@@ -378,6 +378,17 @@ public:
      * and the number of free bytes reclaimable when the chain is closed. 
      */
     static std::tuple<size_t, size_t, size_t> get_usage(chainid_t chain);
+    
+    /**
+     * Cut the chain off after its last allocated block, dropping the free
+     * space after it from the chain and from any backing file.
+     *
+     * Return the number of bytes dropped.
+     *
+     * The chain can still be used afterward. But each time this drops space,
+     * it can tie up some address space until the chain is destroyed.
+     */
+    static size_t reclaim_tail(chainid_t chain);
     
     /**
      * Scan all memory regions in the given chain. Calls the iteratee with each
@@ -646,13 +657,13 @@ protected:
     static void release_free_pages(AllocatorBlock* block);
                                       
     /**
-     * While a final free block exists, drop it from the free list.
-     * Return the total number of bytes after the last allocated block.
+     * Cut the chain off at new_size bytes, dropping the links after that and
+     * shortening any backing file.
      *
-     * Note that you should not map anything after calling this function! You
-     * should close the chain and trim down the backing file!
+     * The caller must hold the allocator lock, and nothing may be allocated
+     * past new_size.
      */
-    static size_t reclaim_tail(chainid_t chain);
+    static void truncate_chain(chainid_t chain, size_t new_size);
 };
 
 /**
@@ -864,7 +875,7 @@ public:
      * the stored item to new memory not backed by any file. The pointer must
      * not be null.
      *
-     * Keeps the original if the copy wouldn't be smaller.
+     * Keeps the original if the copy would be bigger.
      */
     void compact();
     
@@ -920,12 +931,12 @@ private:
     T* cached_value = nullptr;
     
     /**
-     * Try to replace our chain with a smaller one that holds a copy of the
+     * Try to replace our chain with one no bigger that holds a copy of the
      * stored item.
      *
-     * Return true if the copy is smaller and we use it now. Return false, and
-     * keep our chain, if it isn't. If fd is set, the copy is made in that file,
-     * which is overwritten either way.
+     * Return true if the copy is no bigger and we use it now. Return false,
+     * and keep our chain, if it is bigger. If fd is set, the copy is made in
+     * that file, which is overwritten either way.
      */
     bool try_compact(int fd = 0);
 };
@@ -2436,7 +2447,7 @@ void UniqueMappedPointer<T>::save(int fd) {
         throw runtime_error("Cannot save a null object");
     }
     if (!try_compact(fd)) {
-        // The copy isn't smaller, so save the chain as it is.
+        // The copy is bigger, so save the chain as it is.
         Manager::chainid_t new_chain = Manager::get_associated_chain(chain, fd);
         Manager::destroy_chain(chain);
         chain = new_chain;
@@ -2454,6 +2465,10 @@ void UniqueMappedPointer<T>::compact() {
 
 template<typename T>
 bool UniqueMappedPointer<T>::try_compact(int fd) {
+    // Drop our free space at the end first, so it doesn't count against us,
+    // and the new chain isn't made bigger to hold it.
+    Manager::reclaim_tail(chain);
+    
     Manager::chainid_t new_chain = Manager::create_chain_like(chain, fd);
     T* item;
     try {
@@ -2466,23 +2481,15 @@ bool UniqueMappedPointer<T>::try_compact(int fd) {
         Manager::destroy_chain(new_chain);
         throw;
     }
+    Manager::reclaim_tail(new_chain);
     
-    // Compare the space each chain would take in a file, which ends at its
-    // last allocation.
-    auto saved_size = [](Manager::chainid_t c) {
-        auto usage = Manager::get_usage(c);
-        return std::get<0>(usage) - std::get<2>(usage);
-    };
-    size_t old_size = saved_size(chain);
-    size_t new_size = saved_size(new_chain);
-    if (new_size >= old_size) {
-        if (new_size > old_size) {
-            // Copying something that is already compact gives the same size,
-            // but a copy should never need more.
-            std::cerr << "warning[yomo::UniqueMappedPointer::try_compact] Copy takes "
-                << new_size << " bytes, more than the original's " << old_size
-                << " bytes, so the original is kept" << std::endl;
-        }
+    size_t old_size = Manager::get_chain_size(chain);
+    size_t new_size = Manager::get_chain_size(new_chain);
+    if (new_size > old_size) {
+        // A copy should never need more space than the original.
+        std::cerr << "warning[yomo::UniqueMappedPointer::try_compact] Copy takes "
+            << new_size << " bytes, more than the original's " << old_size
+            << " bytes, so the original is kept" << std::endl;
         Manager::destroy_chain(new_chain);
         return false;
     }
