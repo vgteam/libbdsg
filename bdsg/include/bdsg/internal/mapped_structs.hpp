@@ -983,12 +983,11 @@ private:
     T* cached_value = nullptr;
     
     /**
-     * Try to replace our chain with one no bigger that holds a copy of the
-     * stored item.
+     * Try to make the stored item take less space, by copying it.
      *
-     * Return true if the copy is no bigger and we use it now. Return false,
-     * and keep our chain, if it is bigger. If fd is set, the copy is made in
-     * that file. The file is overwritten even if we keep our chain.
+     * Return true if we now use the copy. Return false, and keep using the
+     * original, if the copy would be bigger. If fd is set, the copy is made in
+     * that file. The file is overwritten even if the original is kept.
      */
     bool try_compact(int fd = 0);
 };

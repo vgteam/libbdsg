@@ -978,8 +978,7 @@ void Manager::preload_chain(chainid_t chain, bool blocking) {
 #endif
 #endif
 
-    // Hold the allocator lock, so reclaim_tail() can't drop links while we
-    // read them.
+    // Reading the links needs the allocator lock.
     with_allocator_header(chain, [&](AllocatorHeader*) {
         scan_chain(chain, [&](const void* link_start, size_t link_length) {
             // For each link in the chain
@@ -1538,8 +1537,7 @@ size_t Manager::reclaim_tail(chainid_t chain) {
         head.last = kept->second;
         head.total_size = first_unused_byte;
         
-        // Shorten the file while we hold the allocator lock, so the file
-        // can't grow for a new link first.
+        // Shortening the file needs the allocator lock.
         if (head.fd && ftruncate(head.fd, first_unused_byte)) {
             throw std::runtime_error("Could not truncate file to " + std::to_string(first_unused_byte) +
                 " bytes: " + std::string(strerror(errno)));
