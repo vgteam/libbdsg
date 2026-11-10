@@ -387,6 +387,8 @@ public:
      *
      * The chain can still be used afterward. But each time this drops space,
      * it can tie up some address space until the chain is destroyed.
+     *
+     * Other threads can allocate and free in the chain while this runs.
      */
     static size_t reclaim_tail(chainid_t chain);
     
@@ -554,6 +556,9 @@ protected:
     
     /**
      * Extend the given chain to the given new total size.
+     *
+     * The new space is not given to the allocator. This must not run while
+     * other threads are allocating in the chain or reclaiming its tail.
      */
     static void extend_chain_to(chainid_t chain, size_t new_total_size);
     
@@ -758,6 +763,10 @@ private:
  *
  * T must use yomo::Pointer as its pointer type and yomo::Allocator as its
  * allocator type.
+ *
+ * Operations that move the object to a new chain or get rid of it (save(),
+ * compact(), dissociate(), load() and reset()) must not run while other
+ * threads are using the object.
  */
 template<typename T>
 class UniqueMappedPointer {
@@ -2457,8 +2466,7 @@ void UniqueMappedPointer<T>::compact() {
 
 template<typename T>
 bool UniqueMappedPointer<T>::try_compact(int fd) {
-    // Drop our free space at the end first, so it doesn't count against us,
-    // and the new chain isn't made bigger to hold it.
+    // Drop our free space at the end first.
     Manager::reclaim_tail(chain);
     
     Manager::chainid_t new_chain = Manager::create_chain_like(chain, fd);

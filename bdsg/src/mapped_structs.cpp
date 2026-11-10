@@ -1322,7 +1322,7 @@ std::tuple<size_t, size_t, size_t> Manager::get_usage(chainid_t chain) {
     
     // We need the total chain length so we can tell if the last
     // chain-contiguous run of free blocks abuts the end of the chain.
-    size_t total_length = get_chain_size(chain);
+    size_t total_length;
     
     // How many bytes of free payload (and associated headers) have we seen?
     size_t free_bytes = 0;
@@ -1331,6 +1331,10 @@ std::tuple<size_t, size_t, size_t> Manager::get_usage(chainid_t chain) {
     size_t reclaimable = 0;
     
     with_allocator_header(chain, [&](AllocatorHeader* header) {
+        // Read the length under the allocator lock, so the chain can't change
+        // size after we read it.
+        total_length = get_chain_size(chain);
+        
         AllocatorBlock* free_block = header->last_free;
         while (free_block) {
             // The block is free, so count it and its header as free
