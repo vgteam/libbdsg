@@ -612,6 +612,13 @@ protected:
      * merge it with free blocks that abut it in memory.
      */
     static void add_free_block(AllocatorHeader* header, AllocatorBlock* block);
+    
+    /**
+     * Tell the OS we don't need the pages in a free block's memory.
+     *
+     * What the pages hold afterward is undefined.
+     */
+    static void release_free_pages(AllocatorBlock* block);
                                       
     /**
      * While a final free block exists, drop it from the free list.

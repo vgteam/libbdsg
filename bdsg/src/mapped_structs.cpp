@@ -10,6 +10,7 @@
 #include <iomanip>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/mman.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
@@ -1146,6 +1147,7 @@ size_t Manager::try_realloc_inplace(void* address, size_t old_bytes, size_t new_
             AllocatorBlock* rest = found->split(new_bytes);
             if (neighbors) {
                 link_free_block(header, rest, neighbors->first, neighbors->second);
+                release_free_pages(rest);
             } else {
                 add_free_block(header, rest);
             }
@@ -1225,6 +1227,22 @@ void Manager::add_free_block(AllocatorHeader* header, AllocatorBlock* block) {
     auto bounds = block->coalesce();
     if (header->last_free.get() == bounds.second) {
         header->last_free = bounds.first;
+    }
+    
+    release_free_pages(bounds.first);
+}
+
+void Manager::release_free_pages(AllocatorBlock* block) {
+    // Only whole pages can be released. Keep the page with the block's header,
+    // so walking the free list doesn't fault pages back in.
+    intptr_t page_size = (intptr_t) getpagesize();
+    intptr_t start = (intptr_t) block->get_user_data();
+    intptr_t end = start + block->size;
+    start = (start + page_size - 1) / page_size * page_size;
+    end = end / page_size * page_size;
+    if (start < end) {
+        // This is only advice, so if it fails the memory just stays resident.
+        madvise((void*) start, end - start, MADV_DONTNEED);
     }
 }
     
