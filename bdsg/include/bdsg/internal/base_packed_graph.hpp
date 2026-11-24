@@ -9,6 +9,7 @@
 #define BDSG_BASE_PACKED_GRAPH_HPP_INCLUDED
 
 #include <utility>
+#include <type_traits>
 
 #include <handlegraph/util.hpp>
 
@@ -2743,7 +2744,20 @@ path_handle_t BasePackedGraph<Backend>::create_path_handle(const string& name, b
         if (new_capacity == paths.capacity()) {
             new_capacity++;
         }
-        paths.reserve(new_capacity);
+        if constexpr (std::is_same<Backend, STLBackend>::value) {
+            // PackedPath owns large step/link arrays. Their pointer-transferring
+            // SDSL moves lack noexcept, so vector::reserve would deep-copy them.
+            // Allocate the outer vector first, then explicitly move each owner.
+            // Path order, IDs and step offsets remain unchanged.
+            decltype(paths) expanded;
+            expanded.reserve(new_capacity);
+            for (auto& path : paths) {
+                expanded.emplace_back(std::move(path));
+            }
+            paths.swap(expanded);
+        } else {
+            paths.reserve(new_capacity);
+        }
     }
     
     paths.emplace_back();
