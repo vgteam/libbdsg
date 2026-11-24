@@ -9,6 +9,8 @@
 #define BDSG_BASE_PACKED_GRAPH_HPP_INCLUDED
 
 #include <utility>
+#include <type_traits>
+#include <sdsl/bit_vectors.hpp>
 
 #include <handlegraph/util.hpp>
 
@@ -2281,61 +2283,121 @@ void BasePackedGraph<Backend>::defragment(bool force) {
         
         uint64_t num_membership_records = path_membership_next_iv.size() / MEMBERSHIP_NEXT_RECORD_SIZE - deleted_membership_records;
         
-        decltype(path_membership_id_iv) new_path_membership_id_iv;
-        decltype(path_membership_offset_iv) new_path_membership_offset_iv;
-        decltype(path_membership_next_iv) new_path_membership_next_iv;
-        
-        new_path_membership_id_iv.reserve(num_membership_records * MEMBERSHIP_ID_RECORD_SIZE);
-        new_path_membership_offset_iv.reserve(num_membership_records * MEMBERSHIP_OFFSET_RECORD_SIZE);
-        new_path_membership_next_iv.reserve(num_membership_records * MEMBERSHIP_NEXT_RECORD_SIZE);
-        
-        for (size_t i = 0; i < nid_to_graph_iv.size(); i++) {
-            size_t raw_g_iv_idx = nid_to_graph_iv.get(i);
-            if (raw_g_iv_idx) {
-                // this node still exists
-                size_t g_iv_idx = (raw_g_iv_idx - 1) * GRAPH_RECORD_SIZE;
-                
-                uint64_t member_idx = path_membership_node_iv.get(graph_index_to_node_member_index(g_iv_idx));
-                if (member_idx) {
-                    // make a new membership record
-                    new_path_membership_id_iv.push_back(get_membership_path(member_idx));
-                    new_path_membership_offset_iv.push_back(get_membership_step(member_idx));
-                    new_path_membership_next_iv.push_back(0);
-                    
-                    // point the membership vector here
-                    path_membership_node_iv.set(graph_index_to_node_member_index(g_iv_idx),
-                                                new_path_membership_next_iv.size() / MEMBERSHIP_NEXT_RECORD_SIZE);
-                    
-                    member_idx = get_next_membership(member_idx);
-                    while (member_idx) {
+        if constexpr (std::is_same<Backend, STLBackend>::value) {
+            // Rank preserves linked-list order while moving records only LEFT:
+            // no unread record can be overwritten. Scratch is ~1 bit/old record,
+            // rather than three complete replacement arrays.
+            const size_t old_count = path_membership_next_iv.size() / MEMBERSHIP_NEXT_RECORD_SIZE;
+            sdsl::bit_vector live(old_count + 1, 0);
+            for (size_t i = 0; i < nid_to_graph_iv.size(); ++i) {
+                const auto raw = nid_to_graph_iv.get(i);
+                if (!raw) continue;
+                const auto head = graph_index_to_node_member_index((raw - 1) * GRAPH_RECORD_SIZE);
+                uint64_t member = path_membership_node_iv.get(head);
+                while (member) {
+                    live[member] = 1;
+                    member = get_next_membership(member);
+                }
+            }
+            sdsl::rank_support_v5<1> rank(&live);
+            auto translate = [&](uint64_t member) -> uint64_t {
+                return member ? rank(member + 1) : 0;
+            };
+            for (size_t i = 0; i < nid_to_graph_iv.size(); ++i) {
+                const auto raw = nid_to_graph_iv.get(i);
+                if (!raw) continue;
+                const auto head = graph_index_to_node_member_index((raw - 1) * GRAPH_RECORD_SIZE);
+                path_membership_node_iv.set(head, translate(path_membership_node_iv.get(head)));
+            }
+            size_t dest = 0;
+            for (size_t member = 1; member <= old_count; ++member) {
+                if (!live[member]) continue;
+                const auto path = get_membership_path(member);
+                const auto step = get_membership_step(member);
+                const auto next = translate(get_next_membership(member));
+                path_membership_id_iv.set(dest, path);
+                path_membership_offset_iv.set(dest, step);
+                path_membership_next_iv.set(dest, next);
+                ++dest;
+                // Repack each completed destination page immediately. Do not
+                // accumulate old anchors/widened pages across the whole graph.
+                if (dest % path_membership_id_iv.page_width() == 0)
+                    path_membership_id_iv.repack_page(dest / path_membership_id_iv.page_width() - 1);
+                if (dest % path_membership_offset_iv.page_width() == 0)
+                    path_membership_offset_iv.repack_page(dest / path_membership_offset_iv.page_width() - 1);
+                if (dest % path_membership_next_iv.page_width() == 0)
+                    path_membership_next_iv.repack_page(dest / path_membership_next_iv.page_width() - 1);
+            }
+            assert(dest == num_membership_records);
+            path_membership_id_iv.resize(dest);
+            path_membership_offset_iv.resize(dest);
+            path_membership_next_iv.resize(dest);
+            // Moving values can leave stale anchors/widths. Repack a page at
+            // a time, never a second complete membership array.
+            if (dest % path_membership_id_iv.page_width())
+                path_membership_id_iv.repack_page(dest / path_membership_id_iv.page_width());
+            if (dest % path_membership_offset_iv.page_width())
+                path_membership_offset_iv.repack_page(dest / path_membership_offset_iv.page_width());
+            if (dest % path_membership_next_iv.page_width())
+                path_membership_next_iv.repack_page(dest / path_membership_next_iv.page_width());
+        } else {
+            decltype(path_membership_id_iv) new_path_membership_id_iv;
+            decltype(path_membership_offset_iv) new_path_membership_offset_iv;
+            decltype(path_membership_next_iv) new_path_membership_next_iv;
+
+            new_path_membership_id_iv.reserve(num_membership_records * MEMBERSHIP_ID_RECORD_SIZE);
+            new_path_membership_offset_iv.reserve(num_membership_records * MEMBERSHIP_OFFSET_RECORD_SIZE);
+            new_path_membership_next_iv.reserve(num_membership_records * MEMBERSHIP_NEXT_RECORD_SIZE);
+
+            for (size_t i = 0; i < nid_to_graph_iv.size(); i++) {
+                size_t raw_g_iv_idx = nid_to_graph_iv.get(i);
+                if (raw_g_iv_idx) {
+                    // this node still exists
+                    size_t g_iv_idx = (raw_g_iv_idx - 1) * GRAPH_RECORD_SIZE;
+
+                    uint64_t member_idx = path_membership_node_iv.get(graph_index_to_node_member_index(g_iv_idx));
+                    if (member_idx) {
                         // make a new membership record
                         new_path_membership_id_iv.push_back(get_membership_path(member_idx));
                         new_path_membership_offset_iv.push_back(get_membership_step(member_idx));
                         new_path_membership_next_iv.push_back(0);
-                        // point the previous link at this one
-                        new_path_membership_next_iv.set(new_path_membership_next_iv.size() - 2 * MEMBERSHIP_NEXT_RECORD_SIZE,
-                                                        new_path_membership_next_iv.size() / MEMBERSHIP_NEXT_RECORD_SIZE);
-                        
+
+                        // point the membership vector here
+                        path_membership_node_iv.set(graph_index_to_node_member_index(g_iv_idx),
+                                                    new_path_membership_next_iv.size() / MEMBERSHIP_NEXT_RECORD_SIZE);
+
                         member_idx = get_next_membership(member_idx);
+                        while (member_idx) {
+                            // make a new membership record
+                            new_path_membership_id_iv.push_back(get_membership_path(member_idx));
+                            new_path_membership_offset_iv.push_back(get_membership_step(member_idx));
+                            new_path_membership_next_iv.push_back(0);
+                            // point the previous link at this one
+                            new_path_membership_next_iv.set(new_path_membership_next_iv.size() - 2 * MEMBERSHIP_NEXT_RECORD_SIZE,
+                                                            new_path_membership_next_iv.size() / MEMBERSHIP_NEXT_RECORD_SIZE);
+
+                            member_idx = get_next_membership(member_idx);
+                        }
                     }
                 }
             }
+
+            path_membership_id_iv = std::move(new_path_membership_id_iv);
+            path_membership_offset_iv = std::move(new_path_membership_offset_iv);
+            path_membership_next_iv = std::move(new_path_membership_next_iv);
+
         }
-        
-        path_membership_id_iv = std::move(new_path_membership_id_iv);
-        path_membership_offset_iv = std::move(new_path_membership_offset_iv);
-        path_membership_next_iv = std::move(new_path_membership_next_iv);
-        
+
         deleted_membership_records = 0;
     }
 }
 
 template<typename Backend>
 void BasePackedGraph<Backend>::optimize(bool allow_id_reassignment) {
-    
+
     if (allow_id_reassignment) {
         // reassign IDs into a contiguous interval ordered by an approximate sort
-        
+
         // Wrap ourselves in something that can do dynamic dispatch for
         // HandleGraph methods.
         NonOwningGraphProxy<BasePackedGraph> proxy(this);
