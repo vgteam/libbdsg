@@ -212,6 +212,12 @@ public:
     /// Does not update any stored paths. May change the ordering of the underlying
     /// graph.
     handle_t apply_orientation(const handle_t& handle);
+
+    // Transfer steps to an unused node of the same length. The caller must
+    // supply handles that spell the same sequence, taking orientation into
+    // account. Return false without edits if the target has steps, the
+    // lengths differ, both handles name the same node, or a path is circular.
+    bool move_path_steps(const handle_t& from, const handle_t& to);
     
     /// Split a handle's underlying node at the given offsets in the handle's
     /// orientation. Returns all of the handles to the parts. Other handles to
@@ -1447,6 +1453,40 @@ string BasePackedGraph<Backend>::get_subsequence(const handle_t& handle, size_t 
         subseq[i] = decode_nucleotide(seq_iv.get(subseq_start + i));
     }
     return get_is_reverse(handle) ? reverse_complement(subseq) : subseq;
+}
+
+template<typename Backend>
+bool BasePackedGraph<Backend>::move_path_steps(const handle_t& from, const handle_t& to) {
+    const size_t from_index = graph_index_to_node_member_index(graph_iv_index(from));
+    const size_t to_index = graph_index_to_node_member_index(graph_iv_index(to));
+    if (from_index == to_index || path_membership_node_iv.get(to_index) ||
+        get_length(from) != get_length(to)) {
+        return false;
+    }
+    const uint64_t head = path_membership_node_iv.get(from_index);
+    for (uint64_t member = head; member; member = get_next_membership(member)) {
+        if (path_is_circular_iv.get(get_membership_path(member))) {
+            return false;
+        }
+    }
+
+    // Keep each step and membership record in place. Reverse the list just
+    // as rewriting the same steps one at a time would prepend them.
+    uint64_t new_head = 0;
+    for (uint64_t member = head; member;) {
+        auto& path = paths[get_membership_path(member)];
+        const uint64_t step = get_membership_step(member);
+        const handle_t old = decode_traversal(get_step_trav(path, step));
+        const handle_t replacement = get_is_reverse(old) == get_is_reverse(from) ? to : flip(to);
+        set_step_trav(path, step, encode_traversal(replacement));
+        const uint64_t next = get_next_membership(member);
+        set_next_membership(member, new_head);
+        new_head = member;
+        member = next;
+    }
+    path_membership_node_iv.set(to_index, new_head);
+    path_membership_node_iv.set(from_index, 0);
+    return true;
 }
 
 template<typename Backend>

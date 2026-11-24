@@ -25,6 +25,11 @@ using namespace handlegraph;
  * In-memory implementation of MutablePathDeletableHandleGraph
  */
 class PackedGraph : public GraphProxy<BasePackedGraph<>> {
+public:
+    bool move_path_steps(const handle_t& from, const handle_t& to) {
+        return implementation.move_path_steps(from, to);
+    }
+
 protected:
     /**
      * Get the object that actually provides the graph methods.
