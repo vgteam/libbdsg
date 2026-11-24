@@ -253,6 +253,10 @@ public:
     
     /// Reallocate smaller after having been resized down.
     inline void shrink_to_fit();
+
+    /// Re-anchor and repack each page separately; scratch is one page.
+    inline void repack_page(size_t page);
+
     
     /// Returns the number of values
     inline size_t size() const;
@@ -1184,6 +1188,24 @@ template<size_t page_size, typename Backend>
 inline void PagedVector<page_size, Backend>::shrink_to_fit() {
     anchors.shrink_to_fit();
     pages.shrink_to_fit();
+}
+
+template<size_t page_size, typename Backend>
+inline void PagedVector<page_size, Backend>::repack_page(size_t page) {
+    assert(page < pages.size());
+    const size_t count = std::min<size_t>(page_size, filled - page * page_size);
+    // Read before replacing the anchor or backing page. Fixed-size scratch.
+    uint64_t values[page_size];
+    uint64_t anchor = 0;
+    for (size_t i = 0; i < count; ++i) {
+        values[i] = get(page * page_size + i);
+        if (!anchor) anchor = values[i];
+    }
+    Page replacement;
+    replacement.resize(page_size);
+    for (size_t i = 0; i < count; ++i) replacement.set(i, to_diff(values[i], anchor));
+    anchors.set(page, anchor);
+    pages[page] = std::move(replacement);
 }
 
 template<size_t page_size, typename Backend>
